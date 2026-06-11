@@ -91,6 +91,10 @@ export {
   type SearchSelectOption,
   type SearchSelectProps,
   CurrencyInput,
+  ConfirmDialog,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
 } from './primitives'
 
 // Layout

@@ -1,4 +1,5 @@
-import type { PluginRegistryDef, EntityDef } from '@fayz/core'
+import type { PluginRegistryDef } from '@fayz/core'
+import type { EntityDef } from '@fayz/core'
 
 const leadSourceEntity: EntityDef = {
   name: 'Lead Source',

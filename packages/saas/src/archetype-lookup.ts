@@ -14,6 +14,8 @@ export interface EntityLookupResult {
   data?: Record<string, unknown>
 }
 
+export type EntityLookupMap = Record<string, EntityLookup>
+
 export interface EntityLookup {
   search(query: string): Promise<EntityLookupResult[]>
   getById(id: string): Promise<EntityLookupResult | null>

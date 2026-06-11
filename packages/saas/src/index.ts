@@ -36,7 +36,7 @@ export { createSaasApp, createCrudPage } from '@fayz/saas-core'
 // Archetype lookup
 // ---------------------------------------------------------------------------
 export { createArchetypeLookup } from './archetype-lookup'
-export type { EntityLookup, EntityLookupResult, ArchetypeType } from './archetype-lookup'
+export type { EntityLookup, EntityLookupResult, EntityLookupMap, ArchetypeType } from './archetype-lookup'
 
 // ---------------------------------------------------------------------------
 // Supabase client
@@ -138,3 +138,5 @@ export { SettingsGroup, ToggleRow, SelectRow } from './plugins/SettingsGroup'
 export { QuickActionsButton } from './plugins/QuickActionsButton'
 export { PluginRegistryManager } from './plugins/PluginRegistryManager'
 export { useModuleNavigation } from './hooks/useModuleNavigation'
+export { PersonLink } from './components/shared/PersonLink'
+export { resolveEntityHref } from './lib/entity-routes'
