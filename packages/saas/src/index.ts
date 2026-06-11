@@ -5,16 +5,32 @@ export { createFayzApp } from './app/createFayzApp'
 export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, CustomPage, PageSection } from './app/config'
 
 // ---------------------------------------------------------------------------
-// Bridge exports — uses the battle-tested saas-core implementations via vite alias.
-// In dev mode, @fayz/saas-core resolves to ../saas-core/src.
-// Replace with native implementations incrementally.
-// ---------------------------------------------------------------------------
+// CRUD engine — NATIVE code is now in ./crud (de-bridged from saas-core: the
+// full list/form/detail engine, archetype layouts, providers and store).
+// The native engine + the saas shell share runtime providers (Permissions,
+// Org), so the DEFAULT createCrudPage stays bridged until the admin shell
+// de-bridges and mounts the native providers — they co-migrate atomically.
+// The native pieces are exported here, ready for the native shell.
+export {
+  CrudPage,
+  CrudFormPage,
+  CrudDetailPage,
+  CrudCardGrid,
+  DeleteConfirmDialog,
+  ImportWizard,
+  exportToCSV,
+  createCrudPage as createNativeCrudPage,
+} from './crud'
+export type { ImportRowError } from './crud'
+export { PermissionGate } from './permissions/PermissionGate'
+export { WidgetSlot } from './plugins/WidgetSlot'
+export { useFieldRules } from './hooks/useFieldRules'
+
+// Shell bridge — createSaasApp + the default createCrudPage stay on saas-core
+// until the shell de-bridges (last W6 step).
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — cross-package bridge; resolved by vite alias in consumer apps
-export { createSaasApp } from '@fayz/saas-core'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — cross-package bridge; resolved by vite alias in consumer apps
-export { createCrudPage } from '@fayz/saas-core'
+export { createSaasApp, createCrudPage } from '@fayz/saas-core'
 
 // ---------------------------------------------------------------------------
 // Archetype lookup

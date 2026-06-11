@@ -13,7 +13,20 @@ export type { LocaleConfig } from './types/i18n'
 // Data providers
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './data/supabase'
 export { createMockProvider } from './data/mock'
+export { createArchetypeProvider } from './data/archetype'
+export { withCache } from './data/cached'
+export { resolveDataProvider } from './data/resolve'
 export type { DataProvider, CrudQuery, CrudResult, SupabaseProviderConfig } from './data/index'
+
+// Tenant context (runtime DI for the data layer)
+export { setActiveTenantId, getActiveTenantId } from './tenant'
+
+// Shared utilities
+export { formatCurrency, formatDate, formatDateTime, getActiveLocale, getDefaultCurrency, setDefaultCurrency } from './lib/format'
+export { exportCSV, buildCSV, downloadCSV } from './lib/csv'
+export type { CSVColumn } from './lib/csv'
+export { globalCache, createCacheStore, stableKey, clearGlobalCache } from './lib/cache'
+export type { CacheStore } from './lib/cache'
 
 // Plugin system
 export { definePlugin, resolvePluginRuntime, getWidgetsForZone, PluginRuntimeProvider, usePluginRuntime, usePluginRuntimeOptional, PLUGIN_API_VERSION, resolvePluginComponent } from './plugin/runtime'
