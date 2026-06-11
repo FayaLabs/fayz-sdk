@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { shellTranslations } from './shell-translations'
 
 export interface I18nConfig {
   defaultLocale: string
@@ -235,7 +236,9 @@ export function mergeTranslations(
   return result
 }
 
-// Seed the global fallback with core's own translations so common.* / crud.* /
-// auth.* keys resolve for de-bridged plugins even under a host shell that does
-// not mount @fayz/core's I18nProvider.
+// Seed the global fallback with core's own translations + the shared shell /
+// CRUD / framework translations (extracted from saas-core's central i18n), so
+// the native CRUD engine, framework UI and de-bridged plugins resolve their
+// keys even under a host shell that does not mount @fayz/core's I18nProvider.
 registerTranslations(coreTranslations)
+registerTranslations(shellTranslations)
