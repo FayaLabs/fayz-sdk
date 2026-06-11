@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build all packages (JS + declarations)
+        run: pnpm -r --filter './packages/*' --filter './plugins/*' build
+      - name: Typecheck
+        run: pnpm -r --filter './packages/*' typecheck
+      - name: Test
+        run: pnpm -r --filter './packages/*' --filter './plugins/*' test --if-present
+
+  published-artifact-smoke:
+    # Exercises the path real apps use: consume BUILT tarballs, not workspace source.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r --filter './packages/*' --filter './plugins/*' build
+      - name: Pack and assert published shape (dist + .d.ts in every tarball)
+        run: node scripts/check-published-shape.mjs

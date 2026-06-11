@@ -1,0 +1,7 @@
+packages:
+  - "packages/*"
+  - "plugins/*"
+  - "cli"
+  - "examples/*"
+  - "../../resto-saas"
+  - "../../beauty-saas"

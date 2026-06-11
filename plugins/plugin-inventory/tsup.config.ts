@@ -1,0 +1,11 @@
+import { defineConfig } from 'tsup'
+export default defineConfig({
+  entry: { index: 'src/index.ts' },
+  format: ['esm', 'cjs'],
+  dts: false,
+  splitting: true,
+  sourcemap: true,
+  clean: true,
+  treeshake: true,
+  external: ['react', 'react-dom', '@fayz/core', '@fayz/ui', '@fayz/auth', '@fayz/saas', '@fayz/saas-core', '@fayz/saas-core/plugins/*'],
+})

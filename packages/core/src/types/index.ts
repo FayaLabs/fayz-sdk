@@ -1,0 +1,10 @@
+// Re-export all core types
+export type { EntityArchetype, BaseEntity, PersonEntity, ProductEntity, ServiceEntity, OrderEntity, TransactionEntity, LocationEntity, ScheduleEntity, CategoryEntity } from './entities'
+export type { EntityDef, FieldDef, FieldType, FieldGroup, DetailTab, FormLayout } from './crud'
+export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, PluginRegistryDef, PluginMigration, VerticalId, ScaffoldType } from './plugins'
+export type { AuthAdapter, AuthUser, AuthSession } from './auth'
+export type { OrgAdapter, Organization, OrgMember } from './org'
+export type { PermissionsConfig, FeatureDeclaration, PermissionAction } from './permissions'
+export type { Plan, BillingConfig } from './billing'
+export type { SaasTheme, ThemeConfig } from './theme'
+export type { LocaleConfig } from './i18n'

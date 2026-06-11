@@ -1,0 +1,307 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Polaris "Sail" light — page #f1f1f1, cards #ffffff, near-black brand #303030 */
+    --primary: 0 0% 18.8%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.9%;
+    --secondary-foreground: 0 0% 18.8%;
+    --accent: 0 0% 94.5%;
+    --accent-foreground: 0 0% 18.8%;
+    --background: 0 0% 94.5%;
+    --foreground: 0 0% 18.8%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 18.8%;
+    --muted: 0 0% 96.9%;
+    --muted-foreground: 0 0% 38%;
+    --border: 0 0% 89%;
+    --input: 0 0% 54.1%;
+    --ring: 214 100% 41.4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 18.8%;
+    --destructive: 354 92% 41%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 167 95% 25.1%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 100% 50%;
+    --warning-foreground: 0 0% 18.8%;
+
+    /* Info + Magic — Polaris semantic accents (full strength, used for icons/links) */
+    --info: 214 100% 41.4%;               /* #005bd3 */
+    --info-foreground: 0 0% 100%;
+    --magic: 257 100% 65.7%;              /* #8051ff */
+    --magic-foreground: 0 0% 100%;
+
+    /* Polaris soft status pairs — desaturated tints used on badges/banners */
+    --info-soft: 212 100% 95.9%;          /* #ebf5ff */
+    --info-soft-foreground: 200 100% 24.3%;     /* #00527c */
+    --success-soft: 126 96% 90%;          /* #cdfed4 */
+    --success-soft-foreground: 153 74% 18.6%;   /* #0c5132 */
+    --warning-soft: 51 100% 92.7%;        /* #fff8db */
+    --warning-soft-foreground: 39 73% 31.4%;    /* #8a6116 */
+    --destructive-soft: 351 91% 95.5%;    /* #fee8eb */
+    --destructive-soft-foreground: 350 86% 30%; /* #8e0b21 */
+    --magic-soft: 257 100% 96.7%;         /* #f3eeff */
+    --magic-soft-foreground: 256 64% 45%;       /* #4f2bbb */
+
+    /* Layout surfaces — light gray sidebar with raised-white active items */
+    --sidebar: 0 0% 92.2%;
+    --sidebar-foreground: 0 0% 18.8%;
+    --sidebar-border: 0 0% 86.3%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 18.8%;
+    --sidebar-muted: 0 0% 38%;
+    --content: 0 0% 94.5%;
+
+    /* UI Perception Tokens */
+    --button-radius: 0.5rem;
+    --card-radius: 0.5rem;
+    --input-radius: 0.5rem;
+    --modal-radius: 1rem;
+    --font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-family-mono: JetBrains Mono, ui-monospace, SFMono-Regular, monospace;
+    /* Polaris hairline + a touch of bottom lift so cards visibly float on the gray page */
+    --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.05), 0 1px 3px 0 rgba(26, 26, 26, 0.06), 0 1px 2px -1px rgba(26, 26, 26, 0.06);
+    --shadow-md: 0 1px 1px -1px rgba(26, 26, 26, 0.07), 0 4px 8px -2px rgba(26, 26, 26, 0.10);
+    --shadow-lg: 0 4px 12px -2px rgba(26, 26, 26, 0.15), 0 1px 3px rgba(26, 26, 26, 0.08);
+
+    /* Polaris button bevels */
+    --shadow-button:
+      inset 0 -1px 0 rgba(0,0,0,0.10),
+      inset 0  1px 0 rgba(255,255,255,0.50),
+      0 1px 0 rgba(0,0,0,0.05);
+    --shadow-button-primary:
+      inset 0 -1px 0 rgba(0,0,0,0.20),
+      inset 0  1px 0 rgba(255,255,255,0.20),
+      0 1px 1.5px rgba(0,0,0,0.20);
+    --shadow-button-inset:
+      inset 0 2px 1px -1px rgba(0,0,0,0.20),
+      inset 0 0 0 1px rgba(0,0,0,0.05);
+  }
+
+  .dark {
+    /* "Sail midnight" — Polaris dark */
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 10.2%;
+    --secondary: 0 0% 18.8%;
+    --secondary-foreground: 0 0% 89%;
+    --accent: 0 0% 22.7%;
+    --accent-foreground: 0 0% 100%;
+    --background: 0 0% 10.2%;
+    --foreground: 0 0% 89%;
+    --card: 0 0% 14.9%;
+    --card-foreground: 0 0% 89%;
+    --muted: 0 0% 18.8%;
+    --muted-foreground: 0 0% 64.7%;
+    --border: 0 0% 22.7%;
+    --input: 0 0% 32.2%;
+    --ring: 217 100% 68.4%;
+    --popover: 0 0% 18.8%;
+    --popover-foreground: 0 0% 89%;
+    --destructive: 7 100% 44.9%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 156 71% 42.5%;
+    --success-foreground: 0 0% 0%;
+    --warning: 41 100% 65.1%;
+    --warning-foreground: 0 0% 10.2%;
+
+    --info: 217 100% 68.4%;
+    --info-foreground: 0 0% 10.2%;
+    --magic: 257 96% 75%;
+    --magic-foreground: 0 0% 10.2%;
+
+    /* Soft pairs invert */
+    --info-soft: 215 100% 31%;            /* #00359e */
+    --info-soft-foreground: 213 100% 84.5%;     /* #b3d4ff */
+    --success-soft: 153 74% 18.6%;        /* #0c5132 */
+    --success-soft-foreground: 152 56% 80.5%;   /* #aee9d1 */
+    --warning-soft: 31 100% 17.6%;        /* #5a3500 */
+    --warning-soft-foreground: 35 100% 81%;     /* #ffd79d */
+    --destructive-soft: 350 75% 17.6%;    /* #4d0b1a */
+    --destructive-soft-foreground: 357 100% 92%;/* #ffd7d9 */
+    --magic-soft: 254 67% 26%;            /* #2a1670 */
+    --magic-soft-foreground: 267 89% 86%;       /* #d6bbfb */
+
+    /* Layout surfaces */
+    --sidebar: 0 0% 10.2%;
+    --sidebar-foreground: 0 0% 89%;
+    --sidebar-border: 0 0% 16.5%;
+    --sidebar-accent: 0 0% 18.8%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-muted: 0 0% 64.7%;
+    --content: 0 0% 10.2%;
+
+    --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.4), 0 1px 3px 0 rgba(0, 0, 0, 0.35), 0 1px 2px -1px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 1px 1px -1px rgba(0, 0, 0, 0.5), 0 4px 8px -2px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 4px 12px -2px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
+
+    --shadow-button:
+      inset 0 -1px 0 rgba(0,0,0,0.40),
+      inset 0  1px 0 rgba(255,255,255,0.08),
+      0 1px 0 rgba(0,0,0,0.30);
+    --shadow-button-primary:
+      inset 0 -1px 0 rgba(0,0,0,0.20),
+      inset 0  1px 0 rgba(255,255,255,0.40),
+      0 1px 1.5px rgba(0,0,0,0.40);
+    --shadow-button-inset:
+      inset 0 2px 1px -1px rgba(0,0,0,0.50),
+      inset 0 0 0 1px rgba(0,0,0,0.20);
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-family);
+    font-size: 0.8125rem;               /* 13px — Polaris body default */
+    line-height: 1.25rem;               /* 20px */
+    font-feature-settings: 'ss01', 'ss02', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Hide scrollbar — for horizontal tab strips and similar */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Theme transition — applied briefly during light/dark switch */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color 400ms ease, color 400ms ease, border-color 400ms ease,
+    box-shadow 400ms ease, fill 400ms ease, stroke 400ms ease !important;
+}
+
+/* Animation keyframes for Radix UI components */
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+      scale(var(--tw-enter-scale, 1));
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0)
+      scale(var(--tw-exit-scale, 1));
+  }
+}
+
+/* Page transition */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(var(--saas-page-enter-offset)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Radix animation utilities (replaces tailwindcss-animate plugin) */
+.animate-in {
+  animation-name: enter;
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+.animate-out {
+  animation-name: exit;
+  animation-duration: 150ms;
+  animation-timing-function: ease-in;
+  animation-fill-mode: both;
+}
+.fade-in-0 { --tw-enter-opacity: 0; }
+.fade-out-0 { --tw-exit-opacity: 0; }
+.zoom-in-95 { --tw-enter-scale: 0.95; }
+.zoom-out-95 { --tw-exit-scale: 0.95; }
+.slide-in-from-top-2 { --tw-enter-translate-y: -0.5rem; }
+.slide-in-from-bottom-2 { --tw-enter-translate-y: 0.5rem; }
+.slide-in-from-bottom-4 { --tw-enter-translate-y: 1rem; }
+.slide-in-from-left-1\/2 { --tw-enter-translate-x: -50%; }
+.slide-in-from-right-2 { --tw-enter-translate-x: 0.5rem; }
+.slide-in-from-top-\[48\%\] { --tw-enter-translate-y: -48%; }
+.slide-out-to-left-1\/2 { --tw-exit-translate-x: -50%; }
+.slide-out-to-top-\[48\%\] { --tw-exit-translate-y: -48%; }
+.slide-out-to-top-2 { --tw-exit-translate-y: -0.5rem; }
+.duration-200 { animation-duration: 200ms; }
+.duration-300 { animation-duration: 300ms; }
+
+/* Modal & overlay animations */
+.saas-mdl-ov[data-state="open"]   { animation: saas-mdl-ov-in 200ms ease-out both; }
+.saas-mdl-ov[data-state="closed"] { animation: saas-mdl-ov-out 150ms ease-in both; }
+.saas-mdl-ct[data-state="open"]   { animation: saas-mdl-ct-in 250ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.saas-mdl-ct[data-state="closed"] { animation: saas-mdl-ct-out 180ms ease-in both; }
+
+@keyframes saas-mdl-ov-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes saas-mdl-ov-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes saas-mdl-ct-in  { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes saas-mdl-ct-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.97); } }
+
+/* Page transition tokens */
+:root {
+  --saas-transition-duration: 200ms;
+  --saas-transition-easing: ease-out;
+  --saas-page-enter-duration: 250ms;
+  --saas-page-enter-offset: 4px;
+  --saas-nav-slide-offset: 12px;
+}
+
+/* Page content transition */
+.saas-page-enter {
+  animation: page-enter var(--saas-page-enter-duration) var(--saas-transition-easing) both;
+}
+
+/* Mobile drawer animation */
+.saas-drawer[data-state="open"] {
+  animation: saas-drawer-in 250ms ease-out both;
+}
+.saas-drawer[data-state="closed"] {
+  animation: saas-drawer-out 200ms ease-in both;
+}
+@keyframes saas-drawer-in {
+  from { opacity: 0; transform: translateX(-100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes saas-drawer-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-100%); }
+}
+
+/* Command palette animation */
+.saas-cmd-palette[data-state="open"] {
+  animation: saas-cmd-in 200ms ease-out both;
+}
+.saas-cmd-palette[data-state="closed"] {
+  animation: saas-cmd-out 150ms ease-in both;
+}
+@keyframes saas-cmd-in {
+  from { opacity: 0; transform: translateX(-50%) scale(0.96) translateY(-8px); }
+  to { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+}
+@keyframes saas-cmd-out {
+  from { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+  to { opacity: 0; transform: translateX(-50%) scale(0.96) translateY(-8px); }
+}
+
+/* Navigation transitions */
+.saas-nav-forward {
+  animation: saas-slide-forward var(--saas-transition-duration) var(--saas-transition-easing) both;
+}
+.saas-nav-back {
+  animation: saas-slide-back var(--saas-transition-duration) var(--saas-transition-easing) both;
+}
+
+@keyframes saas-slide-forward {
+  from { opacity: 0; transform: translateX(var(--saas-nav-slide-offset)); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes saas-slide-back {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--saas-nav-slide-offset))); }
+  to { opacity: 1; transform: translateX(0); }
+}
