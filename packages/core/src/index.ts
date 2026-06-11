@@ -30,7 +30,7 @@ export type { CacheStore } from './lib/cache'
 
 // Plugin system
 export { definePlugin, resolvePluginRuntime, getWidgetsForZone, PluginRuntimeProvider, usePluginRuntime, usePluginRuntimeOptional, PLUGIN_API_VERSION, resolvePluginComponent } from './plugin/runtime'
-export type { PluginEventDefinition } from './types/plugins'
+export type { PluginEventDefinition, PluginQuickAction } from './types/plugins'
 
 // Event bus
 export { createEventBus, eventBus, useOnEvent } from './events'

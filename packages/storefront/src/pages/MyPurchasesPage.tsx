@@ -16,29 +16,72 @@ const FINANCIAL_LABEL: Record<string, string> = {
   voided: 'Cancelado',
 }
 
-function SignInForm() {
+function AuthForm() {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (!email.trim() || !password) return
+    if (mode === 'signup' && !name.trim()) {
+      setError('Informe seu nome.')
+      return
+    }
+    setBusy(true)
+    try {
+      if (mode === 'signup') await signUpCustomer(email, password, name.trim())
+      else await establishCustomerSession(email, { password })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível entrar. Verifique seus dados.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const tab = (id: 'signin' | 'signup', label: string, testId: string) => (
+    <button
+      type="button"
+      data-testid={testId}
+      onClick={() => {
+        setMode(id)
+        setError(null)
+      }}
+      className={`flex-1 border-b-2 pb-2.5 text-sm font-semibold transition-colors ${
+        mode === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {label}
+    </button>
+  )
 
   return (
-    <div className="mx-auto max-w-sm rounded-2xl border bg-card p-6">
-      <h2 className="text-lg font-semibold">Acessar minhas compras</h2>
+    <div className="mx-auto max-w-sm animate-fade-up border bg-card p-7" style={{ borderRadius: 'var(--sf-radius-card)' }}>
+      <h2 className="sf-heading text-xl font-semibold">Minha conta</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Informe o e-mail usado nos seus pedidos.
+        Acompanhe pedidos e acelere seus próximos checkouts.
       </p>
-      <form
-        className="mt-4 space-y-3"
-        onSubmit={async (e) => {
-          e.preventDefault()
-          if (!email.trim()) return
-          setBusy(true)
-          try {
-            await signInByEmail(email)
-          } finally {
-            setBusy(false)
-          }
-        }}
-      >
+      <div className="mt-5 flex gap-2">
+        {tab('signin', 'Entrar', TID.authTabSignin)}
+        {tab('signup', 'Criar conta', TID.authTabSignup)}
+      </div>
+      <form className="mt-5 space-y-3" onSubmit={submit}>
+        {mode === 'signup' && (
+          <input
+            data-testid={TID.signinName}
+            type="text"
+            required
+            placeholder="Nome completo"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border bg-background px-3 py-2.5 text-sm"
+            style={{ borderRadius: 'var(--sf-radius-input)' }}
+          />
+        )}
         <input
           data-testid={TID.signinEmail}
           type="email"
@@ -46,15 +89,30 @@ function SignInForm() {
           placeholder="voce@exemplo.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+          className="w-full border bg-background px-3 py-2.5 text-sm"
+          style={{ borderRadius: 'var(--sf-radius-input)' }}
         />
+        <input
+          data-testid={TID.signinPassword}
+          type="password"
+          required
+          placeholder="Senha"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full border bg-background px-3 py-2.5 text-sm"
+          style={{ borderRadius: 'var(--sf-radius-input)' }}
+        />
+        {error && (
+          <p data-testid={TID.authError} className="text-sm text-destructive">{error}</p>
+        )}
         <button
           type="submit"
           data-testid={TID.signinSubmit}
           disabled={busy}
-          className="w-full rounded-xl bg-primary py-2.5 font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+          className="sf-cta w-full bg-primary py-3 font-semibold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+          style={{ borderRadius: 'var(--sf-radius-button)' }}
         >
-          {busy ? 'Entrando…' : 'Entrar'}
+          {busy ? 'Entrando…' : mode === 'signup' ? 'Criar conta' : 'Entrar'}
         </button>
       </form>
     </div>
@@ -70,7 +128,7 @@ export function MyPurchasesPage() {
   if (!session.email) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <SignInForm />
+        <AuthForm />
       </main>
     )
   }

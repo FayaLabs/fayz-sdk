@@ -10,10 +10,17 @@ import { Link, navigateTo, useHashPath } from '../router'
 import { TID } from '../testids'
 
 // Header tokens come from the theme (--sf-header-bg/fg) so dark headers
-// (Brasília pattern) work without component changes.
+// (Brasília pattern) work without component changes. Dividers derive from the
+// header FOREGROUND (not the page --border token, which is light and shows as
+// white lines on dark headers).
 const headerStyle: React.CSSProperties = {
   backgroundColor: 'hsl(var(--sf-header-bg, var(--background)))',
   color: 'hsl(var(--sf-header-fg, var(--foreground)))',
+  borderColor: 'hsl(var(--sf-header-fg, var(--foreground)) / 0.14)',
+}
+
+const headerDivider: React.CSSProperties = {
+  borderColor: 'hsl(var(--sf-header-fg, var(--foreground)) / 0.14)',
 }
 
 function AnnouncementBar() {
@@ -40,7 +47,7 @@ function UtilityBar() {
   const social = config.footer?.social
   if (!contact?.phone && !contact?.email && !social?.length) return null
   return (
-    <div className="hidden border-b border-current/10 text-xs opacity-80 md:block">
+    <div className="hidden border-b text-xs opacity-80 md:block" style={headerDivider}>
       <div className="mx-auto flex h-8 max-w-7xl items-center gap-5 px-4 sm:px-6">
         {contact?.phone && (
           <span className="inline-flex items-center gap-1.5">
@@ -82,8 +89,11 @@ function SearchInput({ className }: { className?: string }) {
           setSearch(e.target.value)
           if (path !== config.catalogPath) navigateTo(config.catalogPath)
         }}
-        className="w-full border border-current/20 bg-white/10 py-2 pl-9 pr-4 text-sm outline-none transition-colors placeholder:opacity-60 focus:border-primary focus:bg-white focus:text-gray-900"
-        style={{ borderRadius: 'var(--sf-radius-input)' }}
+        className="w-full border bg-white/10 py-2 pl-9 pr-4 text-sm outline-none transition-colors placeholder:opacity-60 focus:border-primary focus:bg-white focus:text-gray-900"
+        style={{
+          borderRadius: 'var(--sf-radius-input)',
+          borderColor: 'hsl(var(--sf-header-fg, var(--foreground)) / 0.25)',
+        }}
       />
     </div>
   )
@@ -203,7 +213,7 @@ export function StorefrontHeader() {
               <HeaderActions />
             </div>
           </div>
-          <div className="hidden justify-center border-t border-current/10 py-2.5 sm:flex">
+          <div className="hidden justify-center border-t py-2.5 sm:flex" style={headerDivider}>
             <NavLinks />
           </div>
         </>
@@ -217,7 +227,7 @@ export function StorefrontHeader() {
               <HeaderActions />
             </div>
           </div>
-          <div className="hidden border-t border-current/10 sm:block">
+          <div className="hidden border-t sm:block" style={headerDivider}>
             <div className="mx-auto max-w-7xl px-4 py-2.5 sm:px-6">
               <NavLinks />
             </div>

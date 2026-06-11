@@ -138,6 +138,15 @@ export interface PluginCapability {
   kind?: 'page' | 'widget' | 'data' | 'integration'
 }
 
+export interface PluginQuickAction {
+  id: string
+  label: string
+  icon?: string
+  description?: string
+  /** Action handler — typically navigates to a view. */
+  action: () => void
+}
+
 export type AIToolMode = 'read' | 'persist'
 
 export interface AIToolParameterProperty {

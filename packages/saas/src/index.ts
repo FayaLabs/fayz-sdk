@@ -132,3 +132,9 @@ export type {
 // Page helpers
 // ---------------------------------------------------------------------------
 export { createPlaceholder } from './placeholder'
+
+// Plugin framework UI (used by plugins + the shell)
+export { SettingsGroup, ToggleRow, SelectRow } from './plugins/SettingsGroup'
+export { QuickActionsButton } from './plugins/QuickActionsButton'
+export { PluginRegistryManager } from './plugins/PluginRegistryManager'
+export { useModuleNavigation } from './hooks/useModuleNavigation'

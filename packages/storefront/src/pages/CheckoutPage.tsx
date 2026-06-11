@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
+import { CreditCard, Lock, PackageCheck } from 'lucide-react'
 import { getShopProvider } from '@fayz/shop'
+import { prefersReducedMotion } from '../motion'
 import {
   useCartStore,
   selectSubtotal,
@@ -24,6 +26,45 @@ interface CheckoutForm {
   expiry: string
   cvc: string
 }
+
+const PROCESSING_STEPS = [
+  { icon: Lock, label: 'Validando seus dados…' },
+  { icon: CreditCard, label: 'Processando pagamento…' },
+  { icon: PackageCheck, label: 'Confirmando seu pedido…' },
+]
+
+/** Full-screen payment-processing overlay — staged messages keep the wait alive. */
+function ProcessingOverlay({ step }: { step: number }) {
+  const current = PROCESSING_STEPS[Math.min(step, PROCESSING_STEPS.length - 1)]!
+  const Icon = current.icon
+  return (
+    <div
+      data-testid={TID.checkoutProcessing}
+      className="fixed inset-0 z-50 flex animate-fade-in flex-col items-center justify-center bg-background/95 backdrop-blur-sm"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="relative flex h-24 w-24 items-center justify-center">
+        <span className="absolute inset-0 animate-spin rounded-full border-[3px] border-muted border-t-primary" style={{ animationDuration: '1.1s' }} />
+        <Icon key={step} className="h-9 w-9 animate-pop-in text-primary" />
+      </div>
+      <p key={`label-${step}`} className="mt-6 animate-fade-up font-medium">{current.label}</p>
+      <div className="mt-5 flex gap-1.5">
+        {PROCESSING_STEPS.map((_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i <= step ? 'w-8 bg-primary' : 'w-4 bg-muted'
+            }`}
+          />
+        ))}
+      </div>
+      <p className="mt-8 text-xs text-muted-foreground">Pagamento seguro — não feche esta janela</p>
+    </div>
+  )
+}
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 function field(
   label: string,
@@ -63,6 +104,7 @@ export function CheckoutPage() {
   })
   const [error, setError] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
+  const [processingStep, setProcessingStep] = useState(0)
 
   const subtotal = selectSubtotal(cart)
   const discountTotal = selectDiscountTotal(cart)
@@ -93,6 +135,15 @@ export function CheckoutPage() {
     if (!form.expiry.trim() || !form.cvc.trim()) { setError('Preencha validade e CVC do cartão.'); return }
 
     setPlacing(true)
+    setProcessingStep(0)
+    // Stage the processing messages; payment gateways take a moment and the
+    // overlay turns that wait into reassurance instead of anxiety.
+    const stepMs = prefersReducedMotion() ? 120 : 700
+    const stepTimers = [
+      setTimeout(() => setProcessingStep(1), stepMs),
+      setTimeout(() => setProcessingStep(2), stepMs * 2),
+    ]
+    const minDuration = sleep(stepMs * 3)
     try {
       const provider = getShopProvider()
       const email = form.email.trim().toLowerCase()
@@ -128,17 +179,23 @@ export function CheckoutPage() {
       // mock payment capture
       await provider.updateOrder(order.id, { financialStatus: 'paid' })
 
+      // let the processing choreography finish before celebrating
+      await minDuration
+
       cart.clear()
       navigateTo(`/order/${order.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível concluir o pedido.')
       setPlacing(false)
+    } finally {
+      stepTimers.forEach(clearTimeout)
     }
   }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <h1 className="mb-8 text-2xl font-bold tracking-tight">Finalizar compra</h1>
+      {placing && <ProcessingOverlay step={processingStep} />}
+      <h1 className="sf-heading mb-8 animate-fade-up text-3xl font-bold tracking-tight">Finalizar compra</h1>
       <div className="grid gap-10 lg:grid-cols-[1fr_380px]">
         <div className="space-y-8">
           <section className="space-y-3">

@@ -74,6 +74,7 @@ export const TID = {
   checkoutCvc: 'checkout-cvc',
   placeOrder: 'place-order',
   checkoutError: 'checkout-error',
+  checkoutProcessing: 'checkout-processing',
   // confirmation
   orderNumber: 'order-number',
   orderStatus: 'order-status',

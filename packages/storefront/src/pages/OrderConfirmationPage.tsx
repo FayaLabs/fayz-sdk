@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
 import { getShopProvider } from '@fayz/shop'
+import { prefersReducedMotion } from '../motion'
 import type { Order } from '@fayz/shop'
 import { useStorefrontConfig } from '../config'
 import { Link } from '../router'
@@ -11,6 +11,44 @@ const FINANCIAL_LABEL: Record<string, string> = {
   paid: 'Pago',
   pending: 'Pendente',
   refunded: 'Reembolsado',
+}
+
+const CONFETTI_COLORS = ['hsl(var(--primary))', '#f59e0b', '#10b981', '#3b82f6', '#ec4899']
+
+/** One-shot celebration: circle pops in, check draws itself, confetti rains. */
+function SuccessMark() {
+  const reduced = prefersReducedMotion()
+  return (
+    <div className="relative mx-auto h-24 w-24">
+      {!reduced &&
+        Array.from({ length: 14 }, (_, i) => (
+          <span
+            key={i}
+            aria-hidden
+            className="absolute h-2 w-2 animate-confetti-fall rounded-sm"
+            style={{
+              left: `${(i * 7.3) % 100}%`,
+              top: '-4px',
+              backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+              animationDelay: `${200 + (i % 7) * 90}ms`,
+            }}
+          />
+        ))}
+      <span className={`absolute inset-0 rounded-full bg-emerald-100 ${reduced ? '' : 'animate-pop-in'}`} />
+      <svg viewBox="0 0 48 48" className="absolute inset-0 h-full w-full p-6" aria-hidden>
+        <path
+          d="M10 25 L20 35 L38 14"
+          fill="none"
+          stroke="rgb(5 150 105)"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="48"
+          className={reduced ? '' : 'animate-draw-check'}
+        />
+      </svg>
+    </div>
+  )
 }
 
 export function OrderConfirmationPage({ orderId }: { orderId: string }) {
@@ -48,9 +86,11 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-      <div className="rounded-2xl border bg-card p-8 text-center">
-        <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-600" />
-        <h1 className="mt-4 text-2xl font-bold tracking-tight">Pedido confirmado!</h1>
+      <div className="animate-fade-up border bg-card p-8 text-center" style={{ borderRadius: 'var(--sf-radius-card)' }}>
+        <SuccessMark />
+        <h1 className="sf-heading mt-5 animate-fade-up text-3xl font-bold tracking-tight" style={{ animationDelay: '350ms' }}>
+          Pedido confirmado!
+        </h1>
         <p className="mt-1 text-muted-foreground">
           Obrigado pela compra, {order.customerName ?? 'cliente'}. Enviamos a confirmação para {order.customerEmail}.
         </p>
