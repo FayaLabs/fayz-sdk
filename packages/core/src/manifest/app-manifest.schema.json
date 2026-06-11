@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fayz.ai/schemas/app-manifest/v2.json",
+  "title": "Fayz AppManifest",
+  "description": "The canonical, JSON-serializable definition of a Fayz app. Code is referenced by registry id; never inlined.",
+  "type": "object",
+  "required": ["manifestVersion", "id", "name", "surfaces"],
+  "additionalProperties": false,
+  "properties": {
+    "manifestVersion": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider"],
+      "properties": {
+        "provider": { "enum": ["supabase", "mock"] },
+        "projectRef": { "type": "string" },
+        "url": { "type": "string" }
+      }
+    },
+    "locale": { "type": "object" },
+    "theme": { "type": "object" },
+    "permissions": { "type": "object" },
+    "billing": { "type": "object" },
+    "entities": { "type": "array", "items": { "type": "object" } },
+    "surfaces": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/surface" }
+    }
+  },
+  "$defs": {
+    "surface": {
+      "type": "object",
+      "required": ["scaffold"],
+      "additionalProperties": false,
+      "properties": {
+        "scaffold": { "type": "string", "minLength": 1 },
+        "options": { "type": "object" },
+        "plugins": { "type": "array", "items": { "$ref": "#/$defs/pluginRef" } },
+        "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } }
+      }
+    },
+    "pluginRef": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "config": { "type": "object" },
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "description": "Exactly one of blocks/entity/component must be set.",
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "icon": { "type": "string" },
+        "section": { "enum": ["main", "secondary", "settings"] },
+        "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } },
+        "entity": { "type": "string" },
+        "component": { "type": "string" },
+        "permission": {
+          "type": "object",
+          "required": ["feature", "action"],
+          "additionalProperties": false,
+          "properties": {
+            "feature": { "type": "string" },
+            "action": { "type": "string" }
+          }
+        }
+      },
+      "oneOf": [
+        { "required": ["blocks"] },
+        { "required": ["entity"] },
+        { "required": ["component"] }
+      ]
+    },
+    "block": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "id": { "type": "string" },
+        "props": { "type": "object" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+      }
+    }
+  }
+}

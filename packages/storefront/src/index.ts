@@ -1,7 +1,13 @@
 // Factory
-export { createStorefrontApp } from './createStorefrontApp'
+export { createStorefrontApp, initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
 export type { StorefrontConfig, ResolvedStorefrontConfig } from './config'
 export { useStorefrontConfig } from './config'
+
+// Manifest path (renderApp(defineStorefront(config)) / storefront scaffold)
+export { defineStorefront, StorefrontScaffold } from './scaffold'
+
+// Block system (storefront sections as registry blocks)
+export { registerStorefrontBlocks, sectionsToBlocks } from './blocks'
 
 // Routing
 export { Link, navigateTo, useHashPath, matchPath } from './router'
@@ -21,6 +27,7 @@ export { useSessionStore } from './stores/session.store'
 export type { SessionState } from './stores/session.store'
 export {
   signInByEmail,
+  signUpCustomer,
   establishCustomerSession,
   signOutCustomer,
   getCustomerAuthAdapter,

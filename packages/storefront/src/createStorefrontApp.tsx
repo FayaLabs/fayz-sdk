@@ -35,18 +35,11 @@ function RouteSwitch() {
 }
 
 /**
- * Declarative storefront factory — the customer-facing counterpart of
- * createSaasApp. Returns a ready-to-mount React component.
- *
- *   const App = createStorefrontApp({ name: 'Aurora Goods', currency: 'BRL' })
- *
- * Provider resolution: explicit `provider` > Supabase credentials > mock.
+ * Side-effect runtime init shared by the factory and the manifest scaffold:
+ * wires customer auth and the shop provider. Idempotent and safe to call once
+ * before first render. Provider resolution: explicit > Supabase > mock.
  */
-export function createStorefrontApp(config: StorefrontConfig): React.ComponentType {
-  const resolved = resolveConfig(config)
-
-  // Customer auth runs on the same AuthAdapter contract as createSaasApp —
-  // mock by default, Supabase when configured, custom adapters accepted.
+export function initStorefrontRuntime(config: StorefrontConfig): void {
   initCustomerAuth(
     resolveAuthAdapter(config.auth?.adapter, {
       url: config.supabaseUrl,
@@ -57,10 +50,8 @@ export function createStorefrontApp(config: StorefrontConfig): React.ComponentTy
   if (config.provider) {
     setShopProvider(config.provider)
   } else if (config.catalog && !(config.supabaseUrl && config.supabaseAnonKey)) {
-    // Store-specific mock catalog (wine shop ≠ sneaker shop)
     setShopProvider(createMockShopProvider(config.catalog))
   } else if (config.supabaseUrl && config.supabaseAnonKey) {
-    // Host app may already have initialized the global client; this is idempotent.
     import('@supabase/supabase-js')
       .then(({ createClient }) => {
         setGlobalSupabaseClient(createClient(config.supabaseUrl!, config.supabaseAnonKey!))
@@ -69,17 +60,39 @@ export function createStorefrontApp(config: StorefrontConfig): React.ComponentTy
         /* @supabase/supabase-js not installed — getShopProvider falls back to mock */
       })
   }
+}
+
+/** The inner storefront UI. Reads everything from the config context, so it is
+ *  shared by createStorefrontApp and the manifest-driven StorefrontScaffold. */
+export function StorefrontShell() {
+  const config = useStorefrontConfig()
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {config.theme && <StorefrontThemeStyle theme={config.theme} />}
+      <StorefrontHeader />
+      <RouteSwitch />
+      <CartDrawer />
+      <StorefrontFooter />
+    </div>
+  )
+}
+
+/**
+ * Declarative storefront factory — the customer-facing counterpart of
+ * createSaasApp. Sugar over the manifest path: it is equivalent to
+ * renderApp(defineStorefront(config)), sharing initStorefrontRuntime +
+ * StorefrontShell with the scaffold.
+ *
+ *   const App = createStorefrontApp({ name: 'Aurora Goods', currency: 'BRL' })
+ */
+export function createStorefrontApp(config: StorefrontConfig): React.ComponentType {
+  const resolved = resolveConfig(config)
+  initStorefrontRuntime(config)
 
   function StorefrontApp() {
     return (
       <StorefrontConfigProvider value={resolved}>
-        {config.theme && <StorefrontThemeStyle theme={config.theme} />}
-        <div className="min-h-screen bg-background text-foreground">
-          <StorefrontHeader />
-          <RouteSwitch />
-          <CartDrawer />
-          <StorefrontFooter />
-        </div>
+        <StorefrontShell />
       </StorefrontConfigProvider>
     )
   }
