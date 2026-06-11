@@ -537,9 +537,15 @@ importers:
       '@fayz/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fayz/saas':
+        specifier: workspace:*
+        version: link:../../packages/saas
       '@fayz/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@tanstack/react-table':
+        specifier: ^8.20.0
+        version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
@@ -553,6 +559,9 @@ importers:
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.31)
       react:
         specifier: ^18.3.0
         version: 18.3.1
@@ -688,9 +697,15 @@ importers:
       '@fayz/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fayz/saas':
+        specifier: workspace:*
+        version: link:../../packages/saas
       '@fayz/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@tanstack/react-table':
+        specifier: ^8.20.0
+        version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
@@ -704,6 +719,9 @@ importers:
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.31)
       react:
         specifier: ^18.3.0
         version: 18.3.1

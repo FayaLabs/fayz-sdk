@@ -19,7 +19,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
@@ -32,13 +32,16 @@
     "@fayz/core": "workspace:*",
     "@fayz/ui": "workspace:*",
     "lucide-react": "^0.400.0",
-    "zustand": "^4.5.0"
+    "zustand": "^4.5.0",
+    "@fayz/saas": "workspace:*",
+    "@tanstack/react-table": "^8.20.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
     "react": "^18.3.0",
     "tsup": "^8.2.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@types/react-dom": "^18.3.0"
   },
   "license": "MIT",
   "keywords": [

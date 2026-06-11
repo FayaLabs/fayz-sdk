@@ -1,24 +1,62 @@
-import React from 'react'
-import type { ResolvedReportsConfig } from './types'
+import React, { useState, useEffect, useCallback } from 'react'
+import { ReportsContextProvider } from './ReportsContext'
+import { ReportHub } from './views/ReportHub'
+import { ReportViewer } from './views/ReportViewer'
+import type { ResolvedReportsConfig, ReportDef } from './types'
+import type { ReportDataProvider } from './data/types'
 
-export interface ReportsPageProps {
-  config?: ResolvedReportsConfig
+const HASH_BASE = '/reports'
+
+function getReportIdFromHash(): string | null {
+  const hash = (window.location.hash.slice(1) || '/').split('?')[0]
+  if (hash.startsWith(HASH_BASE + '/') && hash.length > HASH_BASE.length + 1) {
+    return hash.slice(HASH_BASE.length + 1)
+  }
+  return null
 }
 
-export function ReportsPage({ config }: ReportsPageProps) {
-  const title = config?.labels?.pageTitle ?? 'Reports'
-  const subtitle = config?.labels?.pageSubtitle ?? 'Access complete reports for analysis and decision making'
-  const reportCount = config?.reports?.length ?? 0
+export function ReportsPage({
+  config,
+  provider,
+}: {
+  config: ResolvedReportsConfig
+  provider: ReportDataProvider
+}) {
+  const [activeReportId, setActiveReportId] = useState<string | null>(getReportIdFromHash)
+
+  useEffect(() => {
+    function handler() {
+      setActiveReportId(getReportIdFromHash())
+    }
+    window.addEventListener('hashchange', handler)
+    return () => window.removeEventListener('hashchange', handler)
+  }, [])
+
+  const handleSelect = useCallback((report: ReportDef) => {
+    window.location.hash = `${HASH_BASE}/${report.id}`
+  }, [])
+
+  const handleBack = useCallback(() => {
+    window.location.hash = HASH_BASE
+  }, [])
+
+  const activeReport = activeReportId
+    ? config.reports.find((r) => r.id === activeReportId) ?? null
+    : null
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 600, margin: 0 }}>{title}</h1>
-        <p style={{ color: '#6b7280', margin: '4px 0 0' }}>{subtitle}</p>
+    <ReportsContextProvider config={config} provider={provider}>
+      <div className="p-1">
+        {activeReport ? (
+          <ReportViewer
+            key={activeReport.id}
+            report={activeReport}
+            onBack={handleBack}
+          />
+        ) : (
+          <ReportHub onSelect={handleSelect} />
+        )}
       </div>
-      <div style={{ padding: '32px', border: '1px dashed #d1d5db', borderRadius: '8px', textAlign: 'center', color: '#9ca3af' }}>
-        Reports plugin — {reportCount} report{reportCount !== 1 ? 's' : ''} configured. Full UI available in saas-core.
-      </div>
-    </div>
+    </ReportsContextProvider>
   )
 }

@@ -1,6 +1,5 @@
 import type React from 'react'
 import type { FieldType } from '@fayz/core'
-import type { PluginScope, VerticalId } from '@fayz/core'
 
 // ---------------------------------------------------------------------------
 // Report column
@@ -137,11 +136,11 @@ export interface ReportsPluginOptions {
   reports: ReportDef[]
   labels?: Partial<ReportsPluginLabels>
   currency?: { code?: string; locale?: string; symbol?: string }
-  dataProvider?: any
+  dataProvider?: import('./data/types').ReportDataProvider
   navPosition?: number
   navSection?: 'main' | 'secondary'
-  scope?: PluginScope
-  verticalId?: VerticalId
+  scope?: import('@fayz/core').PluginScope
+  verticalId?: import('@fayz/core').VerticalId
   /** Default page size. Default: 50 */
   defaultPageSize?: number
 }
