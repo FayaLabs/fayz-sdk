@@ -60,6 +60,16 @@ export {
   SheetFooter,
   SheetTitle,
   SheetDescription,
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
 } from './primitives'
 
 // Layout

@@ -234,3 +234,8 @@ export function mergeTranslations(
   }
   return result
 }
+
+// Seed the global fallback with core's own translations so common.* / crud.* /
+// auth.* keys resolve for de-bridged plugins even under a host shell that does
+// not mount @fayz/core's I18nProvider.
+registerTranslations(coreTranslations)
