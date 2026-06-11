@@ -6,6 +6,7 @@ export type { PermissionsStore } from './store'
 export {
   PermissionsProvider,
   usePermission,
+  usePermissionOptional,
   useHasPermission,
   usePermissions,
 } from './context'

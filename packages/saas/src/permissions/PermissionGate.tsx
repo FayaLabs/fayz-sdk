@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { PermissionAction } from '@fayz/core'
-import { usePermission } from './context'
+import { usePermissionOptional } from './context'
 
 interface PermissionGateProps {
   feature: string
@@ -11,7 +11,7 @@ interface PermissionGateProps {
 
 /** Renders children only when the current user has the given feature+action. */
 export function PermissionGate({ feature, action, children, fallback }: PermissionGateProps) {
-  const can = usePermission()
+  const can = usePermissionOptional()
   if (!can(feature, action)) return <>{fallback ?? null}</>
   return <>{children}</>
 }

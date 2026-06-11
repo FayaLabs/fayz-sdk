@@ -88,6 +88,17 @@ export function usePermission(): (feature: string, action?: string) => boolean {
 }
 
 /**
+ * Like usePermission, but degrades to allow-all when no <PermissionsProvider>
+ * is mounted — so SDK components (e.g. the CRUD engine's PermissionGate) work
+ * under any host shell instead of throwing. Gating is an enhancement, not a
+ * hard requirement at the component level.
+ */
+export function usePermissionOptional(): (feature: string, action?: string) => boolean {
+  const ctx = React.useContext(PermissionsContext)
+  return ctx?.hasPermission ?? (() => true)
+}
+
+/**
  * Convenience hook — returns true/false for a specific feature + action.
  * Example: `const canEdit = useHasPermission('clients', 'write')`
  */

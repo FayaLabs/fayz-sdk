@@ -1,0 +1,245 @@
+/* Dark mode content background — uses the content token */
+.dark .agenda-calendar,
+.dark .agenda-calendar .fc,
+.dark .agenda-calendar .fc-view-harness,
+.dark .agenda-calendar .fc-timegrid,
+.dark .agenda-calendar .fc-scrollgrid,
+.dark .agenda-calendar .fc-timegrid-col,
+.dark .agenda-calendar .fc-daygrid-body,
+.dark .agenda-calendar .fc-timegrid-slot-lane {
+  background-color: hsl(var(--content));
+}
+
+/* FullCalendar — Google Calendar inspired theme */
+
+.agenda-calendar {
+  --fc-border-color: hsl(var(--border));
+  --fc-today-bg-color: transparent;
+  --fc-now-indicator-color: hsl(var(--destructive));
+  --fc-highlight-color: hsl(var(--primary) / 0.06);
+  --fc-non-business-color: hsl(var(--muted) / 0.15);
+  --fc-neutral-bg-color: transparent;
+  --fc-page-bg-color: transparent;
+  --fc-event-border-color: transparent;
+}
+
+.agenda-calendar .fc {
+  font-family: inherit;
+  background: transparent;
+}
+
+.agenda-calendar .fc .fc-view-harness {
+  background: transparent;
+}
+
+/* ── Column headers ── */
+.agenda-calendar .fc-col-header-cell {
+  background: transparent;
+  border-bottom: 1px solid var(--fc-border-color);
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+.agenda-calendar .fc-col-header-cell-cushion {
+  padding: 8px 4px;
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: hsl(var(--muted-foreground));
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Today's column header */
+.agenda-calendar .fc-day-today .fc-col-header-cell-cushion {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+/* Resource header (professional columns) */
+.agenda-calendar .fc .fc-resource-header {
+  background: transparent;
+  border-bottom: 1px solid var(--fc-border-color);
+}
+
+/* ── Time slots — compact ── */
+.agenda-calendar .fc-timegrid-slot {
+  height: 1.5rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.4);
+}
+
+.agenda-calendar .fc-timegrid-slot-label {
+  vertical-align: top;
+  border: none;
+}
+
+.agenda-calendar .fc-timegrid-slot-label-cushion {
+  font-size: 0.65rem;
+  color: hsl(var(--muted-foreground) / 0.7);
+  padding: 1px 8px 0 0;
+}
+
+/* Half-hour lines lighter */
+.agenda-calendar .fc-timegrid-slot-minor {
+  border-bottom-style: none;
+}
+
+/* Column dividers */
+.agenda-calendar .fc-timegrid-col {
+  border-right: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* ── Events ── */
+.agenda-calendar .fc-event {
+  border-radius: 4px;
+  border-width: 0;
+  border-left: 4px solid;
+  cursor: pointer;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  margin: 0 2px;
+  overflow: hidden;
+}
+
+.agenda-calendar .fc-event:not(.fc-bg-event):hover {
+  opacity: 0.85;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.agenda-calendar .fc-bg-event {
+  pointer-events: none;
+}
+
+/* ── Now indicator ── */
+.agenda-calendar .fc-timegrid-now-indicator-line {
+  border-color: hsl(var(--destructive));
+  border-width: 2px;
+}
+
+.agenda-calendar .fc-timegrid-now-indicator-arrow {
+  border-top-color: hsl(var(--destructive));
+}
+
+/* ── Month view ── */
+.agenda-calendar .fc-daygrid-day-number {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  text-decoration: none;
+  color: hsl(var(--foreground));
+}
+
+.agenda-calendar .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+/* ── Selection ── */
+.agenda-calendar .fc-highlight {
+  background: hsl(var(--primary) / 0.08);
+}
+
+/* ── Links ── */
+.agenda-calendar .fc a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ── Scrollbar ── */
+.agenda-calendar .fc-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.12) transparent;
+}
+
+.agenda-calendar .fc-scroller::-webkit-scrollbar {
+  width: 6px;
+}
+
+.agenda-calendar .fc-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.agenda-calendar .fc-scroller::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.12);
+  border-radius: 3px;
+}
+
+/* ── Clean up borders ── */
+.agenda-calendar .fc .fc-timegrid {
+  border: none;
+}
+
+.agenda-calendar .fc-scrollgrid {
+  border: none !important;
+}
+
+.agenda-calendar .fc-scrollgrid td:last-child {
+  border-right: none;
+}
+
+/* ── Unavailable time background — opaque/disabled feel ── */
+.agenda-calendar .fc-unavailable-bg {
+  background: hsl(var(--muted-foreground) / 0.08) !important;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    hsl(var(--muted-foreground) / 0.04) 4px,
+    hsl(var(--muted-foreground) / 0.04) 8px
+  ) !important;
+  border-radius: 0;
+  border-left: none !important;
+}
+
+/* ── Location label on schedule blocks ── */
+.agenda-calendar .fc-location-label {
+  background: transparent !important;
+  border: none !important;
+  border-left-width: 0 !important;
+  cursor: default !important;
+  pointer-events: none;
+  box-shadow: none !important;
+  z-index: 1 !important;
+  margin: 0 4px !important;
+  font-weight: 500 !important;
+}
+
+.agenda-calendar .fc-location-label .fc-event-main {
+  padding: 0 !important;
+}
+
+/* Week view day header with date */
+.agenda-calendar .fc-timegrid .fc-col-header-cell {
+  padding: 4px 0;
+}
+
+/* ── Alternating resource column backgrounds ── */
+.agenda-calendar .fc-resource-alt {
+  background-color: hsl(var(--muted) / 0.4) !important;
+}
+
+.dark .agenda-calendar .fc-resource-alt {
+  background-color: hsl(var(--muted-foreground) / 0.08) !important;
+}
+
+/* Resource group header separator — stronger border between professionals */
+.agenda-calendar .fc-resource-group {
+  border-left: 2px solid hsl(var(--border));
+}
+
+/* Also stripe the resource header label for the alt group */
+.agenda-calendar th.fc-resource-alt {
+  background-color: hsl(var(--muted) / 0.4) !important;
+}
+
+.dark .agenda-calendar th.fc-resource-alt {
+  background-color: hsl(var(--muted-foreground) / 0.06) !important;
+}

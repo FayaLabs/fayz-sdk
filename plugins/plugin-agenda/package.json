@@ -19,7 +19,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
@@ -37,13 +37,19 @@
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/timegrid": "^6.1.20",
     "@fullcalendar/react": "^6.1.20",
-    "@fullcalendar/interaction": "^6.1.20"
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fayz/saas": "workspace:*",
+    "@fayz/plugin-financial": "workspace:*",
+    "@tanstack/react-table": "^8.20.0",
+    "@fullcalendar/resource-timegrid": "^6.1.0",
+    "@fullcalendar/list": "^6.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
     "react": "^18.3.0",
     "tsup": "^8.2.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@types/react-dom": "^18.3.0"
   },
   "license": "MIT",
   "keywords": [

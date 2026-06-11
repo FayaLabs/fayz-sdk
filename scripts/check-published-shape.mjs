@@ -9,9 +9,7 @@ import { join } from 'node:path'
 const ROOT = process.cwd()
 // Plugins still bridged to @fayz/saas-core (JS-only until de-bridged in W6).
 // De-bridged so far: tasks, forms → they ship declarations like native packages.
-const BRIDGED = new Set(
-  ['agenda'].map((p) => `plugin-${p}`),
-)
+const BRIDGED = new Set()
 
 const dirs = []
 for (const group of ['packages', 'plugins']) {
