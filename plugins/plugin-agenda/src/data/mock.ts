@@ -139,6 +139,9 @@ export function createMockAgendaProvider(): AgendaDataProvider {
   const professionals: Professional[] = [...SAMPLE_PROFESSIONALS]
 
   return {
+    async getLocations(): Promise<Array<{ id: string; name: string }>> {
+      return []
+    },
     async getBookings(query: BookingQuery): Promise<CalendarBooking[]> {
       return bookings.filter((b) => {
         if (query.kind && b.kind !== query.kind) return false
