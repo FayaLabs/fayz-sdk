@@ -24,7 +24,10 @@ export interface FieldDef {
   showInDetail?: boolean
   sortable?: boolean
   searchable?: boolean
+  /** Custom cell renderer (code escape hatch). For a serializable EntityDef in
+   *  an AppManifest, reference a registered cell renderer by id instead. */
   renderCell?: (value: unknown, row: unknown) => React.ReactNode
+  renderCellId?: string
   defaultValue?: unknown
   group?: string
   span?: 1 | 2
@@ -42,7 +45,10 @@ export interface DetailTab {
   id: string
   label: string
   icon?: string
+  /** Tab content component, or a registered component id (componentId) for a
+   *  serializable EntityDef. Exactly one is expected. */
   component?: React.ComponentType<{ item: unknown; entityDef: EntityDef; [key: string]: unknown }>
+  componentId?: string
   visibleFor?: string[]
   props?: Record<string, unknown>
 }

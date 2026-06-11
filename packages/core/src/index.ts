@@ -16,7 +16,12 @@ export { createMockProvider } from './data/mock'
 export type { DataProvider, CrudQuery, CrudResult, SupabaseProviderConfig } from './data/index'
 
 // Plugin system
-export { definePlugin, resolvePluginRuntime, getWidgetsForZone, PluginRuntimeProvider, usePluginRuntime, usePluginRuntimeOptional } from './plugin/runtime'
+export { definePlugin, resolvePluginRuntime, getWidgetsForZone, PluginRuntimeProvider, usePluginRuntime, usePluginRuntimeOptional, PLUGIN_API_VERSION, resolvePluginComponent } from './plugin/runtime'
+export type { PluginEventDefinition } from './types/plugins'
+
+// Event bus
+export { createEventBus, eventBus, useOnEvent } from './events'
+export type { EventBus, EventHandler } from './events'
 
 // Entity registry
 export { registerEntity, getEntityByKey, getAllEntities, clearEntityRegistry, deriveEntityKey } from './entity/registry'

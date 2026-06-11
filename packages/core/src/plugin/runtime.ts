@@ -18,6 +18,21 @@ import type {
   PluginWidgetVisibility,
 } from '../types/plugins'
 import type { FeatureDeclaration } from '../types/permissions'
+import { getComponent } from '../registry'
+
+/** The plugin contract version this runtime understands. A plugin declaring a
+ *  higher apiVersion is rejected rather than mis-rendered. */
+export const PLUGIN_API_VERSION = 1
+
+/** Resolve a plugin route/widget/settings/onboarding target to a component,
+ *  whether it provided the component directly or a registered component id. */
+export function resolvePluginComponent(
+  def: { component?: React.ComponentType<unknown>; componentId?: string },
+): React.ComponentType<unknown> | undefined {
+  if (def.component) return def.component
+  if (def.componentId) return getComponent(def.componentId) as React.ComponentType<unknown> | undefined
+  return undefined
+}
 
 interface ResolvePluginRuntimeOptions {
   plugins?: PluginManifest[]
@@ -112,6 +127,14 @@ export function resolvePluginRuntime({
   for (const plugin of plugins) {
     if (normalizedPlugins.has(plugin.id)) {
       issues.push({ type: 'duplicate_plugin', pluginId: plugin.id, message: `Plugin "${plugin.id}" registered more than once.` })
+      continue
+    }
+    if (plugin.apiVersion != null && plugin.apiVersion > PLUGIN_API_VERSION) {
+      issues.push({
+        type: 'incompatible_api_version',
+        pluginId: plugin.id,
+        message: `Plugin "${plugin.id}" requires plugin API v${plugin.apiVersion}, but this runtime supports v${PLUGIN_API_VERSION}. Upgrade @fayz/runtime.`,
+      })
       continue
     }
     normalizedPlugins.set(plugin.id, plugin)

@@ -33,7 +33,11 @@ export interface PluginSettingsTab {
   id: string
   label: string
   icon?: string
-  component: React.ComponentType<unknown>
+  /** Provide the component directly, or reference a registered component by id
+   *  (resolvePluginComponent resolves componentId → the component registry).
+   *  Exactly one is required. */
+  component?: React.ComponentType<unknown>
+  componentId?: string
   pluginId?: string
   order?: number
   permission?: PluginPermissionRequirement
@@ -41,8 +45,10 @@ export interface PluginSettingsTab {
 
 export interface PluginRouteDefinition {
   path: string
-  component: React.ComponentType<unknown>
-  guard?: 'authenticated' | 'role'
+  /** Component or a registered component id — exactly one is required. */
+  component?: React.ComponentType<unknown>
+  componentId?: string
+  guard?: 'authenticated' | 'role' | 'public' | 'share-token'
   roles?: string[]
   permission?: PluginPermissionRequirement
 }
@@ -105,12 +111,24 @@ export interface PluginRuntimeContext {
 export interface PluginWidgetDefinition<TConfig extends Record<string, unknown> = Record<string, unknown>> {
   id: string
   zone: PluginWidgetZone
-  component: React.ComponentType<unknown>
+  /** Component or a registered component id — exactly one is required. */
+  component?: React.ComponentType<unknown>
+  componentId?: string
   title?: string
   order?: number
   permission?: PluginPermissionRequirement
   visibility?: PluginWidgetVisibility
   props?: TConfig
+}
+
+/** An event a plugin emits onto the event bus — declared for platform
+ *  introspection and so the AppManifest can bind event→action as data. */
+export interface PluginEventDefinition {
+  /** Namespaced event name, e.g. 'agenda.booking.confirmed'. */
+  name: string
+  description?: string
+  /** JSON Schema for the payload (editor / AI / validation). */
+  payloadSchema?: Record<string, unknown>
 }
 
 export interface PluginCapability {
@@ -175,7 +193,9 @@ export interface PluginMigration {
 }
 
 export interface PluginOnboarding {
-  component: React.ComponentType<{ onComplete: () => void }>
+  /** Component or a registered component id — exactly one is required. */
+  component?: React.ComponentType<{ onComplete: () => void }>
+  componentId?: string
   title?: string
   description?: string
 }
@@ -185,9 +205,14 @@ export interface PluginManifest {
   name: string
   icon: string
   version: string
+  /** Plugin contract version. The runtime refuses plugins built for a newer
+   *  contract than it supports (see PLUGIN_API_VERSION). Omit = legacy/compatible. */
+  apiVersion?: number
   description?: string
   scope?: PluginScope
   verticalId?: VerticalId
+  /** Events this plugin emits onto the bus (declared for introspection/automation). */
+  events?: PluginEventDefinition[]
   /** Which scaffold types this plugin targets. Omit for universal plugins. */
   scaffolds?: ScaffoldType[]
   tenantId?: string
@@ -225,7 +250,12 @@ export interface TenantPluginBinding {
 }
 
 export interface PluginRuntimeIssue {
-  type: 'duplicate_plugin' | 'missing_dependency' | 'circular_dependency' | 'vertical_mismatch'
+  type:
+    | 'duplicate_plugin'
+    | 'missing_dependency'
+    | 'circular_dependency'
+    | 'vertical_mismatch'
+    | 'incompatible_api_version'
   pluginId: string
   dependencyId?: string
   message: string
