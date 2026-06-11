@@ -52,7 +52,12 @@ export {
   registerPlugin,
   getPlugin,
   listPlugins,
+  pluginFactoryRegistry,
+  registerPluginFactory,
+  getPluginFactory,
+  listPluginFactories,
 } from './registry'
+export type { PluginFactory } from './registry'
 export type {
   JsonSchema,
   RegistrySource,

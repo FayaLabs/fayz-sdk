@@ -20,6 +20,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build all packages (JS + declarations)
         run: pnpm -r --filter './packages/*' --filter './plugins/*' build
+      - name: Build CLI
+        run: pnpm --filter @fayz/cli build
+      - name: CLI smoke (create → doctor)
+        run: node scripts/cli-smoke.mjs
       - name: Typecheck
         run: pnpm -r --filter './packages/*' typecheck
       - name: Test

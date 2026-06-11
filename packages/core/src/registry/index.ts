@@ -149,3 +149,15 @@ export const registerPlugin = (id: string, manifest: any, meta?: RegistryMeta) =
   pluginRegistry.register(id, manifest, meta)
 export const getPlugin = (id: string) => pluginRegistry.get(id)
 export const listPlugins = () => pluginRegistry.list()
+
+// Plugin factories — a generated app registers each installed @fayz/plugin-*
+// factory by id (src/plugins.generated.ts), so a scaffold can resolve a
+// manifest's PluginRef (id + JSON config) to a live PluginManifest:
+//   getPluginFactory(ref.id)?.(ref.config)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PluginFactory = (config?: Record<string, unknown>) => any
+export const pluginFactoryRegistry = new Registry<PluginFactory>('plugin-factory')
+export const registerPluginFactory = (id: string, factory: PluginFactory, meta?: RegistryMeta) =>
+  pluginFactoryRegistry.register(id, factory, meta)
+export const getPluginFactory = (id: string) => pluginFactoryRegistry.get(id)
+export const listPluginFactories = () => pluginFactoryRegistry.list()

@@ -1,0 +1,37 @@
+{
+  "name": "@fayz/cli",
+  "version": "0.1.0",
+  "description": "Fayz CLI — scaffold, validate, extract and upgrade repo-per-app projects",
+  "type": "module",
+  "bin": {
+    "fayz": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.2.0",
+    "typescript": "^5.5.0",
+    "@types/node": "^20.0.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "fayz",
+    "fayz-sdk",
+    "cli",
+    "scaffold"
+  ]
+}
