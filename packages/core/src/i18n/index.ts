@@ -27,7 +27,13 @@ export function useTranslation(): (key: string, params?: Record<string, string |
     (key: string, params?: Record<string, string | number>): string => {
       const localizedTranslations = config.translations[locale] ?? {}
       const fallback = config.translations[config.defaultLocale] ?? {}
-      let raw = localizedTranslations[key] ?? fallback[key] ?? key
+      // Global fallback lets plugins register their locales independently of any
+      // I18nProvider — needed when a de-bridged plugin runs under a host shell
+      // that doesn't mount @fayz/core's I18nProvider (incremental de-bridge), and
+      // for manifest apps where plugins self-register translations.
+      const gLocale = _globalTranslations[locale] ?? {}
+      const gFallback = _globalTranslations[config.defaultLocale] ?? {}
+      let raw = localizedTranslations[key] ?? gLocale[key] ?? fallback[key] ?? gFallback[key] ?? key
 
       if (params) {
         for (const [k, v] of Object.entries(params)) {
@@ -204,6 +210,15 @@ export const coreTranslations: Record<string, Record<string, string>> = {
     'billing.upgrade': 'Fazer Upgrade',
     'billing.manage': 'Gerenciar Assinatura',
   },
+}
+
+// Global translation registry — plugins merge their locales here so keys resolve
+// regardless of which shell mounts the I18nProvider.
+let _globalTranslations: Record<string, Record<string, string>> = {}
+
+export function registerTranslations(translations?: Record<string, Record<string, string>>): void {
+  if (!translations) return
+  _globalTranslations = mergeTranslations(_globalTranslations, translations)
 }
 
 export function mergeTranslations(

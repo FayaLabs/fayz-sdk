@@ -41,3 +41,17 @@ export {
   DropdownRadioGroup,
 } from './dropdown'
 export { DataTable, type DataTableProps } from './data-table'
+export { Checkbox, type CheckboxColor, type CheckboxProps } from './checkbox'
+export {
+  Sheet,
+  SheetPortal,
+  SheetOverlay,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetBody,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+} from './sheet'

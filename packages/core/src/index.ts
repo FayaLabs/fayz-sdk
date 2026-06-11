@@ -95,7 +95,7 @@ export { defineApp, renderApp, useManifest } from './app/render'
 export type { RenderAppOptions } from './app/render'
 
 // i18n
-export { I18nProvider, useI18nConfig, useTranslation, coreTranslations, mergeTranslations, getCurrentLocale, setCurrentLocale, setLocaleStore } from './i18n/index'
+export { I18nProvider, useI18nConfig, useTranslation, coreTranslations, mergeTranslations, registerTranslations, getCurrentLocale, setCurrentLocale, setLocaleStore } from './i18n/index'
 
 // Router
 export { hashRouterAdapter, windowRouterAdapter } from './router/index'

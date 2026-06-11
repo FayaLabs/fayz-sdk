@@ -46,6 +46,20 @@ export {
   DropdownRadioGroup,
   DataTable,
   type DataTableProps,
+  Checkbox,
+  type CheckboxColor,
+  type CheckboxProps,
+  Sheet,
+  SheetPortal,
+  SheetOverlay,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetBody,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
 } from './primitives'
 
 // Layout

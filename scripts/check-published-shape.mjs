@@ -7,8 +7,10 @@ import { readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = process.cwd()
+// Plugins still bridged to @fayz/saas-core (JS-only until de-bridged in W6).
+// 'tasks' has been de-bridged → it now ships declarations like a native package.
 const BRIDGED = new Set(
-  ['financial', 'agenda', 'tasks', 'crm', 'inventory', 'reports', 'forms'].map((p) => `plugin-${p}`),
+  ['financial', 'agenda', 'crm', 'inventory', 'reports', 'forms'].map((p) => `plugin-${p}`),
 )
 
 const dirs = []
