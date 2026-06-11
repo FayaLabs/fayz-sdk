@@ -10,7 +10,7 @@ const ROOT = process.cwd()
 // Plugins still bridged to @fayz/saas-core (JS-only until de-bridged in W6).
 // De-bridged so far: tasks, forms → they ship declarations like native packages.
 const BRIDGED = new Set(
-  ['financial', 'agenda', 'reports'].map((p) => `plugin-${p}`),
+  ['agenda', 'reports'].map((p) => `plugin-${p}`),
 )
 
 const dirs = []
