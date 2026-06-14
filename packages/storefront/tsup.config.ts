@@ -7,5 +7,16 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
-  external: ['react', 'react-dom', 'zustand', 'lucide-react', '@fayz-ai/core', '@fayz-ai/auth', '@fayz-ai/shop', '@fayz-ai/ui'],
+  external: [
+    'react',
+    'react-dom',
+    'zustand',
+    'lucide-react',
+    '@fayz-ai/core',
+    '@fayz-ai/auth',
+    '@fayz-ai/shop',
+    '@fayz-ai/shop/runtime',
+    '@fayz-ai/shop/mock',
+    '@fayz-ai/ui',
+  ],
 })

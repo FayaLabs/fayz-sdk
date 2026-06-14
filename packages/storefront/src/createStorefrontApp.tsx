@@ -1,6 +1,6 @@
 import React from 'react'
-import { setGlobalSupabaseClient } from '@fayz-ai/core'
-import { setShopProvider, createMockShopProvider } from '@fayz-ai/shop'
+import { setShopProvider } from '@fayz-ai/shop/runtime'
+import { createMockShopProvider } from '@fayz-ai/shop/mock'
 import { initCustomerAuth, resolveAuthAdapter } from './auth'
 import { StorefrontConfigProvider, resolveConfig, useStorefrontConfig } from './config'
 import type { StorefrontConfig } from './config'
@@ -37,28 +37,23 @@ function RouteSwitch() {
 /**
  * Side-effect runtime init shared by the factory and the manifest scaffold:
  * wires customer auth and the shop provider. Idempotent and safe to call once
- * before first render. Provider resolution: explicit > Supabase > mock.
+ * before first render. Provider resolution: explicit > catalog mock > empty mock.
  */
 export function initStorefrontRuntime(config: StorefrontConfig): void {
-  initCustomerAuth(
-    resolveAuthAdapter(config.auth?.adapter, {
-      url: config.supabaseUrl,
-      anonKey: config.supabaseAnonKey,
-    }),
-  )
+  initCustomerAuth(resolveAuthAdapter(config.auth?.adapter))
 
   if (config.provider) {
     setShopProvider(config.provider)
-  } else if (config.catalog && !(config.supabaseUrl && config.supabaseAnonKey)) {
+  } else if (config.catalog) {
     setShopProvider(createMockShopProvider(config.catalog))
-  } else if (config.supabaseUrl && config.supabaseAnonKey) {
-    import('@supabase/supabase-js')
-      .then(({ createClient }) => {
-        setGlobalSupabaseClient(createClient(config.supabaseUrl!, config.supabaseAnonKey!))
-      })
-      .catch(() => {
-        /* @supabase/supabase-js not installed — getShopProvider falls back to mock */
-      })
+  } else {
+    setShopProvider(createMockShopProvider())
+  }
+
+  if (config.supabaseUrl || config.supabaseAnonKey) {
+    console.warn(
+      '@fayz-ai/storefront: supabaseUrl/supabaseAnonKey are legacy fields. Pass an explicit provider/adapter or use the Fayz SDK broker path.',
+    )
   }
 }
 

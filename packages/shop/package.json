@@ -24,6 +24,24 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./runtime": {
+      "source": "./src/runtime.ts",
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js",
+      "require": "./dist/runtime.cjs"
+    },
+    "./catalog": {
+      "source": "./src/catalog.ts",
+      "types": "./dist/catalog.d.ts",
+      "import": "./dist/catalog.js",
+      "require": "./dist/catalog.cjs"
+    },
+    "./mock": {
+      "source": "./src/mock.ts",
+      "types": "./dist/mock.d.ts",
+      "import": "./dist/mock.js",
+      "require": "./dist/mock.cjs"
     }
   },
   "files": [

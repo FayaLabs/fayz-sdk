@@ -23,8 +23,11 @@ export interface StorefrontConfig {
   nav?: NavLink[]
   /** Footer content (about text, contact, social) */
   footer?: FooterConfig
-  /** Connect a real Supabase project. Omit both for mock mode. */
+  /** Preferred backend descriptor for manifest/scaffold metadata. */
+  backend?: { provider?: 'mock' | 'fayz-api' | 'custom'; url?: string }
+  /** @deprecated Use backend/provider adapters. Storefront no longer creates Supabase clients. */
   supabaseUrl?: string
+  /** @deprecated Use backend/provider adapters. Storefront no longer creates Supabase clients. */
   supabaseAnonKey?: string
   /** Explicit provider override (tests, custom backends) */
   provider?: ShopProvider

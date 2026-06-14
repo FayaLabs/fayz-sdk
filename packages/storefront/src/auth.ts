@@ -1,6 +1,6 @@
 import type { AuthAdapter, AuthUser } from '@fayz-ai/core'
-import { createMockAuthAdapter, createSupabaseAuthAdapter } from '@fayz-ai/auth'
-import { getShopProvider } from '@fayz-ai/shop'
+import { createMockAuthAdapter } from '@fayz-ai/auth'
+import { getShopProvider } from '@fayz-ai/shop/runtime'
 import { useSessionStore } from './stores/session.store'
 
 // ---------------------------------------------------------------------------
@@ -17,11 +17,12 @@ let _adapter: AuthAdapter | null = null
 
 export function resolveAuthAdapter(
   configured: StorefrontAuthAdapter | undefined,
-  supabase?: { url?: string; anonKey?: string },
 ): AuthAdapter {
   if (configured && configured !== 'mock' && configured !== 'supabase') return configured
-  if (configured === 'supabase' && supabase?.url && supabase?.anonKey) {
-    return createSupabaseAuthAdapter({ supabaseUrl: supabase.url, supabaseAnonKey: supabase.anonKey })
+  if (configured === 'supabase') {
+    console.warn(
+      '@fayz-ai/storefront: auth.adapter="supabase" is legacy. Pass an explicit AuthAdapter or use the Fayz SDK broker path.',
+    )
   }
   return createMockAuthAdapter()
 }

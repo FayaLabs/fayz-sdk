@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 16:03 BRT — M38 Storefront provider leak reduction
+
+Resultado:
+
+- Removed the default storefront behavior that created a Supabase client from `supabaseUrl/supabaseAnonKey`.
+- Added narrow internal shop subpaths:
+  - `@fayz-ai/shop/runtime`
+  - `@fayz-ai/shop/mock`
+  - `@fayz-ai/shop/catalog`
+- Storefront now resolves shop data as explicit provider > catalog mock > empty mock; Supabase requires an explicit adapter/provider path instead of being auto-wired by storefront.
+- Shopfront, Pulse, and Tannat catalogs now import `buildMockCatalog` from `@fayz-ai/shop/catalog`.
+
+Impacto:
+
+- The storefront default path is closer to the product contract Vini asked for: app code defines business config, not provider plumbing.
+- Three shop builds no longer emit the Supabase dynamic/static import warning.
+- Built JS for the stores dropped from roughly `1.29MB` to roughly `1.07MB`.
+
+Risco:
+
+- `@fayz-ai/shop` still exports Supabase provider for internal/explicit adapters. That is acceptable while the package remains private/internal, but generated apps should keep using narrow subpaths or the public `@fayz-ai/sdk` broker path.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/shop typecheck && pnpm --filter @fayz-ai/shop build`
+  - `pnpm --filter @fayz-ai/storefront typecheck && pnpm --filter @fayz-ai/storefront build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/shopfront`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/pulse-store`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/tannat-store`
+  - HTTP 200 on ports `5180`, `5181`, `5183`, `5184`, `5185`
+
 ## 2026-06-14 15:55 BRT — M37 Beauty style fix + storefront dogfood cleanup
 
 Resultado:

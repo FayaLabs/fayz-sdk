@@ -8,6 +8,8 @@ import type { HomeConfig, NavLink, FooterConfig } from './sections'
 import { initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
 import './blocks' // ensure section blocks are registered
 
+type StorefrontBackendProvider = NonNullable<StorefrontConfig['backend']>['provider']
+
 // ---------------------------------------------------------------------------
 // Storefront scaffold — renders a store from a pure-data AppManifest. The
 // storefront surface keeps its declarative config under surface.options, so the
@@ -24,7 +26,10 @@ export function defineStorefront(config: StorefrontConfig): AppManifest {
   return defineApp({
     id: slug(config.name),
     name: config.name,
-    backend: config.supabaseUrl ? { provider: 'supabase', url: config.supabaseUrl } : { provider: 'mock' },
+    backend: {
+      provider: config.backend?.provider ?? (config.provider ? 'custom' : 'mock'),
+      url: config.backend?.url,
+    },
     locale: {
       default: config.locale ?? 'pt-BR',
       supported: [config.locale ?? 'pt-BR'],
@@ -64,7 +69,10 @@ function manifestToStorefrontConfig(manifest: AppManifest, surfaceName: string):
     shipping: o.shipping as StorefrontConfig['shipping'],
     features: o.features as StorefrontConfig['features'],
     catalog: o.catalog as StorefrontConfig['catalog'],
-    supabaseUrl: manifest.backend?.url,
+    backend: {
+      provider: manifest.backend?.provider as StorefrontBackendProvider,
+      url: manifest.backend?.url,
+    },
   }
 }
 
