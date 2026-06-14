@@ -1,5 +1,34 @@
 # 17 — Progress Log
 
+## 2026-06-14 09:55 BRT — M19 Central SDK version resolver bridge
+
+### Executive outcome
+
+The first version-manager bridge is implemented for generated Fayz projects.
+
+### Business impact
+
+- Fayz scaffold no longer duplicates `@fayz-ai/sdk` / `@fayz-ai/runtime` version literals inside scaffold dependency code and tests.
+- New generated projects now read Fayz package versions from one checked-in resolver with `stable`, `latest`, and `preview` channels.
+- This starts `FAY-1183` without waiting for the heavier npm dist-tag/API-backed version service.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
+```
+
+Result: 12 tests passed.
+
+### Risk
+
+This is the bridge, not the final version manager. Next, share this resolver between Fayz API scaffold and SDK CLI, then decide whether channels are backed by npm dist-tags, Fayz API, a checked-in release manifest, or a combination.
+
+### Next
+
+Commit the narrow Fayz scaffold slice, update `FAY-1183`, then return to runtime publish safety.
+
 ## 2026-06-14 08:47 BRT — M18 Public npm + default SDK package lock gated, repo created
 
 ### Executive outcome
