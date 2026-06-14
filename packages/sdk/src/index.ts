@@ -2,6 +2,13 @@ export { appParams, resolveAppParams } from './app-params'
 export { createFayzClient, fayz, FayzApiError } from './client'
 export type { FayzClientOptions, FayzRequestOptions } from './client'
 export {
+  fayzPackageVersionSets,
+  resolveFayzPackageDependencies,
+  resolveFayzPackageVersion,
+  resolveFayzPackageVersions,
+} from './release-channels'
+export type { FayzPackageChannel, FayzPackageVersionSet } from './release-channels'
+export {
   createFayzRuntimeClient,
   FayzRuntimeError,
 } from './runtime'

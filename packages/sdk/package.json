@@ -25,6 +25,12 @@
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
     },
+    "./release-channels": {
+      "source": "./src/release-channels.ts",
+      "types": "./dist/release-channels.d.ts",
+      "import": "./dist/release-channels.js",
+      "require": "./dist/release-channels.cjs"
+    },
     "./runtime": {
       "source": "./src/runtime.ts",
       "types": "./dist/runtime.d.ts",

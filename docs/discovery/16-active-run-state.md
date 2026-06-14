@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 11:08 BRT
+Last updated: 2026-06-14 11:34 BRT
 
 ## Mode
 
@@ -8,14 +8,14 @@ Active autonomous execution is approved. This file is the fast resume snapshot f
 
 The heartbeat is a fallback/resume mechanism, not the main worker. The active thread should keep executing in continuous small cycles: inspect, run the next gate, fix the narrow failure, update docs, repeat. Stop only for blockers that require Vini's product/architecture approval.
 
-Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is locked to public npm for `@fayz-ai/sdk` only. Beauty is now the first dogfood app for local SDK/internal app-runtime validation before generator-heavy work.
+Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is locked to public npm for `@fayz-ai/sdk` only. Beauty is now the first dogfood app for local SDK/internal app-runtime validation before generator-heavy work. Route recalculation is locked in `28-proof-first-route-lock.md`: proof-first capabilities, one public SDK package, private/internal app-runtime and domain packages until Beauty + second vertical prove stable seams.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
 - Fayz branch: `weekend-fayz-sdk-panel-manifest`
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -29,7 +29,7 @@ Current focus:
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
 3. Continue `FAY-1184` from the public npm decision: default `@fayz-ai/sdk` is published. Stop expanding public npm surface; app-runtime/plugins/core/UI packages are internal/private until Beauty + 2 more apps prove a real public boundary.
-4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold and SDK CLI with local package-version resolvers and `stable/latest/preview` channels. Next step is replacing local duplication with one shared npm dist-tag/API/manifest-backed channel source for `@fayz-ai/sdk`.
+4. Continue `FAY-1183`: the SDK now owns the release-channel resolver and the CLI reads from it. Next step is making Fayz scaffold consume the same exported SDK source so the cross-repo duplication disappears, then deciding whether channels stay checked-in or become npm dist-tag/API-backed.
 5. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
 6. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates. The app-runtime concept is internal/local until dogfood proves it should become a package.
@@ -48,7 +48,33 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: dogfood manually before generator-heavy work: stabilize Beauty first, then 1-2 more real Fayz apps, and only then harden the repo generator from proven app patterns.
+- Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
+
+## M24 SDK-owned release-channel source for CLI — 2026-06-14 11:34 BRT
+
+Result:
+
+- Moved the package-channel map into the public SDK source as a first-class `release-channels` module.
+- Rewired the CLI to consume that SDK-owned resolver instead of maintaining its own local version map.
+- Added SDK tests and exports so the release-channel source is publishable and reviewable as part of the public package contract.
+
+Impact:
+
+- One repo-local source now governs package channels for the SDK and CLI, reducing silent drift before Fayz is switched over.
+- The public npm package gains a clean future seam for Fayz/API to consume instead of copying literals.
+- This advances `FAY-1183` without expanding the public package surface beyond `@fayz-ai/sdk`.
+
+Risk:
+
+- Fayz scaffold still keeps its own checked-in resolver today, so cross-repo duplication is reduced but not fully removed yet.
+- Channel values are still checked-in constants, not npm dist-tag/API-backed data. That is acceptable for now because it is explicit and testable.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk test`
+  - `pnpm --filter @fayz-ai/sdk build`
+  - `pnpm --filter @fayz-ai/cli typecheck`
 
 ## M23 Public surface correction + Beauty tenant dogfood — 2026-06-14 10:59 BRT
 
@@ -81,37 +107,32 @@ Gate:
   - `curl http://localhost:5180/@fs/Users/fayalabs/dev/fayz-sdk/packages/saas/src/org/store.ts` confirms Beauty dev server is serving the local tenant-context fix
   - Supabase dogfood proof with `teste@teste.com`: selected tenant, inserted temporary `CODEx TEST ...` client rows, then deleted them
 
-## M22 App Runtime package wave — 2026-06-14 10:27 BRT
+## M22 Route correction after package-wave risk — 2026-06-14 10:27 BRT
 
 Result:
 
-- Renamed the public app-rendering package from `@fayz-ai/runtime` to `@fayz-ai/app-runtime` before first publish.
-- Renamed the package folder to `packages/app-runtime` and updated SDK CLI, Fayz generated scaffold, docs, safety gates, and tests.
-- Converted the app-runtime dependency chain to public `@fayz-ai/*` package names with `workspace:^` so publish rewrites dependencies to semver.
-- Published `@fayz-ai/core@0.1.0`, `@fayz-ai/auth@0.1.0`, `@fayz-ai/ui@0.1.0`, `@fayz-ai/shop@0.1.0`, `@fayz-ai/saas@0.1.0`, `@fayz-ai/storefront@0.1.0`, and `@fayz-ai/app-runtime@0.1.0` to public npm.
+- Superseded the app-runtime/package-wave direction after Vini flagged public npm sprawl risk.
+- Current public npm registry check confirms only `@fayz-ai/sdk` exists publicly; `@fayz-ai/app-runtime`, `core`, `auth`, `ui`, `shop`, `saas`, and `storefront` return npm 404.
+- Repo guard now passes with one publishable package: `pnpm check:public-surface` -> `only @fayz-ai/sdk is publishable`.
+- Route lock captured in `28-proof-first-route-lock.md`.
 
 Impact:
 
-- The public naming is clearer: `@fayz-ai/sdk` is the lean API/client package; `@fayz-ai/app-runtime` renders manifest apps.
-- New generated Fayz projects will not be born with the obsolete `@fayz-ai/runtime` package name.
-- Beauty migration is now unblocked after publish because the packages it needs have passed build and npm dry-run gates.
+- `@fayz-ai/sdk` remains the lean public API/client package.
+- `app-runtime` is an internal/platform-bundled app shell concept, not a public generated-app dependency.
+- Beauty migration is a dogfood proof with local/internal package aliases, not justification to publish a package graph.
 
 Risk:
 
-- The app-runtime package is now public and clean-install verified. Beauty can now be migrated manually as the first real dogfood app.
+- Older progress notes below may mention runtime/package-wave exploration. Treat those as historical exploration, not current route.
 - Do not over-invest in the Fayz repo generator before manual dogfood. The generator should copy a proven app contract, not become the first validation surface.
 
 Gate:
 
 - Passed:
-  - `npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts`
-  - `pnpm --filter @fayz-ai/app-runtime typecheck`
-  - `pnpm check:public-package-safety`
-  - `pnpm --filter @fayz-ai/core build && pnpm --filter @fayz-ai/auth build && pnpm --filter @fayz-ai/ui build && pnpm --filter @fayz-ai/shop build && pnpm --filter @fayz-ai/saas build && pnpm --filter @fayz-ai/storefront build && pnpm --filter @fayz-ai/app-runtime build`
-  - `pnpm check:manifest`
-  - `pnpm publish --dry-run --access public --no-git-checks` for `core`, `auth`, `ui`, `shop`, `saas`, `storefront`, and `app-runtime`
-  - `npm install @fayz-ai/app-runtime@0.1.0 @fayz-ai/sdk@0.1.3` in a clean temp project
-  - `node -e "import('@fayz-ai/app-runtime').then(m=>console.log(Boolean(m.renderApp), Boolean(m.defineApp)))"`
+  - `pnpm check:public-surface`
+  - `npm view @fayz-ai/sdk version` -> `0.1.3`
+  - `npm view @fayz-ai/app-runtime`, `core`, `auth`, `ui`, `shop`, `saas`, `storefront` -> 404/not public
 
 ## M21 Runtime publish safety gate — 2026-06-14 10:11 BRT
 
@@ -161,7 +182,7 @@ Risk:
 - Do not refactor Beauty destructively before package gates pass.
 - `@fayz-ai/sdk@0.1.3` is published with README, GitHub repository link, homepage, bug tracker metadata, and package copy focused on the problem it solves. Npm reports `latest: 0.1.3`, access is public, and a clean unauthenticated `npm install @fayz-ai/sdk@0.1.3` passed.
 - `@fayz-ai/app-runtime` was not published in this slice because it still depends on internal packages that are not yet available under the public npm scope. Publishing it now would shift the failure to generated-project installs.
-- Fayz generated scaffold is now dependency-thin: direct runtime app dependencies are `@fayz-ai/sdk`, `@fayz-ai/app-runtime`, `react`, and `react-dom`; UI/form/chart libraries move behind runtime/UI packages or explicit app-owned opt-ins.
+- Fayz generated scaffold should stay dependency-thin: direct default app dependencies are `@fayz-ai/sdk`, `react`, and `react-dom`; app-runtime/internal UI/capability code is platform-bundled/local until dogfood proves a public boundary.
 
 Gate:
 

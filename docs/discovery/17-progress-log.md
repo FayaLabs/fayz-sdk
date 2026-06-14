@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 11:34 BRT — M24 SDK-owned release-channel source for CLI
+
+### Executive outcome
+
+The SDK now owns the package release-channel map, and the CLI reads that source instead of maintaining a parallel local copy.
+
+### Business impact
+
+- Version-channel drift inside the SDK repo is reduced: `@fayz-ai/sdk` and `fayz create` now share the same checked-in resolver.
+- The public SDK package gains an explicit `release-channels` export that Fayz/API can consume next, which is the cleanest path to finish `FAY-1183`.
+- This improves publish safety without widening the public npm surface beyond the already-approved `@fayz-ai/sdk`.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/sdk test
+pnpm --filter @fayz-ai/sdk build
+pnpm --filter @fayz-ai/cli typecheck
+```
+
+Result: SDK tests and build passed with the new release-channel module, and the CLI typecheck passed while importing that SDK-owned source.
+
+### Risk
+
+Fayz scaffold still uses its own checked-in resolver in a separate repo, so the final cross-repo centralization step is still open. Channel values also remain checked-in constants for now rather than npm dist-tags or API-backed data.
+
+### Next
+
+Switch Fayz scaffold to consume the SDK-exported release-channel source, then decide whether `stable/latest/preview` should stay manifest-backed or move behind npm dist-tags/API once Beauty + second-app dogfood proves the boundary.
+
 ## 2026-06-14 10:59 BRT — M23 Public surface correction + Beauty tenant dogfood
 
 ### Executive outcome
@@ -35,41 +66,36 @@ Manual browser confirmation is still needed after reload for the exact client-sa
 
 Stabilize Beauty as the first dogfood app, then manually validate two more Fayz apps before generator-heavy work. Only promote app-runtime to a public package if these dogfoods prove the need.
 
-## 2026-06-14 10:27 BRT — M22 App Runtime package wave gated
+## 2026-06-14 10:27 BRT — M22 Route correction after package-wave risk
 
 ### Executive outcome
 
-The public app-rendering package is now named and published as `@fayz-ai/app-runtime`.
+The public package-wave direction was superseded. The current route is proof-first: `@fayz-ai/sdk` is the only default public npm package; app-runtime and domain/plugin packages stay private/internal until Beauty plus a second vertical prove stable public seams.
 
 ### Business impact
 
-- Clear package split: `@fayz-ai/sdk` is the lean API/client package; `@fayz-ai/app-runtime` is the manifest app renderer.
-- Fayz scaffold tests now expect `@fayz-ai/app-runtime`, avoiding a public package rename after generated projects start using it.
-- The public runtime dependency chain is publish-ready in dry-run: `core`, `auth`, `ui`, `shop`, `saas`, `storefront`, and `app-runtime`.
-- `@fayz-ai/app-runtime@0.1.0` now clean-installs with `@fayz-ai/sdk@0.1.3` in a fresh project and exposes `renderApp` / `defineApp`.
+- Keeps Fayz ambitious without becoming a framework/package ecosystem prematurely.
+- Generated apps stay understandable and install-thin: `@fayz-ai/sdk`, `react`, `react-dom`, plus explicit app-owned dependencies.
+- Beauty remains the first dogfood app, but it validates local/internal app shell and capabilities rather than forcing a public runtime package.
 
 ### Gate passed
 
 ```bash
-cd /Users/fayalabs/dev/fayz
-npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
-
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz-ai/app-runtime typecheck
-pnpm check:public-package-safety
-pnpm --filter @fayz-ai/core build && pnpm --filter @fayz-ai/auth build && pnpm --filter @fayz-ai/ui build && pnpm --filter @fayz-ai/shop build && pnpm --filter @fayz-ai/saas build && pnpm --filter @fayz-ai/storefront build && pnpm --filter @fayz-ai/app-runtime build
-pnpm check:manifest
-pnpm publish --dry-run --access public --no-git-checks
-npm install @fayz-ai/app-runtime@0.1.0 @fayz-ai/sdk@0.1.3
+pnpm check:public-surface
+npm view @fayz-ai/sdk version
+npm view @fayz-ai/app-runtime version # returns 404/not public
 ```
+
+Result: public npm currently exposes `@fayz-ai/sdk@0.1.3`; app-runtime/core/auth/ui/shop/saas/storefront are not public packages.
 
 ### Risk
 
-No npm package-source blocker remains for Beauty. The remaining risk is dogfood fit: Beauty still uses local `@fayz/* workspace:*` package names and legacy `createSaasApp`, so migration should be manual and observable before generator-heavy work.
+Older notes may mention app-runtime/package-wave exploration. Treat them as historical exploration, not current route. Do not publish additional packages or alter generated-app defaults without Beauty + second-vertical proof and explicit approval.
 
 ### Next
 
-Dogfood manually before generator-heavy work: Beauty first, then 1-2 more Fayz apps. Only after that should the generator copy the proven pattern.
+Dogfood manually before generator-heavy work: Beauty first, then The Chef/ecommerce/POS pressure test. Only after that should the generator copy proven patterns or a new package boundary be considered.
 
 ## 2026-06-14 10:11 BRT — M21 Runtime publish safety gate
 
@@ -196,7 +222,7 @@ Keep `@fayz-ai/sdk` focused on API access, app params, runtime broker helpers, a
 
 `@fayz-ai/sdk@0.1.3` is published with public access. It fixes the package-page quality issue by adding README content plus GitHub repository, homepage, and bug tracker metadata, and removes package copy that made "small" sound like the product value. Clean public install now passes: `npm install @fayz-ai/sdk@0.1.3`.
 
-Fayz generated scaffold is now dependency-thin. Direct app dependencies are only `@fayz-ai/sdk`, `@fayz-ai/app-runtime`, `react`, and `react-dom`; UI/form/chart libraries are runtime/UI-owned or explicit opt-ins for app-owned custom code.
+Fayz generated scaffold should stay dependency-thin. Direct default app dependencies are only `@fayz-ai/sdk`, `react`, and `react-dom`; app-runtime/internal UI/capability code is platform-bundled/local until dogfood proves a public boundary.
 
 `@fayz-ai/app-runtime` was not published in this slice. It still depends on internal packages not yet published under the public npm scope, so publishing it now would create broken generated-project installs.
 
