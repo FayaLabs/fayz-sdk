@@ -1,5 +1,39 @@
 # 17 — Progress Log
 
+## 2026-06-13 22:30 BRT — Fayz branch published, SDK remote missing
+
+### Executive outcome
+
+The Fayz implementation branch was pushed to GitHub:
+
+```txt
+weekend-fayz-sdk-panel-manifest -> origin/weekend-fayz-sdk-panel-manifest
+```
+
+PR creation URL:
+
+```txt
+https://github.com/FayaLabs/ymaia/pull/new/weekend-fayz-sdk-panel-manifest
+```
+
+### Business impact
+
+- The Fayz Panel/AppManifest/scaffold/runtime-token work is now backed up remotely.
+- The branch is ready for a draft PR once the target base branch is confirmed.
+- This reduces local-only risk without touching uncommitted proof screenshots or agent status files.
+
+### Risk
+
+`/Users/fayalabs/dev/fayz-sdk` has no git remote configured. Do not guess it; confirm the open-source SDK repository destination before pushing SDK commits.
+
+### Runtime check
+
+No stuck build/test process found. Beauty Vite remains healthy on port `5180`.
+
+### Next
+
+Confirm Fayz PR base branch, then open a draft PR. Confirm SDK remote, then push `weekend-fayz-sdk-architecture-lock`.
+
 ## 2026-06-13 22:22 BRT — Docs operating record packaged
 
 ### Executive outcome

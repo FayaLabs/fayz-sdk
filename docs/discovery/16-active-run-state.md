@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-13 22:22 BRT
+Last updated: 2026-06-13 22:30 BRT
 
 ## Mode
 
@@ -38,7 +38,31 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1, M2, M3, and M4 are committed; M5 Beauty proof is validated.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: commit docs operating record, then decide push/PR strategy and Beauty branch reconciliation before any Beauty commit.
+- Next target: create Fayz draft PR from the pushed branch, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+
+## Remote publication checkpoint — 2026-06-13 22:30 BRT
+
+Result:
+
+- Fayz branch `weekend-fayz-sdk-panel-manifest` was pushed to `origin`.
+- GitHub PR URL is ready: `https://github.com/FayaLabs/ymaia/pull/new/weekend-fayz-sdk-panel-manifest`.
+- Fayz branch now tracks `origin/weekend-fayz-sdk-panel-manifest`.
+
+Impact:
+
+- M2, M3, and M4 are no longer local-only.
+- The branch is ready for a draft PR once the base branch is confirmed.
+
+Risk:
+
+- `/Users/fayalabs/dev/fayz-sdk` has no git remote configured, so M1/docs cannot be pushed from this repo yet.
+- Do not guess the SDK remote URL; confirm before adding/pushing because the SDK is intended to be open source.
+
+Next:
+
+- Create a draft PR for Fayz after confirming target base branch, likely `dev`.
+- Configure/push the SDK branch only after the repo remote is explicit.
+- Keep `beauty-saas` validation-only until its branch is reconciled with origin.
 
 ## Docs operating record packaging — 2026-06-13 22:22 BRT
 
