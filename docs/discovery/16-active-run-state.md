@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 17:47 BRT
+Last updated: 2026-06-14 17:58 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Beauty style restoration in the new manifest/runtime path, green for M38 provider-leak reduction, green for M39/M40 ProductCard slot dogfood across Pulse and Tannat, green for M41/M42 Fayz Shop SDK adapter + tenant seed, green for M43 shop naming refactor, green for M44/M45 shop-only package surface with `packages/storefront` removed, green for M46 new AdminShell settings/frame parity across Beauty/Resto, green for M47 login/logout parity, green local-gated for M48 Liquid Glass global contrast/modal field tokens, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Beauty style restoration in the new manifest/runtime path, green for M38 provider-leak reduction, green for M39/M40 ProductCard slot dogfood across Pulse and Tannat, green for M41/M42 Fayz Shop SDK adapter + tenant seed, green for M43 shop naming refactor, green for M44/M45 shop-only package surface with `packages/storefront` removed, green for M46 new AdminShell settings/frame parity across Beauty/Resto, green for M47 login/logout parity, green local-gated for M48 Liquid Glass global contrast/modal field tokens, green for M49 shop app Tailwind scan repair after `storefront` -> `shop`, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -43,6 +43,7 @@ Current focus:
 15. Fayz Shop backend proof: `@fayz-ai/sdk/shop` now exposes the Fayz-owned shop backend as a normalized provider for products, categories, orders, customers, and discounts. Shopfront, Pulse, and Tannat use the SDK provider with mock fallback; app repos configure `storeId`/tenant env only and do not import Supabase directly. M42 seeded separate tenants: Aurora/Shopfront `10000000-0000-4000-8000-000000000101` with 16 products, Pulse `10000000-0000-4000-8000-000000000102` with 8 products, and Tannat `10000000-0000-4000-8000-000000000103` with 8 products. Storefront categories are currently tenant-owned via product metadata because global `categories` is RLS-protected.
 16. Current running ports for Vini inspection: Beauty `5180`, Resto `5181`, Shopfront `5183`, Tannat `5184`, Pulse `5185`.
 17. Current visual/theme proof: Liquid Glass now has global modal, divider, field, button, card, and popover tokens, but Beauty has been returned to `classic_admin` for the primary SaaS proof. Next Liquid Glass dogfood should happen in a controlled app/sandbox while plugin surfaces that still force local `bg-card`/`border`/`shadow` classes are migrated to tokens.
+18. Shop breakage root cause: Shopfront, Tannat, and Pulse were still scanning removed `packages/storefront` Tailwind content. They now scan `packages/shop`, rebuild, and run again on `5183`/`5184`/`5185`. Generator/scaffold must centralize this wiring so internal package moves do not break app CSS.
 
 Idle-loop rule:
 

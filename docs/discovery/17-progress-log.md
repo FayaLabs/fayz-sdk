@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 17:58 BRT — M49 Shop app Tailwind scan repair
+
+Resultado:
+
+- Fixed Shopfront, Tannat, and Pulse Tailwind content paths after the shop package consolidation.
+- Replaced stale `../../fayz-sdk/packages/storefront/src/**/*.{ts,tsx}` scans with `../../fayz-sdk/packages/shop/src/**/*.{ts,tsx}` in all three shop apps.
+- Rebuilt all three shops successfully and restarted their dev servers on the same ports: Shopfront `5183`, Tannat `5184`, Pulse `5185`.
+- Browser measurement confirmed Tannat returned from ~19,000px broken page height to ~4,100px with product cards back to normal grid width.
+
+Impacto:
+
+- The three shop apps are functioning again after the `storefront` -> `shop` refactor.
+- This exposed a generator/scaffold requirement: generated apps must not hardcode internal package scan paths manually; SDK/app templates need a central style-content helper or stable preset contract.
+
+Risco:
+
+- Builds are green and layout is materially fixed, but shop visual/product QA still needs a full click-through pass for catalog, product detail, cart, checkout, profile, and mobile.
+- Existing dev servers must be restarted after Tailwind config changes; HMR alone is not enough.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in Shopfront
+  - `pnpm build` in Tannat
+  - `pnpm build` in Pulse
+  - HTTP 200 on `5183`, `5184`, `5185`
+
+Next:
+
+- Move Tailwind/package-content wiring into scaffold/template logic so this cannot regress when internal package names move again.
+- Continue shop QA toward 9/10: catalog filters, product details, cart/checkout, account/profile, mobile, and app-specific slots.
+
 ## 2026-06-14 17:47 BRT — M48 Liquid Glass global contrast + modal surface cleanup
 
 Resultado:
