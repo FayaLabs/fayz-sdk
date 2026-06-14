@@ -1,5 +1,38 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:39 BRT — M36 Beauty `FayzAppConfig.org` local migration proof
+
+### Executive outcome
+
+Beauty now builds locally on the new `FayzAppConfig.org` contract instead of the legacy `SaasAppConfig.organization` path.
+
+### Business impact
+
+- This is the strongest proof so far that `renderApp(defineSaas(config))` can become the real app contract.
+- The SDK/runtime adapted to Beauty's real needs: rich theme, config-friendly billing plans, chat title, login/OAuth, and nested app navigation.
+- We did not reduce Beauty's product config just to fit a narrower SDK abstraction.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/saas build
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Browser smoke also opened Beauty at `http://localhost:5180/` without an initial crash.
+
+### Risk
+
+Beauty is still local-gated and uncommitted because the repo is `ahead 1, behind 2` with broad pre-existing changes. Full parity still needs a visual navigation/settings pass before claiming the legacy shell can be deprecated for production.
+
+### Next
+
+Curate/package the Beauty source-only migration separately, then continue removing provider leaks and pick the fourth dogfood app.
+
 ## 2026-06-14 12:30 BRT — M35 new AdminShell page ordering/children parity
 
 ### Executive outcome

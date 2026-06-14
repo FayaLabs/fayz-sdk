@@ -8,10 +8,9 @@ import {
 import type {
   AppManifest,
   PluginManifest,
-  SaasTheme,
   LocaleConfig,
   PermissionsConfig,
-  BillingConfig,
+  BillingConfig as ManifestBillingConfig,
 } from '@fayz-ai/core'
 import { AdminProviders } from './createFayzApp'
 import { AdminShell } from './AdminShell'
@@ -64,7 +63,7 @@ export function defineSaas(config: FayzAppConfig | SaasAppConfig): AppManifest {
     locale: config.locale as LocaleConfig | undefined,
     theme: config.theme as Record<string, unknown> | undefined,
     permissions: config.permissions,
-    billing: config.billing as BillingConfig | undefined,
+    billing: config.billing as ManifestBillingConfig | undefined,
     surfaces: {
       admin: {
         scaffold: 'admin',
@@ -129,11 +128,11 @@ function manifestToFayzConfig(manifest: AppManifest, surfaceName: string): FayzA
     supabaseUrl: manifest.backend?.provider === 'supabase' ? manifest.backend.url : undefined,
     plugins: resolvePlugins(manifest, surfaceName),
     pages: resolvePages(manifest, surfaceName),
-    theme: manifest.theme as SaasTheme | undefined,
+    theme: manifest.theme as FayzAppConfig['theme'],
     layout: (options.layout as FayzAppConfig['layout']) ?? 'sidebar',
     locale: manifest.locale as LocaleConfig | undefined,
     permissions: manifest.permissions as PermissionsConfig | undefined,
-    billing: manifest.billing as BillingConfig | undefined,
+    billing: manifest.billing as FayzAppConfig['billing'],
     auth: { requireAuth: (options.requireAuth as boolean) ?? true },
   }
 }

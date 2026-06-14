@@ -4,12 +4,13 @@ import type {
   AuthProvider,
   OrgAdapter,
   PluginManifest,
-  SaasTheme,
   ThemeMode,
   LocaleConfig,
   PermissionsConfig,
-  BillingConfig,
 } from '@fayz-ai/core'
+import type { SaasTheme } from '../shell/config/theme/tokens'
+import type { CreateThemeOptions } from '../shell/config/theme/utils'
+import type { PlanConfig } from '../shell/types/billing'
 
 // ---------------------------------------------------------------------------
 // Page registration
@@ -60,8 +61,15 @@ export interface OrgConfig {
 
 export interface ChatConfig {
   enabled?: boolean
+  title?: string
   systemPrompt?: string
   apiEndpoint?: string
+}
+
+export interface FayzBillingConfig {
+  plans: PlanConfig[]
+  stripePublishableKey?: string
+  portalUrl?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +110,7 @@ export interface FayzAppConfig {
   // -------------------------------------------------------------------------
   // Theme
   // -------------------------------------------------------------------------
-  theme?: SaasTheme
+  theme?: CreateThemeOptions | SaasTheme
   defaultThemeMode?: ThemeMode
   /** Shell layout variant (default: 'sidebar') */
   layout?: 'sidebar' | 'topbar' | 'minimal'
@@ -120,7 +128,7 @@ export interface FayzAppConfig {
   // -------------------------------------------------------------------------
   // Billing
   // -------------------------------------------------------------------------
-  billing?: BillingConfig
+  billing?: FayzBillingConfig
 
   // -------------------------------------------------------------------------
   // AI Chat

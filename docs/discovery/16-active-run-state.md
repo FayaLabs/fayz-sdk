@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 12:30 BRT
+Last updated: 2026-06-14 12:39 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -38,7 +38,7 @@ Current focus:
 10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, keep improving `resto-saas`, `shopfront`, and at least one more Fayz app until 4 apps reach roughly 9/10. Only after that should Fayz Agents be taught to operate `fayz-sdk`.
 11. Generated apps should not own direct provider clients by default. `integrations/supabase` is a smell for generated apps unless hidden behind an optional SDK adapter; default API/data access should go through `@fayz-ai/sdk` / Fayz broker, Base44-style.
 12. Current SDK/API abstraction proof: Beauty dashboard KPI and today-schedule section now call `fayz.data.countRows/listRows` instead of importing Supabase directly. Next frontier is moving remaining app/plugin provider wiring behind SDK/platform adapters.
-13. Current `createSaasApp` deprecation blocker: Beauty can now preserve login/logo/OAuth plus app page ordering/children in the new AdminShell. The next gated slice is switching Beauty from legacy `SaasAppConfig.organization` to `FayzAppConfig.org` and visually checking settings/navigation parity before claiming deprecation proof.
+13. Current `createSaasApp` deprecation proof: Beauty now builds locally with `FayzAppConfig.org` and no `SaasAppConfig`/`organization` config references. Browser smoke opened `http://localhost:5180/` successfully. Because Beauty is ahead/behind with broad worktree changes, do not commit Beauty without curated staging.
 
 Idle-loop rule:
 
@@ -51,7 +51,40 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: migrate Beauty from legacy `SaasAppConfig.organization` to `FayzAppConfig.org` in a curated slice, then visually check navigation/settings parity before claiming `createSaasApp` deprecation proof.
+- Next target: curate/package Beauty source-only migration proof, then remove remaining provider leaks and continue fourth-app dogfood.
+
+## M36 Beauty `FayzAppConfig.org` local migration proof — 2026-06-14 12:39 BRT
+
+Result:
+
+- Extended the new `FayzAppConfig` contract to accept the rich theme, billing plan config, and chat title shape Beauty already uses.
+- Added billing plan normalization in the new runtime provider path.
+- Locally migrated Beauty config from `SaasAppConfig.organization` to `FayzAppConfig.org`.
+- Confirmed no `SaasAppConfig`/`organization` references remain in Beauty config.
+- Opened Beauty in browser at `http://localhost:5180/` without an initial crash.
+
+Impact:
+
+- This is the strongest proof so far that `renderApp(defineSaas(config))` can become the real app contract and `createSaasApp` can move toward compatibility-only.
+- The SDK adapted to a real app instead of forcing Beauty to simplify product config.
+
+Risk:
+
+- Beauty migration is local-gated and uncommitted because the Beauty repo is `ahead 1, behind 2` with broad unrelated changes.
+- Still need visual navigation/settings inspection before claiming full production-grade parity.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+  - Browser smoke: `http://localhost:5180/`
+
+Next:
+
+- Package Beauty source-only migration separately after branch/staging cleanup.
+- Continue provider leak removal and fourth-app dogfood.
 
 ## M35 new AdminShell page ordering/children parity — 2026-06-14 12:30 BRT
 

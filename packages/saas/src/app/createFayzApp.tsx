@@ -15,6 +15,8 @@ import { createSupabaseOrgAdapter } from '../org/adapters/supabase'
 import { createMockOrgAdapter } from '../org/adapters/mock'
 import { PermissionsProvider } from '../permissions/context'
 import { useBillingStore } from '../billing/store'
+import type { Plan } from '@fayz-ai/core'
+import type { PlanConfig } from '../shell/types/billing'
 import { AdminShell } from './AdminShell'
 import { useAdminPath } from './routing'
 import type { FayzAppConfig } from './config'
@@ -81,9 +83,23 @@ function buildI18nConfig(config: FayzAppConfig): {
 function BillingInitializer({ config }: { config: FayzAppConfig }) {
   const setPlans = useBillingStore((s) => s.setPlans)
   React.useEffect(() => {
-    if (config.billing?.plans) setPlans(config.billing.plans)
+    if (config.billing?.plans) setPlans(config.billing.plans.map(normalizeBillingPlan))
   }, [config.billing, setPlans])
   return null
+}
+
+function normalizeBillingPlan(plan: PlanConfig): Plan {
+  return {
+    id: plan.id,
+    name: plan.name,
+    description: plan.description,
+    price: plan.priceMonthly ?? plan.prices?.monthly ?? 0,
+    currency: plan.currency ?? 'USD',
+    interval: 'month',
+    features: plan.features,
+    highlighted: plan.popular,
+    stripePriceId: undefined,
+  }
 }
 
 // ---------------------------------------------------------------------------
