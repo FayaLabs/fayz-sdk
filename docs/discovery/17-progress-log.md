@@ -1,5 +1,39 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:35 UTC / 20:35 BRT — M73 private Orders plugin extraction consumed by Resto
+
+Resultado:
+
+- Created private `@fayz-ai/plugin-orders` from Resto's app-local Orders implementation.
+- Resto now imports `createOrdersPlugin` from `@fayz-ai/plugin-orders`.
+- Removed Resto's old `src/plugins/orders` copy to prevent drift.
+- Plugin Orders typecheck/build pass.
+- Resto build and authenticated `/orders` smoke remain green.
+
+Impacto:
+
+- Resto's restaurant stack is now more reusable: Menu, Tables, and Orders are package-owned private internals instead of app-local plugin copies.
+- This moves the app closer to the target shape where the client repo owns config/theme/business rules, not platform plugin mechanics.
+
+Risco:
+
+- Orders still uses mock provider by default. A Fayz SDK-backed Orders provider is the next data-boundary step before production-grade restaurant operations.
+- The package remains private/internal; do not publish it as public npm API.
+
+Proximo:
+
+- Add `createFayzOrdersProvider()` or an env-gated `src/config/orders.ts` only after mapping the canonical Fayz order tables/tenant contract.
+- Continue Beauty provider leaks or restaurant Orders data provider, whichever is less blocked.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/plugin-orders typecheck
+pnpm --filter @fayz-ai/plugin-orders build
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/orders
+```
+
 ## 2026-06-14 23:23 UTC / 20:23 BRT — M72 Resto env-gated Menu provider wiring
 
 Resultado:
