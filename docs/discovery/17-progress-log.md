@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 20:22 BRT — M60 plugin-shop provider injection
+
+Resultado:
+
+- Added provider injection to `@fayz-ai/plugin-shop`.
+- Marketplace now passes `getMarketShopProvider` into `createShopPlugin`.
+- The Shop admin page can use the same `@fayz-ai/sdk/shop` provider path as Marketplace dashboard metrics.
+
+Impacto:
+
+- This reduces hidden platform coupling: app-owned config chooses the provider boundary, while the plugin owns the reusable Shop UI/admin behavior.
+- It is a stronger proof of the SDK value proposition than a config cleanup alone: the app stops needing to know plugin internals to route shop data correctly.
+
+Risco:
+
+- The plugin still keeps the global provider fallback for compatibility. That is intentional now, but generated apps should prefer explicit SDK provider injection once their store env/broker contract is available.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/plugin-shop typecheck`
+  - `pnpm --filter @fayz-ai/plugin-shop build`
+  - `pnpm build` in Marketplace
+  - Browser smoke on `http://localhost:5186/`
+  - Ports `5180`, `5181`, `5183`, `5184`, `5185`, `5186` all returned `200`.
+
+Next:
+
+- Decide whether to continue Marketplace admin hardening or return to Beauty/Resto visible QA gaps.
+- Keep the public product API limited to `@fayz-ai/sdk`; plugin/core/runtime remain internal until dogfood proves otherwise.
+
 ## 2026-06-14 20:02 BRT — M59 Marketplace dashboard uses SDK shop provider
 
 Resultado:
