@@ -30,6 +30,8 @@ Verification:
 pnpm --filter @fayz-ai/saas typecheck
 pnpm --filter @fayz-ai/plugin-crm typecheck
 pnpm --filter @fayz-ai/saas build
+cd /Users/fayalabs/dev/fayz-app/beauty-saas && pnpm build
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
 ```
 
 ## 2026-06-14 20:44 BRT — M62 concrete ecommerce shop-provider template
