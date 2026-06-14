@@ -4,13 +4,14 @@
 
 ### Executive outcome
 
-The public app-rendering package is now named `@fayz-ai/app-runtime` before first publish.
+The public app-rendering package is now named and published as `@fayz-ai/app-runtime`.
 
 ### Business impact
 
 - Clear package split: `@fayz-ai/sdk` is the lean API/client package; `@fayz-ai/app-runtime` is the manifest app renderer.
 - Fayz scaffold tests now expect `@fayz-ai/app-runtime`, avoiding a public package rename after generated projects start using it.
 - The public runtime dependency chain is publish-ready in dry-run: `core`, `auth`, `ui`, `shop`, `saas`, `storefront`, and `app-runtime`.
+- `@fayz-ai/app-runtime@0.1.0` now clean-installs with `@fayz-ai/sdk@0.1.3` in a fresh project and exposes `renderApp` / `defineApp`.
 
 ### Gate passed
 
@@ -24,15 +25,16 @@ pnpm check:public-package-safety
 pnpm --filter @fayz-ai/core build && pnpm --filter @fayz-ai/auth build && pnpm --filter @fayz-ai/ui build && pnpm --filter @fayz-ai/shop build && pnpm --filter @fayz-ai/saas build && pnpm --filter @fayz-ai/storefront build && pnpm --filter @fayz-ai/app-runtime build
 pnpm check:manifest
 pnpm publish --dry-run --access public --no-git-checks
+npm install @fayz-ai/app-runtime@0.1.0 @fayz-ai/sdk@0.1.3
 ```
 
 ### Risk
 
-Actual npm publish is still pending. Beauty should not switch from local `@fayz/* workspace:*` packages to public `@fayz-ai/*` packages until the app-runtime chain is published and clean-install verified.
+No npm package-source blocker remains for Beauty. The remaining risk is dogfood fit: Beauty still uses local `@fayz/* workspace:*` package names and legacy `createSaasApp`, so migration should be manual and observable before generator-heavy work.
 
 ### Next
 
-Commit/publish the app-runtime package wave, clean-install verify it, then dogfood manually before generator-heavy work: Beauty first, then 1-2 more Fayz apps. Only after that should the generator copy the proven pattern.
+Dogfood manually before generator-heavy work: Beauty first, then 1-2 more Fayz apps. Only after that should the generator copy the proven pattern.
 
 ## 2026-06-14 10:11 BRT — M21 Runtime publish safety gate
 

@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for M22 `@fayz-ai/app-runtime` publish-ready dry-run, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for M22 `@fayz-ai/app-runtime@0.1.0` public npm publish + clean install, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1184` package implementation from the public npm decision: default `@fayz-ai/sdk` is published and the app-rendering package name is now `@fayz-ai/app-runtime` before first publish.
+3. Continue `FAY-1184` from the public npm decision: default `@fayz-ai/sdk` is published and `@fayz-ai/app-runtime@0.1.0` is now published, public, and clean-install verified.
 4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold and SDK CLI with local package-version resolvers and `stable/latest/preview` channels. Next step is replacing local duplication with one shared npm dist-tag/API/manifest-backed channel source.
 5. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
 6. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
@@ -47,7 +47,7 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: commit/publish the public `@fayz-ai/*` dependency chain, then dogfood manually before generator-heavy work: migrate Beauty first, then 1-2 more real Fayz apps, and only then harden the repo generator from proven app patterns.
+- Next target: dogfood manually before generator-heavy work: migrate Beauty first, then 1-2 more real Fayz apps, and only then harden the repo generator from proven app patterns.
 
 ## M22 App Runtime package wave — 2026-06-14 10:27 BRT
 
@@ -56,6 +56,7 @@ Result:
 - Renamed the public app-rendering package from `@fayz-ai/runtime` to `@fayz-ai/app-runtime` before first publish.
 - Renamed the package folder to `packages/app-runtime` and updated SDK CLI, Fayz generated scaffold, docs, safety gates, and tests.
 - Converted the app-runtime dependency chain to public `@fayz-ai/*` package names with `workspace:^` so publish rewrites dependencies to semver.
+- Published `@fayz-ai/core@0.1.0`, `@fayz-ai/auth@0.1.0`, `@fayz-ai/ui@0.1.0`, `@fayz-ai/shop@0.1.0`, `@fayz-ai/saas@0.1.0`, `@fayz-ai/storefront@0.1.0`, and `@fayz-ai/app-runtime@0.1.0` to public npm.
 
 Impact:
 
@@ -65,7 +66,7 @@ Impact:
 
 Risk:
 
-- Actual npm publish is still pending. Do not migrate Beauty package.json to public npm versions until the app-runtime dependency chain is published and clean-install verified.
+- The app-runtime package is now public and clean-install verified. Beauty can now be migrated manually as the first real dogfood app.
 - Do not over-invest in the Fayz repo generator before manual dogfood. The generator should copy a proven app contract, not become the first validation surface.
 
 Gate:
@@ -77,6 +78,8 @@ Gate:
   - `pnpm --filter @fayz-ai/core build && pnpm --filter @fayz-ai/auth build && pnpm --filter @fayz-ai/ui build && pnpm --filter @fayz-ai/shop build && pnpm --filter @fayz-ai/saas build && pnpm --filter @fayz-ai/storefront build && pnpm --filter @fayz-ai/app-runtime build`
   - `pnpm check:manifest`
   - `pnpm publish --dry-run --access public --no-git-checks` for `core`, `auth`, `ui`, `shop`, `saas`, `storefront`, and `app-runtime`
+  - `npm install @fayz-ai/app-runtime@0.1.0 @fayz-ai/sdk@0.1.3` in a clean temp project
+  - `node -e "import('@fayz-ai/app-runtime').then(m=>console.log(Boolean(m.renderApp), Boolean(m.defineApp)))"`
 
 ## M21 Runtime publish safety gate — 2026-06-14 10:11 BRT
 
