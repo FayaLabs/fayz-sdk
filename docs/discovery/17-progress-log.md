@@ -1,5 +1,33 @@
 # 17 — Progress Log
 
+## 2026-06-14 19:52 BRT — M58 Marketplace dashboard/config split
+
+Resultado:
+
+- Split `marketplace-saas` dashboard metrics into `src/config/dashboard.ts`.
+- Split shared currency config into `src/config/currency.ts`.
+- Kept `src/config/app.tsx` as a thinner app assembly file after the M57 manifest migration.
+
+Impacto:
+
+- Marketplace is now closer to the Beauty/Resto app shape: app contract is small, and domain decisions live in focused config files.
+- The current shop provider dependency is isolated in one dashboard file, making the next SDK/broker-backed data swap explicit instead of scattered through the app.
+
+Risco:
+
+- Marketplace still reads shop/admin dashboard data through the internal shop provider. This is acceptable for dogfood, but not the final Base44-like API abstraction.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in Marketplace
+  - Browser smoke on `http://localhost:5186/`: Mercado login renders, no 404, no loading stall.
+
+Next:
+
+- Replace Marketplace dashboard/shop data access with the public `@fayz-ai/sdk` provider path once runtime app/token options are pinned.
+- Continue fourth-app hardening before teaching Fayz Agents to operate the SDK.
+
 ## 2026-06-14 19:10 BRT — M57 Marketplace manifest-first config
 
 Resultado:
