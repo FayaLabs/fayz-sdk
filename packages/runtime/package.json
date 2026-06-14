@@ -20,7 +20,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
+    "build": "tsup && mkdir -p dist && cp ../ui/src/styles.css dist/styles.css && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"

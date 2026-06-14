@@ -1,9 +1,11 @@
 import type { EntityDef } from '../types/crud'
+import type { BackendRef } from '../manifest'
 import type { DataProvider } from './types'
 import { getSupabaseClientOptional } from './supabase'
 import { createSupabaseProvider } from './supabase'
 import { createArchetypeProvider } from './archetype'
 import { createMockProvider } from './mock'
+import { createFayzApiProvider, type FayzApiProviderConfig } from './fayz-api'
 import { withCache } from './cached'
 import { getActiveTenantId } from '../tenant'
 
@@ -14,10 +16,52 @@ import { getActiveTenantId } from '../tenant'
  * Reusable by createCrudPage, PluginRegistryManager, or any component
  * that needs a DataProvider from an EntityDef.
  */
+export interface ResolveDataProviderOptions {
+  backend?: BackendRef
+  fayzApi?: Omit<FayzApiProviderConfig, 'entityKey' | 'table'>
+  customProviders?: Record<string, <T extends { id: string }>(entityDef: EntityDef<T>, mockData?: T[]) => DataProvider<T>>
+}
+
 export function resolveDataProvider<T extends { id: string }>(
   entityDef: EntityDef<T>,
   mockData?: T[],
+  options: ResolveDataProviderOptions = {},
 ): DataProvider<T> {
+  const backend = options.backend
+
+  if (backend?.provider === 'mock') {
+    return createMockProvider(entityDef, mockData)
+  }
+
+  if (backend?.provider === 'fayz-api') {
+    const table = entityDef.data?.table ?? entityDef.name
+    return createFayzApiProvider<T>(table, {
+      ...options.fayzApi,
+      baseUrl: options.fayzApi?.baseUrl ?? backend.url,
+      projectId: options.fayzApi?.projectId ?? backend.projectRef,
+      entityKey: entityDef.name ?? table,
+      table,
+      schema: options.fayzApi?.schema ?? entityDef.data?.schema,
+      idColumn: options.fayzApi?.idColumn ?? entityDef.data?.columnMap?.id,
+      searchColumns: options.fayzApi?.searchColumns ?? entityDef.data?.searchColumns ?? entityDef.fields
+        .filter((field) => field.searchable)
+        .map((field) => field.key),
+      tenantIdColumn: entityDef.data?.tenantScoped === false
+        ? false
+        : options.fayzApi?.tenantIdColumn ?? entityDef.data?.tenantIdColumn,
+      tenantId: options.fayzApi?.tenantId ?? (() => getActiveTenantId()),
+    })
+  }
+
+  if (backend?.provider === 'custom') {
+    const adapterId = backend.adapterId
+    const factory = adapterId ? options.customProviders?.[adapterId] : undefined
+    if (!adapterId || !factory) {
+      throw new Error(`[@fayz/core] Custom data provider "${adapterId ?? 'unknown'}" is not registered.`)
+    }
+    return factory<T>(entityDef, mockData)
+  }
+
   const client = getSupabaseClientOptional()
 
   if (client && entityDef.data?.table) {

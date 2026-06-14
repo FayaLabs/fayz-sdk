@@ -7,7 +7,11 @@
   "required": ["manifestVersion", "id", "name", "surfaces"],
   "additionalProperties": false,
   "properties": {
-    "manifestVersion": { "type": "integer", "minimum": 1 },
+    "manifestVersion": {
+      "type": "integer",
+      "const": 2,
+      "description": "Current AppManifest schema version. Older or newer versions require an explicit SDK migration before validation."
+    },
     "id": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9-]*$" },
     "name": { "type": "string", "minLength": 1 },
     "backend": {
@@ -15,9 +19,11 @@
       "additionalProperties": false,
       "required": ["provider"],
       "properties": {
-        "provider": { "enum": ["supabase", "mock"] },
-        "projectRef": { "type": "string" },
-        "url": { "type": "string" }
+        "provider": { "enum": ["supabase", "fayz-api", "mock", "custom"] },
+        "projectRef": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "minLength": 1 },
+        "adapterId": { "type": "string", "minLength": 1 },
+        "options": { "type": "object" }
       }
     },
     "locale": { "type": "object" },
@@ -64,15 +70,15 @@
         "icon": { "type": "string" },
         "section": { "enum": ["main", "secondary", "settings"] },
         "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } },
-        "entity": { "type": "string" },
-        "component": { "type": "string" },
+        "entity": { "type": "string", "minLength": 1 },
+        "component": { "type": "string", "minLength": 1 },
         "permission": {
           "type": "object",
           "required": ["feature", "action"],
           "additionalProperties": false,
           "properties": {
-            "feature": { "type": "string" },
-            "action": { "type": "string" }
+            "feature": { "type": "string", "minLength": 1 },
+            "action": { "type": "string", "minLength": 1 }
           }
         }
       },

@@ -10,8 +10,15 @@ export * from '@fayz/ui'
 export * from '@fayz/shop'
 export * from '@fayz/storefront'
 
-// Disambiguate symbols exported by more than one package. An explicit named
-// re-export overrides the `export *` ambiguity in TypeScript.
+// Disambiguate symbols exported by more than one package. Explicit named
+// re-exports override `export *` ambiguity in TypeScript.
 // `AuthProvider`: @fayz/core exports an adapter type, @fayz/auth the runtime
 // component — the umbrella surfaces the runtime component.
 export { AuthProvider } from '@fayz/auth'
+
+// Theme ownership for the runtime umbrella:
+// - @fayz/ui owns low-level theme tokens/options for generated apps.
+// - @fayz/saas owns the friendly admin theme adapter.
+// Keep both reachable, but make the ambiguous public names deterministic.
+export type { CreateThemeOptions } from '@fayz/ui'
+export type { SaasTheme } from '@fayz/saas'

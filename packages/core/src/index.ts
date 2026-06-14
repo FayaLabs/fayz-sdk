@@ -12,11 +12,12 @@ export type { LocaleConfig } from './types/i18n'
 
 // Data providers
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './data/supabase'
+export { createFayzApiProvider } from './data/fayz-api'
 export { createMockProvider } from './data/mock'
 export { createArchetypeProvider } from './data/archetype'
 export { withCache } from './data/cached'
 export { resolveDataProvider } from './data/resolve'
-export type { DataProvider, CrudQuery, CrudResult, SupabaseProviderConfig } from './data/index'
+export type { DataProvider, CrudQuery, CrudResult, SupabaseProviderConfig, FayzApiProviderConfig } from './data/index'
 
 // Tenant context (runtime DI for the data layer)
 export { setActiveTenantId, getActiveTenantId } from './tenant'
@@ -95,6 +96,7 @@ export {
 } from './manifest'
 export type {
   AppManifest,
+  BackendProvider,
   BackendRef,
   SurfaceManifest,
   PageManifest,

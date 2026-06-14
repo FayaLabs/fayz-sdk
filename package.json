@@ -9,6 +9,7 @@
     "test": "turbo test",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
+    "check:manifest": "turbo check:manifest --filter @fayz/core",
     "clean": "turbo clean",
     "changeset": "changeset",
     "version-packages": "changeset version",

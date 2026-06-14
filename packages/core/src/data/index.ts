@@ -1,4 +1,8 @@
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './supabase'
+export { createFayzApiProvider } from './fayz-api'
 export { createMockProvider } from './mock'
+export { resolveDataProvider } from './resolve'
 export type { DataProvider, CrudQuery, CrudResult } from './types'
 export type { SupabaseProviderConfig } from './supabase'
+export type { FayzApiProviderConfig } from './fayz-api'
+export type { ResolveDataProviderOptions } from './resolve'
