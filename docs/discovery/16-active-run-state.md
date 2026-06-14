@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-13 22:39 BRT
+Last updated: 2026-06-13 22:45 BRT
 
 ## Mode
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1182` from the committed OAuth-backed broker foundation into the runtime exchange route, provider refresh/revocation, and audit trail.
+3. Continue `FAY-1182` from the committed OAuth-backed broker foundation and exchange route into provider proxy calls, refresh/revocation, and audit trail.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
@@ -38,7 +38,36 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1, M2, M3, and M4 are committed; M5 Beauty proof is validated.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: implement the runtime exchange route on top of the broker foundation, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+- Next target: implement broker provider proxy/refresh/audit on top of the exchange route, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+
+## M7 OAuth broker exchange route — 2026-06-13 22:45 BRT
+
+Result:
+
+- Fayz commit `25e4f3e2` pushed to PR `#927`: `feat(runtime): add plugin oauth exchange route`.
+- Added `POST /api/v1/runtime/projects/:projectId/oauth/exchange`.
+- The route requires an existing runtime-data Bearer token and returns a short-lived Plugin OAuth broker token.
+- Response includes redacted grant descriptors only; no provider access token, refresh token, client secret, or caller-provided tenant authority is exposed.
+
+Impact:
+
+- Generated apps now have a server-side exchange boundary for plugin OAuth.
+- This is the first usable broker handshake between SDK/runtime plugins and Fayz-owned provider credentials.
+
+Risk:
+
+- Still not the complete broker. Provider proxy calls, provider-specific refresh/revocation, and audit trail remain next.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run test -w @wowsome/api -- src/docs/__tests__/route-doc-parity.test.ts
+npm run build:api
+```
+
+Result: passed.
 
 ## M6 OAuth broker foundation — 2026-06-13 22:39 BRT
 

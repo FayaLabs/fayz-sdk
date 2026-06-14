@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-13 22:45 BRT — M7 OAuth broker exchange route committed and pushed
+
+### Executive outcome
+
+Fayz PR #927 now includes the runtime exchange route:
+
+```txt
+25e4f3e2 feat(runtime): add plugin oauth exchange route
+```
+
+### Business impact
+
+- Generated apps can exchange a runtime-data Bearer token for a short-lived Plugin OAuth broker token.
+- The exchange is tenant/project-bound by the existing runtime token.
+- The response is redacted: it carries broker grant descriptors, not provider access tokens or refresh tokens.
+- OpenAPI now documents the route, so the route-doc ratchet stays green.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run test -w @wowsome/api -- src/docs/__tests__/route-doc-parity.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+### Risk
+
+This still does not execute provider API calls. Remaining broker work: provider proxy calls, refresh/revocation, audit trail, and final SDK helper contract.
+
+### Next
+
+Implement the first provider proxy boundary, likely Google Calendar for agenda, without exposing provider tokens to runtime/browser code.
+
 ## 2026-06-13 22:39 BRT — M6 OAuth broker foundation committed and pushed
 
 ### Executive outcome
