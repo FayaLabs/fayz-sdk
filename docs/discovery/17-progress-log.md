@@ -1,5 +1,46 @@
 # 17 — Progress Log
 
+## 2026-06-14 00:10 BRT — M9 Google Calendar write proxy gated
+
+### Executive outcome
+
+Fayz PR `#927` now has the minimum broker path for real agenda operations:
+
+```txt
+6e53926b feat(runtime): proxy google calendar writes through oauth broker
+```
+
+### Business impact
+
+- Runtime plugins can create, update, and delete Google Calendar events through Fayz.
+- Generated apps and open-source SDK code still do not receive Google access tokens, refresh tokens, client secrets, or tenant authority.
+- This turns the OAuth broker from a read-only proof into an operational booking foundation for agenda plugins.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-auth.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run test -w @wowsome/api -- src/docs/__tests__/route-doc-parity.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+### Self-improvement
+
+The first M9 controller gate caught a schema composition issue before broader tests. Fix was small and the strategy is confirmed: run the narrow controller gate first, then route-doc parity, then API build.
+
+### Risk
+
+Revocation, detailed audit trail, SDK helper wrapper, and provider onboarding UI remain before calling the public plugin OAuth platform production-complete.
+
+### Next
+
+Tracking updated in Linear `FAY-1182` comment `f5f1a69d-9a74-40ed-9133-4d0e879dfef0` and PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700545142`.
+
+Next choose between revocation/audit or SDK helper contract.
+
 ## 2026-06-13 22:52 BRT — M8 Google Calendar provider proxy committed and pushed
 
 ### Executive outcome

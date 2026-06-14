@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-13 22:52 BRT
+Last updated: 2026-06-14 00:12 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, yellow/green for FAY-1182 foundation after OAuth direction was approved**.
+Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy**.
 
 Linear anchor:
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, and Google Calendar read proxy into write proxy, revocation, audit trail, and SDK helper contract.
+3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, and Google Calendar read/write proxy into revocation, audit trail, and SDK helper contract.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
@@ -36,9 +36,46 @@ Current focus:
 Executive answer to Vini's latest check:
 
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
-- Are we moving fast enough? Yes after the packaging correction: M1, M2, M3, and M4 are committed; M5 Beauty proof is validated.
+- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M9 OAuth broker slices are committed/pushed in Fayz.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: implement write proxy/revocation/audit on top of the Google Calendar read proxy, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+- Next target: implement revocation/audit on top of the Google Calendar read/write proxy, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+
+## M9 Google Calendar write proxy — 2026-06-14 00:10 BRT
+
+Result:
+
+- Fayz commit `6e53926b` pushed to PR `#927`: `feat(runtime): proxy google calendar writes through oauth broker`.
+- Tracking updated: Linear `FAY-1182` comment `f5f1a69d-9a74-40ed-9133-4d0e879dfef0`; PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700545142`.
+- Added broker-proxied Google Calendar create/update/delete event routes:
+  - `POST /api/v1/runtime/projects/:projectId/oauth/google-calendar/events`
+  - `PATCH /api/v1/runtime/projects/:projectId/oauth/google-calendar/events/:eventId`
+  - `DELETE /api/v1/runtime/projects/:projectId/oauth/google-calendar/events/:eventId`
+- The routes require a runtime-plugin-oauth Bearer token with a Google Calendar write grant.
+- Fayz resolves and refreshes Google provider tokens server-side; runtime/plugin code still receives no provider token.
+
+Impact:
+
+- Agenda plugins can now create, edit, and cancel Google Calendar events through the broker.
+- This moves the OAuth broker from read-only proof to the minimum operational path for booking workflows.
+
+Risk:
+
+- Still incomplete for production-grade public plugin platform: revocation, audit trail, SDK helper wrapper, and provider onboarding UI remain.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-auth.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run test -w @wowsome/api -- src/docs/__tests__/route-doc-parity.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+Self-improvement:
+
+- First M9 gate caught a schema composition issue before runtime. The fix separated base event validation from refined create/update validation; future slices should run the smallest controller test before broader gates.
 
 ## M8 Google Calendar provider proxy — 2026-06-13 22:52 BRT
 
