@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 09:55 BRT
+Last updated: 2026-06-14 10:00 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for first FAY-1183 version-manager bridge in Fayz scaffold, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -29,7 +29,7 @@ Current focus:
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
 3. Continue `FAY-1181` package implementation from the public npm decision: default `@fayz-ai/sdk`, public package metadata, generated scaffold dependency update, and release checklist.
-4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold with one central package-version resolver and `stable/latest/preview` channels. Next step is shared resolver for CLI/API and later npm dist-tag/API-backed channel source.
+4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold and SDK CLI with local package-version resolvers and `stable/latest/preview` channels. Next step is replacing local duplication with a shared npm dist-tag/API/manifest-backed channel source.
 5. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
 6. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates.
@@ -120,6 +120,30 @@ Risk:
 Gate:
 
 - Passed: `npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts`
+
+Tracking:
+
+- Linear `FAY-1183`
+
+## M20 CLI create version resolver bridge — 2026-06-14 10:00 BRT
+
+Result:
+
+- Added the same local package-version channel resolver to the SDK CLI create path.
+- `fayz create` now resolves `@fayz-ai/sdk` and `@fayz-ai/runtime` versions from one CLI source instead of command-local literals.
+
+Impact:
+
+- API scaffold and SDK CLI now follow the same version-channel shape.
+- This reduces release drift while `FAY-1183` moves toward a real shared channel source.
+
+Risk:
+
+- API and CLI still each have local checked-in resolvers. The final milestone must make them read the same source of truth.
+
+Gate:
+
+- Passed: `pnpm --filter @fayz/cli typecheck`
 
 Tracking:
 

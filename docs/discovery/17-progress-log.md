@@ -1,5 +1,32 @@
 # 17 — Progress Log
 
+## 2026-06-14 10:00 BRT — M20 CLI create version resolver bridge
+
+### Executive outcome
+
+`fayz create` now follows the same version-channel pattern as the Fayz API scaffold.
+
+### Business impact
+
+- The SDK CLI no longer keeps SDK/runtime package versions as command-local literals.
+- CLI-generated apps and API-generated apps are now aligned around a `stable/latest/preview` resolver shape.
+- This lowers drift while the final `FAY-1183` source of truth is designed.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz/cli typecheck
+```
+
+### Risk
+
+The bridge is still local to each repo. The final version manager should make API scaffold and CLI read the same source, likely via npm dist-tags, Fayz API, a checked-in release manifest, or a combination.
+
+### Next
+
+Commit the CLI bridge, update `FAY-1183`, then return to runtime publish safety.
+
 ## 2026-06-14 09:55 BRT — M19 Central SDK version resolver bridge
 
 ### Executive outcome

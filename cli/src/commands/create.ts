@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
+import { resolveFayzPackageDependencies, resolveFayzPackageVersion } from '../lib/package-versions.js'
 
 type Kind = 'storefront' | 'admin' | 'member'
 
@@ -11,8 +12,7 @@ function write(root: string, rel: string, content: string): void {
   writeFileSync(full, content)
 }
 
-const RUNTIME_VERSION = '^0.1.0'
-const SDK_VERSION = '^0.1.3'
+const RUNTIME_VERSION = resolveFayzPackageVersion('@fayz-ai/runtime')
 
 // ---------------------------------------------------------------------------
 // Per-kind template descriptor — the single source the generators read so a new
@@ -118,8 +118,7 @@ setCoursesProvider(createMockCoursesProvider())
 
 function packageJson(name: string, kind: Kind): string {
   const deps: Record<string, string> = {
-    '@fayz-ai/sdk': SDK_VERSION,
-    '@fayz-ai/runtime': RUNTIME_VERSION,
+    ...resolveFayzPackageDependencies('stable'),
     react: '^18.3.0',
     'react-dom': '^18.3.0',
   }
