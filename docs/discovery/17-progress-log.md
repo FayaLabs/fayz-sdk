@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:23 UTC / 20:23 BRT — M72 Resto env-gated Menu provider wiring
+
+Resultado:
+
+- Added `src/config/menu.ts` in Resto.
+- Resto now activates `createFayzMenuProvider()` when `VITE_FAYZ_MENU_PROVIDER=fayz` or `sdk`.
+- Local dev keeps the mock provider fallback when env is absent.
+- Resto build and authenticated `/menu` smoke remain green.
+
+Impacto:
+
+- Menu now matches Tables in app shape: config/env in app, private plugin owns provider/UI, public SDK owns API transport.
+- Resto can switch Menu from mock to Fayz SDK-backed data without app code changes.
+
+Risco:
+
+- Real provider activation still needs concrete Fayz project/runtime token setup.
+- Modifier groups remain a future dedicated table/broker contract.
+
+Proximo:
+
+- Provide/derive runtime env and run real Menu read/write through the SDK-backed provider.
+- Then move to Orders provider or Beauty remaining provider leaks.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/menu
+```
+
 ## 2026-06-14 23:17 UTC / 20:17 BRT — M71 private Menu provider on SDK data API
 
 Resultado:
