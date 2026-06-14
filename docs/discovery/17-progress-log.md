@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-14 11:45 BRT — M25 Beauty/Resto renderApp dogfood bridge
+
+### Executive outcome
+
+Beauty and Resto now use the strategic `renderApp(defineSaas(config))` entrypoint instead of app code calling `createSaasApp`.
+
+### Business impact
+
+- Two real SaaS apps now validate the renderApp contract before generator-heavy work.
+- `createSaasApp` can be treated as migration compatibility, not the app-authoring API.
+- Resto now has the target app shape: tiny `src/App.tsx` plus `src/app.config.tsx`.
+- Beauty keeps behavior stable while moving to the same entrypoint.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/saas typecheck
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+
+cd /Users/fayalabs/dev/fayz-app/resto-saas
+pnpm build
+```
+
+Result: SDK SaaS typecheck passed, Beauty build passed, and Resto build passed.
+
+### Risk
+
+The SDK bridge still preserves code-backed plugin/page config through the legacy shell internally. This is intentional for dogfood stability, but the next architecture milestone must extract more into serializable `app.manifest` + `registry` so this does not become permanent hidden legacy.
+
+### Next
+
+Use Shopfront as the 9/10 reference shape, then extract Beauty/Resto config toward manifest + registry while keeping `@fayz-ai/sdk` as the only public npm package.
+
 ## 2026-06-14 11:34 BRT — M24 SDK-owned release-channel source for CLI
 
 ### Executive outcome

@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 11:34 BRT
+Last updated: 2026-06-14 11:45 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -49,6 +49,39 @@ Executive answer to Vini's latest check:
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
+
+## M25 Beauty/Resto renderApp dogfood bridge — 2026-06-14 11:45 BRT
+
+Result:
+
+- Beauty and Resto now enter through `renderApp(defineSaas(config), { surface: 'admin' })` instead of app code calling `createSaasApp`.
+- Added an SDK bridge so config-authored SaaS apps keep their live plugin/page config during migration. This preserves Beauty/Resto behavior while the pure JSON manifest + registry path matures.
+- Resto was split into a tiny `src/App.tsx` plus `src/app.config.tsx`. Beauty already had the split and now uses the same renderApp entry.
+
+Impact:
+
+- `createSaasApp` is now deprecable as an app-authoring API without forcing a risky all-at-once rewrite of plugin-heavy apps.
+- This validates the direction on two SaaS verticals before generator-heavy work.
+- The next architectural pressure point is no longer "can renderApp run these apps"; it is "how quickly can we extract live config into serializable manifest + registry without losing customization."
+
+Risk:
+
+- The SDK bridge intentionally still uses the legacy shell internally for rich config-backed apps. That is acceptable as a migration bridge, not the final thousand-app architecture.
+- Beauty worktree remains broad and behind origin; package only narrow Beauty slices after a staging decision.
+- Resto is clean enough to package after focused review.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+
+Next:
+
+- Refactor plugin/page config toward `app.manifest` + `registry` so the bridge can shrink.
+- Keep `@fayz-ai/sdk` as the only public npm package while app-runtime/core/saas/plugins remain internal/local.
+- Use Shopfront as the 9/10 target shape: thin app entry, focused config, fewer live escape hatches.
 
 ## M24 SDK-owned release-channel source for CLI — 2026-06-14 11:34 BRT
 
