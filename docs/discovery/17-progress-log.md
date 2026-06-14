@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-13 22:52 BRT — M8 Google Calendar provider proxy committed and pushed
+
+### Executive outcome
+
+Fayz PR #927 now includes the first provider proxy boundary:
+
+```txt
+d651e111 feat(runtime): proxy google calendar through oauth broker
+```
+
+### Business impact
+
+- Runtime plugins can list Google Calendar events through Fayz, not by holding Google tokens.
+- Fayz validates the runtime-plugin-oauth token, checks the Google Calendar read grant, resolves the provider token server-side, and refreshes it when needed.
+- This is the first concrete provider read path for agenda plugins.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-auth.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run test -w @wowsome/api -- src/docs/__tests__/route-doc-parity.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+### Risk
+
+Calendar write operations, provider revocation, detailed audit trail, and final SDK helper contract remain open.
+
+### Next
+
+Decide whether to add Calendar write proxy next or pause on OAuth broker and package SDK helper/runtime docs once the SDK remote is known.
+
 ## 2026-06-13 22:45 BRT — M7 OAuth broker exchange route committed and pushed
 
 ### Executive outcome

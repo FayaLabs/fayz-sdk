@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-13 22:45 BRT
+Last updated: 2026-06-13 22:52 BRT
 
 ## Mode
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1182` from the committed OAuth-backed broker foundation and exchange route into provider proxy calls, refresh/revocation, and audit trail.
+3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, and Google Calendar read proxy into write proxy, revocation, audit trail, and SDK helper contract.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
@@ -38,7 +38,37 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1, M2, M3, and M4 are committed; M5 Beauty proof is validated.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: implement broker provider proxy/refresh/audit on top of the exchange route, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+- Next target: implement write proxy/revocation/audit on top of the Google Calendar read proxy, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+
+## M8 Google Calendar provider proxy — 2026-06-13 22:52 BRT
+
+Result:
+
+- Fayz commit `d651e111` pushed to PR `#927`: `feat(runtime): proxy google calendar through oauth broker`.
+- Added `GET /api/v1/runtime/projects/:projectId/oauth/google-calendar/events`.
+- The route requires a runtime-plugin-oauth Bearer token with a Google Calendar read grant.
+- Fayz resolves and refreshes the Google Calendar provider token server-side.
+- Response returns calendar events only; no provider access token, refresh token, or client secret is exposed.
+
+Impact:
+
+- Agenda plugins now have the first real provider read path through the broker.
+- This moves OAuth from "stored/exchanged safely" to "usable without leaking provider credentials".
+
+Risk:
+
+- Still incomplete for full calendar product workflows: create/update/delete, revocation, detailed audit trail, and SDK helper contract remain.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-auth.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run test -w @wowsome/api -- src/docs/__tests__/route-doc-parity.test.ts
+npm run build:api
+```
+
+Result: passed.
 
 ## M7 OAuth broker exchange route — 2026-06-13 22:45 BRT
 
