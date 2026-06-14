@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react'
-import type { AuthAdapter, AuthSession } from '@fayz-ai/core'
+import type { AuthAdapter, AuthProvider as OAuthProvider, AuthSession } from '@fayz-ai/core'
 import { useAuthStore } from './store'
 
 // ---------------------------------------------------------------------------
@@ -10,6 +10,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthSession>
   signUp: (email: string, password: string, fullName: string) => Promise<AuthSession>
   signOut: () => Promise<void>
+  signInWithOAuth: (provider: OAuthProvider) => Promise<void>
   resetPassword: (email: string) => Promise<void>
 }
 
@@ -103,6 +104,17 @@ export function AuthProvider({ adapter, children }: AuthProviderProps) {
       }
     },
 
+    async signInWithOAuth(provider) {
+      setError(null)
+      try {
+        await adapterRef.current.signInWithOAuth(provider)
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        setError(error)
+        throw error
+      }
+    },
+
     async resetPassword(email) {
       setError(null)
       try {
@@ -139,6 +151,7 @@ export function useAuth() {
     signIn: ctx.signIn,
     signUp: ctx.signUp,
     signOut: ctx.signOut,
+    signInWithOAuth: ctx.signInWithOAuth,
     resetPassword: ctx.resetPassword,
   }
 }

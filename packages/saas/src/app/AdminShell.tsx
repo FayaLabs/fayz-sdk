@@ -6,6 +6,7 @@ import type { PluginNavigationEntry, PluginRouteDefinition } from '@fayz-ai/core
 import { useAdminPath, navigateTo, matchRoute, routeScore } from './routing'
 import { LoginPage } from './LoginPage'
 import type { CustomPage } from './config'
+import type { AuthProvider } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // AdminShell — the working admin surface. Mounted INSIDE the providers (see
@@ -21,6 +22,10 @@ export interface AdminShellProps {
   logo?: React.ReactNode
   pages?: CustomPage[]
   requireAuth?: boolean
+  loginTagline?: string
+  loginDescription?: string
+  showOAuth?: boolean
+  oauthProviders?: Exclude<AuthProvider, 'email'>[]
 }
 
 function navEntryToItem(entry: PluginNavigationEntry): NavigationItem {
@@ -144,7 +149,16 @@ export function AdminShell(props: AdminShellProps) {
         </div>
       )
     }
-    return <LoginPage appName={props.appName} />
+    return (
+      <LoginPage
+        appName={props.appName}
+        logo={props.logo}
+        tagline={props.loginTagline}
+        description={props.loginDescription}
+        showOAuth={props.showOAuth}
+        oauthProviders={props.oauthProviders}
+      />
+    )
   }
 
   return <AdminShellInner {...props} />

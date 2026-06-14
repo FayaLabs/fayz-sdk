@@ -1,6 +1,7 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import type {
   AuthAdapter,
+  AuthProvider,
   OrgAdapter,
   PluginManifest,
   SaasTheme,
@@ -36,6 +37,12 @@ export interface AuthConfig {
   adapter?: 'supabase' | 'mock' | AuthAdapter
   /** Redirect to login when no session is found (default: true) */
   requireAuth?: boolean
+  loginLogo?: ReactNode
+  loginLayout?: 'split' | 'centered'
+  loginTagline?: string
+  loginDescription?: string
+  showOAuth?: boolean
+  oauthProviders?: Exclude<AuthProvider, 'email'>[]
 }
 
 export interface OrgConfig {
@@ -60,6 +67,7 @@ export interface ChatConfig {
 export interface FayzAppConfig {
   /** Application display name */
   name: string
+  logo?: string | ReactNode
 
   // -------------------------------------------------------------------------
   // Data connection

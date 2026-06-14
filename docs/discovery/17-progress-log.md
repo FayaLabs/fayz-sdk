@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:26 BRT — M34 new runtime login/OAuth carry-forward prep
+
+### Executive outcome
+
+The new manifest/runtime path can now carry Beauty's login branding/copy/OAuth intent instead of forcing those fields to stay trapped in `createSaasApp`.
+
+### Business impact
+
+- This removes one real blocker to deprecating `createSaasApp` without lowering app quality.
+- Beauty should not be moved to the new runtime by losing login UX; the SDK/runtime must preserve that product surface.
+- OAuth adapter calling is now exposed through the shared auth hook, which aligns with the broker direction while keeping provider secrets server-side.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/auth typecheck
+pnpm --filter @fayz-ai/auth build
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/saas build
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Result: all gates passed.
+
+### Risk
+
+Beauty still should not be switched fully off the legacy shell yet. The next blocker is AdminShell parity for nested navigation, page order, and settings affordances that Beauty currently relies on.
+
+### Next
+
+Add that AdminShell parity, then migrate Beauty from `SaasAppConfig.organization` to `FayzAppConfig.org` so `renderApp(defineSaas(config))` stops using the legacy `createSaasApp` path.
+
 ## 2026-06-14 12:20 BRT — M33 SDK data API + Beauty dashboard proof
 
 ### Executive outcome
