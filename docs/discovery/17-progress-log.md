@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-14 00:42 BRT — M14 Runtime OAuth helper contract docs
+
+### Executive outcome
+
+The SDK now has an agent-readable contract for safe Plugin OAuth runtime usage:
+
+```txt
+docs/discovery/24-runtime-oauth-helper-contract.md
+```
+
+### Business impact
+
+- Agents and generated apps have one blessed path for `createFayzRuntimeClient()`.
+- The contract says what the SDK may own and what must remain server-side in Fayz.
+- This reduces the chance of future agents inventing OAuth clients, direct Google Calendar calls, or token storage in browser/generated code.
+
+### Gate
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz/core typecheck
+```
+
+Result: passed. Known non-blocking noise: `.npmrc` warns about missing `${NODE_AUTH_TOKEN}`.
+
+### Risk
+
+Docs only. The SDK repo still has no remote configured, so the packaged helper cannot be pushed/published yet.
+
+### Next
+
+Tracking updated in Linear `FAY-1182` comment `49a2fd2d-9978-4747-a4b4-308e5557b03f`.
+
+Next wait for SDK remote/package-source decision or provider onboarding UX decision.
+
 ## 2026-06-14 00:35 BRT — M13 Packaged SDK runtime OAuth helper committed locally
 
 ### Executive outcome

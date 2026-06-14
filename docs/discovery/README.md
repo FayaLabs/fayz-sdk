@@ -40,6 +40,7 @@ The goal is not to design the final SAP-scale platform now. The goal is to defin
 - `21-implementation-plan.md` — concrete workstreams and verification.
 - `22-decisions-from-codex-open-questions.md` — working defaults for research questions.
 - `23-milestone-packaging-plan.md` — commit/review packaging plan for turning the dirty weekend branches into coherent milestone slices.
+- `24-runtime-oauth-helper-contract.md` — agent-safe contract for `createFayzRuntimeClient()` and OAuth-backed provider calls.
 
 ## Working method
 

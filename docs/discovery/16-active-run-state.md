@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 00:35 BRT
+Last updated: 2026-06-14 00:42 BRT
 
 ## Mode
 
@@ -38,7 +38,34 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: confirm SDK remote/package-source so M13 can be pushed/published, or implement provider onboarding UI in Fayz after permission/UX is locked.
+- Next target: confirm SDK remote/package-source so M13/M14 can be pushed/published, or implement provider onboarding UI in Fayz after permission/UX is locked.
+
+## M14 Runtime OAuth helper contract docs — 2026-06-14 00:42 BRT
+
+Result:
+
+- Added `docs/discovery/24-runtime-oauth-helper-contract.md`.
+- Updated `docs/agent-guide.md` with the blessed runtime helper path for agents and generated apps.
+- Updated discovery README so the other status agent can find the contract quickly.
+- Tracking updated: Linear `FAY-1182` comment `49a2fd2d-9978-4747-a4b4-308e5557b03f`.
+
+Impact:
+
+- Agents now have one readable source of truth for how to call Plugin OAuth broker flows without leaking provider credentials.
+- This reduces drift while the SDK remote/package-source decision is still pending.
+
+Risk:
+
+- Docs only. The SDK helper remains local-only until the open-source repo remote is confirmed.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz/core typecheck
+```
+
+Result: passed. Known non-blocking noise: `.npmrc` warns about missing `${NODE_AUTH_TOKEN}`.
 
 ## M13 Packaged SDK runtime OAuth helper — 2026-06-14 00:35 BRT
 

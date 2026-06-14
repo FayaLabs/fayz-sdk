@@ -33,6 +33,11 @@ For new work in Fayz-generated projects:
   - `runtimeToken` must be a short-lived runtime-data JWT minted by Fayz/server-side code with signed `projectId`, `tenantId`, and row permissions;
   - public generated apps must not claim production readiness on `fayz-api` until the OAuth-backed Runtime Session Broker / server-side exchange is enabled;
   - never embed OAuth secrets, provider refresh tokens, partner `ApiToken`, raw Fayz secrets, or caller-provided tenant authority in browser code.
+- For plugin/provider calls such as Google Calendar:
+  - use `createFayzRuntimeClient()` from `@fayz/runtime`, `@fayz/core/runtime`, or `@fayz/core` once the package source is available;
+  - exchange a runtime-data token through Fayz for a short-lived Plugin OAuth broker token;
+  - call brokered helpers such as `fayz.googleCalendar(broker.token).createEvent(...)`;
+  - do not create OAuth clients or direct provider API calls in browser/generated code.
 - Legacy `createSaasApp` / `@fayz/saas-core` examples below are migration reference for existing apps, not the default direction for new generated Fayz projects.
 
 ---
@@ -60,6 +65,7 @@ bridges to `@fayz/saas-core` internally, but consumer code never imports
 | `createMenuPlugin` | `@fayz/plugin-menu` |
 | `createTablesPlugin` | `@fayz/plugin-tables` |
 | `Card`, `Badge`, `Button`, UI primitives | `@fayz/ui` |
+| `createFayzRuntimeClient`, `FayzRuntimeError` | `@fayz/runtime` or `@fayz/core/runtime` |
 
 Types (`EntityDef`, `FieldDef`, `PageConfig`, `SaasTheme`, etc.) come from `@fayz/saas`
 (or `@fayz/saas-core` — same types via the bridge). `PluginManifest` comes from `@fayz/core`.
