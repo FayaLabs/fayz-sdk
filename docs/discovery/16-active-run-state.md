@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-13 22:30 BRT
+Last updated: 2026-06-13 22:31 BRT
 
 ## Mode
 
@@ -45,13 +45,13 @@ Executive answer to Vini's latest check:
 Result:
 
 - Fayz branch `weekend-fayz-sdk-panel-manifest` was pushed to `origin`.
-- GitHub PR URL is ready: `https://github.com/FayaLabs/ymaia/pull/new/weekend-fayz-sdk-panel-manifest`.
+- Draft PR created: `https://github.com/FayaLabs/ymaia/pull/927`.
 - Fayz branch now tracks `origin/weekend-fayz-sdk-panel-manifest`.
 
 Impact:
 
 - M2, M3, and M4 are no longer local-only.
-- The branch is ready for a draft PR once the base branch is confirmed.
+- Fayz implementation is now reviewable as a draft PR against `dev`.
 
 Risk:
 
@@ -60,7 +60,7 @@ Risk:
 
 Next:
 
-- Create a draft PR for Fayz after confirming target base branch, likely `dev`.
+- Keep PR `#927` draft until OAuth broker gap and SDK remote decision are explicit.
 - Configure/push the SDK branch only after the repo remote is explicit.
 - Keep `beauty-saas` validation-only until its branch is reconciled with origin.
 
