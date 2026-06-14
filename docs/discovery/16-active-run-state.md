@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 11:05 BRT
+Last updated: 2026-06-14 11:08 BRT
 
 ## Mode
 
@@ -35,6 +35,7 @@ Current focus:
 7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates. The app-runtime concept is internal/local until dogfood proves it should become a package.
 8. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 9. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
+10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, then `resto-saas` as a second SaaS/plugin-heavy proof, then `shopfront` or `tannat-store` as ecommerce/storefront proof. This intentionally tests SDK fit across two domains before promoting any app-runtime public package.
 
 Idle-loop rule:
 
