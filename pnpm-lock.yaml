@@ -754,6 +754,9 @@ importers:
       '@fayz-ai/saas':
         specifier: workspace:^
         version: link:../../packages/saas
+      '@fayz-ai/sdk':
+        specifier: workspace:^
+        version: link:../../packages/sdk
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)

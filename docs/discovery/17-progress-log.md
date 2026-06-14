@@ -1,5 +1,39 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:45 UTC / 20:45 BRT — M74 private Orders provider on SDK data API
+
+Resultado:
+
+- Added `createFayzOrdersProvider()` to private `@fayz-ai/plugin-orders`.
+- The provider maps restaurant orders/items to Fayz SDK data reads/mutations over configurable `orders` and `order_items` tables.
+- Exposed provider options/types from the private Orders plugin package.
+- Plugin Orders typecheck/build passes.
+- Resto production build and authenticated `/orders` smoke remain green.
+
+Impacto:
+
+- Orders now follows the same architecture direction as Menu/Tables: plugin owns domain mapping/UI, public SDK owns API transport, app should own only config/env.
+- This closes the restaurant trio's biggest reuse gap without expanding public npm surface.
+
+Risco:
+
+- Resto does not activate the Fayz Orders provider yet; it still uses mock fallback until a concrete runtime project/token/table contract is wired.
+- Real order production semantics may need dedicated broker logic for payments, table sessions, delivery channels, and fulfillment events.
+
+Proximo:
+
+- Add env-gated `src/config/orders.ts` in Resto once the target order tables/runtime env are confirmed.
+- Then test one real order status mutation through the SDK-backed provider.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/plugin-orders typecheck
+pnpm --filter @fayz-ai/plugin-orders build
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/orders
+```
+
 ## 2026-06-14 23:35 UTC / 20:35 BRT — M73 private Orders plugin extraction consumed by Resto
 
 Resultado:
