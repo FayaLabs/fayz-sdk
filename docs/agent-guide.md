@@ -1050,15 +1050,33 @@ Discount { id, title, code, type, value, status, timesUsed, usageLimit }
 DiscountType: 'percentage' | 'fixed_amount' | 'free_shipping' | 'buy_x_get_y'
 ```
 
-`plugin-shop` installs `@fayz-ai/shop` and exposes the full admin UI (Products, Orders, Customers, Discounts tabs). A consumer app only needs:
+`plugin-shop` installs `@fayz-ai/shop` and exposes the full admin UI (Products,
+Orders, Customers, Discounts tabs). New generated/admin apps should inject the
+SDK-backed provider explicitly:
 
 ```typescript
 import { createShopPlugin } from '@fayz-ai/plugin-shop'
+import { createFayzShopProvider } from '@fayz-ai/sdk/shop'
+
+const shopProvider = createFayzShopProvider({
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+  publishableKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+  storeId: import.meta.env.VITE_FAYZ_STORE_ID,
+})
 
 plugins: [
-  createShopPlugin({ navPosition: 1, currency: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' } }),
+  createShopPlugin({
+    navPosition: 1,
+    currency: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' },
+    provider: shopProvider,
+  }),
 ]
 ```
+
+`createShopPlugin()` still has a global provider fallback for compatibility. Do
+not use that fallback as the preferred generated-app path; explicit SDK provider
+injection keeps data access visible in app config and avoids hidden plugin
+runtime coupling.
 
 ---
 

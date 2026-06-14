@@ -1,5 +1,32 @@
 # 17 — Progress Log
 
+## 2026-06-14 20:34 BRT — M61 generated shop apps learn provider injection
+
+Resultado:
+
+- Updated Fayz ecommerce scaffold prompt, generated `AGENTS.md`, ecommerce README, and library guidelines.
+- Updated the SDK agent guide example for `createShopPlugin`.
+- New generated merchant/admin shop apps are now instructed to create the shop provider with `createFayzShopProvider` from `@fayz-ai/sdk/shop` and pass it into `createShopPlugin({ provider })`.
+
+Impacto:
+
+- M60 is no longer just a manual Marketplace dogfood pattern; it is now encoded into the generator guidance used by future apps and agents.
+- This keeps the public product surface focused on `@fayz-ai/sdk` while plugins remain reusable internal implementation.
+
+Risco:
+
+- This is guidance/template behavior, not yet a full emitted code scaffold. The dedicated storefront/admin ecommerce scaffold still needs a concrete generated example once the 4-app proof reaches 9/10.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @wowsome/api build` in Fayz
+
+Next:
+
+- Continue dogfood QA on Beauty/Resto/Marketplace before automating this deeper in code generation.
+- When generator emits a concrete shop admin example, include `src/config/shop-provider.ts` and `createShopPlugin({ provider })` by default.
+
 ## 2026-06-14 20:22 BRT — M60 plugin-shop provider injection
 
 Resultado:
