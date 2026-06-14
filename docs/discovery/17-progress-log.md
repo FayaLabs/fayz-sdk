@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:10 UTC / 20:10 BRT — M70 Resto env-gated Tables provider wiring
+
+Resultado:
+
+- Added `src/config/tables.ts` in Resto.
+- Resto now activates `createFayzTablesProvider()` when `VITE_FAYZ_TABLES_PROVIDER=fayz` or `sdk`.
+- Local dev keeps the mock provider fallback when env is absent.
+- Resto build and authenticated `/tables` smoke remain green.
+
+Impacto:
+
+- Resto is now ready to switch from mock tables to Fayz SDK-backed tables without changing app code.
+- This validates the intended app shape: client repo owns config/env, private plugin owns domain UI/provider, public SDK owns API transport.
+
+Risco:
+
+- Real provider activation still needs a concrete Fayz project/runtime token setup.
+- Full sessions/zones are still not production-grade; this milestone only prepares table CRUD/status provider activation.
+
+Proximo:
+
+- Provide/derive the runtime env and run one real table status mutation through the SDK-backed provider.
+- If that passes, repeat the same pattern for Menu.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/tables
+```
+
 ## 2026-06-14 23:08 UTC / 20:08 BRT — M69 private Tables provider on SDK data API
 
 Resultado:
