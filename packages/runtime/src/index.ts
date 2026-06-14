@@ -1,6 +1,6 @@
-// @fayz/runtime — the umbrella import surface for generated apps.
+// @fayz-ai/runtime — the umbrella import surface for generated apps.
 //
-// Generated apps pin a single @fayz/runtime version and import everything
+// Generated apps pin a single @fayz-ai/runtime version and import everything
 // from here, instead of pinning core/auth/saas/ui/shop/storefront separately.
 // Plugins remain à-la-carte (@fayz/plugin-*) and are NOT re-exported.
 export * from '@fayz/core'

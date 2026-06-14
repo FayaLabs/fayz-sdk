@@ -8,8 +8,8 @@ Fayz-generated projects are moving to a manifest-first SDK contract.
 
 For new work in Fayz-generated projects:
 
-- Use public npm `@fayz/sdk` as the lean default package for every generated project: app params, normalized API access, shared types, and runtime OAuth broker helpers.
-- Use public npm `@fayz/runtime` only when the project renders a Fayz manifest app with `renderApp(manifest)` or needs registry/scaffold/plugin runtime helpers.
+- Use public npm `@fayz-ai/sdk` as the default package for every generated project: app params, normalized API access, shared types, and runtime OAuth broker helpers.
+- Use public npm `@fayz-ai/runtime` only when the project renders a Fayz manifest app with `renderApp(manifest)` or needs registry/scaffold/plugin runtime helpers.
 - Treat Fayz SDK as open-source client/runtime code. Do not add secrets, OAuth client secrets, provider refresh tokens, partner API keys, or tenant-authority decisions to SDK packages, generated repos, manifests, or browser code.
 - Plugin/integration authentication uses OAuth through Fayz/server-side infrastructure. Plugins may declare required providers/scopes and call SDK/Fayz OAuth helpers, but OAuth token storage, refresh, revocation, audit, and tenant grants belong to Fayz-controlled services.
 - Treat `app.manifest.json` as the first edit surface for pages, surfaces, plugins, entities, permissions, theme, and backend provider selection.
@@ -36,7 +36,7 @@ For new work in Fayz-generated projects:
   - public generated apps must not claim production readiness on `fayz-api` until the OAuth-backed Runtime Session Broker / server-side exchange is enabled;
   - never embed OAuth secrets, provider refresh tokens, partner `ApiToken`, raw Fayz secrets, or caller-provided tenant authority in browser code.
 - For plugin/provider calls such as Google Calendar:
-  - use `createFayzRuntimeClient()` from `@fayz/sdk`;
+  - use `createFayzRuntimeClient()` from `@fayz-ai/sdk`;
   - exchange a runtime-data token through Fayz for a short-lived Plugin OAuth broker token;
   - call brokered helpers such as `fayz.googleCalendar(broker.token).createEvent(...)`;
   - do not create OAuth clients or direct provider API calls in browser/generated code.
@@ -53,8 +53,8 @@ bridges to `@fayz/saas-core` internally, but consumer code never imports
 
 | Plugin / utility | Import from |
 |---|---|
-| `fayz`, `createFayzClient`, `appParams`, `createFayzRuntimeClient` | `@fayz/sdk` |
-| `renderApp`, `defineApp`, registry/scaffold helpers | `@fayz/runtime` |
+| `fayz`, `createFayzClient`, `appParams`, `createFayzRuntimeClient` | `@fayz-ai/sdk` |
+| `renderApp`, `defineApp`, registry/scaffold helpers | `@fayz-ai/runtime` |
 | `createSaasApp`, `createCrudPage`, `createArchetypeLookup`, `createPlaceholder` | `@fayz/saas` |
 | `createDashboardPlugin` | `@fayz/plugin-dashboard` |
 | `createAgendaPlugin`, `createFinancialBridge` | `@fayz/plugin-agenda` |
@@ -69,7 +69,7 @@ bridges to `@fayz/saas-core` internally, but consumer code never imports
 | `createMenuPlugin` | `@fayz/plugin-menu` |
 | `createTablesPlugin` | `@fayz/plugin-tables` |
 | `Card`, `Badge`, `Button`, UI primitives | `@fayz/ui` |
-| `createFayzRuntimeClient`, `FayzRuntimeError` | `@fayz/sdk` |
+| `createFayzRuntimeClient`, `FayzRuntimeError` | `@fayz-ai/sdk` |
 
 Types (`EntityDef`, `FieldDef`, `PageConfig`, `SaasTheme`, etc.) come from `@fayz/saas`
 (or `@fayz/saas-core` — same types via the bridge). `PluginManifest` comes from `@fayz/core`.

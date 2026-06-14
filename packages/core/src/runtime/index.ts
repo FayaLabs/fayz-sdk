@@ -1,7 +1,7 @@
 export {
   createFayzRuntimeClient,
   FayzRuntimeError,
-} from '@fayz/sdk/runtime'
+} from '@fayz-ai/sdk/runtime'
 export type {
   FayzRuntimeClientOptions,
   FayzRuntimeEnvironment,
@@ -12,4 +12,4 @@ export type {
   PluginOAuthExchangeInput,
   PluginOAuthExchangeResponse,
   RuntimePluginOAuthGrant,
-} from '@fayz/sdk/runtime'
+} from '@fayz-ai/sdk/runtime'

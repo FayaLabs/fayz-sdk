@@ -5,14 +5,14 @@
   "fixed": [],
   "linked": [
     [
-      "@fayz/sdk",
+      "@fayz-ai/sdk",
       "@fayz/core",
       "@fayz/auth",
       "@fayz/ui",
       "@fayz/saas",
       "@fayz/shop",
       "@fayz/storefront",
-      "@fayz/runtime"
+      "@fayz-ai/runtime"
     ]
   ],
   "access": "public",

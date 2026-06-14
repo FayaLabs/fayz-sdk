@@ -1,7 +1,7 @@
 {
-  "name": "@fayz/sdk",
-  "version": "0.1.0",
-  "description": "Fayz SDK — lean client, app params, runtime broker helpers, and shared types for generated Fayz projects",
+  "name": "@fayz-ai/sdk",
+  "version": "0.1.3",
+  "description": "Fayz SDK — API client, app params, runtime broker helpers, and shared types for generated Fayz projects",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -40,7 +40,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
@@ -55,6 +56,15 @@
     "vitest": "^2.1.9"
   },
   "license": "MIT",
+  "homepage": "https://github.com/FayaLabs/fayz-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FayaLabs/fayz-sdk.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/FayaLabs/fayz-sdk/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
