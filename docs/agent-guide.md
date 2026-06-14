@@ -2,6 +2,39 @@
 
 This document is the primary reference for AI agents generating new projects with `@fayz/saas-core` (current) or the `fayz-sdk` packages (future). Read it entirely before scaffolding or modifying any app.
 
+## Current Operating Status — 2026-06-13
+
+Fayz-generated projects are moving to a manifest-first SDK contract.
+
+For new work in Fayz-generated projects:
+
+- Treat Fayz SDK as open-source client/runtime code. Do not add secrets, OAuth client secrets, provider refresh tokens, partner API keys, or tenant-authority decisions to SDK packages, generated repos, manifests, or browser code.
+- Plugin/integration authentication uses OAuth through Fayz/server-side infrastructure. Plugins may declare required providers/scopes and call SDK/Fayz OAuth helpers, but OAuth token storage, refresh, revocation, audit, and tenant grants belong to Fayz-controlled services.
+- Treat `app.manifest.json` as the first edit surface for pages, surfaces, plugins, entities, permissions, theme, and backend provider selection.
+- Keep `app.manifest.json` pure JSON: no functions, React components, secrets, tokens, or migration approvals.
+- Use `src/registry.tsx` for app-owned code referenced by manifest ids such as `custom:dashboard.Home`.
+- Use `src/plugins.generated.ts` only for Fayz-installed plugin registrations; Fayz owns that file.
+- New AppManifest writes must stay inside the strict v2 schema. Do not add ad hoc fields like top-level `title`, `surfaces.*.id`, `surfaces.*.name`, `surfaces.*.title`, page `id`, page `title`, plugin `pluginId`, plugin `title`, or plugin `label`.
+- Keep `manifestVersion` at `2` unless a real SDK/API manifest migration is registered and approved. SDK `validateManifest()` and Fayz API public writes reject any other version. Do not bump this field manually to signal feature work.
+- When changing `@fayz/core` AppManifest runtime/schema behavior, run `pnpm --filter @fayz/core typecheck` and then root `pnpm check:manifest`. The root manifest check is turbo-filtered to `@fayz/core`, builds/checks the package only, imports built `dist`, validates canonical v2, confirms schema `manifestVersion.const = 2`, and rejects v1/v3. Do not run unfiltered `turbo check:manifest`; it expands into unrelated package builds.
+- Put page display text in `pages[].label`, plugin display/config metadata in `plugins[].config` such as `config.label`, and surface-level display/config metadata in `surfaces.*.options`.
+- Plugin refs must use canonical `plugins[].id`. Do not write new `plugins[].pluginId` refs.
+- Generated scaffold currently declares both `surfaces.panel` and `surfaces.admin`.
+  - `panel` seeds Fayz editor Panel through `ProjectAppManifest`.
+  - `admin` is reserved for the generated app admin surface.
+- `ProjectAppManifest` scope is always `tenantKey + environment + surface`.
+  - Default generated-project scope is `tenantKey="default"`, `environment="preview"`, and `surface="panel"`.
+  - Trim scope strings before writes/reads; blank scope values resolve to defaults, while unsupported enum values must fail before persistence.
+  - Use only supported environments `preview` or `production` and supported binding surfaces `panel`, `admin`, `storefront`, or `portal`.
+- Do not add `@fayz/runtime` to generated `package.json` until package source is locked. As of this checkpoint, `@fayz/runtime`, `@fayz/core`, and `@fayz/saas` are not available from npm public or the currently configured GitHub Packages registry.
+- For `backend.provider = "fayz-api"`:
+  - editor/admin tooling uses the authenticated Fayz route `/api/projects/:projectId/database/...`;
+  - generated runtime apps must use `createFayzApiProvider({ runtimeToken })`, which calls `/api/v1/runtime/projects/:projectId/database/...`;
+  - `runtimeToken` must be a short-lived runtime-data JWT minted by Fayz/server-side code with signed `projectId`, `tenantId`, and row permissions;
+  - public generated apps must not claim production readiness on `fayz-api` until the OAuth-backed Runtime Session Broker / server-side exchange is enabled;
+  - never embed OAuth secrets, provider refresh tokens, partner `ApiToken`, raw Fayz secrets, or caller-provided tenant authority in browser code.
+- Legacy `createSaasApp` / `@fayz/saas-core` examples below are migration reference for existing apps, not the default direction for new generated Fayz projects.
+
 ---
 
 ## Package source map
