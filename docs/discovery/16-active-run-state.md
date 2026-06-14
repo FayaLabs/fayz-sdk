@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 12:00 BRT
+Last updated: 2026-06-14 12:05 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/theme split, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -35,7 +35,8 @@ Current focus:
 7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates. The app-runtime concept is internal/local until dogfood proves it should become a package.
 8. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 9. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
-10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, then `resto-saas` as a second SaaS/plugin-heavy proof, then `shopfront` or `tannat-store` as ecommerce/storefront proof. This intentionally tests SDK fit across two domains before promoting any app-runtime public package.
+10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, keep improving `resto-saas`, `shopfront`, and at least one more Fayz app until 4 apps reach roughly 9/10. Only after that should Fayz Agents be taught to operate `fayz-sdk`.
+11. Generated apps should not own direct provider clients by default. `integrations/supabase` is a smell for generated apps unless hidden behind an optional SDK adapter; default API/data access should go through `@fayz-ai/sdk` / Fayz broker, Base44-style.
 
 Idle-loop rule:
 
@@ -49,6 +50,42 @@ Executive answer to Vini's latest check:
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
+
+## M30 Shopfront config-folder/storefront proof — 2026-06-14 12:05 BRT
+
+Result:
+
+- Refactored Shopfront to the same app shape:
+  - `src/App.tsx` is render-only.
+  - `src/config/app.ts` owns store-specific storefront config.
+  - `src/config/catalog.ts` owns catalog data/image mapping.
+- Removed direct `@supabase/supabase-js` dependency from the Shopfront app package.
+- Updated README away from direct Supabase "go live" instructions and toward SDK/API broker access.
+
+Impact:
+
+- Proves the `src/config/*` pattern applies beyond SaaS admin apps.
+- Confirms storefront apps can reuse shell/layout/navigation/pages while keeping each shop's custom source/config explicit.
+- Reinforces the product rule: app repos should not default to provider SDKs; Fayz SDK should abstract API/client access.
+
+Risk:
+
+- Build still shows Supabase in the bundle through internal SDK/storefront imports. That is an SDK boundary issue, not a Shopfront app dependency issue.
+- Add backlog: split provider adapters behind optional SDK/storefront entrypoints so API-only or mock storefront apps do not pull provider clients.
+
+Gate:
+
+- Passed:
+  - `npm run build` in `/Users/fayalabs/dev/fayz-app/shopfront`
+
+Commit:
+
+- Shopfront: `3d88049 refactor: split shopfront config`
+
+Next:
+
+- Continue 9/10 dogfood across 4 apps before implementing Fayz Agents SDK operation.
+- For SDK: make provider clients optional/adapter-owned and expose Base44-like API access via `@fayz-ai/sdk`.
 
 ## M29 Beauty config-folder local slice — 2026-06-14 12:00 BRT
 

@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:05 BRT — M30 Shopfront config-folder/storefront proof
+
+### Executive outcome
+
+Shopfront now follows the same scalable app shape without turning ecommerce into a SaaS clone: `App.tsx` renders only, while store-specific config and catalog data live under `src/config/*`.
+
+### Business impact
+
+- Confirms the pattern works across a different domain: SaaS apps and storefront apps can share shell/layout/navigation/page infrastructure while keeping app-specific source/config explicit.
+- Removed direct `@supabase/supabase-js` from the Shopfront app package.
+- README no longer points generated app authors toward direct Supabase go-live wiring; live platform data should go through `@fayz-ai/sdk` / Fayz broker.
+- Product sequencing updated: do not implement Fayz Agents SDK operation until at least 4 apps in `fayz-app` are near 9/10 and the SDK/plugin concepts have survived real dogfood.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/shopfront
+npm run build
+```
+
+Result: build passed. Shopfront was committed and pushed as `3d88049 refactor: split shopfront config`.
+
+### Risk
+
+The build still reports Supabase through internal SDK/storefront imports. That is no longer a direct app dependency, but it is still a SDK packaging/boundary smell. Provider clients should move behind optional SDK/storefront adapter entrypoints so simple apps do not inherit them.
+
+### Next
+
+Continue the 4-app dogfood bar before Fayz Agents work. SDK backlog: Base44-like API client through `@fayz-ai/sdk`, provider clients optional/adapter-owned, no default generated `integrations/supabase`.
+
 ## 2026-06-14 12:00 BRT — M29 Beauty config-folder local slice
 
 ### Executive outcome
