@@ -1,5 +1,33 @@
 # 17 — Progress Log
 
+## 2026-06-14 18:19 BRT — M52 Fayz ecommerce scaffold cleanup
+
+Resultado:
+
+- Updated the Fayz generated-project ecommerce integration prompt to use the corrected package split.
+- Removed stale `@fayz/shop-core` from the ecommerce integration dependency manifest.
+- Removed generated app-owned ecommerce client/types, layout/header/footer, and cart hook from the ecommerce scaffold template.
+- Left a generated README explaining that ecommerce data goes through `@fayz-ai/sdk/shop`, storefront UI through `@fayz-ai/storefront`, and mock/seed catalog helpers through `@fayz-ai/shop/catalog`.
+
+Impacto:
+
+- New generated ecommerce apps should no longer start with a duplicated local shop implementation.
+- This moves the generator closer to the PoC goal: app repos own business config/customization, while SDK/platform own the complex shop/storefront mechanics.
+
+Risco:
+
+- The template still needs a full dedicated storefront scaffold once the 4-app dogfood reaches 9/10. This cleanup prevents the wrong old path, but does not generate a polished store app by itself.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @wowsome/api build`
+
+Next:
+
+- Add a real storefront-specific scaffold/template after Shopfront, Tannat, Pulse, and one more app prove the final app shape.
+- Continue QA of storefront flows and slots before promoting any storefront boundary to public API.
+
 ## 2026-06-14 18:09 BRT — M51 Shop/storefront boundary correction
 
 Resultado:
