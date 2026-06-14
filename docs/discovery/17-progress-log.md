@@ -1,10 +1,40 @@
 # 17 — Progress Log
 
-## 2026-06-14 16:36 BRT — M42 Tenant-specific ecommerce seed + storefront UX fixes
+## 2026-06-14 16:52 BRT — M43 SDK shop naming lock
 
 Resultado:
 
-- Migrated the existing Shopfront, Pulse, and Tannat mock catalogs into the Fayz Commerce backend as real tenant-scoped products/images/discounts.
+- Renamed the new public SDK subpath from `@fayz-ai/sdk/commerce` to `@fayz-ai/sdk/shop`.
+- Renamed public SDK symbols from `FayzCommerce*` / `createFayzCommerceProvider()` to `FayzShop*` / `createFayzShopProvider()`.
+- Renamed manifest backend provider metadata from `fayz-commerce` to `fayz-shop`.
+- Updated Shopfront, Pulse, and Tannat app configs from `commerceProvider/commerceBackend` to `shopProvider/shopBackend`.
+
+Impacto:
+
+- Product language is now clearer for app owners: this is the Fayz Shop API, not a generic commerce implementation detail.
+- Keeps the public SDK surface easier to explain: `@fayz-ai/sdk/shop` now maps directly to storefront/shop use cases.
+
+Risco:
+
+- No compatibility alias was kept because this API was introduced minutes ago and had not been published as a stable contract. Better to correct early than carry two names.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk typecheck && pnpm --filter @fayz-ai/sdk build`
+  - `pnpm --filter @fayz-ai/core typecheck && pnpm --filter @fayz-ai/core build`
+  - `pnpm --filter @fayz-ai/storefront typecheck && pnpm --filter @fayz-ai/storefront build`
+  - `pnpm build` in Shopfront, Pulse, and Tannat
+
+Next:
+
+- After Fayz has server-side shop routes, graduate the ergonomic API to `fayz.shop.*` on the main client.
+
+## 2026-06-14 16:36 BRT — M42 Tenant-specific shop seed + storefront UX fixes
+
+Resultado:
+
+- Migrated the existing Shopfront, Pulse, and Tannat mock catalogs into the Fayz Shop backend as real tenant-scoped products/images/discounts.
 - Assigned separate store IDs:
   - Shopfront/Aurora: `10000000-0000-4000-8000-000000000101`
   - Pulse: `10000000-0000-4000-8000-000000000102`
@@ -16,14 +46,14 @@ Resultado:
 
 Impacto:
 
-- The ecommerce proof is no longer just mock data with themes. Each store now reads distinct real data through `@fayz-ai/sdk/commerce`.
+- The shop proof is no longer just mock data with themes. Each store now reads distinct real data through `@fayz-ai/sdk/shop`.
 - This validates the target split: Fayz SDK owns backend/API complexity; app repos own brand, theme, content, catalog seed, and business customizations.
 - Storefront UX fixes happened in platform/shared code where possible, so future stores benefit automatically.
 
 Risco:
 
 - Public write access allowed seed inserts in this Supabase project. That is useful for PoC, but production admin/seed writes should move to a Fayz broker/service-role path.
-- Storefront category metadata is a pragmatic adapter until Fayz Commerce has tenant-owned category support or a server-side category API.
+- Storefront category metadata is a pragmatic adapter until Fayz Shop has tenant-owned category support or a server-side category API.
 
 Gate:
 
@@ -39,20 +69,20 @@ Next:
 - Package and push SDK + app commits.
 - Add a broker/admin seed path backlog item so public client write permissions are not part of the long-term architecture.
 
-## 2026-06-14 16:20 BRT — M41 Fayz Commerce SDK adapter + storefront wiring
+## 2026-06-14 16:20 BRT — M41 Fayz Shop SDK adapter + storefront wiring
 
 Resultado:
 
-- Added `@fayz-ai/sdk/commerce` as the first normalized Fayz Commerce provider for the Fayz-owned ecommerce backend.
-- Confirmed the remote commerce schema uses tenant-scoped `products`, `orders`, `customers`, and `discounts` tables, plus shared `categories` and product images.
-- Wired Shopfront, Pulse, and Tannat to use `createFayzCommerceProvider()` through local app config with mock fallback.
+- Added `@fayz-ai/sdk/shop` as the first normalized Fayz Shop provider for the Fayz-owned shop backend.
+- Confirmed the remote shop schema uses tenant-scoped `products`, `orders`, `customers`, and `discounts` tables, plus shared `categories` and product images.
+- Wired Shopfront, Pulse, and Tannat to use `createFayzShopProvider()` through local app config with mock fallback.
 - Added local SDK aliases and `PUBLIC_*` env loading to those stores so they can dogfood SDK changes without npm publishes.
-- Extended manifest/backend metadata to recognize `fayz-commerce` without making another public npm package.
+- Extended manifest/backend metadata to recognize `fayz-shop` without making another public npm package.
 
 Impacto:
 
-- Store apps now configure a `storeId` and consume Fayz Commerce through the SDK, instead of owning Supabase/PostgREST details.
-- This is the clearest ecommerce answer so far: the SDK removes backend integration complexity while each store keeps brand, catalog, copy, theme, slots, and business-specific config.
+- Store apps now configure a `storeId` and consume Fayz Shop through the SDK, instead of owning Supabase/PostgREST details.
+- This is the clearest shop answer so far: the SDK removes backend integration complexity while each store keeps brand, catalog, copy, theme, slots, and business-specific config.
 - Keeps the public package surface locked to `@fayz-ai/sdk`.
 
 Risco:

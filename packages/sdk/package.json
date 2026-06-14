@@ -25,11 +25,11 @@
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
     },
-    "./commerce": {
-      "source": "./src/commerce.ts",
-      "types": "./dist/commerce.d.ts",
-      "import": "./dist/commerce.js",
-      "require": "./dist/commerce.cjs"
+    "./shop": {
+      "source": "./src/shop.ts",
+      "types": "./dist/shop.d.ts",
+      "import": "./dist/shop.js",
+      "require": "./dist/shop.cjs"
     },
     "./release-channels": {
       "source": "./src/release-channels.ts",

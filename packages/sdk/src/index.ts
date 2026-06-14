@@ -20,20 +20,20 @@ export {
   FayzRuntimeError,
 } from './runtime'
 export {
-  createFayzCommerceProvider,
-  FayzCommerceError,
-} from './commerce'
+  createFayzShopProvider,
+  FayzShopError,
+} from './shop'
 export type {
-  FayzCommerceProviderOptions,
-  FayzCommerceListProductsOptions,
-  FayzCommerceListOrdersOptions,
-  FayzCommerceListCustomersOptions,
-  FayzCommerceListDiscountsOptions,
-  FayzCommerceProductStatus,
-  FayzCommerceOrderStatus,
-  FayzCommerceFinancialStatus,
-  FayzCommerceFulfillmentStatus,
-} from './commerce'
+  FayzShopProviderOptions,
+  FayzShopListProductsOptions,
+  FayzShopListOrdersOptions,
+  FayzShopListCustomersOptions,
+  FayzShopListDiscountsOptions,
+  FayzShopProductStatus,
+  FayzShopOrderStatus,
+  FayzShopFinancialStatus,
+  FayzShopFulfillmentStatus,
+} from './shop'
 export type {
   FayzRuntimeClientOptions,
   FayzRuntimeEnvironment,

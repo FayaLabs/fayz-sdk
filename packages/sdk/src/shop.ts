@@ -1,17 +1,17 @@
-export interface FayzCommerceProviderOptions {
+export interface FayzShopProviderOptions {
   supabaseUrl: string
   publishableKey: string
   storeId: string
   fetcher?: typeof fetch
 }
 
-export type FayzCommerceProductStatus = 'draft' | 'active' | 'archived'
-export type FayzCommerceOrderStatus = 'open' | 'archived' | 'cancelled'
-export type FayzCommerceFinancialStatus = 'pending' | 'paid' | 'partially_paid' | 'refunded' | 'partially_refunded' | 'voided'
-export type FayzCommerceFulfillmentStatus = 'unfulfilled' | 'partially_fulfilled' | 'fulfilled'
+export type FayzShopProductStatus = 'draft' | 'active' | 'archived'
+export type FayzShopOrderStatus = 'open' | 'archived' | 'cancelled'
+export type FayzShopFinancialStatus = 'pending' | 'paid' | 'partially_paid' | 'refunded' | 'partially_refunded' | 'voided'
+export type FayzShopFulfillmentStatus = 'unfulfilled' | 'partially_fulfilled' | 'fulfilled'
 
-export interface FayzCommerceListProductsOptions {
-  status?: FayzCommerceProductStatus
+export interface FayzShopListProductsOptions {
+  status?: FayzShopProductStatus
   categoryId?: string
   search?: string
   slug?: string
@@ -21,10 +21,10 @@ export interface FayzCommerceListProductsOptions {
   order?: 'asc' | 'desc'
 }
 
-export interface FayzCommerceListOrdersOptions {
-  status?: FayzCommerceOrderStatus
-  financialStatus?: FayzCommerceFinancialStatus
-  fulfillmentStatus?: FayzCommerceFulfillmentStatus
+export interface FayzShopListOrdersOptions {
+  status?: FayzShopOrderStatus
+  financialStatus?: FayzShopFinancialStatus
+  fulfillmentStatus?: FayzShopFulfillmentStatus
   customerId?: string
   customerEmail?: string
   search?: string
@@ -32,13 +32,13 @@ export interface FayzCommerceListOrdersOptions {
   offset?: number
 }
 
-export interface FayzCommerceListCustomersOptions {
+export interface FayzShopListCustomersOptions {
   search?: string
   limit?: number
   offset?: number
 }
 
-export interface FayzCommerceListDiscountsOptions {
+export interface FayzShopListDiscountsOptions {
   status?: string
   type?: string
   search?: string
@@ -65,7 +65,7 @@ interface ProductRow {
   price?: number | null
   compare_at_price?: number | null
   currency?: string | null
-  status?: FayzCommerceProductStatus | null
+  status?: FayzShopProductStatus | null
   inventory_count?: number | null
   sku?: string | null
   sort_order?: number | null
@@ -117,9 +117,9 @@ interface OrderRow {
   id: string
   tenant_id: string
   order_number?: number | null
-  status?: FayzCommerceOrderStatus | null
-  financial_status?: FayzCommerceFinancialStatus | null
-  fulfillment_status?: FayzCommerceFulfillmentStatus | null
+  status?: FayzShopOrderStatus | null
+  financial_status?: FayzShopFinancialStatus | null
+  fulfillment_status?: FayzShopFulfillmentStatus | null
   currency?: string | null
   subtotal?: number | null
   tax_total?: number | null
@@ -168,14 +168,14 @@ interface DiscountRow {
   updated_at?: string | null
 }
 
-export class FayzCommerceError extends Error {
+export class FayzShopError extends Error {
   constructor(
     message: string,
     readonly status: number,
     readonly responseBody?: unknown,
   ) {
     super(message)
-    this.name = 'FayzCommerceError'
+    this.name = 'FayzShopError'
   }
 }
 
@@ -355,9 +355,9 @@ function rowToDiscount(row: DiscountRow) {
 }
 
 function updateOrderPayload(input: {
-  status?: FayzCommerceOrderStatus
-  financialStatus?: FayzCommerceFinancialStatus
-  fulfillmentStatus?: FayzCommerceFulfillmentStatus
+  status?: FayzShopOrderStatus
+  financialStatus?: FayzShopFinancialStatus
+  fulfillmentStatus?: FayzShopFulfillmentStatus
   notes?: string
 }) {
   const updates: Record<string, unknown> = {}
@@ -368,7 +368,7 @@ function updateOrderPayload(input: {
   return updates
 }
 
-export function createFayzCommerceProvider(options: FayzCommerceProviderOptions) {
+export function createFayzShopProvider(options: FayzShopProviderOptions) {
   const baseUrl = `${normalizeBaseUrl(options.supabaseUrl)}/rest/v1`
   const fetcher = options.fetcher ?? fetch
   const key = options.publishableKey
@@ -394,9 +394,9 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
     }
     if (!response.ok) {
       const message = typeof body === 'object' && body
-        ? String((body as { message?: unknown; error?: unknown }).message ?? (body as { error?: unknown }).error ?? `Fayz Commerce request failed with status ${response.status}`)
-        : `Fayz Commerce request failed with status ${response.status}`
-      throw new FayzCommerceError(message, response.status, body)
+        ? String((body as { message?: unknown; error?: unknown }).message ?? (body as { error?: unknown }).error ?? `Fayz Shop request failed with status ${response.status}`)
+        : `Fayz Shop request failed with status ${response.status}`
+      throw new FayzShopError(message, response.status, body)
     }
     return body as T
   }
@@ -415,7 +415,7 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
   }
 
   return {
-    async listProducts(options?: FayzCommerceListProductsOptions) {
+    async listProducts(options?: FayzShopListProductsOptions) {
       const query = tenantQuery()
       query.set('select', '*,images:product_images(*),category:categories(name)')
       if (options?.status) query.set('status', `eq.${options.status}`)
@@ -434,19 +434,19 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
       return rows[0] ? rowToProduct(rows[0]) : null
     },
     async createProduct() {
-      throw new FayzCommerceError('Product writes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Product writes require the Fayz admin/broker API.', 501)
     },
     async updateProduct() {
-      throw new FayzCommerceError('Product writes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Product writes require the Fayz admin/broker API.', 501)
     },
     async deleteProduct() {
-      throw new FayzCommerceError('Product writes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Product writes require the Fayz admin/broker API.', 501)
     },
     async uploadProductImage() {
-      throw new FayzCommerceError('Product image uploads require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Product image uploads require the Fayz admin/broker API.', 501)
     },
     async deleteProductImage() {
-      throw new FayzCommerceError('Product image deletes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Product image deletes require the Fayz admin/broker API.', 501)
     },
     async listCategories() {
       const productQuery = tenantQuery()
@@ -462,15 +462,15 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
       return (await request<CategoryRow[]>('categories', { query })).map(rowToCategory)
     },
     async createCategory() {
-      throw new FayzCommerceError('Category writes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Category writes require the Fayz admin/broker API.', 501)
     },
     async updateCategory() {
-      throw new FayzCommerceError('Category writes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Category writes require the Fayz admin/broker API.', 501)
     },
     async deleteCategory() {
-      throw new FayzCommerceError('Category deletes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Category deletes require the Fayz admin/broker API.', 501)
     },
-    async listOrders(options?: FayzCommerceListOrdersOptions) {
+    async listOrders(options?: FayzShopListOrdersOptions) {
       const query = tenantQuery()
       query.set('select', '*,items:order_items(*)')
       if (options?.status) query.set('status', `eq.${options.status}`)
@@ -524,7 +524,7 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
           fulfillment_status: 'unfulfilled',
         }),
       })
-      if (!order) throw new FayzCommerceError('Order insert did not return a row.', 500)
+      if (!order) throw new FayzShopError('Order insert did not return a row.', 500)
       if (input.items.length) {
         await request<OrderItemRow[]>('order_items', {
           method: 'POST',
@@ -550,7 +550,7 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
       })
       return this.getOrder(id)
     },
-    async listCustomers(options?: FayzCommerceListCustomersOptions) {
+    async listCustomers(options?: FayzShopListCustomersOptions) {
       const query = tenantQuery()
       query.set('select', '*')
       query.set('order', 'first_name.asc')
@@ -575,7 +575,7 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
           notes: input.notes ?? null,
         }),
       })
-      if (!customer) throw new FayzCommerceError('Customer insert did not return a row.', 500)
+      if (!customer) throw new FayzShopError('Customer insert did not return a row.', 500)
       return rowToCustomer(customer)
     },
     async updateCustomer(id: string, input: { firstName?: string; lastName?: string; email?: string | null; phone?: string | null; notes?: string | null }) {
@@ -590,13 +590,13 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
         query: singleById(id),
         body: JSON.stringify(updates),
       })
-      if (!customer) throw new FayzCommerceError('Customer update did not return a row.', 500)
+      if (!customer) throw new FayzShopError('Customer update did not return a row.', 500)
       return rowToCustomer(customer)
     },
     async deleteCustomer(id: string) {
       await request<unknown>('customers', { method: 'DELETE', query: singleById(id) })
     },
-    async listDiscounts(options?: FayzCommerceListDiscountsOptions) {
+    async listDiscounts(options?: FayzShopListDiscountsOptions) {
       const query = tenantQuery()
       query.set('select', '*')
       query.set('order', 'created_at.desc')
@@ -612,13 +612,13 @@ export function createFayzCommerceProvider(options: FayzCommerceProviderOptions)
       return rows[0] ? rowToDiscount(rows[0]) : null
     },
     async createDiscount() {
-      throw new FayzCommerceError('Discount writes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Discount writes require the Fayz admin/broker API.', 501)
     },
     async updateDiscount() {
-      throw new FayzCommerceError('Discount writes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Discount writes require the Fayz admin/broker API.', 501)
     },
     async deleteDiscount() {
-      throw new FayzCommerceError('Discount deletes require the Fayz admin/broker API.', 501)
+      throw new FayzShopError('Discount deletes require the Fayz admin/broker API.', 501)
     },
   }
 }
