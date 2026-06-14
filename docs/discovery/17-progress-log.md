@@ -1,5 +1,30 @@
 # 17 — Progress Log
 
+## 2026-06-14 08:25 BRT — M17 createSaasApp deprecation stance hardened
+
+### Executive outcome
+
+The app-contract decision now explicitly treats `createSaasApp` as a **legacy compatibility adapter**, not strategic architecture.
+
+### Business impact
+
+- New generated apps should use `AppManifest + renderApp(manifest)`.
+- New templates, docs, and AI generation should not emit `createSaasApp`.
+- `createSaasApp` remains only as a temporary bridge for Beauty/resto/current proof apps until extraction succeeds.
+- Plugin factories stay inside plugin packages; generated apps reference plugin ids and JSON config.
+
+### Gate
+
+Docs-only milestone. No runtime code changed.
+
+### Risk
+
+The next implementation must avoid a half-migration: either keep Beauty stable on legacy while extracting, or move a narrow vertical slice fully to manifest-first.
+
+### Next
+
+Use Beauty as the golden extraction specimen: tiny `App.tsx`, `app.manifest.json`, and `registry.tsx` for custom code. Add `fayz doctor` warnings and `fayz extract` path after contract approval.
+
 ## 2026-06-14 08:20 BRT — M16 App contract and integrations decision brief
 
 ### Executive outcome

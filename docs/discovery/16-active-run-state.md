@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 08:20 BRT
+Last updated: 2026-06-14 08:25 BRT
 
 ## Mode
 
@@ -30,7 +30,7 @@ Current focus:
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
 3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, generated-app helper contract/tests, and local packaged SDK helper into provider onboarding UI or SDK remote publication.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
-5. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract; keep `createSaasApp`, `createFayzApp`, and `create*Plugin` factories as compatibility/developer sugar pending Vini approval.
+5. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates.
 6. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 7. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
 
@@ -45,7 +45,29 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`, approve manifest-first generated-app contract in `26-app-contract-and-integrations-decision.md`, or confirm SDK remote/package-source so M13/M14/M16 can be pushed/published.
+- Next target: approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`, approve manifest-first generated-app contract in `26-app-contract-and-integrations-decision.md`, or confirm SDK remote/package-source so M13/M14/M16/M17 can be pushed/published.
+
+## M17 createSaasApp deprecation stance — 2026-06-14 08:25 BRT
+
+Result:
+
+- Hardened `docs/discovery/26-app-contract-and-integrations-decision.md`.
+- `createSaasApp` is now explicitly classified as a legacy compatibility adapter, not strategic architecture.
+- New generated apps/templates should use `AppManifest + renderApp(manifest)`.
+- `create*Plugin` factories remain plugin-package internals/developer API, while generated apps reference plugin ids and JSON config.
+
+Impact:
+
+- Removes ambiguity from the contract decision.
+- Prevents future agents/templates from making `createSaasApp` the long-term public API.
+
+Risk:
+
+- Do not break Beauty/resto before extraction. Use Beauty as the golden migration specimen.
+
+Gate:
+
+- Docs-only milestone. No runtime code changed.
 
 ## M16 App contract and integrations decision brief — 2026-06-14 08:20 BRT
 
@@ -53,7 +75,7 @@ Result:
 
 - Added `docs/discovery/26-app-contract-and-integrations-decision.md`.
 - Recommendation: `AppManifest` is the official generated-app contract; Beauty `App.tsx` is the migration specimen, not the final shape.
-- Recommendation: keep `createSaasApp`, `createFayzApp`, and `create*Plugin` factories as compatibility/developer sugar.
+- Recommendation: classify `createSaasApp` as legacy compatibility only; do not use it in new generated apps/templates.
 - Recommendation: replace direct plugin bridges with domain events, declared capabilities, and plugin grants.
 - Captured integration lessons from Slack, Notion, SAP, and AppFlowy.
 

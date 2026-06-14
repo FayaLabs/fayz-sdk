@@ -1,6 +1,6 @@
 # 26 - App Contract and Integrations Decision
 
-Last updated: 2026-06-14 08:20 BRT
+Last updated: 2026-06-14 08:25 BRT
 
 ## Executive Summary
 
@@ -8,11 +8,13 @@ Decision recommendation: make **AppManifest the official repo x Fayz SDK contrac
 
 `beauty-saas/src/App.tsx` is the most important migration proof, not the final contract shape.
 
-Keep current factories working, but narrow their role:
+Do not keep `createSaasApp` as strategic architecture.
 
-- `createSaasApp` and `createFayzApp`: compatibility/sugar for existing apps and advanced developer use.
-- `createAgendaPlugin`, `createFinancialPlugin`, and other `create*Plugin` factories: plugin package developer API.
+- `createSaasApp`: **legacy compatibility adapter only** for Beauty/resto/current apps during extraction.
+- `createFayzApp`: transitional developer helper only if it compiles to/through manifest-first rendering.
+- `createAgendaPlugin`, `createFinancialPlugin`, and other `create*Plugin` factories: plugin package internals/developer API, not generated-app contract.
 - Generated app default: `app.manifest.json` plus `renderApp(manifest)` and a small `registry.tsx` only when the app needs custom code.
+- New templates, docs, and AI generation should not emit `createSaasApp`.
 
 ## Why This Matters
 
@@ -34,15 +36,29 @@ Custom code stays in registries:
 registry.tsx -> custom metrics, custom blocks, custom pages, custom providers
 ```
 
-## Factory Decision
+## `createSaasApp` Decision
 
-Do not remove factories now.
+`createSaasApp` is legacy.
 
-Use them as compatibility and authoring sugar:
+Keep it physically only to avoid breaking the current proof apps while we extract them.
 
-- Existing Beauty/resto apps can keep `createSaasApp` while we extract manifest-compatible pieces.
-- Official plugins can keep `createAgendaPlugin()` and `createFinancialPlugin()` internally to build `PluginManifest` objects.
-- New generated apps should reference plugins by id and JSON config:
+Decision:
+
+- No new generated app should be authored with `createSaasApp`.
+- No new golden template should document `createSaasApp`.
+- `fayz doctor` should warn on `createSaasApp` usage and point to extraction.
+- `fayz extract` should turn current `createSaasApp(config)` apps into `app.manifest.json` plus `registry.tsx`.
+- After Beauty/resto extraction is validated, mark `createSaasApp` deprecated in code and remove it from public default docs.
+
+Why not delete it today:
+
+- Beauty is still the highest-value contract specimen.
+- Removing the adapter before extraction would create churn without proving the new contract.
+- The right move is to make it a one-way migration path, not a product API.
+
+## Plugin Factory Decision
+
+Official plugins can keep factories internally to build `PluginManifest` objects, but generated apps should reference plugins by id and JSON config:
 
 ```json
 {
@@ -60,7 +76,7 @@ Use them as compatibility and authoring sugar:
 
 ## Bridge Decision
 
-Direct cross-plugin bridges such as `createFinancialBridge(financialProvider)` should not be the long-term platform contract.
+Direct cross-plugin bridges such as `createFinancialBridge(financialProvider)` are also legacy compatibility patterns, not long-term platform contracts.
 
 Recommended replacement:
 
@@ -140,8 +156,8 @@ The SDK is open source, so secrets and provider tokens must stay out of SDK and 
 
 After Vini approves this contract direction, the narrow next slice is:
 
-1. Keep Beauty working on current `createSaasApp`.
-2. Add an extraction target where Beauty can move toward:
+1. Keep Beauty working while extracting away from current `createSaasApp`.
+2. Add an extraction target where Beauty moves toward:
 
 ```txt
 src/App.tsx        -> tiny renderApp wrapper
@@ -149,13 +165,14 @@ src/app.manifest.json
 src/registry.tsx  -> Beauty-only metrics/blocks/lookups
 ```
 
-3. Keep `create*Plugin` factories as plugin-package internals.
-4. Replace direct bridge patterns with event/capability contracts as the next shared plugin API milestone.
-5. Continue OAuth-backed Runtime Session Broker as the provider access boundary.
+3. Remove `createSaasApp` from the generated-app path and mark it as legacy in docs/tooling.
+4. Keep `create*Plugin` factories as plugin-package internals.
+5. Replace direct bridge patterns with event/capability contracts as the next shared plugin API milestone.
+6. Continue OAuth-backed Runtime Session Broker as the provider access boundary.
 
 ## Blockers
 
 - Vini approval that manifest-first is the official generated-app contract.
 - SDK remote/package-source destination for publishing the open-source SDK.
 
-Until then, do not refactor Beauty's `App.tsx` aggressively; use it as the golden migration specimen.
+Until then, do not refactor Beauty's `App.tsx` blindly; use it as the golden migration specimen and extract it toward the new contract.
