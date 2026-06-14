@@ -8,6 +8,7 @@ export default defineConfig({
     'plugin/index': 'src/plugin/index.ts',
     'i18n/index': 'src/i18n/index.ts',
     'router/index': 'src/router/index.ts',
+    'runtime/index': 'src/runtime/index.ts',
     'types/index': 'src/types/index.ts',
   },
   format: ['esm', 'cjs'],

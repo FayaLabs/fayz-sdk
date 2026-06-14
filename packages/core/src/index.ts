@@ -22,6 +22,20 @@ export type { DataProvider, CrudQuery, CrudResult, SupabaseProviderConfig, FayzA
 // Tenant context (runtime DI for the data layer)
 export { setActiveTenantId, getActiveTenantId } from './tenant'
 
+// Runtime broker helpers
+export { createFayzRuntimeClient, FayzRuntimeError } from './runtime'
+export type {
+  FayzRuntimeClientOptions,
+  FayzRuntimeEnvironment,
+  GoogleCalendarEvent,
+  GoogleCalendarEventInput,
+  GoogleCalendarEventTime,
+  ListGoogleCalendarEventsInput,
+  PluginOAuthExchangeInput,
+  PluginOAuthExchangeResponse,
+  RuntimePluginOAuthGrant,
+} from './runtime'
+
 // Shared utilities
 export { formatCurrency, formatDate, formatDateTime, getActiveLocale, getDefaultCurrency, setDefaultCurrency } from './lib/format'
 export { exportCSV, buildCSV, downloadCSV } from './lib/csv'

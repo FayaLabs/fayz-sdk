@@ -43,6 +43,12 @@
       "import": "./dist/router/index.js",
       "require": "./dist/router/index.cjs"
     },
+    "./runtime": {
+      "source": "./src/runtime/index.ts",
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
     "./types": {
       "source": "./src/types/index.ts",
       "types": "./dist/types/index.d.ts",
