@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 18:31 BRT — M53 Storefront custom slot contract preservation
+
+Resultado:
+
+- Added the storefront `ProductCard` automation contract back into Tannat and Pulse custom product-card slots.
+- Preserved each store's visual customization while restoring `product-card`, `product-card-name`, `product-card-price`, and `product-card-add` test IDs.
+- Re-ran focused builds for Tannat and Pulse.
+- Re-ran browser smoke across Shopfront, Tannat, and Pulse.
+
+Impacto:
+
+- Confirms the storefront direction is scalable: stores can customize components without forking shared catalog/checkout/account mechanics or breaking QA/agent operation.
+- Turns the previous failure into a platform rule: custom slots must keep the SDK/storefront contract, not just render visually.
+
+Risco:
+
+- Shopfront home is editorial and does not expose product-card test IDs, but its `/catalog` route does. That is acceptable if the contract is required on commerce surfaces, not on free-form landing sections.
+- The next generator/template pass should encode this contract so future generated custom slots inherit it automatically.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in Tannat
+  - `pnpm build` in Pulse
+  - HTTP 200 on Shopfront `5183`, Tannat `5184`, Pulse `5185`
+  - Browser smoke: Tannat/Pulse add-to-cart opens cart; Shopfront/Tannat/Pulse checkout and account routes avoid 404; Shopfront `/catalog` exposes 16 product cards/add buttons.
+
+Next:
+
+- Add a storefront slot-contract note/helper in SDK docs/templates.
+- Continue fourth-app dogfood before Fayz Agents SDK operation.
+
 ## 2026-06-14 18:19 BRT — M52 Fayz ecommerce scaffold cleanup
 
 Resultado:
