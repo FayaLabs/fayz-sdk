@@ -1,5 +1,38 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:08 UTC / 20:08 BRT — M69 private Tables provider on SDK data API
+
+Resultado:
+
+- Added `createFayzTablesProvider()` to private `@fayz-ai/plugin-tables`.
+- The provider uses `@fayz-ai/sdk` data reads/mutations for `restaurant_tables`.
+- Exposed provider options/types from the private Tables plugin package.
+- Plugin Tables typecheck/build passes.
+- Resto production build remains green consuming the updated private plugin.
+
+Impacto:
+
+- This is the first domain provider built on top of the public SDK data API, proving the direction beyond UI reuse.
+- App code does not need direct Supabase/fetch logic for table CRUD/status once runtime project/token/tenant config is supplied.
+
+Risco:
+
+- Resto still defaults to the mock Tables provider until we wire a concrete runtime project/token/tenant env contract.
+- Sessions/zones are intentionally thin: table status persists, but full table sessions need a dedicated table/broker contract before calling it production-grade.
+
+Proximo:
+
+- Wire Resto's Tables plugin to `createFayzTablesProvider()` behind explicit env/runtime config.
+- Then smoke real table status mutation in Resto without breaking local fallback.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/plugin-tables typecheck
+pnpm --filter @fayz-ai/plugin-tables build
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+```
+
 ## 2026-06-14 23:01 UTC / 20:01 BRT — M68 public SDK data mutations
 
 Resultado:

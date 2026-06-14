@@ -174,4 +174,6 @@ export function createTablesPlugin(options?: TablesPluginOptions): PluginManifes
 }
 
 export type { TablesDataProvider } from './data/types'
+export { createFayzTablesProvider } from './data/fayz'
+export type { FayzTablesProviderOptions } from './data/fayz'
 export type { ResolvedTablesConfig } from './TablesContext'
