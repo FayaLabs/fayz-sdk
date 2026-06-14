@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 00:12 BRT
+Last updated: 2026-06-14 00:17 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy**.
+Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy plus revocation/audit foundation**.
 
 Linear anchor:
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, and Google Calendar read/write proxy into revocation, audit trail, and SDK helper contract.
+3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, and revocation/audit foundation into SDK helper contract and provider onboarding UI.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
@@ -36,9 +36,46 @@ Current focus:
 Executive answer to Vini's latest check:
 
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
-- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M9 OAuth broker slices are committed/pushed in Fayz.
+- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M10 OAuth broker slices are committed/pushed in Fayz.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: implement revocation/audit on top of the Google Calendar read/write proxy, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+- Next target: implement SDK helper contract/provider onboarding UI on top of the broker, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+
+## M10 Plugin OAuth revocation/audit foundation — 2026-06-14 00:17 BRT
+
+Result:
+
+- Fayz commit `75376e4b` pushed to PR `#927`: `feat(runtime): add plugin oauth revocation audit foundation`.
+- Tracking updated: Linear `FAY-1182` comment `f4dc640f-2d3d-4e79-9d61-08ed1b7994e4`; PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700557206`.
+- Added append-only `PluginOAuthAuditEvent` table and migration.
+- Added service-level revocation for project/plugin grants and provider connections.
+- Revocation writes redacted audit events and soft-revokes active grants without exposing provider tokens.
+
+Impact:
+
+- The broker now has a safety path for disconnecting providers or tenant/plugin grants.
+- This closes the biggest operational risk left after Calendar read/write: tokens can be made unusable and the action has evidence.
+
+Risk:
+
+- No public/admin UI route was exposed yet. That is deliberate: the permission model and provider onboarding UX should be locked before exposing revocation controls.
+- Remaining production gaps: SDK helper wrapper, provider onboarding UI, and broader audit read/admin surface.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npx prisma validate --schema packages/db/prisma/schema.prisma
+npm run db:generate
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-auth.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+Self-improvement:
+
+- Build caught a Prisma JSON readonly mutation before commit. Fixed by constructing audit metadata immutably; future broker work should keep `npm run build:api` as mandatory even when unit tests pass.
 
 ## M9 Google Calendar write proxy — 2026-06-14 00:10 BRT
 

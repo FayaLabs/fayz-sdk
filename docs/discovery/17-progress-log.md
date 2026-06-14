@@ -1,5 +1,48 @@
 # 17 — Progress Log
 
+## 2026-06-14 00:17 BRT — M10 Plugin OAuth revocation/audit foundation committed and pushed
+
+### Executive outcome
+
+Fayz PR `#927` now includes the revocation/audit foundation:
+
+```txt
+75376e4b feat(runtime): add plugin oauth revocation audit foundation
+```
+
+### Business impact
+
+- Fayz can now revoke a tenant/plugin OAuth grant or revoke an entire provider connection server-side.
+- Active grants are soft-revoked, so broker token resolution stops accepting them.
+- Each revocation writes a redacted audit event; provider tokens still do not appear in runtime responses or audit payloads.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npx prisma validate --schema packages/db/prisma/schema.prisma
+npm run db:generate
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts src/modules/plugin-oauth/__tests__/runtime-plugin-oauth-token.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-auth.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth-provider-token.service.test.ts src/modules/plugin-oauth/__tests__/plugin-oauth.controller.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+### Self-improvement
+
+Unit tests passed before TypeScript caught a Prisma JSON readonly mutation. The fix was small, and this confirms `build:api` must remain a mandatory gate for broker work.
+
+### Risk
+
+No public/admin route was exposed yet. This is intentional until the permission model and provider onboarding/disconnect UX are locked.
+
+### Next
+
+Tracking updated in Linear `FAY-1182` comment `f4dc640f-2d3d-4e79-9d61-08ed1b7994e4` and PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700557206`.
+
+Next move to SDK helper contract or provider onboarding UI.
+
 ## 2026-06-14 00:10 BRT — M9 Google Calendar write proxy gated
 
 ### Executive outcome
