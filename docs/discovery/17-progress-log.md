@@ -1,5 +1,34 @@
 # 17 — Progress Log
 
+## 2026-06-14 19:10 BRT — M57 Marketplace manifest-first config
+
+Resultado:
+
+- Migrated `marketplace-saas` from direct `createSaasApp(config)` to `renderApp(defineSaas(config))`.
+- Reduced `src/App.tsx` to a tiny manifest render wrapper.
+- Moved the app config into `src/config/app.tsx` and changed `organization` to the current `org` contract.
+
+Impacto:
+
+- Marketplace now follows the same repo x SDK contract as Beauty and Resto.
+- This makes the fourth app more useful for validating whether generated apps can stay mostly business config + custom source while SDK/runtime own shell behavior.
+
+Risco:
+
+- Config is now in `/src/config`, but still concentrated in one file. A later cleanup should split permissions/dashboard/pages/reports/theme when it creates decision value.
+- Marketplace still needs SDK-backed shop/admin data proof before calling it near 9/10.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in Marketplace
+  - Browser smoke on `http://localhost:5186/`: Mercado login renders, no 404, no loading stall.
+
+Next:
+
+- Split Marketplace config further only where it improves readability.
+- Prove Marketplace shop/admin data paths through SDK-owned APIs/adapters.
+
 ## 2026-06-14 19:00 BRT — M56 Marketplace fourth-app SDK baseline
 
 Resultado:
