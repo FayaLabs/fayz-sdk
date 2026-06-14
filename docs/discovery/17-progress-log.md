@@ -1,5 +1,39 @@
 # 17 — Progress Log
 
+## 2026-06-14 22:39 UTC / 19:39 BRT — M64 Beauty authenticated route smoke
+
+Resultado:
+
+- Logged into Beauty with the documented test account and verified key routes.
+- `/clients` loads with the create button visible.
+- Client row click now opens `/clients/:id` without the broken `#//id` hash.
+- `/settings` loads the settings shell.
+- `/registry/services/new` opens the service create form instead of a placeholder.
+- Agenda itself loads; the staff schedule deep link now uses `/registry/staff/:id/schedule`.
+
+Impacto:
+
+- The manifest-first route fix is now proven in an authenticated Beauty session, not only by build/typecheck.
+- The remaining agenda staff 404 was narrowed to a bad link source in the Agenda resource header and fixed in the plugin.
+
+Risco:
+
+- The old external URL shape `/staffs/:id/schedule` still 404s. The app should stop generating it; do not treat that legacy path as the canonical contract.
+- `/sales/leads/list` does not 404, but CRM currently shows onboarding until setup is skipped/completed.
+
+Proximo:
+
+- Commit the Agenda link fix after gates.
+- Continue app-score dogfood with Resto and shop/storefront apps, avoiding another theme-only loop.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/plugin-agenda typecheck
+pnpm --filter @fayz-ai/plugin-agenda build
+cd /Users/fayalabs/dev/fayz-app/beauty-saas && pnpm build
+```
+
 ## 2026-06-14 22:26 UTC / 19:26 BRT — M63 manifest AdminShell route normalization
 
 Resultado:
