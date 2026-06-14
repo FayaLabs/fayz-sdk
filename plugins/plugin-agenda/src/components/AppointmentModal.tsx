@@ -139,7 +139,7 @@ function StatusSelect({ value, onChange, statuses, bookingDate }: {
       </button>
       {open && dropRect && createPortal(
         <div ref={dropdownRef} data-modal-passthrough style={{ position: 'fixed', left: dropRect.left, top: dropRect.bottom + 4, width: dropRect.width, zIndex: 9999, pointerEvents: 'auto' }}
-          className="rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100">
+          className="fayz-glass-surface rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100">
           {statuses.map((s: any) => {
             const available = !bookingDate || isStatusAvailable(s as any, bookingDate)
             return (
@@ -194,7 +194,7 @@ function ProfessionalSelect({ value, onChange, professionals }: {
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100">
+        <div className="fayz-glass-surface absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100">
           {professionals.map((p: any) => (
             <button key={p.id} type="button"
               onClick={() => { onChange(p.id); setOpen(false) }}
@@ -242,7 +242,7 @@ function LocationSelect({ value, onChange, locations }: {
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100 max-h-48 overflow-y-auto">
+        <div className="fayz-glass-surface absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100 max-h-48 overflow-y-auto">
           {locations.map((l: any) => (
             <button key={l.id} type="button"
               onClick={() => { onChange(l.id); setOpen(false) }}
@@ -546,7 +546,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
 
           {/* Booking type tabs (create) or section tabs (edit) */}
           {showTabs && mode === 'create' ? (
-            <div className="flex gap-1 border-b">
+            <div className="flex gap-1 border-b fayz-glass-divider">
               {config.bookingTypes.map((bt) => {
                 const label = t(`agenda.bookingType.${bt.id}`) || bt.label
                 const isActive = bookingType === bt.id
@@ -567,7 +567,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
             </div>
           ) : mode === 'edit' && (
             (config.clientEntityDef && clientId) || (config.modules.financial && editOrderId) ? (
-              <div className="flex gap-1 border-b">
+              <div className="flex gap-1 border-b fayz-glass-divider">
                 {([
                   { id: 'appointment' as const, label: t(`agenda.bookingType.${bookingType}`) || activeType.label, icon: Calendar, show: true },
                   { id: 'client' as const, label: t('agenda.appointment.clientTab'), icon: User, show: !!config.clientEntityDef && !!clientId },
@@ -727,7 +727,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
 
           {/* Appointment tab content */}
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden" style={{ display: modalTab === 'appointment' ? undefined : 'none' }}>
-          <div className="border-t px-5 py-3 space-y-1 flex-1 overflow-y-auto">
+          <div className="border-t fayz-glass-divider px-5 py-3 space-y-1 flex-1 overflow-y-auto">
 
             {/* Loading skeleton */}
             {loading && (
@@ -945,7 +945,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
 
           {/* Appointment footer — inside form for submit */}
           {modalTab === 'appointment' && !clientEditing && (
-            <div className="px-5 py-2.5 border-t bg-card shrink-0 sm:rounded-b-2xl">
+            <div className="px-5 py-2.5 border-t fayz-glass-divider bg-transparent shrink-0 sm:rounded-b-2xl">
               {confirmingDelete ? (
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-destructive font-medium">{t('agenda.appointment.deleteConfirm')}</span>
@@ -1008,7 +1008,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
 
           {/* Non-appointment tab footer — outside form */}
           {modalTab !== 'appointment' && !clientEditing && (
-            <div className="px-5 py-2.5 border-t bg-card shrink-0 sm:rounded-b-2xl">
+            <div className="px-5 py-2.5 border-t fayz-glass-divider bg-transparent shrink-0 sm:rounded-b-2xl">
               <div className="flex items-center">
                 <button type="button" onClick={() => { setModalTab('appointment'); setClientEditing(false) }}
                   className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">

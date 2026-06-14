@@ -52,7 +52,7 @@ function PopoverStatusSelect({ value, statuses, bookingStartsAt, onChange }: {
         </svg>
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 z-50 mb-1 rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100 min-w-[140px]">
+        <div className="fayz-glass-surface absolute bottom-full left-0 z-50 mb-1 rounded-lg border bg-popover shadow-lg py-1 animate-in fade-in zoom-in-95 duration-100 min-w-[140px]">
           {statuses.map((s) => {
             const available = isStatusAvailable(s as any, bookingStartsAt)
             return (
@@ -171,7 +171,7 @@ export function AppointmentPopover({ booking, position, onClose, onEdit }: Props
               // No financial module — just show total
               if (!hasFinancial) {
                 return (
-                  <div className="pt-2 border-t flex items-center justify-between text-sm">
+                  <div className="pt-2 border-t fayz-glass-divider flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{t('agenda.appointment.total')}</span>
                     <span className="font-medium">{total}</span>
                   </div>
@@ -190,7 +190,7 @@ export function AppointmentPopover({ booking, position, onClose, onEdit }: Props
               const StatusIcon = cfg.icon
 
               return (
-                <div className="pt-2 border-t flex items-center justify-between">
+                <div className="pt-2 border-t fayz-glass-divider flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{t('agenda.appointment.total')}</span>
                   <button
                     type="button"
@@ -204,7 +204,7 @@ export function AppointmentPopover({ booking, position, onClose, onEdit }: Props
               )
             })()}
 
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t fayz-glass-divider">
               <PopoverStatusSelect
                 value={booking.status}
                 statuses={config.statuses}

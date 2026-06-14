@@ -81,6 +81,25 @@
     --shadow-button-inset:
       inset 0 2px 1px -1px rgba(0,0,0,0.20),
       inset 0 0 0 1px rgba(0,0,0,0.05);
+    --surface-backdrop-filter: none;
+    --modal-bg: hsl(var(--card));
+    --modal-border: hsl(var(--border) / 0.5);
+    --modal-overlay-bg: rgb(0 0 0 / 0.5);
+    --modal-overlay-backdrop-filter: blur(2px);
+    --modal-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    --glass-edge-gradient: linear-gradient(hsl(var(--border)), hsl(var(--border)));
+    --glass-primary-edge-gradient: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+    --glass-inner-highlight: inset 0 0 0 0 transparent;
+    --field-bg: hsl(var(--card));
+    --field-border: hsl(var(--input));
+    --field-shadow: inset 0 1px 0 rgb(0 0 0 / 0.06);
+    --button-bg: hsl(var(--card));
+    --button-hover-bg: hsl(var(--muted));
+    --button-border: hsl(var(--border));
+    --button-primary-bg: hsl(var(--primary));
+    --button-primary-hover-bg: hsl(var(--primary) / 0.9);
+    --button-primary-border: hsl(var(--primary));
+    --button-backdrop-filter: none;
   }
 
   .dark {
@@ -151,6 +170,22 @@
     --shadow-button-inset:
       inset 0 2px 1px -1px rgba(0,0,0,0.50),
       inset 0 0 0 1px rgba(0,0,0,0.20);
+    --surface-backdrop-filter: none;
+    --modal-bg: hsl(var(--card));
+    --modal-border: hsl(var(--border) / 0.5);
+    --modal-overlay-bg: rgb(0 0 0 / 0.5);
+    --modal-overlay-backdrop-filter: blur(2px);
+    --modal-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+    --glass-edge-gradient: linear-gradient(hsl(var(--border)), hsl(var(--border)));
+    --glass-primary-edge-gradient: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+    --glass-inner-highlight: inset 0 0 0 0 transparent;
+    --button-bg: hsl(var(--card));
+    --button-hover-bg: hsl(var(--muted));
+    --button-border: hsl(var(--border));
+    --button-primary-bg: hsl(var(--primary));
+    --button-primary-hover-bg: hsl(var(--primary) / 0.9);
+    --button-primary-border: hsl(var(--primary));
+    --button-backdrop-filter: none;
   }
 
   * {
@@ -172,6 +207,91 @@
 /* Hide scrollbar — for horizontal tab strips and similar */
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+.fayz-glass-surface {
+  backdrop-filter: var(--surface-backdrop-filter);
+  -webkit-backdrop-filter: var(--surface-backdrop-filter);
+  background-clip: padding-box;
+  transform: translateZ(0);
+}
+
+.fayz-glass-surface.border,
+.bg-card.border,
+.bg-popover.border,
+.bg-background.border,
+.bg-primary.border,
+.border.bg-card,
+.border.bg-popover,
+.border.bg-background,
+.border.bg-primary {
+  border-color: transparent;
+}
+
+.fayz-glass-surface.bg-card,
+.bg-card.fayz-glass-surface,
+.border.bg-card,
+.bg-card.border {
+  background:
+    linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+    var(--glass-edge-gradient) border-box;
+  box-shadow: var(--shadow-sm), var(--glass-inner-highlight);
+}
+
+.fayz-glass-surface.bg-popover,
+.bg-popover.fayz-glass-surface,
+.border.bg-popover,
+.bg-popover.border {
+  background:
+    linear-gradient(hsl(var(--popover)), hsl(var(--popover))) padding-box,
+    var(--glass-edge-gradient) border-box;
+  box-shadow: var(--shadow-lg), var(--glass-inner-highlight);
+}
+
+.bg-primary.border {
+  background:
+    linear-gradient(hsl(var(--primary)), hsl(var(--primary))) padding-box,
+    var(--glass-primary-edge-gradient) border-box;
+}
+
+.bg-popover {
+  backdrop-filter: var(--surface-backdrop-filter);
+  -webkit-backdrop-filter: var(--surface-backdrop-filter);
+  background-clip: padding-box;
+}
+
+.fayz-modal-overlay {
+  background: var(--modal-overlay-bg);
+  backdrop-filter: var(--modal-overlay-backdrop-filter);
+  -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+}
+
+.fayz-modal-content {
+  background: var(--modal-bg);
+  border-color: var(--modal-border) !important;
+  box-shadow: var(--modal-shadow);
+}
+
+.fayz-glass-divider {
+  border-color: rgb(255 255 255 / 0.44) !important;
+}
+
+@supports (border-color: color-mix(in srgb, white 50%, transparent)) {
+  .fayz-glass-divider {
+    border-color: color-mix(in srgb, var(--modal-border) 62%, transparent) !important;
+  }
+}
+
+.fayz-glass-field,
+input.bg-card,
+textarea.bg-card,
+select.bg-card,
+.border-input.bg-card,
+.bg-card.border-input,
+.bg-background.border {
+  background: var(--field-bg);
+  border-color: var(--field-border) !important;
+  box-shadow: var(--field-shadow);
+}
 
 /* Theme transition — applied briefly during light/dark switch */
 .theme-transitioning,

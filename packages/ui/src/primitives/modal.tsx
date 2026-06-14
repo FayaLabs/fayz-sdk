@@ -46,7 +46,7 @@ const ModalOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'saas-mdl-ov fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]',
+      'fayz-modal-overlay saas-mdl-ov fixed inset-0 z-50',
       'flex items-center justify-center p-0 sm:p-6',
       className,
     )}
@@ -93,11 +93,11 @@ const ModalContent = React.forwardRef<
           onInteractOutside?.(e)
         }}
         className={cn(
-          'saas-mdl-ct relative z-50 flex flex-col w-full bg-card shadow-2xl outline-none',
+          'fayz-glass-surface fayz-modal-content saas-mdl-ct relative z-50 flex flex-col w-full outline-none',
           // Mobile fullscreen
           'h-full rounded-none border-0',
           // Desktop centered card
-          'sm:h-auto sm:max-h-[85vh] sm:rounded-2xl sm:border sm:border-border/50',
+          'sm:h-auto sm:max-h-[85vh] sm:rounded-2xl sm:border',
           SIZE_MAP[size],
           noPadding ? '' : 'p-6 gap-4',
           className,

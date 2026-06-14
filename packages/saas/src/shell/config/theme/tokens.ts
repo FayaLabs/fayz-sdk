@@ -1,3 +1,5 @@
+import type { FayzThemePresetId } from '@fayz-ai/ui'
+
 export interface ThemeTokens {
   name: string
   colors: SemanticColors
@@ -52,6 +54,25 @@ export interface UIPerceptionTokens {
   shadowButton?: string
   shadowButtonPrimary?: string
   shadowButtonInset?: string
+  surfaceBackdropFilter?: string
+  modalBackground?: string
+  modalBorder?: string
+  modalOverlayBackground?: string
+  modalOverlayBackdropFilter?: string
+  modalShadow?: string
+  glassEdgeGradient?: string
+  glassPrimaryEdgeGradient?: string
+  glassInnerHighlight?: string
+  fieldBackground?: string
+  fieldBorder?: string
+  fieldShadow?: string
+  buttonBackground?: string
+  buttonBackgroundHover?: string
+  buttonBorder?: string
+  buttonPrimaryBackground?: string
+  buttonPrimaryBackgroundHover?: string
+  buttonPrimaryBorder?: string
+  buttonBackdropFilter?: string
 }
 
 // --- Friendly theme presets (non-technical) ---
@@ -63,6 +84,7 @@ export type ThemeFont = 'system' | 'inter' | 'dm-sans' | 'poppins' | 'geist' | '
 
 export interface SaasTheme {
   name: string
+  preset?: FayzThemePresetId
   brand: string
   radius?: ThemeRadius
   density?: ThemeDensity

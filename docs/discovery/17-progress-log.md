@@ -1,5 +1,115 @@
 # 17 — Progress Log
 
+## 2026-06-14 17:47 BRT — M48 Liquid Glass global contrast + modal surface cleanup
+
+Resultado:
+
+- Fixed the remaining dark modal/footer divider issue by moving agenda modal/footer separators to a theme-owned `fayz-glass-divider`.
+- Moved booking preview/floating panels closer to the global Liquid Glass surface contract instead of forcing local `border-border`.
+- Added field-specific perception tokens (`fieldBackground`, `fieldBorder`, `fieldShadow`) so inputs/search/select surfaces have their own contrast model instead of behaving like low-contrast mini cards.
+- Tuned the `liquid_glass` preset: slightly darker app background, stronger card/input contrast, and clearer glass fields.
+- After the theme trial, Beauty was returned to `classic_admin`; Liquid Glass remains available in the SDK for future controlled dogfood instead of staying on the primary Beauty proof.
+- Confirmed all dogfood ports still respond: Beauty `5180`, Resto `5181`, Shopfront `5183`, Tannat `5184`, Pulse `5185`.
+
+Impacto:
+
+- Liquid Glass is now more SDK-owned and less page/plugin-specific.
+- Apps that opt into Liquid Glass should get better field/modal hierarchy without custom per-screen styling, while Beauty keeps the stable classic admin look for the current SaaS proof.
+- This reinforces the architecture goal: client apps pick a theme and business config; shared Fayz surfaces implement the style system.
+
+Risco:
+
+- The worktree still contains broad earlier milestones. Package this visual slice carefully; do not broad-commit unrelated shop/storefront/docs changes with it.
+- Some old plugin components still use hardcoded `bg-card`, `border`, or `shadow` classes. They should be migrated opportunistically to tokens/classes as they are dogfooded.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/ui typecheck`
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm --filter @fayz-ai/ui build && pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in Beauty
+
+Next:
+
+- Visually inspect Beauty on classic admin and use a separate app/sandbox for the next Liquid Glass dogfood pass.
+- Package the Liquid Glass/theme slice separately from accumulated unrelated work.
+- Continue migrating top shared plugin surfaces that still bypass theme tokens.
+
+## 2026-06-14 17:04 BRT — M47 Login/logout parity in new AdminShell
+
+Resultado:
+
+- Fixed `@fayz-ai/auth` sign-out so it never leaves the auth store stuck in loading state after logout.
+- Replaced the minimal new AdminShell login with a richer split/centered login that uses the modern `@fayz-ai/auth` context.
+- Wired `auth.loginLayout` and `auth.loginLogo` through `renderApp(defineSaas(config))`.
+- Restarted Beauty and Resto locally: Beauty `5180`, Resto `5181`.
+
+Impacto:
+
+- Beauty logout should return to login without manual refresh.
+- Beauty and Resto can use the intended branded login style again.
+- This fixes the runtime, not only Beauty, so every SaaS app on the new path benefits.
+
+Risco:
+
+- Browser MCP could not reach localhost from its isolated context; shell verified both servers with HTTP 200.
+- Manual browser validation is still useful for final visual polish.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/auth typecheck && pnpm --filter @fayz-ai/auth build`
+  - `pnpm --filter @fayz-ai/saas typecheck && pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in Beauty and Resto
+
+Next:
+
+- User-validates login/logout visually on `http://localhost:5180/` and `http://localhost:5181/`.
+
+## 2026-06-14 17:00 BRT — M46 AdminShell settings/frame parity for Beauty + Resto
+
+Resultado:
+
+- Added first-class `/settings` handling to the new AdminShell path.
+- Added plugin settings tabs and org settings tabs to the new AdminShell.
+- Gave the new AdminShell the same framed page treatment as the legacy shell so module pages load consistently.
+- Migrated Resto from legacy `SaasAppConfig.organization` to `FayzAppConfig.org`.
+
+Impacto:
+
+- Beauty and Resto now dogfood the same `renderApp(defineSaas(config))` contract.
+- `/settings` is runtime-owned instead of each app needing a placeholder page.
+- Financeiro and other module pages should load through the same shell mechanics across both apps.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck && pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in Beauty and Resto
+
+## 2026-06-14 16:54 BRT — M45 Remove storefront package
+
+Resultado:
+
+- Deleted `packages/storefront`.
+- Removed `@fayz-ai/storefront` from app-runtime dependencies/re-exports.
+- Removed local `@fayz-ai/storefront` aliases from Shopfront, Pulse, and Tannat.
+- Kept shop UI/runtime implementation under `packages/shop`.
+
+Impacto:
+
+- Shop apps now have one app-facing concept: `@fayz-ai/shop`.
+- We avoid scaling a confusing public/private package split before the dogfood proves it.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/shop typecheck && pnpm --filter @fayz-ai/shop build`
+  - `pnpm --filter @fayz-ai/app-runtime typecheck && pnpm --filter @fayz-ai/app-runtime build`
+  - `pnpm --filter @fayz-ai/core typecheck && pnpm --filter @fayz-ai/core build`
+  - `pnpm build` in Shopfront, Pulse, and Tannat
+
 ## 2026-06-14 17:12 BRT — M44 Shop-only app-facing package surface
 
 Resultado:

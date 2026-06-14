@@ -8,6 +8,7 @@ import type {
   ThemeFont,
 } from './tokens'
 import { lightTheme } from './light'
+import { createFayzTheme } from '@fayz-ai/ui'
 
 export interface CreateThemeOptions {
   name?: string
@@ -57,9 +58,11 @@ const FONT_MAP: Record<ThemeFont, string> = {
  * Sidebar colors are always applied (same in both modes — the sidebar has its own palette).
  */
 export function resolveTheme(theme: SaasTheme): CreateThemeOptions {
-  const radius = RADIUS_MAP[theme.radius ?? 'soft']
-  const shadow = SHADOW_MAP[theme.shadow ?? 'medium']
-  const font = FONT_MAP[theme.font ?? 'inter']
+  const presetId = theme.preset ?? 'classic_admin'
+  const preset = createFayzTheme(presetId)
+  const radius = theme.radius ? RADIUS_MAP[theme.radius] : presetId === 'classic_admin' ? RADIUS_MAP.soft : undefined
+  const shadow = theme.shadow ? SHADOW_MAP[theme.shadow] : presetId === 'classic_admin' ? SHADOW_MAP.medium : undefined
+  const font = theme.font ? FONT_MAP[theme.font] : presetId === 'classic_admin' ? FONT_MAP.inter : undefined
 
   // --- Light mode colors ---
   const colors: Partial<SemanticColors> = { ...theme.colors }
@@ -93,20 +96,36 @@ export function resolveTheme(theme: SaasTheme): CreateThemeOptions {
   }
 
   return {
+    ...preset,
     name: theme.name,
     brand: theme.brand,
-    colors,
-    darkColors,
+    colors: {
+      ...(preset.colors ?? {}),
+      ...colors,
+    },
+    darkColors: {
+      ...(preset.darkColors ?? {}),
+      ...darkColors,
+    },
     perception: {
-      buttonRadius: radius.button,
-      cardRadius: radius.card,
-      inputRadius: radius.input,
-      modalRadius: radius.modal,
-      fontFamily: font,
+      ...(preset.perception ?? {}),
       fontFamilyMono: '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace',
-      shadowSm: shadow.sm,
-      shadowMd: shadow.md,
-      shadowLg: shadow.lg,
+      ...(radius
+        ? {
+            buttonRadius: radius.button,
+            cardRadius: radius.card,
+            inputRadius: radius.input,
+            modalRadius: radius.modal,
+          }
+        : {}),
+      ...(font ? { fontFamily: font } : {}),
+      ...(shadow
+        ? {
+            shadowSm: shadow.sm,
+            shadowMd: shadow.md,
+            shadowLg: shadow.lg,
+          }
+        : {}),
     },
   }
 }
@@ -182,6 +201,28 @@ const perceptionVarMap: Record<string, string> = {
   shadowSm: '--shadow-sm',
   shadowMd: '--shadow-md',
   shadowLg: '--shadow-lg',
+  shadowButton: '--shadow-button',
+  shadowButtonPrimary: '--shadow-button-primary',
+  shadowButtonInset: '--shadow-button-inset',
+  surfaceBackdropFilter: '--surface-backdrop-filter',
+  modalBackground: '--modal-bg',
+  modalBorder: '--modal-border',
+  modalOverlayBackground: '--modal-overlay-bg',
+  modalOverlayBackdropFilter: '--modal-overlay-backdrop-filter',
+  modalShadow: '--modal-shadow',
+  glassEdgeGradient: '--glass-edge-gradient',
+  glassPrimaryEdgeGradient: '--glass-primary-edge-gradient',
+  glassInnerHighlight: '--glass-inner-highlight',
+  fieldBackground: '--field-bg',
+  fieldBorder: '--field-border',
+  fieldShadow: '--field-shadow',
+  buttonBackground: '--button-bg',
+  buttonBackgroundHover: '--button-hover-bg',
+  buttonBorder: '--button-border',
+  buttonPrimaryBackground: '--button-primary-bg',
+  buttonPrimaryBackgroundHover: '--button-primary-hover-bg',
+  buttonPrimaryBorder: '--button-primary-border',
+  buttonBackdropFilter: '--button-backdrop-filter',
 }
 
 export function applyTheme(theme: ThemeTokens, element?: HTMLElement): void {
