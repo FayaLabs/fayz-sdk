@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 16:52 BRT
+Last updated: 2026-06-14 17:12 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green for Beauty style restoration in the new manifest/runtime path, green for Pulse/Tannat storefront config-folder dogfood, green for M38 storefront provider-leak reduction, green for M39/M40 storefront ProductCard slot dogfood across Pulse and Tannat, green for M41/M42 Fayz Shop SDK adapter + tenant seed, green for M43 shop naming refactor, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Beauty style restoration in the new manifest/runtime path, green for M38 provider-leak reduction, green for M39/M40 ProductCard slot dogfood across Pulse and Tannat, green for M41/M42 Fayz Shop SDK adapter + tenant seed, green for M43 shop naming refactor, green for M44 shop-only app-facing package surface, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -39,8 +39,8 @@ Current focus:
 11. Generated apps should not own direct provider clients by default. `integrations/supabase` is a smell for generated apps unless hidden behind an optional SDK adapter; default API/data access should go through `@fayz-ai/sdk` / Fayz broker, Base44-style.
 12. Current SDK/API abstraction proof: Beauty dashboard KPI and today-schedule section now call `fayz.data.countRows/listRows` instead of importing Supabase directly. Next frontier is moving remaining app/plugin/provider wiring behind SDK/platform adapters.
 13. Current `createSaasApp` deprecation proof: Beauty now builds locally with `FayzAppConfig.org` and no `SaasAppConfig`/`organization` config references. Browser smoke opened `http://localhost:5180/` successfully. Because Beauty has broad unrelated worktree changes, do not commit Beauty without curated staging.
-14. Storefront proof: Shopfront, Tannat, and Pulse now prove the right direction: catalog/checkout/profile/header/footer are platform-owned in `packages/storefront`, while each store owns config, theme, catalog, copy, images, and business-specific customization. M38 removed the default storefront path that created Supabase clients and added narrow `@fayz-ai/shop/runtime`, `@fayz-ai/shop/mock`, and `@fayz-ai/shop/catalog` subpaths. M39/M40 proved the first code-level customization slot (`ProductCard`) across Pulse streetwear and Tannat wine without copying catalog/checkout/account pages. Next step is expanding slots only where real app customization pressure proves they are needed.
-15. Fayz Shop proof: `@fayz-ai/sdk/shop` now exposes the Fayz-owned shop backend as a normalized provider for products, categories, orders, customers, and discounts. Shopfront, Pulse, and Tannat use the SDK provider with mock fallback; app repos configure `storeId`/tenant env only and do not import Supabase directly. M42 seeded separate tenants: Aurora/Shopfront `10000000-0000-4000-8000-000000000101` with 16 products, Pulse `10000000-0000-4000-8000-000000000102` with 8 products, and Tannat `10000000-0000-4000-8000-000000000103` with 8 products. Storefront categories are currently tenant-owned via product metadata because global `categories` is RLS-protected.
+14. Shop proof: Shopfront, Tannat, and Pulse now prove the right direction: catalog/checkout/profile/header/footer are platform-owned in `packages/shop`, while each store owns config, theme, catalog, copy, images, and business-specific customization. `@fayz-ai/shop` is now the app-facing UI/domain package; `@fayz-ai/storefront` is a legacy compatibility wrapper only. M39/M40 proved the first code-level customization slot (`ProductCard`) across Pulse streetwear and Tannat wine without copying catalog/checkout/account pages. Next step is expanding slots only where real app customization pressure proves they are needed.
+15. Fayz Shop backend proof: `@fayz-ai/sdk/shop` now exposes the Fayz-owned shop backend as a normalized provider for products, categories, orders, customers, and discounts. Shopfront, Pulse, and Tannat use the SDK provider with mock fallback; app repos configure `storeId`/tenant env only and do not import Supabase directly. M42 seeded separate tenants: Aurora/Shopfront `10000000-0000-4000-8000-000000000101` with 16 products, Pulse `10000000-0000-4000-8000-000000000102` with 8 products, and Tannat `10000000-0000-4000-8000-000000000103` with 8 products. Storefront categories are currently tenant-owned via product metadata because global `categories` is RLS-protected.
 16. Current running ports for Vini inspection: Beauty `5180`, Resto `5181`, Shopfront `5183`, Tannat `5184`, Pulse `5185`.
 
 Idle-loop rule:
@@ -74,7 +74,7 @@ Impact:
 Risk:
 
 - Storefront builds still show Supabase pulled internally through SDK/platform packages. That is acceptable for local dogfood, but it is the next architecture cleanup before calling storefront 9/10.
-- `@fayz-ai/core`, `@fayz-ai/storefront`, `@fayz-ai/shop`, and `@fayz-ai/ui` remain internal/local implementation imports; do not publish them as public product API yet.
+- `@fayz-ai/core`, `@fayz-ai/shop`, and `@fayz-ai/ui` remain internal/local implementation imports; do not publish them as public product API yet. `@fayz-ai/storefront` is a compatibility wrapper only.
 
 Next:
 

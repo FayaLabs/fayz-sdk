@@ -30,6 +30,46 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
+  packages/app-runtime:
+    dependencies:
+      '@fayz-ai/auth':
+        specifier: workspace:^
+        version: link:../auth
+      '@fayz-ai/core':
+        specifier: workspace:^
+        version: link:../core
+      '@fayz-ai/saas':
+        specifier: workspace:^
+        version: link:../saas
+      '@fayz-ai/shop':
+        specifier: workspace:^
+        version: link:../shop
+      '@fayz-ai/storefront':
+        specifier: workspace:^
+        version: link:../storefront
+      '@fayz-ai/ui':
+        specifier: workspace:^
+        version: link:../ui
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.31)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.2.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.15)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+
   packages/auth:
     dependencies:
       '@fayz-ai/core':
@@ -136,46 +176,6 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
-  packages/app-runtime:
-    dependencies:
-      '@fayz-ai/auth':
-        specifier: workspace:^
-        version: link:../auth
-      '@fayz-ai/core':
-        specifier: workspace:^
-        version: link:../core
-      '@fayz-ai/saas':
-        specifier: workspace:^
-        version: link:../saas
-      '@fayz-ai/shop':
-        specifier: workspace:^
-        version: link:../shop
-      '@fayz-ai/storefront':
-        specifier: workspace:^
-        version: link:../storefront
-      '@fayz-ai/ui':
-        specifier: workspace:^
-        version: link:../ui
-    devDependencies:
-      '@types/react':
-        specifier: ^18.3.0
-        version: 18.3.31
-      '@types/react-dom':
-        specifier: ^18.3.0
-        version: 18.3.7(@types/react@18.3.31)
-      react:
-        specifier: ^18.3.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.3.0
-        version: 18.3.1(react@18.3.1)
-      tsup:
-        specifier: ^8.2.0
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.15)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.5.0
-        version: 5.9.3
-
   packages/saas:
     dependencies:
       '@fayz-ai/auth':
@@ -242,19 +242,37 @@ importers:
 
   packages/shop:
     dependencies:
+      '@fayz-ai/auth':
+        specifier: workspace:^
+        version: link:../auth
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../core
+      '@fayz-ai/ui':
+        specifier: workspace:^
+        version: link:../ui
       '@supabase/supabase-js':
         specifier: ^2.45.0
         version: 2.108.1
+      lucide-react:
+        specifier: ^0.400.0
+        version: 0.400.0(react@18.3.1)
+      zustand:
+        specifier: ^4.5.0
+        version: 4.5.7(@types/react@18.3.31)(react@18.3.1)
     devDependencies:
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.31)
       react:
         specifier: ^18.3.0
         version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.2.0
         version: 8.5.1(jiti@1.21.7)(postcss@8.5.15)(typescript@5.9.3)

@@ -27,3 +27,6 @@ export {
   buildMockCatalog,
 } from './catalog'
 export type { CatalogInput, CatalogProductInput, CatalogCategoryInput } from './catalog'
+
+// App-facing shop surface: storefront UI remains an internal implementation package.
+export * from './storefront'

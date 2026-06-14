@@ -4,6 +4,8 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     runtime: 'src/runtime.ts',
+    provider: 'src/provider.ts',
+    types: 'src/types.ts',
     catalog: 'src/catalog.ts',
     mock: 'src/mock.ts',
   },
@@ -13,5 +15,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
-  external: ['react', 'react-dom', '@fayz-ai/core', '@fayz-ai/saas'],
+  external: ['react', 'react-dom', '@fayz-ai/core', '@fayz-ai/auth', '@fayz-ai/ui', '@fayz-ai/saas'],
 })

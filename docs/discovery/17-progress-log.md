@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 17:12 BRT — M44 Shop-only app-facing package surface
+
+Resultado:
+
+- Moved the storefront UI/runtime exports into `@fayz-ai/shop` so shop apps import one concept.
+- Updated Shopfront, Pulse, and Tannat to import templates, `defineStorefront`, `StorefrontConfig`, `Price`, `Link`, and custom-card helpers from `@fayz-ai/shop`.
+- Converted `@fayz-ai/storefront` into a tiny legacy compatibility wrapper that re-exports `@fayz-ai/shop`.
+- Kept `@fayz-ai/sdk/shop` as the Fayz backend adapter path for now.
+
+Impacto:
+
+- Product architecture now matches the SaaS mental model: one vertical package for app code.
+- App owners no longer need to understand a separate `storefront` package. They build shops with `@fayz-ai/shop`.
+- `storefront` remains only as a migration bridge, not a product/API surface to scale.
+
+Risco:
+
+- This is still an internal/private package boundary. We should not publish `@fayz-ai/shop` publicly yet.
+- Next cleanup should physically delete or quarantine the old storefront implementation files once no local references need them.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/shop typecheck && pnpm --filter @fayz-ai/shop build`
+  - `pnpm --filter @fayz-ai/storefront typecheck && pnpm --filter @fayz-ai/storefront build`
+  - `pnpm build` in Shopfront, Pulse, and Tannat
+
+Next:
+
+- Keep app-facing imports as `@fayz-ai/shop`.
+- Later, when Fayz server shop routes exist, expose the backend as `fayz.shop.*` on `@fayz-ai/sdk`.
+
 ## 2026-06-14 16:52 BRT — M43 SDK shop naming lock
 
 Resultado:

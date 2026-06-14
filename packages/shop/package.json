@@ -31,6 +31,18 @@
       "import": "./dist/runtime.js",
       "require": "./dist/runtime.cjs"
     },
+    "./provider": {
+      "source": "./src/provider.ts",
+      "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.js",
+      "require": "./dist/provider.cjs"
+    },
+    "./types": {
+      "source": "./src/types.ts",
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "require": "./dist/types.cjs"
+    },
     "./catalog": {
       "source": "./src/catalog.ts",
       "types": "./dist/catalog.d.ts",
@@ -55,15 +67,22 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@fayz-ai/auth": "workspace:^",
     "@fayz-ai/core": "workspace:^",
-    "@supabase/supabase-js": "^2.45.0"
+    "@fayz-ai/ui": "workspace:^",
+    "lucide-react": "^0.400.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "zustand": "^4.5.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "tsup": "^8.2.0",
     "typescript": "^5.5.0"
   },
