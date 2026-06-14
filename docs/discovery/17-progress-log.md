@@ -1,5 +1,34 @@
 # 17 — Progress Log
 
+## 2026-06-14 20:02 BRT — M59 Marketplace dashboard uses SDK shop provider
+
+Resultado:
+
+- Added `src/config/shop-provider.ts` in `marketplace-saas`.
+- Marketplace dashboard metrics now call a provider created through `@fayz-ai/sdk/shop` when store Supabase env exists.
+- Kept a local fallback to the internal mock provider so the app still runs without a configured store.
+- Added `VITE_FAYZ_STORE_ID` to the app env contract and wired TypeScript/Vite aliases for local SDK dogfood.
+
+Impacto:
+
+- This is the first Marketplace proof that app-owned dashboard code can depend on the public SDK boundary instead of directly importing platform internals.
+- The app still owns business config and metrics; the data access path starts moving into Fayz SDK, which is the real value proposition for scale.
+
+Risco:
+
+- The current SDK shop provider still talks to the Fayz shop Supabase backend directly with publishable credentials. That is acceptable for storefront/admin dogfood, but final provider authority should move behind Fayz broker routes where writes or sensitive tenant permissions are involved.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in Marketplace
+  - Browser smoke on `http://localhost:5186/`: Mercado login renders, no 404, no loading stall.
+
+Next:
+
+- Use the same SDK-provider pattern to harden one more Marketplace admin surface or move back to Beauty/Resto gaps if product QA finds visible regressions.
+- Keep `shop` and `storefront` separate: backend/domain/API versus customer-facing UI/templates/slots.
+
 ## 2026-06-14 19:52 BRT — M58 Marketplace dashboard/config split
 
 Resultado:
