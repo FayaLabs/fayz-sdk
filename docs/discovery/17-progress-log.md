@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-14 22:50 UTC / 19:50 BRT — M66 Resto Menu/Tables real surfaces
+
+Resultado:
+
+- Switched Resto from internal SDK placeholder Menu/Tables packages to the existing app-local restaurant plugins.
+- Resto production build remains green.
+- Authenticated smoke confirms `/menu` and `/tables` now render real menu management and floor-plan screens, with no 404 and no placeholder copy.
+
+Impacto:
+
+- Resto moves from route parity to useful app proof: the restaurant vertical now has visible Menu and Tables capabilities instead of empty shell screens.
+- This is a better dogfood signal for the SDK strategy: app-local product surfaces can prove real value first, then we decide what deserves promotion into reusable internal SDK/plugin packages.
+
+Risco:
+
+- These rich Menu/Tables plugins are currently local to Resto. Do not treat them as public SDK API yet.
+- Next architecture decision is whether to upstream them into private `@fayz-ai/plugin-menu` / `@fayz-ai/plugin-tables` internals or keep them as app-specific custom code until another restaurant app repeats the need.
+
+Proximo:
+
+- Inspect the Resto Menu/Tables UX quality in browser and decide the next 9/10 gap: provider abstraction, actions/mutations, or promoting the reusable plugin layer.
+- Keep Beauty, Resto, Marketplace, and the shop/storefront apps running while continuing proof-first dogfood.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/menu and /tables
+```
+
 ## 2026-06-14 22:45 UTC / 19:45 BRT — M65 Resto authenticated route smoke
 
 Resultado:
