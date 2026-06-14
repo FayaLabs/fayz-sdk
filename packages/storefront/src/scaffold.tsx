@@ -1,6 +1,6 @@
 import React from 'react'
 import { registerScaffold, defineApp } from '@fayz-ai/core'
-import type { AppManifest } from '@fayz-ai/core'
+import type { AppManifest, BackendProvider } from '@fayz-ai/core'
 import { StorefrontConfigProvider, resolveConfig } from './config'
 import type { StorefrontConfig } from './config'
 import type { StorefrontTheme } from './theme'
@@ -26,11 +26,13 @@ function slug(name: string): string {
 export function defineStorefront(config: StorefrontConfig): AppManifest {
   const id = slug(config.name)
   runtimeConfigRegistry.set(id, config)
+  const backendProvider = (config.backend?.provider ?? (config.provider ? 'custom' : 'mock')) as BackendProvider
+
   return defineApp({
     id,
     name: config.name,
     backend: {
-      provider: config.backend?.provider ?? (config.provider ? 'custom' : 'mock'),
+      provider: backendProvider,
       url: config.backend?.url,
     },
     locale: {

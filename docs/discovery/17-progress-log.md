@@ -1,5 +1,78 @@
 # 17 — Progress Log
 
+## 2026-06-14 16:36 BRT — M42 Tenant-specific ecommerce seed + storefront UX fixes
+
+Resultado:
+
+- Migrated the existing Shopfront, Pulse, and Tannat mock catalogs into the Fayz Commerce backend as real tenant-scoped products/images/discounts.
+- Assigned separate store IDs:
+  - Shopfront/Aurora: `10000000-0000-4000-8000-000000000101`
+  - Pulse: `10000000-0000-4000-8000-000000000102`
+  - Tannat: `10000000-0000-4000-8000-000000000103`
+- Updated local app envs to point each store at its own tenant.
+- Added SDK normalization for tenant-owned storefront categories stored in product metadata, because the backend `categories` table is global/RLS-protected.
+- Fixed storefront footer department overflow with a compact list + "Ver todos".
+- Fixed Tannat product-card hover causing excessive scroll by removing full-card translate hover.
+
+Impacto:
+
+- The ecommerce proof is no longer just mock data with themes. Each store now reads distinct real data through `@fayz-ai/sdk/commerce`.
+- This validates the target split: Fayz SDK owns backend/API complexity; app repos own brand, theme, content, catalog seed, and business customizations.
+- Storefront UX fixes happened in platform/shared code where possible, so future stores benefit automatically.
+
+Risco:
+
+- Public write access allowed seed inserts in this Supabase project. That is useful for PoC, but production admin/seed writes should move to a Fayz broker/service-role path.
+- Storefront category metadata is a pragmatic adapter until Fayz Commerce has tenant-owned category support or a server-side category API.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk typecheck && pnpm --filter @fayz-ai/sdk build`
+  - `pnpm --filter @fayz-ai/storefront typecheck && pnpm --filter @fayz-ai/storefront build`
+  - `pnpm build` in Shopfront, Pulse, and Tannat
+  - HTTP 200 on Shopfront `5183`, Tannat `5184`, Pulse `5185`
+  - Data smoke: each tenant returned its own products and category metadata
+
+Next:
+
+- Package and push SDK + app commits.
+- Add a broker/admin seed path backlog item so public client write permissions are not part of the long-term architecture.
+
+## 2026-06-14 16:20 BRT — M41 Fayz Commerce SDK adapter + storefront wiring
+
+Resultado:
+
+- Added `@fayz-ai/sdk/commerce` as the first normalized Fayz Commerce provider for the Fayz-owned ecommerce backend.
+- Confirmed the remote commerce schema uses tenant-scoped `products`, `orders`, `customers`, and `discounts` tables, plus shared `categories` and product images.
+- Wired Shopfront, Pulse, and Tannat to use `createFayzCommerceProvider()` through local app config with mock fallback.
+- Added local SDK aliases and `PUBLIC_*` env loading to those stores so they can dogfood SDK changes without npm publishes.
+- Extended manifest/backend metadata to recognize `fayz-commerce` without making another public npm package.
+
+Impacto:
+
+- Store apps now configure a `storeId` and consume Fayz Commerce through the SDK, instead of owning Supabase/PostgREST details.
+- This is the clearest ecommerce answer so far: the SDK removes backend integration complexity while each store keeps brand, catalog, copy, theme, slots, and business-specific config.
+- Keeps the public package surface locked to `@fayz-ai/sdk`.
+
+Risco:
+
+- Current local envs point all three stores at the same seeded demo tenant. Create separate tenants/catalog seed data before judging the final multi-store product feel.
+- Admin write paths for products/categories/discounts intentionally remain broker/API work, not direct client-side table writes.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk typecheck && pnpm --filter @fayz-ai/sdk build`
+  - `pnpm --filter @fayz-ai/core typecheck && pnpm --filter @fayz-ai/core build`
+  - `pnpm --filter @fayz-ai/storefront typecheck && pnpm --filter @fayz-ai/storefront build`
+  - `pnpm build` in Shopfront, Pulse, and Tannat
+
+Next:
+
+- Restart the local storefront dev servers so Vite picks up the new env files.
+- Create/separate tenants for Shopfront, Pulse, and Tannat, then use the SDK provider to prove isolated catalogs/orders/customers.
+
 ## 2026-06-14 16:11 BRT — M40 Tannat ProductCard slot dogfood
 
 Resultado:

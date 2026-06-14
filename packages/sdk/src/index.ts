@@ -19,6 +19,21 @@ export {
   createFayzRuntimeClient,
   FayzRuntimeError,
 } from './runtime'
+export {
+  createFayzCommerceProvider,
+  FayzCommerceError,
+} from './commerce'
+export type {
+  FayzCommerceProviderOptions,
+  FayzCommerceListProductsOptions,
+  FayzCommerceListOrdersOptions,
+  FayzCommerceListCustomersOptions,
+  FayzCommerceListDiscountsOptions,
+  FayzCommerceProductStatus,
+  FayzCommerceOrderStatus,
+  FayzCommerceFinancialStatus,
+  FayzCommerceFulfillmentStatus,
+} from './commerce'
 export type {
   FayzRuntimeClientOptions,
   FayzRuntimeEnvironment,

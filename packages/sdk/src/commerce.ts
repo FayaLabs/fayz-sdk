@@ -1,0 +1,624 @@
+export interface FayzCommerceProviderOptions {
+  supabaseUrl: string
+  publishableKey: string
+  storeId: string
+  fetcher?: typeof fetch
+}
+
+export type FayzCommerceProductStatus = 'draft' | 'active' | 'archived'
+export type FayzCommerceOrderStatus = 'open' | 'archived' | 'cancelled'
+export type FayzCommerceFinancialStatus = 'pending' | 'paid' | 'partially_paid' | 'refunded' | 'partially_refunded' | 'voided'
+export type FayzCommerceFulfillmentStatus = 'unfulfilled' | 'partially_fulfilled' | 'fulfilled'
+
+export interface FayzCommerceListProductsOptions {
+  status?: FayzCommerceProductStatus
+  categoryId?: string
+  search?: string
+  slug?: string
+  limit?: number
+  offset?: number
+  orderBy?: 'name' | 'price' | 'created_at' | 'sort_order'
+  order?: 'asc' | 'desc'
+}
+
+export interface FayzCommerceListOrdersOptions {
+  status?: FayzCommerceOrderStatus
+  financialStatus?: FayzCommerceFinancialStatus
+  fulfillmentStatus?: FayzCommerceFulfillmentStatus
+  customerId?: string
+  customerEmail?: string
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+export interface FayzCommerceListCustomersOptions {
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+export interface FayzCommerceListDiscountsOptions {
+  status?: string
+  type?: string
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+interface ProductImageRow {
+  id: string
+  product_id: string
+  url: string
+  alt_text?: string | null
+  sort_order?: number | null
+  is_primary?: boolean | null
+  created_at?: string | null
+}
+
+interface ProductRow {
+  id: string
+  tenant_id: string
+  name: string
+  slug?: string | null
+  description?: string | null
+  price?: number | null
+  compare_at_price?: number | null
+  currency?: string | null
+  status?: FayzCommerceProductStatus | null
+  inventory_count?: number | null
+  sku?: string | null
+  sort_order?: number | null
+  metadata?: Record<string, unknown> | null
+  images?: ProductImageRow[] | null
+  category_id?: string | null
+  category?: { name?: string | null } | null
+  is_physical?: boolean | null
+  weight?: number | null
+  weight_unit?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+interface StoreCategoryMetadata {
+  id?: string | null
+  name?: string | null
+  slug?: string | null
+  description?: string | null
+  imageUrl?: string | null
+  sortOrder?: number | null
+}
+
+interface CategoryRow {
+  id: string
+  tenant_id?: string | null
+  name: string
+  slug?: string | null
+  description?: string | null
+  parent_id?: string | null
+  sort_order?: number | null
+  image_url?: string | null
+  created_at?: string | null
+}
+
+interface OrderItemRow {
+  id: string
+  order_id: string
+  product_id?: string | null
+  name: string
+  sku?: string | null
+  quantity?: number | null
+  unit_price?: number | null
+  total?: number | null
+  image_url?: string | null
+}
+
+interface OrderRow {
+  id: string
+  tenant_id: string
+  order_number?: number | null
+  status?: FayzCommerceOrderStatus | null
+  financial_status?: FayzCommerceFinancialStatus | null
+  fulfillment_status?: FayzCommerceFulfillmentStatus | null
+  currency?: string | null
+  subtotal?: number | null
+  tax_total?: number | null
+  discount_total?: number | null
+  shipping_total?: number | null
+  total?: number | null
+  customer_id?: string | null
+  customer_name?: string | null
+  customer_email?: string | null
+  discount_code?: string | null
+  notes?: string | null
+  items?: OrderItemRow[] | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+interface CustomerRow {
+  id: string
+  tenant_id: string
+  first_name: string
+  last_name?: string | null
+  email?: string | null
+  phone?: string | null
+  notes?: string | null
+  orders_count?: number | null
+  total_spent?: number | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+interface DiscountRow {
+  id: string
+  tenant_id: string
+  title: string
+  code?: string | null
+  type: string
+  method?: string | null
+  value?: number | null
+  usage_limit?: number | null
+  once_per_customer?: boolean | null
+  starts_at?: string | null
+  ends_at?: string | null
+  status?: string | null
+  times_used?: number | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export class FayzCommerceError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly responseBody?: unknown,
+  ) {
+    super(message)
+    this.name = 'FayzCommerceError'
+  }
+}
+
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, '')
+}
+
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+function nowIso(): string {
+  return new Date().toISOString()
+}
+
+function present<T>(value: T | null | undefined, fallback: T): T {
+  return value == null ? fallback : value
+}
+
+function rowToImage(row: ProductImageRow) {
+  return {
+    id: row.id,
+    productId: row.product_id,
+    url: row.url,
+    altText: row.alt_text ?? null,
+    sortOrder: row.sort_order ?? 0,
+    isPrimary: row.is_primary ?? false,
+    createdAt: row.created_at ?? nowIso(),
+  }
+}
+
+function getStoreCategory(row: ProductRow): StoreCategoryMetadata | null {
+  const raw = row.metadata?.fayzStoreCategory
+  return raw && typeof raw === 'object' ? raw as StoreCategoryMetadata : null
+}
+
+function rowToProduct(row: ProductRow) {
+  const storeCategory = getStoreCategory(row)
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    name: row.name,
+    slug: row.slug ?? slugify(row.name),
+    description: row.description ?? null,
+    price: row.price ?? 0,
+    compareAtPrice: row.compare_at_price ?? null,
+    currency: row.currency ?? 'BRL',
+    status: row.status ?? 'active',
+    inventoryCount: row.inventory_count ?? 0,
+    sku: row.sku ?? null,
+    sortOrder: row.sort_order ?? 0,
+    metadata: row.metadata ?? {},
+    images: Array.isArray(row.images) ? row.images.map(rowToImage) : [],
+    categoryId: storeCategory?.id ?? row.category_id ?? null,
+    categoryName: storeCategory?.name ?? row.category?.name ?? null,
+    isPhysical: row.is_physical ?? true,
+    weight: row.weight ?? null,
+    weightUnit: row.weight_unit ?? 'kg',
+    createdAt: row.created_at ?? nowIso(),
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+  }
+}
+
+function rowToCategory(row: CategoryRow) {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id ?? 'global',
+    name: row.name,
+    slug: row.slug ?? slugify(row.name),
+    description: row.description ?? null,
+    parentId: row.parent_id ?? null,
+    sortOrder: row.sort_order ?? 0,
+    imageUrl: row.image_url ?? null,
+    createdAt: row.created_at ?? nowIso(),
+  }
+}
+
+function storeCategoryToCategory(category: StoreCategoryMetadata, tenantId: string) {
+  const name = category.name ?? 'Category'
+  return {
+    id: category.id ?? slugify(name),
+    tenantId,
+    name,
+    slug: category.slug ?? slugify(name),
+    description: category.description ?? null,
+    parentId: null,
+    sortOrder: category.sortOrder ?? 0,
+    imageUrl: category.imageUrl ?? null,
+    createdAt: nowIso(),
+  }
+}
+
+function deriveStoreCategories(products: ProductRow[], tenantId: string) {
+  const categories = new Map<string, ReturnType<typeof storeCategoryToCategory>>()
+  for (const product of products) {
+    const category = getStoreCategory(product)
+    if (!category?.name && !category?.id) continue
+    const mapped = storeCategoryToCategory(category, tenantId)
+    categories.set(mapped.id, mapped)
+  }
+  return [...categories.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+}
+
+function rowToOrder(row: OrderRow) {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    orderNumber: row.order_number ?? 0,
+    status: row.status ?? 'open',
+    financialStatus: row.financial_status ?? 'pending',
+    fulfillmentStatus: row.fulfillment_status ?? 'unfulfilled',
+    currency: row.currency ?? 'BRL',
+    subtotal: row.subtotal ?? 0,
+    taxTotal: row.tax_total ?? 0,
+    discountTotal: row.discount_total ?? 0,
+    shippingTotal: row.shipping_total ?? 0,
+    total: row.total ?? 0,
+    customerId: row.customer_id ?? null,
+    customerName: row.customer_name ?? null,
+    customerEmail: row.customer_email ?? null,
+    discountCode: row.discount_code ?? null,
+    notes: row.notes ?? null,
+    items: Array.isArray(row.items) ? row.items.map(rowToOrderItem) : [],
+    createdAt: row.created_at ?? nowIso(),
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+  }
+}
+
+function rowToOrderItem(row: OrderItemRow) {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    productId: row.product_id ?? null,
+    name: row.name,
+    sku: row.sku ?? null,
+    quantity: row.quantity ?? 0,
+    unitPrice: row.unit_price ?? 0,
+    total: row.total ?? 0,
+    imageUrl: row.image_url ?? null,
+  }
+}
+
+function rowToCustomer(row: CustomerRow) {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    firstName: row.first_name,
+    lastName: row.last_name ?? '',
+    email: row.email ?? null,
+    phone: row.phone ?? null,
+    notes: row.notes ?? null,
+    ordersCount: row.orders_count ?? 0,
+    totalSpent: row.total_spent ?? 0,
+    createdAt: row.created_at ?? nowIso(),
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+  }
+}
+
+function rowToDiscount(row: DiscountRow) {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    title: row.title,
+    code: row.code ?? null,
+    type: row.type,
+    method: row.method ?? 'code',
+    value: row.value ?? 0,
+    usageLimit: row.usage_limit ?? null,
+    oncePerCustomer: row.once_per_customer ?? false,
+    startsAt: row.starts_at ?? nowIso(),
+    endsAt: row.ends_at ?? null,
+    status: row.status ?? 'active',
+    timesUsed: row.times_used ?? 0,
+    createdAt: row.created_at ?? nowIso(),
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+  }
+}
+
+function updateOrderPayload(input: {
+  status?: FayzCommerceOrderStatus
+  financialStatus?: FayzCommerceFinancialStatus
+  fulfillmentStatus?: FayzCommerceFulfillmentStatus
+  notes?: string
+}) {
+  const updates: Record<string, unknown> = {}
+  if (input.status !== undefined) updates.status = input.status
+  if (input.financialStatus !== undefined) updates.financial_status = input.financialStatus
+  if (input.fulfillmentStatus !== undefined) updates.fulfillment_status = input.fulfillmentStatus
+  if (input.notes !== undefined) updates.notes = input.notes
+  return updates
+}
+
+export function createFayzCommerceProvider(options: FayzCommerceProviderOptions) {
+  const baseUrl = `${normalizeBaseUrl(options.supabaseUrl)}/rest/v1`
+  const fetcher = options.fetcher ?? fetch
+  const key = options.publishableKey
+  const storeId = options.storeId
+
+  async function request<T>(table: string, init: RequestInit & { query?: URLSearchParams } = {}): Promise<T> {
+    const query = init.query?.toString()
+    const response = await fetcher(`${baseUrl}/${table}${query ? `?${query}` : ''}`, {
+      ...init,
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        ...(init.body ? { 'Content-Type': 'application/json', Prefer: 'return=representation' } : {}),
+        ...init.headers,
+      },
+    })
+    const text = await response.text()
+    let body: unknown
+    try {
+      body = text ? JSON.parse(text) : undefined
+    } catch {
+      body = text
+    }
+    if (!response.ok) {
+      const message = typeof body === 'object' && body
+        ? String((body as { message?: unknown; error?: unknown }).message ?? (body as { error?: unknown }).error ?? `Fayz Commerce request failed with status ${response.status}`)
+        : `Fayz Commerce request failed with status ${response.status}`
+      throw new FayzCommerceError(message, response.status, body)
+    }
+    return body as T
+  }
+
+  const tenantQuery = () => {
+    const query = new URLSearchParams()
+    query.set('tenant_id', `eq.${storeId}`)
+    return query
+  }
+
+  const singleById = (id: string) => {
+    const query = tenantQuery()
+    query.set('id', `eq.${id}`)
+    query.set('limit', '1')
+    return query
+  }
+
+  return {
+    async listProducts(options?: FayzCommerceListProductsOptions) {
+      const query = tenantQuery()
+      query.set('select', '*,images:product_images(*),category:categories(name)')
+      if (options?.status) query.set('status', `eq.${options.status}`)
+      if (options?.slug) query.set('slug', `eq.${options.slug}`)
+      if (options?.search) query.set('name', `ilike.*${options.search}*`)
+      query.set('order', `${options?.orderBy ?? 'sort_order'}.${options?.order ?? 'asc'}`)
+      if (options?.limit) query.set('limit', String(options.limit))
+      if (options?.offset) query.set('offset', String(options.offset))
+      const products = (await request<ProductRow[]>('products', { query })).map(rowToProduct)
+      return options?.categoryId ? products.filter((product) => product.categoryId === options.categoryId) : products
+    },
+    async getProduct(id: string) {
+      const query = singleById(id)
+      query.set('select', '*,images:product_images(*),category:categories(name)')
+      const rows = await request<ProductRow[]>('products', { query })
+      return rows[0] ? rowToProduct(rows[0]) : null
+    },
+    async createProduct() {
+      throw new FayzCommerceError('Product writes require the Fayz admin/broker API.', 501)
+    },
+    async updateProduct() {
+      throw new FayzCommerceError('Product writes require the Fayz admin/broker API.', 501)
+    },
+    async deleteProduct() {
+      throw new FayzCommerceError('Product writes require the Fayz admin/broker API.', 501)
+    },
+    async uploadProductImage() {
+      throw new FayzCommerceError('Product image uploads require the Fayz admin/broker API.', 501)
+    },
+    async deleteProductImage() {
+      throw new FayzCommerceError('Product image deletes require the Fayz admin/broker API.', 501)
+    },
+    async listCategories() {
+      const productQuery = tenantQuery()
+      productQuery.set('select', 'metadata')
+      productQuery.set('order', 'sort_order.asc')
+      const products = await request<ProductRow[]>('products', { query: productQuery })
+      const storeCategories = deriveStoreCategories(products, storeId)
+      if (storeCategories.length > 0) return storeCategories
+
+      const query = new URLSearchParams()
+      query.set('select', '*')
+      query.set('order', 'sort_order.asc')
+      return (await request<CategoryRow[]>('categories', { query })).map(rowToCategory)
+    },
+    async createCategory() {
+      throw new FayzCommerceError('Category writes require the Fayz admin/broker API.', 501)
+    },
+    async updateCategory() {
+      throw new FayzCommerceError('Category writes require the Fayz admin/broker API.', 501)
+    },
+    async deleteCategory() {
+      throw new FayzCommerceError('Category deletes require the Fayz admin/broker API.', 501)
+    },
+    async listOrders(options?: FayzCommerceListOrdersOptions) {
+      const query = tenantQuery()
+      query.set('select', '*,items:order_items(*)')
+      if (options?.status) query.set('status', `eq.${options.status}`)
+      if (options?.financialStatus) query.set('financial_status', `eq.${options.financialStatus}`)
+      if (options?.fulfillmentStatus) query.set('fulfillment_status', `eq.${options.fulfillmentStatus}`)
+      if (options?.customerId) query.set('customer_id', `eq.${options.customerId}`)
+      if (options?.customerEmail) query.set('customer_email', `eq.${options.customerEmail}`)
+      if (options?.search) query.set('or', `(customer_name.ilike.*${options.search}*,customer_email.ilike.*${options.search}*)`)
+      query.set('order', 'created_at.desc')
+      if (options?.limit) query.set('limit', String(options.limit))
+      if (options?.offset) query.set('offset', String(options.offset))
+      return (await request<OrderRow[]>('orders', { query })).map(rowToOrder)
+    },
+    async getOrder(id: string) {
+      const query = singleById(id)
+      query.set('select', '*,items:order_items(*)')
+      const rows = await request<OrderRow[]>('orders', { query })
+      return rows[0] ? rowToOrder(rows[0]) : null
+    },
+    async createOrder(input: {
+      customerId?: string
+      customerName?: string
+      customerEmail?: string
+      currency?: string
+      notes?: string
+      discountCode?: string
+      discountTotal?: number
+      shippingTotal?: number
+      items: Array<{ productId?: string; name: string; sku?: string; quantity: number; unitPrice: number; imageUrl?: string }>
+    }) {
+      const subtotal = input.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
+      const discountTotal = input.discountTotal ?? 0
+      const shippingTotal = input.shippingTotal ?? 0
+      const total = Math.round((subtotal - discountTotal + shippingTotal) * 100) / 100
+      const [order] = await request<OrderRow[]>('orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          tenant_id: storeId,
+          customer_id: input.customerId ?? null,
+          customer_name: input.customerName ?? null,
+          customer_email: input.customerEmail ?? null,
+          currency: input.currency ?? 'BRL',
+          notes: input.notes ?? null,
+          subtotal,
+          discount_total: discountTotal,
+          shipping_total: shippingTotal,
+          discount_code: input.discountCode ?? null,
+          total,
+          status: 'open',
+          financial_status: 'pending',
+          fulfillment_status: 'unfulfilled',
+        }),
+      })
+      if (!order) throw new FayzCommerceError('Order insert did not return a row.', 500)
+      if (input.items.length) {
+        await request<OrderItemRow[]>('order_items', {
+          method: 'POST',
+          body: JSON.stringify(input.items.map((item) => ({
+            order_id: order.id,
+            product_id: item.productId ?? null,
+            name: item.name,
+            sku: item.sku ?? null,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            total: item.quantity * item.unitPrice,
+            image_url: item.imageUrl ?? null,
+          }))),
+        })
+      }
+      return this.getOrder(order.id)
+    },
+    async updateOrder(id: string, input: Parameters<typeof updateOrderPayload>[0]) {
+      await request<OrderRow[]>('orders', {
+        method: 'PATCH',
+        query: singleById(id),
+        body: JSON.stringify(updateOrderPayload(input)),
+      })
+      return this.getOrder(id)
+    },
+    async listCustomers(options?: FayzCommerceListCustomersOptions) {
+      const query = tenantQuery()
+      query.set('select', '*')
+      query.set('order', 'first_name.asc')
+      if (options?.search) query.set('or', `(first_name.ilike.*${options.search}*,last_name.ilike.*${options.search}*,email.ilike.*${options.search}*)`)
+      if (options?.limit) query.set('limit', String(options.limit))
+      if (options?.offset) query.set('offset', String(options.offset))
+      return (await request<CustomerRow[]>('customers', { query })).map(rowToCustomer)
+    },
+    async getCustomer(id: string) {
+      const rows = await request<CustomerRow[]>('customers', { query: singleById(id) })
+      return rows[0] ? rowToCustomer(rows[0]) : null
+    },
+    async createCustomer(input: { firstName: string; lastName?: string; email?: string; phone?: string; notes?: string }) {
+      const [customer] = await request<CustomerRow[]>('customers', {
+        method: 'POST',
+        body: JSON.stringify({
+          tenant_id: storeId,
+          first_name: input.firstName,
+          last_name: input.lastName ?? '',
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          notes: input.notes ?? null,
+        }),
+      })
+      if (!customer) throw new FayzCommerceError('Customer insert did not return a row.', 500)
+      return rowToCustomer(customer)
+    },
+    async updateCustomer(id: string, input: { firstName?: string; lastName?: string; email?: string | null; phone?: string | null; notes?: string | null }) {
+      const updates: Record<string, unknown> = {}
+      if (input.firstName !== undefined) updates.first_name = input.firstName
+      if (input.lastName !== undefined) updates.last_name = input.lastName
+      if (input.email !== undefined) updates.email = input.email
+      if (input.phone !== undefined) updates.phone = input.phone
+      if (input.notes !== undefined) updates.notes = input.notes
+      const [customer] = await request<CustomerRow[]>('customers', {
+        method: 'PATCH',
+        query: singleById(id),
+        body: JSON.stringify(updates),
+      })
+      if (!customer) throw new FayzCommerceError('Customer update did not return a row.', 500)
+      return rowToCustomer(customer)
+    },
+    async deleteCustomer(id: string) {
+      await request<unknown>('customers', { method: 'DELETE', query: singleById(id) })
+    },
+    async listDiscounts(options?: FayzCommerceListDiscountsOptions) {
+      const query = tenantQuery()
+      query.set('select', '*')
+      query.set('order', 'created_at.desc')
+      if (options?.status) query.set('status', `eq.${options.status}`)
+      if (options?.type) query.set('type', `eq.${options.type}`)
+      if (options?.search) query.set('title', `ilike.*${options.search}*`)
+      if (options?.limit) query.set('limit', String(options.limit))
+      if (options?.offset) query.set('offset', String(options.offset))
+      return (await request<DiscountRow[]>('discounts', { query })).map(rowToDiscount)
+    },
+    async getDiscount(id: string) {
+      const rows = await request<DiscountRow[]>('discounts', { query: singleById(id) })
+      return rows[0] ? rowToDiscount(rows[0]) : null
+    },
+    async createDiscount() {
+      throw new FayzCommerceError('Discount writes require the Fayz admin/broker API.', 501)
+    },
+    async updateDiscount() {
+      throw new FayzCommerceError('Discount writes require the Fayz admin/broker API.', 501)
+    },
+    async deleteDiscount() {
+      throw new FayzCommerceError('Discount deletes require the Fayz admin/broker API.', 501)
+    },
+  }
+}

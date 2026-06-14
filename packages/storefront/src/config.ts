@@ -33,7 +33,7 @@ export interface StorefrontConfig {
   /** Footer content (about text, contact, social) */
   footer?: FooterConfig
   /** Preferred backend descriptor for manifest/scaffold metadata. */
-  backend?: { provider?: 'mock' | 'fayz-api' | 'custom'; url?: string }
+  backend?: { provider?: 'mock' | 'fayz-api' | 'fayz-commerce' | 'custom'; url?: string }
   /** @deprecated Use backend/provider adapters. Storefront no longer creates Supabase clients. */
   supabaseUrl?: string
   /** @deprecated Use backend/provider adapters. Storefront no longer creates Supabase clients. */

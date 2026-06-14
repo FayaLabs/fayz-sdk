@@ -20,7 +20,7 @@ import type { BlockNode } from '../blocks'
 
 export const CURRENT_MANIFEST_VERSION = 2
 
-export type BackendProvider = 'supabase' | 'fayz-api' | 'mock' | 'custom'
+export type BackendProvider = 'supabase' | 'fayz-api' | 'fayz-commerce' | 'mock' | 'custom'
 
 export interface BackendRef {
   provider: BackendProvider
@@ -95,7 +95,7 @@ type AnyManifest = Record<string, any>
 export type ManifestMigration = (m: AnyManifest) => AnyManifest
 
 const migrations = new Map<number, ManifestMigration>()
-const supportedBackendProviders: BackendProvider[] = ['supabase', 'fayz-api', 'mock', 'custom']
+const supportedBackendProviders: BackendProvider[] = ['supabase', 'fayz-api', 'fayz-commerce', 'mock', 'custom']
 const supportedPageSections = new Set(['main', 'secondary', 'settings'])
 const allowedManifestKeys = new Set([
   'manifestVersion',
