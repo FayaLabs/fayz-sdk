@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-13 22:39 BRT — M6 OAuth broker foundation committed and pushed
+
+### Executive outcome
+
+Fayz PR #927 now includes the first OAuth-backed plugin broker foundation:
+
+```txt
+09ffa8b4 feat(runtime): add plugin oauth broker foundation
+```
+
+### Business impact
+
+- Plugin OAuth credentials now have a server-side Fayz-owned persistence model.
+- Access/refresh tokens are encrypted at rest.
+- Grants are scoped by project, plugin, tenant key, and environment.
+- Runtime-facing grant descriptors expose capability metadata only; generated apps and the open-source SDK still do not receive provider tokens.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npx prisma validate --schema packages/db/prisma/schema.prisma
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+### Risk
+
+This is not the complete Runtime Session Broker yet. Remaining work is the exchange route, provider refresh/revocation, audit trail, and final SDK helper contract.
+
+### Next
+
+Implement broker runtime exchange route and keep PR #927 draft until that boundary is safe.
+
 ## 2026-06-13 22:31 BRT — Fayz draft PR created, SDK remote missing
 
 ### Executive outcome

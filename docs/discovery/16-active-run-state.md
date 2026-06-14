@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-13 22:31 BRT
+Last updated: 2026-06-13 22:39 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, yellow for FAY-1182 implementation after OAuth direction was approved**.
+Status: **green for FAY-1178 cleanup, yellow/green for FAY-1182 foundation after OAuth direction was approved**.
 
 Linear anchor:
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Implement `FAY-1182` as an OAuth-backed Runtime Session Broker, not browser-owned secrets or plugin-owned secret storage.
+3. Continue `FAY-1182` from the committed OAuth-backed broker foundation into the runtime exchange route, provider refresh/revocation, and audit trail.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
@@ -38,7 +38,37 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1, M2, M3, and M4 are committed; M5 Beauty proof is validated.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: create Fayz draft PR from the pushed branch, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+- Next target: implement the runtime exchange route on top of the broker foundation, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+
+## M6 OAuth broker foundation — 2026-06-13 22:39 BRT
+
+Result:
+
+- Fayz commit `09ffa8b4` pushed to PR `#927`: `feat(runtime): add plugin oauth broker foundation`.
+- Added server-side Plugin OAuth connection storage with encrypted access/refresh tokens.
+- Added project/plugin/tenant/environment grants with redacted summaries.
+- Added runtime grant resolver descriptors that expose capability metadata, not provider tokens.
+
+Impact:
+
+- Fayz now has the persistence layer needed for community plugins to authenticate through OAuth while `fayz-sdk` remains open source.
+- This avoids repeating the old pattern of plugin/generated code owning provider credentials.
+
+Risk:
+
+- This is still the foundation, not the full Runtime Session Broker.
+- Remaining FAY-1182 work: runtime exchange route, provider-specific refresh/revocation, audit trail, and final SDK helper contract.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npx prisma validate --schema packages/db/prisma/schema.prisma
+npm run test -w @wowsome/api -- src/modules/plugin-oauth/__tests__/plugin-oauth-broker.service.test.ts
+npm run build:api
+```
+
+Result: passed.
 
 ## Remote publication checkpoint — 2026-06-13 22:30 BRT
 
