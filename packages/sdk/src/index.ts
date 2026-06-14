@@ -1,6 +1,13 @@
 export { appParams, resolveAppParams } from './app-params'
 export { createFayzClient, fayz, FayzApiError } from './client'
-export type { FayzClientOptions, FayzRequestOptions } from './client'
+export type {
+  FayzClientOptions,
+  FayzRequestOptions,
+  FayzTableFilter,
+  FayzTableFilterOperator,
+  FayzTableListOptions,
+  FayzTableListResponse,
+} from './client'
 export {
   fayzPackageVersionSets,
   resolveFayzPackageDependencies,

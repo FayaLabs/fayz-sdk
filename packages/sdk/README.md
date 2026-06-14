@@ -35,6 +35,24 @@ const fayz = createFayzClient({
 const user = await fayz.auth.me()
 ```
 
+## Data/API Access
+
+Generated apps should call Fayz through the SDK instead of importing provider clients directly.
+
+```ts
+import { fayz } from '@fayz-ai/sdk'
+
+const appointmentsToday = await fayz.data.countRows({
+  table: 'v_bookings',
+  filters: [
+    { column: 'starts_at', operator: 'gte', value: dayStart },
+    { column: 'starts_at', operator: 'lt', value: dayEnd },
+    { column: 'status', operator: 'neq', value: 'cancelled' },
+    { column: 'status', operator: 'neq', value: 'no_show' },
+  ],
+})
+```
+
 ## Runtime OAuth Broker
 
 Provider OAuth secrets and refresh tokens stay server-side in Fayz. Generated projects should exchange a short-lived runtime token through Fayz and call brokered helpers.

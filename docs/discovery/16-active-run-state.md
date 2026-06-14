@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 12:14 BRT
+Last updated: 2026-06-14 12:20 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -37,6 +37,7 @@ Current focus:
 9. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
 10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, keep improving `resto-saas`, `shopfront`, and at least one more Fayz app until 4 apps reach roughly 9/10. Only after that should Fayz Agents be taught to operate `fayz-sdk`.
 11. Generated apps should not own direct provider clients by default. `integrations/supabase` is a smell for generated apps unless hidden behind an optional SDK adapter; default API/data access should go through `@fayz-ai/sdk` / Fayz broker, Base44-style.
+12. Current SDK/API abstraction proof: Beauty dashboard KPI and today-schedule section now call `fayz.data.countRows/listRows` instead of importing Supabase directly. Next frontier is moving remaining app/plugin provider wiring behind SDK/platform adapters.
 
 Idle-loop rule:
 
@@ -49,7 +50,40 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel manifest/source, then continue Beauty/manual dogfood before generator-heavy work.
+- Next target: package the SDK data helper coherently, then remove remaining Beauty/provider adapter leaks and continue the 4-app dogfood route before generator-heavy work.
+
+## M33 SDK data API + Beauty dashboard proof — 2026-06-14 12:20 BRT
+
+Result:
+
+- Added `fayz.data.listRows()` and `fayz.data.countRows()` to the public `@fayz-ai/sdk` client.
+- Added SDK tests covering Fayz project table row routes, filters, sorting, runtime routes, app id, and bearer token headers.
+- Updated SDK README with the Base44-like data access pattern.
+- Switched Beauty dashboard KPI and today's schedule section from direct Supabase queries to the SDK data helper.
+- Added Beauty local SDK aliases for `@fayz-ai/sdk` so app dogfood can validate SDK edits without npm publish.
+
+Impact:
+
+- This is the first concrete proof that Fayz SDK removes a real app-owner technical burden: app dashboard code no longer knows Supabase query syntax for its agenda metrics.
+- Beauty is now closer to the desired split: app-owned business config/components stay local, while data/API access starts moving into the SDK/platform contract.
+- The remaining value gap is clearer: CRUD/plugin internals and provider adapters still need to move behind SDK/platform boundaries before claiming a 9/10 lock.
+
+Risk:
+
+- Beauty is still a local-gated, broad worktree and is behind origin by 2. Do not broad-commit Beauty until staging is curated or a branch packaging decision is made.
+- SDK helper currently covers list/count row reads. Mutations, typed models, tenant defaults, and richer filters still need follow-up before generated apps can fully drop provider clients.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk test`
+  - `pnpm --filter @fayz-ai/sdk build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Package SDK helper commit separately from unrelated release-channel/doc dirt.
+- Replace remaining direct provider access in app-owned code, then continue dogfood with a fourth app before Fayz Agents SDK operation.
 
 ## M32 SDK machine-readable release-channel manifest — 2026-06-14 12:14 BRT
 

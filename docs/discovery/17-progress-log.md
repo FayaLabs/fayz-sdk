@@ -1,5 +1,39 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:20 BRT — M33 SDK data API + Beauty dashboard proof
+
+### Executive outcome
+
+`@fayz-ai/sdk` now exposes a first Fayz data API helper, and Beauty uses it for real dashboard agenda data instead of importing Supabase directly.
+
+### Business impact
+
+- This is the clearest current proof that the SDK is solving an actual app-owner problem, not just rearranging imports.
+- Beauty dashboard KPI and today's schedule now depend on `fayz.data.countRows/listRows`.
+- The Beauty app still owns business-specific dashboard decisions, labels, visual sections, and booking display mapping, while API/data access starts moving into the SDK/platform layer.
+- The next SDK value gap is now visible and concrete: CRUD/plugin mutations, typed models, tenant defaults, provider adapters, and richer filters need the same treatment before app repos can fully stop carrying provider clients.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/sdk test
+pnpm --filter @fayz-ai/sdk build
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Result: all gates passed. Beauty build still reports existing bundle warnings from internal UI/plugin imports; no new blocker.
+
+### Risk
+
+Beauty remains a local-gated broad worktree and is behind origin by 2. Do not broad-commit it without curated staging or a branch packaging decision. The SDK helper is read-only for now; it does not yet replace all app/provider access.
+
+### Next
+
+Package the SDK data helper separately from unrelated release-channel/doc dirt, then continue removing direct provider access from app-owned code and move toward a fourth 9/10 dogfood app.
+
 ## 2026-06-14 12:14 BRT — M32 SDK machine-readable release-channel manifest
 
 ### Executive outcome
