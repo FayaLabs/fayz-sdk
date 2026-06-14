@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 00:24 BRT
+Last updated: 2026-06-14 00:28 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy, revocation/audit foundation, and generated-app helper contract**.
+Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy, revocation/audit foundation, generated-app helper contract, and helper behavior tests**.
 
 Linear anchor:
 
@@ -36,9 +36,37 @@ Current focus:
 Executive answer to Vini's latest check:
 
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
-- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M11 OAuth broker/scaffold slices are committed/pushed in Fayz.
+- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: package the SDK helper into real `fayz-sdk` once remote/package-source is confirmed, or implement provider onboarding UI in Fayz after permission/UX is locked.
+
+## M12 Runtime helper behavior tests — 2026-06-14 00:28 BRT
+
+Result:
+
+- Fayz commit `79b9cdd5` pushed to PR `#927`: `test(scaffold): cover brokered runtime oauth helper`.
+- Tracking updated: Linear `FAY-1182` comment `bd1b12eb-d7df-45d3-85c0-c4e5227952b8`; PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700579037`.
+- Added behavior tests for generated `src/lib/fayz-runtime.ts`.
+- Tests verify runtime-data token exchange, broker-token Calendar calls, route/method selection, non-JSON error handling, and absence of provider credential fields in helper requests.
+
+Impact:
+
+- The scaffold helper is now validated as behavior, not just checked as a present file.
+- This reduces risk that future generated apps or agents drift from the broker contract.
+
+Risk:
+
+- This is hardening only; it does not unblock SDK remote/package publication.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts src/modules/projects/__tests__/scaffold-runtime-helper.test.ts
+npm run build:api
+```
+
+Result: passed.
 
 ## M11 Generated-app runtime helper contract — 2026-06-14 00:24 BRT
 

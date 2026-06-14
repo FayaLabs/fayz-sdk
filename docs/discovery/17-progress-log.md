@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-14 00:28 BRT — M12 Runtime helper behavior tests gated
+
+### Executive outcome
+
+Fayz PR `#927` generated runtime helper now has behavior coverage:
+
+```txt
+79b9cdd5 test(scaffold): cover brokered runtime oauth helper
+```
+
+### Business impact
+
+- The helper is no longer protected only by static presence checks.
+- Tests verify the safe path: runtime-data token exchange, short-lived broker token usage, Calendar broker routes, and no provider credential fields in helper requests.
+- This reduces the chance that future agents drift into direct provider API calls or unsafe token handling.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts src/modules/projects/__tests__/scaffold-runtime-helper.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+### Risk
+
+Hardening only. SDK remote/package-source still blocks publishing this as the final open-source `@fayz/runtime` helper.
+
+### Next
+
+Tracking updated in Linear `FAY-1182` comment `bd1b12eb-d7df-45d3-85c0-c4e5227952b8` and PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700579037`.
+
+Next choose provider onboarding UI or SDK package publication once remote is known.
+
 ## 2026-06-14 00:24 BRT — M11 Generated-app runtime helper contract gated
 
 ### Executive outcome
