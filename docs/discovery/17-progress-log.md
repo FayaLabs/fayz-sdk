@@ -1,5 +1,33 @@
 # 17 — Progress Log
 
+## 2026-06-14 20:44 BRT — M62 concrete ecommerce shop-provider template
+
+Resultado:
+
+- Added `src/integrations/ecommerce/shop-provider.ts` to the Fayz ecommerce integration template.
+- The template provider factory delegates to `@fayz-ai/sdk/shop`.
+- It reads store env from `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` or `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_FAYZ_STORE_ID`.
+- Updated the ecommerce integration README and prompt to point at this generated provider file.
+
+Impacto:
+
+- M61 is now partly executable by the generator: generated ecommerce integrations get a concrete SDK-backed provider factory instead of only a written instruction.
+- This moves the platform closer to the Base44-style promise: app code configures business/domain values, while SDK owns backend access shape.
+
+Risco:
+
+- The generated file is still a provider factory, not a complete shop/admin app scaffold. It intentionally returns `undefined` when env is incomplete so local generated apps do not crash before store setup.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @wowsome/api build` in Fayz
+
+Next:
+
+- When the generated app includes `createShopPlugin`, wire `createEcommerceShopProvider()` into `createShopPlugin({ provider })` automatically.
+- Continue Beauty/Resto/Marketplace QA before broad generator automation.
+
 ## 2026-06-14 20:34 BRT — M61 generated shop apps learn provider injection
 
 Resultado:
