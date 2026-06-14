@@ -1,6 +1,6 @@
 # 17 — Progress Log
 
-## 2026-06-14 08:47 BRT — M18 Public npm + lean SDK package lock gated
+## 2026-06-14 08:47 BRT — M18 Public npm + lean SDK package lock gated, repo created
 
 ### Executive outcome
 
@@ -12,6 +12,7 @@ Vini approved public npm as the Fayz SDK package-source standard, and the first 
 - `@fayz/runtime` remains the heavier manifest app-rendering package.
 - The old GitHub Packages / `NODE_AUTH_TOKEN` blocker is retired for generated apps.
 - Generated projects can now use SDK helpers instead of local runtime OAuth helper forks.
+- GitHub repo created and pushed: `https://github.com/FayaLabs/fayz-sdk`
 
 ### Gate passed
 
@@ -27,11 +28,16 @@ pnpm check:manifest
 
 cd /Users/fayalabs/dev/fayz
 npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
+
+cd /Users/fayalabs/dev/fayz-sdk/packages/sdk
+npm publish --dry-run --access public
 ```
 
 ### Risk
 
 Keep `@fayz/sdk` lightweight: no React peer dependency, no UI bundle, no Supabase/provider SDK dependency, and no server-side secrets.
+
+Actual `npm publish --access public` is blocked by npm account policy: the provided token authenticates and dry-run succeeds, but real publish requires either a current OTP or a granular/automation token with 2FA bypass enabled.
 
 ### Next
 
@@ -40,7 +46,7 @@ Linear tracking updated:
 - `FAY-1181` comment `197e46fa-fca0-4b9a-8bae-6e3a5000c5a1`
 - `FAY-1182` comment `295f0885-7d2a-414b-95dd-f29e64a9ab70`
 
-Commit the SDK/publication slice and Fayz scaffold slice separately, then continue Beauty extraction only after package lock is reviewed.
+Get npm OTP or a granular automation token that can publish under `@fayz`, then publish `@fayz/sdk@0.1.0`. Continue Beauty extraction only after package lock is reviewed.
 
 ## 2026-06-14 08:25 BRT — M17 createSaasApp deprecation stance hardened
 

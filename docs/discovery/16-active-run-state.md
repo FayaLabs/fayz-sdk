@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 npm package-source implementation, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 npm package-source implementation with npm publish blocked only by 2FA/token policy, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -56,6 +56,8 @@ Result:
 - `@fayz/sdk` is now the lean always-safe package for generated projects.
 - `@fayz/runtime` remains the manifest app-rendering package.
 - GitHub Packages / `NODE_AUTH_TOKEN` is no longer the generated-project path.
+- Created GitHub repo: `https://github.com/FayaLabs/fayz-sdk`
+- Pushed SDK commits to `main` and `weekend-fayz-sdk-architecture-lock`.
 
 Impact:
 
@@ -67,6 +69,7 @@ Risk:
 
 - Keep `@fayz/sdk` lean. Do not add React, UI, Supabase, or provider SDKs to it.
 - Do not refactor Beauty destructively before package gates pass.
+- Npm publish requires either a current OTP or a granular/automation token allowed to bypass 2FA. Current token authenticates and passes dry-run, but real publish returns npm `E403` 2FA policy.
 
 Gate:
 
@@ -79,6 +82,11 @@ Gate:
   - `pnpm --filter @fayz/runtime build`
   - `pnpm check:manifest`
   - `npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts`
+  - `npm publish --dry-run --access public` in `packages/sdk`
+
+Publish:
+
+- `npm publish --access public` blocked by npm 2FA/token policy before publishing `@fayz/sdk@0.1.0`.
 
 Tracking:
 
