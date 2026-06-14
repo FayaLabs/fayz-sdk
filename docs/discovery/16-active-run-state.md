@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 10:59 BRT
+Last updated: 2026-06-14 11:05 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -69,7 +69,7 @@ Impact:
 Risk:
 
 - Beauty has broad pre-existing worktree changes and is behind origin by 2; do not stage broad Beauty changes without a packaging decision.
-- Manual browser save still needs human/UI confirmation after reload, but the served module now includes the active-tenant synchronization and the build gate passes.
+- Manual browser save still needs human/UI confirmation after reload because browser automation could not type into the login form in this environment. Backend tenant proof passed with the documented test user: signed in, selected a real tenant, created a temporary client, and cleaned it up.
 
 Gate:
 
@@ -78,6 +78,7 @@ Gate:
   - `pnpm --filter @fayz-ai/saas typecheck`
   - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas` with local SDK aliases
   - `curl http://localhost:5180/@fs/Users/fayalabs/dev/fayz-sdk/packages/saas/src/org/store.ts` confirms Beauty dev server is serving the local tenant-context fix
+  - Supabase dogfood proof with `teste@teste.com`: selected tenant, inserted temporary `CODEx TEST ...` client rows, then deleted them
 
 ## M22 App Runtime package wave — 2026-06-14 10:27 BRT
 

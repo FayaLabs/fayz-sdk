@@ -25,11 +25,11 @@ pnpm build
 curl http://localhost:5180/@fs/Users/fayalabs/dev/fayz-sdk/packages/saas/src/org/store.ts
 ```
 
-Result: Beauty build passes with local SDK aliases, and the dev server is serving the active-tenant synchronization fix.
+Result: Beauty build passes with local SDK aliases, the dev server is serving the active-tenant synchronization fix, and the backend tenant proof passed with the documented test user: sign in, select tenant, create a temporary `CODEx TEST ...` client, then delete it.
 
 ### Risk
 
-Manual browser confirmation is still needed after reload for the exact client-save action. Beauty's worktree is broad and behind origin by 2, so only stage a narrow subset after a packaging decision.
+Manual browser confirmation is still needed after reload for the exact client-save click path because the browser automation environment could not type into the login form. Beauty's worktree is broad and behind origin by 2, so only stage a narrow subset after a packaging decision.
 
 ### Next
 
