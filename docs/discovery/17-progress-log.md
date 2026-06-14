@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 19:00 BRT — M56 Marketplace fourth-app SDK baseline
+
+Resultado:
+
+- Selected `marketplace-saas` as the fourth dogfood app because it is a distinct SaaS/admin domain and avoids the currently quarantined course/portal work.
+- Migrated package/import/Vite/TypeScript/Tailwind wiring from legacy `@fayz/*` and `saas-core` to current local `@fayz-ai/*` SDK packages.
+- Kept public dependencies thin: only `@fayz-ai/sdk` is a Fayz public dependency in `package.json`.
+- Moved the dev port from `5181` to `5186` to avoid colliding with Resto.
+- Updated `package-lock.json`.
+
+Impacto:
+
+- Marketplace moved from non-compiling legacy state to a running baseline for the fourth-app proof.
+- This gives us a second SaaS/ecommerce-admin validation target beyond Beauty/Resto and separate from customer-facing storefronts.
+
+Risco:
+
+- Marketplace still uses legacy `createSaasApp` and a large `src/App.tsx`; it is not yet config-folder/manifest-first.
+- The current result is a baseline unlock, not a 9/10 app quality claim.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in Marketplace
+  - HTTP 200 on `http://localhost:5186/`
+  - Browser smoke renders Mercado login without 404 or loading stall.
+
+Next:
+
+- Move Marketplace toward `renderApp(defineSaas(config))` and `/src/config`.
+- Prove marketplace shop/admin data access through SDK-owned paths, not direct provider clients.
+
 ## 2026-06-14 18:51 BRT — M55 Fayz scaffold learns storefront slot contracts
 
 Resultado:
