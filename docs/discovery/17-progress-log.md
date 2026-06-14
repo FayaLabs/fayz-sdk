@@ -1,5 +1,34 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:00 BRT — M29 Beauty config-folder local slice
+
+### Executive outcome
+
+Beauty now follows the same basic `src/config/*` organization pattern as Resto for permissions, pages, billing, and theme.
+
+### Business impact
+
+- Beauty has clearer app-owned edit surfaces without changing the public package strategy.
+- `App.tsx` remains render-only through `renderApp(defineSaas(beautyAppConfig))`.
+- This validates that the config-folder pattern transfers from Resto to the higher-value Beauty proof without breaking the build.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Result: build passed after extracting `src/config/permissions.ts`, `src/config/pages.tsx`, `src/config/billing.ts`, and `src/config/theme.ts`.
+
+### Risk
+
+This is a local gated slice, not a packaged Beauty milestone. The Beauty repo is behind origin by 2 and has broad existing changes, so committing now would mix this clean refactor with older unrelated work unless staging is curated.
+
+### Next
+
+Extract Beauty dashboard, then reports/plugins, keeping the paid agenda proof stable. Package only after deciding how to isolate the Beauty worktree.
+
 ## 2026-06-14 11:56 BRT — M28 Resto dashboard/reports/theme split
 
 ### Executive outcome

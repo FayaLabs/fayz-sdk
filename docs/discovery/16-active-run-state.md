@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 11:56 BRT
+Last updated: 2026-06-14 12:00 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/theme split, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -49,6 +49,37 @@ Executive answer to Vini's latest check:
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
+
+## M29 Beauty config-folder local slice — 2026-06-14 12:00 BRT
+
+Result:
+
+- Moved Beauty theme to `src/config/theme.ts`.
+- Extracted Beauty permissions to `src/config/permissions.ts`.
+- Extracted Beauty pages to `src/config/pages.tsx`.
+- Extracted Beauty billing plans to `src/config/billing.ts`.
+- Kept `src/App.tsx` as render-only through `renderApp(defineSaas(beautyAppConfig))`.
+
+Impact:
+
+- Beauty now follows the same basic `src/config/*` pattern as Resto for app-owned business configuration.
+- This reduces root/source clutter and gives agents clearer edit surfaces before dashboard/reports/plugin extraction.
+- The Beauty proof remains build-green while preserving the local SDK development loop.
+
+Risk:
+
+- This is not committed in Beauty yet. Beauty is still behind origin by 2 and has broad existing changes, including untracked `src/config/`.
+- Do not package Beauty until staging is reviewed or a branch/commit strategy is chosen.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Continue Beauty extraction in narrow local slices: dashboard first, then reports/plugins.
+- Package Beauty only after deciding how to isolate this work from the pre-existing dirty/behind worktree.
 
 ## M28 Resto dashboard/reports/theme split — 2026-06-14 11:56 BRT
 
