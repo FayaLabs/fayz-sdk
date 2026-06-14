@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-14 22:59 UTC / 19:59 BRT — M67 Resto Menu/Tables promoted to private SDK plugins
+
+Resultado:
+
+- Promoted Resto's rich Menu and Tables implementations into private `@fayz-ai/plugin-menu` and `@fayz-ai/plugin-tables` packages.
+- Returned Resto to package imports for Menu/Tables instead of app-local plugin imports.
+- Plugin typecheck/build gates pass for both packages.
+- Resto production build and authenticated smoke remain green for `/menu` and `/tables`.
+
+Impacto:
+
+- This is the stronger SDK proof: Resto now gets real restaurant capabilities through reusable internal SDK/plugin packages, not copied local app code.
+- The public npm surface remains unchanged. `@fayz-ai/sdk` stays the only public required package; Menu/Tables are private implementation packages for dogfood.
+
+Risco:
+
+- Menu/Tables are now reusable but still mock-provider based. The next 9/10 gap is connecting their provider boundary to `@fayz-ai/sdk`/Fayz broker data instead of stopping at UI reuse.
+- These packages should remain private until at least a second restaurant-style app proves the abstraction.
+
+Proximo:
+
+- Dogfood Menu/Tables interactions in Resto and identify the first provider/action slice worth moving behind SDK data access.
+- Keep the next milestone focused on app-owner value: less custom app code, more SDK-owned operational surface.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/plugin-menu typecheck
+pnpm --filter @fayz-ai/plugin-tables typecheck
+pnpm --filter @fayz-ai/plugin-menu build
+pnpm --filter @fayz-ai/plugin-tables build
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/menu and /tables
+```
+
 ## 2026-06-14 22:50 UTC / 19:50 BRT — M66 Resto Menu/Tables real surfaces
 
 Resultado:

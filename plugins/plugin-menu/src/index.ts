@@ -1,9 +1,12 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { EntityLookup } from '@fayz-ai/saas'
-import type { MenuDataProvider } from './types'
+import type { MenuDataProvider } from './data/types'
+import { createMockMenuProvider } from './data/mock'
+import { createMenuStore } from './store'
 import { menuRegistries } from './registries'
 import { menuLocales } from './locales'
+import { PluginSettingsPanel } from '@fayz-ai/saas'
 
 // Lazy import page to avoid circular dependency issues
 const MenuPage = React.lazy(() => import('./MenuPage').then((m) => ({ default: m.MenuPage })))
@@ -30,7 +33,7 @@ const DEFAULT_LABELS: MenuPluginLabels = {
 // Currency
 // ---------------------------------------------------------------------------
 
-const DEFAULT_CURRENCY = { code: 'USD', locale: 'en-US', symbol: '$' }
+const DEFAULT_CURRENCY = { code: 'BRL', locale: 'pt-BR', symbol: 'R$' }
 
 // ---------------------------------------------------------------------------
 // Options
@@ -72,10 +75,12 @@ function resolveConfig(options?: MenuPluginOptions) {
 
 export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
   const config = resolveConfig(options)
+  const provider = options?.dataProvider ?? createMockMenuProvider()
+  const store = createMenuStore(provider)
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(React.Suspense, { fallback: null },
-      React.createElement(MenuPage as any)
+      React.createElement(MenuPage, { config, provider, store, registries: menuRegistries })
     )
 
   return {
@@ -151,10 +156,12 @@ export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
         icon: 'UtensilsCrossed',
         component: (() => {
           const MenuSettingsTab: React.ComponentType<unknown> = () =>
-            React.createElement('div', { className: 'p-4' },
-              React.createElement('h2', { className: 'text-lg font-semibold' }, 'Menu Settings'),
-              React.createElement('p', { className: 'text-sm text-muted-foreground' }, 'Categories, allergens, and modifiers')
-            )
+            React.createElement(PluginSettingsPanel, {
+              title: 'Menu Settings',
+              subtitle: 'Categories, allergens, and modifiers',
+              registries: menuRegistries,
+              routeBase: '/settings/menu',
+            })
           MenuSettingsTab.displayName = 'MenuSettingsTab'
           return MenuSettingsTab
         })(),
@@ -166,5 +173,5 @@ export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
   }
 }
 
-export type { MenuDataProvider } from './types'
-export type { MenuPluginOptions as MenuPluginConfig }
+export type { MenuDataProvider } from './data/types'
+export type { ResolvedMenuConfig } from './MenuContext'
