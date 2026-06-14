@@ -10,15 +10,20 @@ import { hashRouterAdapter } from '@fayz-ai/core'
 
 const adapter = hashRouterAdapter()
 
+export function normalizeAdminPath(path: string): string {
+  const clean = `/${path}`.replace(/\/+/g, '/')
+  return clean.length > 1 ? clean.replace(/\/+$/, '') : clean
+}
+
 export function navigateTo(to: string): void {
-  adapter.navigate(to)
+  adapter.navigate(normalizeAdminPath(to))
 }
 
 export function useAdminPath(): string {
-  const [path, setPath] = React.useState(() => adapter.getCurrentPath() || '/')
+  const [path, setPath] = React.useState(() => normalizeAdminPath(adapter.getCurrentPath() || '/'))
   React.useEffect(() => {
     return adapter.onPathChange((p) => {
-      setPath(p || '/')
+      setPath(normalizeAdminPath(p || '/'))
       if (typeof window !== 'undefined') window.scrollTo(0, 0)
     })
   }, [])
@@ -50,9 +55,11 @@ export function matchRoute(pattern: string, path: string): Record<string, string
 /** Score a route pattern for specificity so the most specific match wins
  *  (static segments beat params; longer beats shorter; wildcard loses). */
 export function routeScore(pattern: string): number {
-  if (pattern.endsWith('/*')) return -1
-  const parts = pattern.split('/').filter(Boolean)
+  const isWildcard = pattern.endsWith('/*')
+  const routePattern = isWildcard ? pattern.slice(0, -2) : pattern
+  const parts = routePattern.split('/').filter(Boolean)
   let score = parts.length * 10
   for (const p of parts) if (!p.startsWith(':')) score += 5
+  if (isWildcard) score -= 1
   return score
 }

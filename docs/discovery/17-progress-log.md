@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 22:26 UTC / 19:26 BRT — M63 manifest AdminShell route normalization
+
+Resultado:
+
+- Manifest-first `AdminShell` route collection now registers wildcard subroutes for app pages and plugin routes.
+- CRUD hash navigation now normalizes base paths before list/detail/edit/new transitions, preventing broken `#//id` style routes.
+- Settings is mounted through the manifest AdminShell path, preserving the app-frame route contract for `/settings`.
+- Verified live dev ports for Beauty, Resto, Shopfront, Tannat, Pulse, and Marketplace are responding.
+
+Impacto:
+
+- Beauty/Resto can keep moving away from `createSaasApp` without losing internal plugin routes such as CRM list/detail paths and nested CRUD screens.
+- The fix is SDK-level, so generated apps and existing dogfood apps benefit without per-client route patches.
+
+Risco:
+
+- Browser checks without a logged-in Beauty session land on login, so authenticated route QA still needs one pass for `/clients`, `/sales/leads/list`, `/settings`, `/registry/services/new`, and agenda staff schedule.
+- The worktree still contains unrelated theme/proof changes; this milestone must be staged narrowly.
+
+Proximo:
+
+- Run authenticated Beauty/Resto route smoke.
+- Then resume app-score work: Beauty, Resto, Shopfront/Tannat/Pulse, Marketplace, keeping `shop` and `storefront` as separate internal boundaries.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/plugin-crm typecheck
+pnpm --filter @fayz-ai/saas build
+```
+
 ## 2026-06-14 20:44 BRT — M62 concrete ecommerce shop-provider template
 
 Resultado:

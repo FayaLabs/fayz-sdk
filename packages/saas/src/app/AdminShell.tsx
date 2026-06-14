@@ -2,11 +2,20 @@ import * as React from 'react'
 import { AppShell, type NavigationItem } from '@fayz-ai/ui'
 import { useAuth } from '@fayz-ai/auth'
 import { usePluginRuntime, resolvePluginComponent, useTranslation } from '@fayz-ai/core'
-import type { PluginNavigationEntry, PluginRouteDefinition } from '@fayz-ai/core'
+import type { PermissionAction, PluginNavigationEntry, PluginRouteDefinition, PluginSettingsTab } from '@fayz-ai/core'
 import { useAdminPath, navigateTo, matchRoute, routeScore } from './routing'
 import { LoginPage } from './LoginPage'
 import type { CustomPage } from './config'
 import type { AuthProvider } from '@fayz-ai/core'
+import { setEntityRouteMap } from '../lib/entity-routes'
+import { usePermissionOptional } from '../permissions/context'
+import { SettingsPage } from '../shell/components/settings/SettingsPage'
+import { TeamTab } from '../shell/components/organization/TeamTab'
+import { PermissionProfilesTab } from '../shell/components/organization/PermissionProfilesTab'
+import { LocationsCrudPage } from '../shell/components/settings/LocationsCrudPage'
+import { ConnectedFieldRulesSettings } from '../shell/components/settings/ConnectedFieldRulesSettings'
+import { MapPin, Puzzle, ShieldCheck, SlidersHorizontal, Users } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 
 // ---------------------------------------------------------------------------
 // AdminShell — the working admin surface. Mounted INSIDE the providers (see
@@ -24,8 +33,12 @@ export interface AdminShellProps {
   requireAuth?: boolean
   loginTagline?: string
   loginDescription?: string
+  loginLogo?: React.ReactNode
+  loginLayout?: 'split' | 'centered'
   showOAuth?: boolean
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
+  showSettings?: boolean
+  showOrgSettings?: boolean
 }
 
 function navEntryToItem(entry: PluginNavigationEntry): NavigationItem {
@@ -44,6 +57,21 @@ type OrderedNavigationItem = NavigationItem & { position: number }
 interface RouteEntry {
   path: string
   Component: React.ComponentType<Record<string, unknown>>
+}
+
+function registerEntityRoute(
+  component: unknown,
+  path: string,
+  entityRouteMap: Map<string, string>,
+): void {
+  const entityDef = (component as any)?.__entityDef
+  if (!entityDef?.data) return
+
+  if (entityDef.data.archetypeKind) {
+    entityRouteMap.set(`${entityDef.data.archetype ?? ''}:${entityDef.data.archetypeKind}`, path)
+  } else if (entityDef.data.archetype) {
+    entityRouteMap.set(entityDef.data.archetype, path)
+  }
 }
 
 function sectionOrder(section: NavigationItem['section']): number {
@@ -73,19 +101,64 @@ function pageToNavigationItem(page: CustomPage, fallbackPosition: number): Order
   }
 }
 
-function collectPageRoutes(pages: CustomPage[], out: RouteEntry[] = []): RouteEntry[] {
+function collectPageRoutes(
+  pages: CustomPage[],
+  out: RouteEntry[] = [],
+  entityRouteMap: Map<string, string> = new Map(),
+): RouteEntry[] {
   for (const page of pages) {
-    if (page.component) {
+    if (page.component && page.path !== '/settings') {
+      if ((page.component as any).__isCrudPage) {
+        ;(page.component as any).__crudBasePath = page.path
+        registerEntityRoute(page.component, page.path, entityRouteMap)
+      }
       out.push({ path: page.path, Component: page.component as React.ComponentType<Record<string, unknown>> })
+      out.push({ path: `${page.path}/*`, Component: page.component as React.ComponentType<Record<string, unknown>> })
     }
-    if (page.children?.length) collectPageRoutes(page.children, out)
+    if (page.children?.length) collectPageRoutes(page.children, out, entityRouteMap)
   }
   return out
 }
 
-function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [] }: AdminShellProps) {
+function buildSettingsTabs(
+  pluginTabs: PluginSettingsTab[],
+  can: (feature: string, action?: PermissionAction) => boolean,
+  t: (key: string, params?: Record<string, string | number>) => string,
+  showOrgSettings: boolean,
+): { id: string; label: string; icon?: React.ReactNode; component: React.ReactNode }[] {
+  const settingsTabs: { id: string; label: string; icon?: React.ReactNode; component: React.ReactNode }[] = []
+
+  if (showOrgSettings) {
+    settingsTabs.push(
+      { id: 'team', label: t('settings.team'), icon: <Users className="h-4 w-4" />, component: <TeamTab /> },
+      { id: 'permissions', label: t('settings.permissions'), icon: <ShieldCheck className="h-4 w-4" />, component: <PermissionProfilesTab /> },
+      { id: 'locations', label: t('settings.locations'), icon: <MapPin className="h-4 w-4" />, component: <LocationsCrudPage /> },
+      { id: 'field-rules', label: t('settings.fieldRules'), icon: <SlidersHorizontal className="h-4 w-4" />, component: <ConnectedFieldRulesSettings /> },
+    )
+  }
+
+  for (const tab of pluginTabs) {
+    if (tab.permission && !can(tab.permission.feature, tab.permission.action)) continue
+    if (!tab.component) continue
+
+    const IconComp = tab.icon ? (LucideIcons as any)[tab.icon] ?? Puzzle : Puzzle
+    const labelKey = `settings.plugin.${tab.id}`
+    const translated = t(labelKey)
+    settingsTabs.push({
+      id: tab.id,
+      label: translated === labelKey ? tab.label : translated,
+      icon: React.createElement(IconComp as React.ComponentType<{ className?: string }>, { className: 'h-4 w-4' }),
+      component: React.createElement(tab.component),
+    })
+  }
+
+  return settingsTabs
+}
+
+function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false }: AdminShellProps) {
   const runtime = usePluginRuntime()
   const t = useTranslation()
+  const can = usePermissionOptional()
   const tr = (key: string, fallback: string) => {
     const v = t(key)
     return !v || v === key ? fallback : v
@@ -109,13 +182,20 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [] }: Admi
   // Route table: plugin routes + custom pages, most-specific-first.
   const routes = React.useMemo<RouteEntry[]>(() => {
     const list: RouteEntry[] = []
+    const entityRouteMap = new Map<string, string>()
     for (const r of runtime.routes as PluginRouteDefinition[]) {
       const Component = resolvePluginComponent(r) as React.ComponentType<Record<string, unknown>> | undefined
-      if (Component) list.push({ path: r.path, Component })
+      if (Component) {
+        list.push({ path: r.path, Component })
+        list.push({ path: `${r.path}/*`, Component })
+      }
     }
-    collectPageRoutes(pages, list)
+    if (showSettings) list.push({ path: '/settings/*', Component: SettingsPage as React.ComponentType<Record<string, unknown>> })
+    if (showSettings) list.push({ path: '/settings', Component: SettingsPage as React.ComponentType<Record<string, unknown>> })
+    collectPageRoutes(pages, list, entityRouteMap)
+    setEntityRouteMap(entityRouteMap)
     return list.sort((a, b) => routeScore(b.path) - routeScore(a.path))
-  }, [runtime.routes, pages])
+  }, [runtime.routes, pages, showSettings])
 
   const match = React.useMemo(() => {
     for (const r of routes) {
@@ -134,23 +214,37 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [] }: Admi
 
   const ActiveComponent = match?.route.Component
   const activeParams = match?.params ?? {}
+  const settingsTabs = React.useMemo(
+    () => buildSettingsTabs(runtime.settingsTabs as PluginSettingsTab[], can, t, showOrgSettings),
+    [runtime.settingsTabs, can, t, showOrgSettings],
+  )
 
   const shellUser = user
     ? { fullName: user.fullName ?? user.email, email: user.email, avatarUrl: user.avatarUrl }
     : undefined
 
+  const activeContent = ActiveComponent ? (
+    match.route.path === '/settings' || match.route.path === '/settings/*'
+      ? <SettingsPage extraTabs={settingsTabs} />
+      : <ActiveComponent {...activeParams} />
+  ) : null
+
   return (
     <AppShell
       variant={layout}
+      sidebarFrame
       navigation={navigation}
       logo={logo ?? <span className="text-lg font-bold">{appName}</span>}
       user={shellUser}
       currentPath={path}
       onNavigate={(route) => navigateTo(route)}
       onSignOut={() => { void signOut() }}
+      onSettings={() => navigateTo('/settings')}
     >
-      {ActiveComponent ? (
-        <ActiveComponent {...activeParams} />
+      {activeContent ? (
+        <div className="saas-page-enter space-y-6 p-6">
+          {activeContent}
+        </div>
       ) : (
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
           <p className="text-lg font-semibold text-foreground">
@@ -187,6 +281,8 @@ export function AdminShell(props: AdminShellProps) {
       <LoginPage
         appName={props.appName}
         logo={props.logo}
+        loginLogo={props.loginLogo}
+        layout={props.loginLayout}
         tagline={props.loginTagline}
         description={props.loginDescription}
         showOAuth={props.showOAuth}
