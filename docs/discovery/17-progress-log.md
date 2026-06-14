@@ -1,5 +1,34 @@
 # 17 — Progress Log
 
+## 2026-06-14 08:20 BRT — M16 App contract and integrations decision brief
+
+### Executive outcome
+
+The repo x SDK contract recommendation is now explicit:
+
+```txt
+docs/discovery/26-app-contract-and-integrations-decision.md
+```
+
+### Business impact
+
+- Recommended default: generated apps use `AppManifest` plus `renderApp(manifest)`.
+- `createSaasApp`, `createFayzApp`, and `create*Plugin` factories stay as compatibility/developer sugar, not the long-term generated-app contract.
+- Direct plugin bridges should move toward domain events, declared capabilities, and plugin grants.
+- OAuth remains the default for external provider auth, with Fayz-owned broker/grants protecting the open-source SDK boundary.
+
+### Gate
+
+Docs-only milestone. Process check found no stuck test/build jobs; Beauty Vite server remains healthy on `127.0.0.1:5180`.
+
+### Risk
+
+Do not aggressively refactor Beauty's `App.tsx` until Vini approves manifest-first as the official generated-app contract and SDK package destination is confirmed.
+
+### Next
+
+Ask Vini to approve manifest-first as the official generated-app contract. Then use Beauty as the golden extraction specimen: tiny `App.tsx`, `app.manifest.json`, and `registry.tsx` for custom code.
+
 ## 2026-06-14 01:00 BRT — Idle-loop self-improvement
 
 ### Executive outcome

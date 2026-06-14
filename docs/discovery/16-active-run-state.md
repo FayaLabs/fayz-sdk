@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 01:00 BRT
+Last updated: 2026-06-14 08:20 BRT
 
 ## Mode
 
@@ -30,8 +30,9 @@ Current focus:
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
 3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, generated-app helper contract/tests, and local packaged SDK helper into provider onboarding UI or SDK remote publication.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
-5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
-6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
+5. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract; keep `createSaasApp`, `createFayzApp`, and `create*Plugin` factories as compatibility/developer sugar pending Vini approval.
+6. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
+7. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
 
 Idle-loop rule:
 
@@ -44,7 +45,30 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`, or confirm SDK remote/package-source so M13/M14 can be pushed/published.
+- Next target: approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`, approve manifest-first generated-app contract in `26-app-contract-and-integrations-decision.md`, or confirm SDK remote/package-source so M13/M14/M16 can be pushed/published.
+
+## M16 App contract and integrations decision brief — 2026-06-14 08:20 BRT
+
+Result:
+
+- Added `docs/discovery/26-app-contract-and-integrations-decision.md`.
+- Recommendation: `AppManifest` is the official generated-app contract; Beauty `App.tsx` is the migration specimen, not the final shape.
+- Recommendation: keep `createSaasApp`, `createFayzApp`, and `create*Plugin` factories as compatibility/developer sugar.
+- Recommendation: replace direct plugin bridges with domain events, declared capabilities, and plugin grants.
+- Captured integration lessons from Slack, Notion, SAP, and AppFlowy.
+
+Impact:
+
+- Stops the architecture loop around whether Beauty's current `App.tsx` should become the durable SDK API.
+- Gives the next worker a concrete path: tiny `App.tsx`, `app.manifest.json`, and `registry.tsx` for custom code.
+
+Risk:
+
+- Do not aggressively refactor Beauty until Vini approves manifest-first as the official generated-app contract and SDK package destination is confirmed.
+
+Gate:
+
+- Docs-only milestone. Process check found no stuck test/build jobs; Beauty Vite server remains healthy on `127.0.0.1:5180`.
 
 ## M15 Provider onboarding decision brief — 2026-06-14 00:51 BRT
 
