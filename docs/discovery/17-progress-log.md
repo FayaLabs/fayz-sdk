@@ -1,5 +1,43 @@
 # 17 — Progress Log
 
+## 2026-06-14 00:35 BRT — M13 Packaged SDK runtime OAuth helper committed locally
+
+### Executive outcome
+
+The generated-app helper now has a real SDK home:
+
+```txt
+fdb2d22 feat(core): add runtime oauth broker helper
+```
+
+### Business impact
+
+- `@fayz/core` now exports `createFayzRuntimeClient()` and typed Plugin OAuth / Google Calendar broker helpers.
+- `@fayz/core/runtime` is a stable subpath for direct imports.
+- `@fayz/runtime` receives the helper through the umbrella re-export, so generated apps can eventually import from the real SDK instead of carrying scaffold-local helper code.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz/core typecheck
+pnpm --filter @fayz/core build
+pnpm --filter @fayz/runtime typecheck
+pnpm --filter @fayz/runtime build
+```
+
+Result: passed. Known non-blocking noise: `.npmrc` warns about missing `${NODE_AUTH_TOKEN}`.
+
+### Risk
+
+The SDK repo still has no git remote configured, so this commit is local-only until the open-source destination is confirmed.
+
+### Next
+
+Tracking updated in Linear `FAY-1182` comment `e55b109e-d0e7-4055-bbd0-1d2519f534ca`.
+
+Next either confirm/push SDK remote or move to Fayz provider onboarding UI.
+
 ## 2026-06-14 00:28 BRT — M12 Runtime helper behavior tests gated
 
 ### Executive outcome

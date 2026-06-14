@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 00:28 BRT
+Last updated: 2026-06-14 00:35 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy, revocation/audit foundation, generated-app helper contract, and helper behavior tests**.
+Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy, revocation/audit foundation, generated-app helper contract/tests, and local SDK helper package**.
 
 Linear anchor:
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and generated-app helper contract into packaged SDK helper and provider onboarding UI.
+3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, generated-app helper contract/tests, and local packaged SDK helper into provider onboarding UI or SDK remote publication.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
@@ -36,9 +36,40 @@ Current focus:
 Executive answer to Vini's latest check:
 
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
-- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz.
+- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: package the SDK helper into real `fayz-sdk` once remote/package-source is confirmed, or implement provider onboarding UI in Fayz after permission/UX is locked.
+- Next target: confirm SDK remote/package-source so M13 can be pushed/published, or implement provider onboarding UI in Fayz after permission/UX is locked.
+
+## M13 Packaged SDK runtime OAuth helper — 2026-06-14 00:35 BRT
+
+Result:
+
+- SDK commit `fdb2d22` created locally: `feat(core): add runtime oauth broker helper`.
+- Tracking updated: Linear `FAY-1182` comment `e55b109e-d0e7-4055-bbd0-1d2519f534ca`.
+- Added `createFayzRuntimeClient()` and typed Plugin OAuth/Google Calendar broker helpers under `@fayz/core`.
+- Added `@fayz/core/runtime` subpath and root exports; `@fayz/runtime` receives it through the umbrella re-export.
+
+Impact:
+
+- The scaffold helper now has a real SDK home.
+- Once SDK remote/package-source is confirmed, generated apps can stop carrying the temporary local helper and import from `@fayz/runtime`.
+
+Risk:
+
+- SDK repo still has no remote configured, so this is local-only until Vini confirms the open-source repo destination.
+- This commit does not touch provider onboarding UI.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz/core typecheck
+pnpm --filter @fayz/core build
+pnpm --filter @fayz/runtime typecheck
+pnpm --filter @fayz/runtime build
+```
+
+Result: passed. Known non-blocking noise: `.npmrc` warns about missing `${NODE_AUTH_TOKEN}`.
 
 ## M12 Runtime helper behavior tests — 2026-06-14 00:28 BRT
 
