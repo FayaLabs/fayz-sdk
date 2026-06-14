@@ -1,5 +1,30 @@
 # 17 — Progress Log
 
+## 2026-06-14 16:11 BRT — M40 Tannat ProductCard slot dogfood
+
+Resultado:
+
+- Tannat now uses the same `ProductCard` slot extension point proven in Pulse.
+- Added a wine/curation-focused product card with category, description, pricing, sale/sold-out state, and add-to-cart behavior.
+- No Tannat catalog, checkout, account, cart, routing, or provider pages were copied.
+
+Impacto:
+
+- The same platform slot now works for two very different storefront identities: streetwear drops and wine curation.
+- This is stronger evidence that Fayz can serve many storefronts with shared mechanics and client-specific expression.
+
+Risco:
+
+- Still only one slot family is proven. Next slots should be discovered by app pressure, not invented ahead of need.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/tannat-store`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/pulse-store`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/shopfront`
+  - HTTP 200 on ports `5180`, `5181`, `5183`, `5184`, `5185`
+
 ## 2026-06-14 16:07 BRT — M39 Storefront ProductCard slot dogfood
 
 Resultado:
