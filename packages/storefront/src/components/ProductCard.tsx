@@ -7,7 +7,11 @@ import { Link } from '../router'
 import { Price } from './Price'
 import { TID } from '../testids'
 
-export function ProductCard({ product }: { product: Product }) {
+export interface ProductCardProps {
+  product: Product
+}
+
+export function ProductCard({ product }: ProductCardProps) {
   const config = useStorefrontConfig()
   const addItem = useCartStore((s) => s.addItem)
   const openDrawer = useCartStore((s) => s.openDrawer)

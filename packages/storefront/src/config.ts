@@ -1,8 +1,17 @@
 import React, { createContext, useContext } from 'react'
-import type { ShopProvider, MockShopSeed } from '@fayz-ai/shop'
+import type { Product, ShopProvider, MockShopSeed } from '@fayz-ai/shop'
 import type { StorefrontTheme } from './theme'
 import type { HomeConfig, NavLink, FooterConfig } from './sections'
 import type { StorefrontAuthAdapter } from './auth'
+
+export interface ProductCardSlotProps {
+  product: Product
+}
+
+export interface StorefrontSlots {
+  /** Product card renderer used by catalog grids and product rails. */
+  ProductCard?: React.ComponentType<ProductCardSlotProps>
+}
 
 export interface StorefrontConfig {
   /** Store display name (header, page title) */
@@ -39,6 +48,8 @@ export interface StorefrontConfig {
   shipping?: { flatRate?: number; freeAbove?: number }
   /** Feature toggles — default both true */
   features?: { discounts?: boolean; accounts?: boolean }
+  /** Code-level customization slots. Kept out of serialized manifests. */
+  slots?: StorefrontSlots
 }
 
 export interface ResolvedStorefrontConfig extends StorefrontConfig {

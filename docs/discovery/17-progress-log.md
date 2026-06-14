@@ -1,5 +1,32 @@
 # 17 — Progress Log
 
+## 2026-06-14 16:07 BRT — M39 Storefront ProductCard slot dogfood
+
+Resultado:
+
+- Added `StorefrontConfig.slots.ProductCard`.
+- Product grids and product rails now render the configured product-card slot when present.
+- `defineStorefront(config)` keeps manifests serializable by storing code-level slots in a local runtime registry keyed by manifest id.
+- Pulse dogfoods the slot with a custom streetwear/drop product card while retaining shared catalog, filters, cart, checkout, account, routing, and provider runtime.
+
+Impacto:
+
+- This directly addresses the scale concern for thousands of stores: apps can customize visible business experience without forking shared storefront pages.
+- The platform still owns the hard parts; the client app owns the brand/product expression.
+
+Risco:
+
+- Only `ProductCard` is proven. Do not add a large slot API spec yet. Add next slots only from real pressure in Shopfront/Tannat/Pulse or a fourth app.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/storefront typecheck && pnpm --filter @fayz-ai/storefront build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/shopfront`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/pulse-store`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/tannat-store`
+  - HTTP 200 on ports `5180`, `5181`, `5183`, `5184`, `5185`
+
 ## 2026-06-14 16:03 BRT — M38 Storefront provider leak reduction
 
 Resultado:

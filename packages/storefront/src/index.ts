@@ -43,6 +43,7 @@ export { useProducts, useProduct, useCategories, useMyOrders, useDiscountValidat
 // Components (for custom layouts)
 export { StorefrontHeader } from './components/StorefrontHeader'
 export { ProductCard } from './components/ProductCard'
+export type { ProductCardProps } from './components/ProductCard'
 export { ProductGrid } from './components/ProductGrid'
 export { FiltersPanel } from './components/FiltersPanel'
 export { CartDrawer } from './components/CartDrawer'

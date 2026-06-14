@@ -9,6 +9,7 @@ import { initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
 import './blocks' // ensure section blocks are registered
 
 type StorefrontBackendProvider = NonNullable<StorefrontConfig['backend']>['provider']
+const runtimeConfigRegistry = new Map<string, StorefrontConfig>()
 
 // ---------------------------------------------------------------------------
 // Storefront scaffold — renders a store from a pure-data AppManifest. The
@@ -23,8 +24,10 @@ function slug(name: string): string {
 
 /** StorefrontConfig → AppManifest (the sugar-to-data direction). */
 export function defineStorefront(config: StorefrontConfig): AppManifest {
+  const id = slug(config.name)
+  runtimeConfigRegistry.set(id, config)
   return defineApp({
-    id: slug(config.name),
+    id,
     name: config.name,
     backend: {
       provider: config.backend?.provider ?? (config.provider ? 'custom' : 'mock'),
@@ -55,9 +58,11 @@ export function defineStorefront(config: StorefrontConfig): AppManifest {
 
 /** AppManifest → StorefrontConfig (the data-to-render direction). */
 function manifestToStorefrontConfig(manifest: AppManifest, surfaceName: string): StorefrontConfig {
+  const runtimeConfig = runtimeConfigRegistry.get(manifest.id)
   const surface = manifest.surfaces[surfaceName]
   const o = (surface?.options ?? {}) as Record<string, unknown>
   return {
+    ...runtimeConfig,
     name: manifest.name,
     currency: (manifest.locale as { currency?: string } | undefined)?.currency,
     locale: (manifest.locale as { default?: string } | undefined)?.default,
@@ -73,6 +78,10 @@ function manifestToStorefrontConfig(manifest: AppManifest, surfaceName: string):
       provider: manifest.backend?.provider as StorefrontBackendProvider,
       url: manifest.backend?.url,
     },
+    slots: runtimeConfig?.slots,
+    provider: runtimeConfig?.provider,
+    auth: runtimeConfig?.auth,
+    logo: runtimeConfig?.logo,
   }
 }
 
