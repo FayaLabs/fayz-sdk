@@ -41,6 +41,7 @@ The goal is not to design the final SAP-scale platform now. The goal is to defin
 - `22-decisions-from-codex-open-questions.md` — working defaults for research questions.
 - `23-milestone-packaging-plan.md` — commit/review packaging plan for turning the dirty weekend branches into coherent milestone slices.
 - `24-runtime-oauth-helper-contract.md` — agent-safe contract for `createFayzRuntimeClient()` and OAuth-backed provider calls.
+- `25-provider-onboarding-decision-brief.md` — product/permission decision brief for OAuth provider setup and disconnect.
 
 ## Working method
 

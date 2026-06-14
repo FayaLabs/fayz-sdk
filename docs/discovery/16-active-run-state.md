@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 00:42 BRT
+Last updated: 2026-06-14 00:51 BRT
 
 ## Mode
 
@@ -38,7 +38,29 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: confirm SDK remote/package-source so M13/M14 can be pushed/published, or implement provider onboarding UI in Fayz after permission/UX is locked.
+- Next target: approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`, or confirm SDK remote/package-source so M13/M14 can be pushed/published.
+
+## M15 Provider onboarding decision brief — 2026-06-14 00:51 BRT
+
+Result:
+
+- Added `docs/discovery/25-provider-onboarding-decision-brief.md`.
+- Converted the provider onboarding blocker into three explicit product options.
+- Recommended option 1: Fayz-owned Integrations surface plus inline plugin CTA.
+- Tracking updated: Linear `FAY-1182` comment `fdb6b0b5-3a87-4809-bf7c-0e2f5ec54475`.
+
+Impact:
+
+- Vini can approve the next product direction from mobile without opening backend code.
+- The next engineering slice becomes narrow: authenticated list/revoke routes, settings UI, and Panel missing-grant CTA.
+
+Risk:
+
+- No product route/UI should be exposed until Vini approves the onboarding surface and permission names.
+
+Gate:
+
+- Docs-only milestone. Process check found no stuck test/build jobs; Beauty Vite server remains healthy on `127.0.0.1:5180`.
 
 ## M14 Runtime OAuth helper contract docs — 2026-06-14 00:42 BRT
 

@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-14 00:51 BRT — M15 Provider onboarding decision brief
+
+### Executive outcome
+
+The provider onboarding blocker is now reduced to a product decision:
+
+```txt
+docs/discovery/25-provider-onboarding-decision-brief.md
+```
+
+### Business impact
+
+- Recommended direction: Fayz-owned Integrations surface plus inline plugin CTA.
+- This keeps Fayz as the trust layer and avoids each plugin/generated app inventing OAuth setup.
+- The next engineering slice can be narrow after approval: authenticated list/revoke routes, settings UI, and Panel missing-grant CTA.
+
+### Gate
+
+Docs-only milestone. Process check found no stuck test/build jobs; Beauty Vite server remains healthy on `127.0.0.1:5180`.
+
+### Risk
+
+Do not expose product/admin routes until Vini approves the onboarding surface and permission names.
+
+### Next
+
+Tracking updated in Linear `FAY-1182` comment `fdb6b0b5-3a87-4809-bf7c-0e2f5ec54475`.
+
+Ask Vini to approve option 1 or choose a different onboarding direction.
+
 ## 2026-06-14 00:42 BRT — M14 Runtime OAuth helper contract docs
 
 ### Executive outcome
