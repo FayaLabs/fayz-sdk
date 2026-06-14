@@ -1,5 +1,29 @@
 # 17 — Progress Log
 
+## 2026-06-14 01:00 BRT — Idle-loop self-improvement
+
+### Executive outcome
+
+The autonomous loop was adjusted for the current blocked state.
+
+### Business impact
+
+- We avoid noisy "busy work" while waiting for Vini's decision on provider onboarding or SDK remote/publication.
+- Heartbeats still monitor health: git status, process health, and Beauty server availability.
+- The next real engineering milestone remains ready to start once the decision is made.
+
+### Gate
+
+Process check found no stuck test/build jobs; Beauty Vite server remains healthy on `127.0.0.1:5180`.
+
+### Risk
+
+No code/product progress should be attempted until the provider onboarding direction or SDK remote is approved.
+
+### Next
+
+Keep heartbeat quiet unless health changes or Vini approves the next direction.
+
 ## 2026-06-14 00:51 BRT — M15 Provider onboarding decision brief
 
 ### Executive outcome

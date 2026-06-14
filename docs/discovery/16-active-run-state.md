@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 00:51 BRT
+Last updated: 2026-06-14 01:00 BRT
 
 ## Mode
 
@@ -32,6 +32,12 @@ Current focus:
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
+
+Idle-loop rule:
+
+- While M15 is awaiting Vini approval, heartbeat executions should stay lightweight: read this file and `17-progress-log.md`, inspect minimal git/process health, and return `DONT_NOTIFY` if nothing changed.
+- Do not create new code/product milestones for provider onboarding until Vini approves option 1 or chooses another direction.
+- Notify immediately if a process is stuck, Beauty stops serving `127.0.0.1:5180`, a new user decision arrives, or an unblocked packaging/publication path appears.
 
 Executive answer to Vini's latest check:
 
