@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 10:00 BRT
+Last updated: 2026-06-14 10:11 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai` with runtime publish blocked safely, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -28,8 +28,8 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1181` package implementation from the public npm decision: default `@fayz-ai/sdk`, public package metadata, generated scaffold dependency update, and release checklist.
-4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold and SDK CLI with local package-version resolvers and `stable/latest/preview` channels. Next step is replacing local duplication with a shared npm dist-tag/API/manifest-backed channel source.
+3. Continue `FAY-1181` package implementation from the public npm decision: default `@fayz-ai/sdk` is published and `@fayz-ai/runtime` now fails fast on unsafe public publish. Next step is deciding whether to publish/rename the full runtime dependency chain under `@fayz-ai/*` or keep runtime out of generated-app install paths until that wave is ready.
+4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold and SDK CLI with local package-version resolvers and `stable/latest/preview` channels. Next step is replacing local duplication with one shared npm dist-tag/API/manifest-backed channel source.
 5. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
 6. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates.
@@ -47,7 +47,32 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: finish and gate the public npm / default `@fayz-ai/sdk` implementation, then approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`.
+- Next target: centralize the version-channel source shared by Fayz API scaffold and SDK CLI, while keeping `@fayz-ai/runtime` blocked from accidental broken publish.
+
+## M21 Runtime publish safety gate — 2026-06-14 10:11 BRT
+
+Result:
+
+- Added a public-npm publish-safety gate for Fayz packages.
+- `@fayz-ai/runtime` now fails before publish when its dependency chain still points at internal workspace packages outside the public `@fayz-ai/*` scope.
+- `@fayz-ai/sdk` passes the same gate, so the safe/default package path stays green.
+
+Impact:
+
+- Removes the highest packaging risk: shipping a runtime package that installs publicly but breaks generated projects downstream.
+- Turns the runtime package-wave decision into an explicit go/no-go gate instead of a hidden release footgun.
+- Gives the next agent a clean signal: centralize versions next, do not try to publish runtime until the internal package chain is made public-safe.
+
+Risk:
+
+- This is a guardrail, not the dependency-chain migration itself. Runtime is still intentionally blocked until the internal `@fayz/*` packages are renamed/published under `@fayz-ai/*` or removed from the public install path.
+
+Gate:
+
+- Passed:
+  - `node ./scripts/check-public-package-safety.mjs packages/sdk`
+- Expected block:
+  - `pnpm --filter @fayz-ai/runtime run check:publish-safety`
 
 ## M18 Public npm + default SDK package lock — 2026-06-14 08:47 BRT
 

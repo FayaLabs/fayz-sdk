@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-14 10:11 BRT — M21 Runtime publish safety gate
+
+### Executive outcome
+
+`@fayz-ai/runtime` can no longer be published by accident while it still depends on internal non-public packages.
+
+### Business impact
+
+- The safe public package path is now explicit: `@fayz-ai/sdk` passes the new gate, `@fayz-ai/runtime` fails fast.
+- This prevents a bad npm release from shifting failure into generated-project installs.
+- The next package wave is clearer: either publish/rename the runtime dependency chain under `@fayz-ai/*`, or keep runtime out of public install-critical paths.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+node ./scripts/check-public-package-safety.mjs packages/sdk
+pnpm --filter @fayz-ai/runtime run check:publish-safety
+```
+
+Result: SDK passed; runtime was blocked as designed because it still resolves to internal `@fayz/*` workspace packages.
+
+### Risk
+
+This does not centralize the version source yet. Fayz API scaffold and SDK CLI still each keep a local checked-in resolver, so `FAY-1183` remains the next narrow implementation target.
+
+### Next
+
+Move `FAY-1183` from duplicated local maps to one shared channel source, then decide the runtime dependency-chain public package wave.
+
 ## 2026-06-14 10:00 BRT — M20 CLI create version resolver bridge
 
 ### Executive outcome

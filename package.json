@@ -10,6 +10,7 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "check:manifest": "turbo check:manifest --filter @fayz/core",
+    "check:public-package-safety": "node ./scripts/check-public-package-safety.mjs packages/sdk",
     "clean": "turbo clean",
     "changeset": "changeset",
     "version-packages": "changeset version",

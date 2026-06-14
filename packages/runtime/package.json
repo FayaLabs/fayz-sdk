@@ -23,6 +23,8 @@
     "build": "tsup && mkdir -p dist && cp ../ui/src/styles.css dist/styles.css && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "check:publish-safety": "node ../../scripts/check-public-package-safety.mjs packages/runtime",
+    "prepublishOnly": "pnpm run check:publish-safety",
     "clean": "rm -rf dist"
   },
   "publishConfig": {
