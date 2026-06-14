@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 11:40 BRT
+Last updated: 2026-06-14 11:56 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto manifest/registry split, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -50,15 +50,87 @@ Executive answer to Vini's latest check:
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
 
+## M28 Resto dashboard/reports/theme split — 2026-06-14 11:56 BRT
+
+Result:
+
+- Extracted Resto dashboard config to `src/config/dashboard.tsx`.
+- Extracted Resto reports config to `src/config/reports.ts`.
+- Moved visual theme from `src/theme.ts` to `src/config/theme.ts`.
+- Kept `src/App.tsx` as render-only and `src/config/app.tsx` as app composition.
+
+Impact:
+
+- Resto now looks materially closer to the shape we can scale: entrypoint, registry, and domain config are separated.
+- `src/config/app.tsx` dropped from a large mixed config file into a readable composition file.
+- Confirms the generator should prefer `src/config/*` modules instead of root-level `.config` clutter or decorative `.manifest.ts` wrappers.
+
+Risk:
+
+- Resto still has more plugin factories in app composition; acceptable for this slice.
+- Beauty build passes with `theme` moved under `src/config`, but Beauty remains broad/behind origin and should be packaged separately.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Commit:
+
+- Resto: `9ca593b refactor: split resto dashboard and reports config`
+
+Next:
+
+- Apply the same config-folder extraction to Beauty in narrow slices: permissions, pages, dashboard, then reports/plugins.
+- Do not reintroduce `.manifest.ts` unless it contains real serialized manifest data or a real registry boundary.
+
+## M27 Resto config-folder/page split — 2026-06-14 11:49 BRT
+
+Result:
+
+- Removed redundant `src/app.manifest.ts` from Resto. The app stays on a tiny `App.tsx` until a manifest file contains real serialized data or real registry boundary value.
+- Grouped business config under `src/config/`:
+  - `src/config/app.tsx`
+  - `src/config/billing.ts`
+  - `src/config/permissions.ts`
+  - `src/config/pages.tsx`
+- Split Resto pages out of the main app config.
+
+Impact:
+
+- Cleaner app contract: root files are real entry/registry surfaces; business config lives in one folder.
+- Avoids aesthetic architecture and prevents the generator from copying redundant wrapper files.
+- Moves Resto closer to a format we can be happy scaling: App entry + registry + organized config modules.
+
+Risk:
+
+- Resto plugin/dashboard config remains the next large block to extract.
+- Beauty has the same "no redundant manifest wrapper" rule and a local `src/config/app.tsx`, but remains broad/behind origin and should be packaged separately.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+
+Commits:
+
+- Resto: `1de3dd5 refactor: group resto config files`
+- Resto: `cd3473b refactor: split resto page config`
+
+Next:
+
+- Extract Resto dashboard metrics/sections into `src/config/dashboard.tsx`.
+- Apply the config-folder pattern to Beauty as a coherent packaging slice after deciding how to handle its broad worktree.
+
 ## M26 Resto manifest/registry split — 2026-06-14 11:40 BRT
 
 Result:
 
-- Resto now follows the cleaner scalable file shape:
+- Superseded by M27. Resto now follows the cleaner scalable file shape:
   - `src/App.tsx` only renders.
-  - `src/app.manifest.ts` owns `defineSaas(restoAppConfig)`.
-  - `src/registry.tsx` owns the first app-specific custom plugin/widget boundary.
-  - `src/app.config.tsx` imports registry-owned custom code instead of mixing everything inline.
+  - `src/registry.tsx` owns app-specific custom plugin/widget code.
+  - `src/config/*` owns business config.
 
 Impact:
 

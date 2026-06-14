@@ -1,10 +1,43 @@
 # 17 — Progress Log
 
+## 2026-06-14 11:56 BRT — M28 Resto dashboard/reports/theme split
+
+### Executive outcome
+
+Resto now has the clearest app shape so far: `App.tsx` renders only, `registry.tsx` owns custom app widgets, and `src/config/*` owns business/domain configuration.
+
+### Business impact
+
+- The main Resto app config is now composition, not a mixed 400+ line config/code bucket.
+- Dashboard metrics/sections, reports, pages, billing, permissions, and theme are separated into focused config modules.
+- This confirms the generator should copy a `src/config/` folder pattern, not root-level `.config` clutter and not decorative `.manifest.ts` wrappers.
+- Beauty also now builds with theme under `src/config/theme.ts`, but its broader worktree remains intentionally unpackaged.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/resto-saas
+pnpm build
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Result: both builds passed. Resto was committed and pushed as `9ca593b refactor: split resto dashboard and reports config`.
+
+### Risk
+
+Resto still has plugin factories in `src/config/app.tsx`; that is acceptable for now because the largest domain-heavy blocks are out. Beauty is still broad/behind origin, so package its next improvements as narrow slices only.
+
+### Next
+
+Apply the same pattern to Beauty: extract permissions, pages, dashboard, and reports/plugins into `src/config/*`, keeping the paid agenda proof stable.
+
 ## 2026-06-14 11:40 BRT — M26 Resto manifest/registry split
 
 ### Executive outcome
 
-Resto moved one step closer to the scalable app shape: `App.tsx` renders only, `app.manifest.ts` defines the manifest, and `registry.tsx` now owns the first custom app widget boundary.
+Superseded by M27/M28. Resto moved one step closer to the scalable app shape: `App.tsx` renders only, `registry.tsx` owns the first custom app widget boundary, and business config now lives under `src/config/*`.
 
 ### Business impact
 
@@ -22,7 +55,7 @@ cd /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm build
 ```
 
-Result: both builds passed after the split. Resto was committed and pushed as `039b844 refactor: split resto manifest and registry`. Beauty stayed on a tiny `App.tsx` because a separate `app.manifest.ts` would currently be a redundant wrapper without registry/serializable-manifest value.
+Result: both builds passed after the split. Resto was committed and pushed as `039b844 refactor: split resto manifest and registry`. Later slices removed the temporary decorative `app.manifest.ts`; Beauty stayed on a tiny `App.tsx` because a separate `app.manifest.ts` would currently be a redundant wrapper without registry/serializable-manifest value.
 
 ### Risk
 
