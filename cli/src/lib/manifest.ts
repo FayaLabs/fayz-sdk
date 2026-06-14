@@ -48,18 +48,12 @@ export function validateManifestStructure(m: ManifestLike): string[] {
   return problems
 }
 
-/** Plugin ids referenced by the manifest but not declared in package.json deps. */
-export function missingPluginDeps(m: ManifestLike, dir: string): string[] {
-  const pkgPath = resolve(dir, 'package.json')
-  if (!existsSync(pkgPath)) return []
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { dependencies?: Record<string, string> }
-  const deps = new Set(Object.keys(pkg.dependencies ?? {}))
-  const missing: string[] = []
+export function referencedPluginIds(m: ManifestLike): string[] {
+  const pluginIds = new Set<string>()
   for (const surface of Object.values(m.surfaces ?? {})) {
     for (const ref of surface.plugins ?? []) {
-      const pkgName = `@fayz-ai/plugin-${ref.id}`
-      if (!deps.has(pkgName)) missing.push(`${ref.id} (expected dependency ${pkgName})`)
+      pluginIds.add(ref.id)
     }
   }
-  return missing
+  return [...pluginIds]
 }

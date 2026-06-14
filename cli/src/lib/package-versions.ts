@@ -9,7 +9,6 @@ const stablePackageVersions: FayzPackageVersionSet = {
   channel: 'stable',
   packages: {
     '@fayz-ai/sdk': '^0.1.3',
-    '@fayz-ai/app-runtime': '^0.1.0',
   },
 }
 

@@ -9,7 +9,7 @@ Fayz-generated projects are moving to a manifest-first SDK contract.
 For new work in Fayz-generated projects:
 
 - Use public npm `@fayz-ai/sdk` as the default package for every generated project: app params, normalized API access, shared types, and runtime OAuth broker helpers.
-- Use public npm `@fayz-ai/app-runtime` only when the project renders a Fayz manifest app with `renderApp(manifest)` or needs registry/scaffold/plugin runtime helpers.
+- Use the platform-bundled app-runtime for manifest rendering. Do not install, publish, or document `@fayz-ai/app-runtime` as public product API until the Beauty manifest proof proves that package boundary.
 - Treat Fayz SDK as open-source client/runtime code. Do not add secrets, OAuth client secrets, provider refresh tokens, partner API keys, or tenant-authority decisions to SDK packages, generated repos, manifests, or browser code.
 - Plugin/integration authentication uses OAuth through Fayz/server-side infrastructure. Plugins may declare required providers/scopes and call SDK/Fayz OAuth helpers, but OAuth token storage, refresh, revocation, audit, and tenant grants belong to Fayz-controlled services.
 - Treat `app.manifest.json` as the first edit surface for pages, surfaces, plugins, entities, permissions, theme, and backend provider selection.
@@ -28,7 +28,7 @@ For new work in Fayz-generated projects:
   - Default generated-project scope is `tenantKey="default"`, `environment="preview"`, and `surface="panel"`.
   - Trim scope strings before writes/reads; blank scope values resolve to defaults, while unsupported enum values must fail before persistence.
   - Use only supported environments `preview` or `production` and supported binding surfaces `panel`, `admin`, `storefront`, or `portal`.
-- Package source is locked to public npm under the `@fayz-ai/*` scope. Do not reintroduce GitHub Packages `.npmrc` auth requirements into generated apps.
+- Package source is locked to public npm for `@fayz-ai/sdk` only. Do not reintroduce GitHub Packages `.npmrc` auth requirements into generated apps, and do not add internal runtime/plugin packages as public generated-app dependencies.
 - For `backend.provider = "fayz-api"`:
   - editor/admin tooling uses the authenticated Fayz route `/api/projects/:projectId/database/...`;
   - generated runtime apps must use `createFayzApiProvider({ runtimeToken })`, which calls `/api/v1/runtime/projects/:projectId/database/...`;
@@ -46,29 +46,15 @@ For new work in Fayz-generated projects:
 
 ## Package source map
 
-Always import from the `@fayz-ai/*` SDK package names. In dev these resolve to local
-source via vite aliases (see any consumer app's `vite.config.ts`); some are still
-bridges to `@fayz-ai/saas-core` internally, but consumer code never imports
-`@fayz-ai/saas-core/plugins/*` directly.
+Generated apps should install public npm `@fayz-ai/sdk` only. During dogfood,
+apps may import internal `@fayz-ai/*` runtime/plugin names through local Vite/TS
+aliases pointing at `/Users/fayalabs/dev/fayz-sdk`; those names are internal
+implementation seams, not public npm product API.
 
 | Plugin / utility | Import from |
 |---|---|
 | `fayz`, `createFayzClient`, `appParams`, `createFayzRuntimeClient` | `@fayz-ai/sdk` |
-| `renderApp`, `defineApp`, registry/scaffold helpers | `@fayz-ai/app-runtime` |
-| `createSaasApp`, `createCrudPage`, `createArchetypeLookup`, `createPlaceholder` | `@fayz-ai/saas` |
-| `createDashboardPlugin` | `@fayz-ai/plugin-dashboard` |
-| `createAgendaPlugin`, `createFinancialBridge` | `@fayz-ai/plugin-agenda` |
-| `createFinancialPlugin`, `createSafeFinancialProvider` | `@fayz-ai/plugin-financial` |
-| `createInventoryPlugin` | `@fayz-ai/plugin-inventory` |
-| `createCrmPlugin` | `@fayz-ai/plugin-crm` |
-| `createReportsPlugin` | `@fayz-ai/plugin-reports` |
-| `createTasksPlugin` | `@fayz-ai/plugin-tasks` |
-| `createCustomFormsPlugin` | `@fayz-ai/plugin-forms` |
-| `createShopPlugin` | `@fayz-ai/plugin-shop` |
-| `getShopProvider`, `setShopProvider`, `setShopTenantResolver` | `@fayz-ai/shop` |
-| `createMenuPlugin` | `@fayz-ai/plugin-menu` |
-| `createTablesPlugin` | `@fayz-ai/plugin-tables` |
-| `Card`, `Badge`, `Button`, UI primitives | `@fayz-ai/ui` |
+| App runtime, shell, plugin factories, UI primitives | platform-bundled/internal `fayz-sdk` source during dogfood |
 | `createFayzRuntimeClient`, `FayzRuntimeError` | `@fayz-ai/sdk` |
 
 Types (`EntityDef`, `FieldDef`, `PageConfig`, `SaasTheme`, etc.) come from `@fayz-ai/saas`

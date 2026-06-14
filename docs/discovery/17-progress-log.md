@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-14 10:59 BRT — M23 Public surface correction + Beauty tenant dogfood
+
+### Executive outcome
+
+The public package strategy is corrected: `@fayz-ai/sdk` is the only required public npm package for now. App-runtime, plugins, and internal SDK layers stay private/internal until Beauty + 2 more real apps prove a package boundary is worth exposing.
+
+### Business impact
+
+- Public npm surface is simpler and safer: one public product API, not a matrix of premature packages.
+- Fayz scaffold and SDK CLI now generate dependency-thin apps with `@fayz-ai/sdk` only; app-runtime is local/platform-bundled during dogfood.
+- Beauty can develop against the local SDK via aliases, so SDK/plugin fixes can be tested immediately without publishing npm every time.
+- The Beauty client-save failure was traced to tenant context, not npm. The org store now syncs the active org into the core tenant context used by CRUD providers.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/saas typecheck
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+curl http://localhost:5180/@fs/Users/fayalabs/dev/fayz-sdk/packages/saas/src/org/store.ts
+```
+
+Result: Beauty build passes with local SDK aliases, and the dev server is serving the active-tenant synchronization fix.
+
+### Risk
+
+Manual browser confirmation is still needed after reload for the exact client-save action. Beauty's worktree is broad and behind origin by 2, so only stage a narrow subset after a packaging decision.
+
+### Next
+
+Stabilize Beauty as the first dogfood app, then manually validate two more Fayz apps before generator-heavy work. Only promote app-runtime to a public package if these dogfoods prove the need.
+
 ## 2026-06-14 10:27 BRT — M22 App Runtime package wave gated
 
 ### Executive outcome

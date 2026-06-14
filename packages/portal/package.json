@@ -24,9 +24,6 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "@fayz-ai/core": "workspace:^",
     "@fayz-ai/auth": "workspace:^",
@@ -50,5 +47,6 @@
     "member",
     "courses",
     "lms"
-  ]
+  ],
+  "private": true
 }

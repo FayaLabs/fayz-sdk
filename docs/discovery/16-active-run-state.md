@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 10:27 BRT
+Last updated: 2026-06-14 10:59 BRT
 
 ## Mode
 
@@ -8,14 +8,14 @@ Active autonomous execution is approved. This file is the fast resume snapshot f
 
 The heartbeat is a fallback/resume mechanism, not the main worker. The active thread should keep executing in continuous small cycles: inspect, run the next gate, fix the narrow failure, update docs, repeat. Stop only for blockers that require Vini's product/architecture approval.
 
-Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is now locked to public npm. Beauty agenda lifecycle proof is broad and was revalidated after the runtime/API work.
+Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is locked to public npm for `@fayz-ai/sdk` only. Beauty is now the first dogfood app for local SDK/internal app-runtime validation before generator-heavy work.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
 - Fayz branch: `weekend-fayz-sdk-panel-manifest`
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for M22 `@fayz-ai/app-runtime@0.1.0` public npm publish + clean install, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build, green for FAY-1183 local version-manager bridge in Fayz scaffold and SDK CLI, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -28,11 +28,11 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1184` from the public npm decision: default `@fayz-ai/sdk` is published and `@fayz-ai/app-runtime@0.1.0` is now published, public, and clean-install verified.
-4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold and SDK CLI with local package-version resolvers and `stable/latest/preview` channels. Next step is replacing local duplication with one shared npm dist-tag/API/manifest-backed channel source.
+3. Continue `FAY-1184` from the public npm decision: default `@fayz-ai/sdk` is published. Stop expanding public npm surface; app-runtime/plugins/core/UI packages are internal/private until Beauty + 2 more apps prove a real public boundary.
+4. Continue `FAY-1183`: first bridge is checked in on Fayz scaffold and SDK CLI with local package-version resolvers and `stable/latest/preview` channels. Next step is replacing local duplication with one shared npm dist-tag/API/manifest-backed channel source for `@fayz-ai/sdk`.
 5. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
 6. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
-7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates.
+7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates. The app-runtime concept is internal/local until dogfood proves it should become a package.
 8. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 9. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
 
@@ -47,7 +47,37 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: dogfood manually before generator-heavy work: migrate Beauty first, then 1-2 more real Fayz apps, and only then harden the repo generator from proven app patterns.
+- Next target: dogfood manually before generator-heavy work: stabilize Beauty first, then 1-2 more real Fayz apps, and only then harden the repo generator from proven app patterns.
+
+## M23 Public surface correction + Beauty tenant dogfood — 2026-06-14 10:59 BRT
+
+Result:
+
+- Corrected the package strategy after Vini's product call: only `@fayz-ai/sdk` is public/required now.
+- Marked app-runtime, core/auth/ui/saas/shop/storefront/portal/courses, and plugin packages private/internal in package manifests.
+- Added `pnpm check:public-surface` so future releases fail if anything except `@fayz-ai/sdk` becomes publishable.
+- Fayz scaffold and SDK CLI now emit generated apps with `@fayz-ai/sdk` only; app-runtime is a local/platform-bundled placeholder until dogfood proves otherwise.
+- Beauty now defaults to local SDK aliases for fast development instead of requiring npm publish for every SDK/plugin edit.
+- Fixed the Beauty "No tenant selected" save failure by syncing the active organization store to the core tenant context.
+
+Impact:
+
+- Reduces public API/product surface and avoids premature package sprawl.
+- Keeps the open-source SDK useful while preserving internal implementation freedom.
+- Gives Beauty a realistic development loop: edit SDK locally, reload Beauty, then publish only after a coherent milestone gate.
+
+Risk:
+
+- Beauty has broad pre-existing worktree changes and is behind origin by 2; do not stage broad Beauty changes without a packaging decision.
+- Manual browser save still needs human/UI confirmation after reload, but the served module now includes the active-tenant synchronization and the build gate passes.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/core typecheck`
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas` with local SDK aliases
+  - `curl http://localhost:5180/@fs/Users/fayalabs/dev/fayz-sdk/packages/saas/src/org/store.ts` confirms Beauty dev server is serving the local tenant-context fix
 
 ## M22 App Runtime package wave — 2026-06-14 10:27 BRT
 

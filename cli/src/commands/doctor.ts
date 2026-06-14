@@ -1,7 +1,7 @@
-import { loadManifest, validateManifestStructure, missingPluginDeps } from '../lib/manifest.js'
+import { loadManifest, validateManifestStructure, referencedPluginIds } from '../lib/manifest.js'
 
 // `fayz doctor` — validate the app in the current directory: manifest structure,
-// plugin dependency coverage, and locale completeness. Exit non-zero on errors.
+// platform-bundled plugin references, and locale completeness. Exit non-zero on errors.
 export function doctor(dir = process.cwd()): number {
   const loaded = loadManifest(dir)
   if (!loaded) {
@@ -18,10 +18,12 @@ export function doctor(dir = process.cwd()): number {
     errors++
   }
 
-  const missing = missingPluginDeps(manifest, dir)
-  for (const m of missing) {
-    console.error(`✗ plugin not installed: ${m}`)
-    errors++
+  const pluginIds = referencedPluginIds(manifest)
+  if (pluginIds.length > 0) {
+    console.warn(
+      `⚠ plugins referenced by manifest are resolved by the platform bundle, not public npm packages: ${pluginIds.join(', ')}`,
+    )
+    warnings++
   }
 
   // Locale coverage: every supported locale should have a translations block if any do.
