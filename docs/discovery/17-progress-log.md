@@ -1,5 +1,46 @@
 # 17 — Progress Log
 
+## 2026-06-14 00:24 BRT — M11 Generated-app runtime helper contract gated
+
+### Executive outcome
+
+Fayz PR `#927` generated-project scaffold now includes a safe runtime helper:
+
+```txt
+efcc5bee feat(scaffold): add brokered runtime oauth helper
+```
+
+### Business impact
+
+- New generated apps get `src/lib/fayz-runtime.ts` with the expected path for Plugin OAuth exchange and Google Calendar broker calls.
+- Agents are guided to use `createFayzRuntimeClient`, `exchangePluginOAuth`, and brokered Calendar helpers instead of inventing OAuth clients.
+- This lowers the risk of future generated apps putting provider tokens, OAuth secrets, or tenant authority in browser code.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npx tsc --noEmit --skipLibCheck --target ES2020 --module ESNext --moduleResolution bundler --lib ES2020,DOM apps/api/src/modules/projects/scaffold/template/src/lib/fayz-runtime.ts
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+### Self-improvement
+
+Full template typecheck surfaced pre-existing missing dependency noise for shadcn/Radix files plus one real helper issue. The helper issue was fixed and validated in isolation. Until the generated template dependency install is validated end-to-end, use isolated helper typecheck plus scaffold test/build as the gate for helper slices.
+
+### Risk
+
+This is still scaffold-level helper code. The final reusable helper belongs in the open-source SDK once package source and SDK remote are confirmed.
+
+### Next
+
+Tracking updated in Linear `FAY-1182` comment `ef707734-8c40-4aef-9ca1-586894340226` and PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700571162`.
+
+Next decide between packaged SDK helper or provider onboarding UI.
+
 ## 2026-06-14 00:17 BRT — M10 Plugin OAuth revocation/audit foundation committed and pushed
 
 ### Executive outcome

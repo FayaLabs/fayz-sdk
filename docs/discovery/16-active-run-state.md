@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 00:17 BRT
+Last updated: 2026-06-14 00:24 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy plus revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy, revocation/audit foundation, and generated-app helper contract**.
 
 Linear anchor:
 
@@ -28,7 +28,7 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, and revocation/audit foundation into SDK helper contract and provider onboarding UI.
+3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and generated-app helper contract into packaged SDK helper and provider onboarding UI.
 4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 5. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
 6. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
@@ -36,9 +36,44 @@ Current focus:
 Executive answer to Vini's latest check:
 
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
-- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M10 OAuth broker slices are committed/pushed in Fayz.
+- Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, and M6-M11 OAuth broker/scaffold slices are committed/pushed in Fayz.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: implement SDK helper contract/provider onboarding UI on top of the broker, confirm the SDK remote before SDK push, and reconcile Beauty branch before any Beauty commit.
+- Next target: package the SDK helper into real `fayz-sdk` once remote/package-source is confirmed, or implement provider onboarding UI in Fayz after permission/UX is locked.
+
+## M11 Generated-app runtime helper contract — 2026-06-14 00:24 BRT
+
+Result:
+
+- Fayz commit `efcc5bee` pushed to PR `#927`: `feat(scaffold): add brokered runtime oauth helper`.
+- Tracking updated: Linear `FAY-1182` comment `ef707734-8c40-4aef-9ca1-586894340226`; PR comment `https://github.com/FayaLabs/ymaia/pull/927#issuecomment-4700571162`.
+- Added `src/lib/fayz-runtime.ts` to generated project scaffold.
+- Helper standardizes short-lived runtime-data token usage, Plugin OAuth exchange, and Google Calendar broker calls.
+- Generated-agent guide now points agents to the helper and forbids ad hoc OAuth clients/provider API calls from browser code.
+
+Impact:
+
+- New Fayz projects have a safe default path for agenda/calendar plugin calls.
+- This reduces the chance that future agents reintroduce provider tokens or tenant authority into generated apps.
+
+Risk:
+
+- This is a scaffold helper, not the final packaged open-source SDK helper. The package-source/SDK remote decision still blocks publishing it as `@fayz/runtime`.
+- Full template typecheck still has pre-existing missing dependency noise for shadcn/Radix files; the new helper was typechecked in isolation with template-compatible compiler options.
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npx tsc --noEmit --skipLibCheck --target ES2020 --module ESNext --moduleResolution bundler --lib ES2020,DOM apps/api/src/modules/projects/scaffold/template/src/lib/fayz-runtime.ts
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
+npm run build:api
+```
+
+Result: passed.
+
+Self-improvement:
+
+- Full template typecheck surfaced pre-existing missing dependency noise and one real helper type issue. Future template helper work should run isolated helper typecheck plus scaffold test/build until template dependency installation is validated end-to-end.
 
 ## M10 Plugin OAuth revocation/audit foundation — 2026-06-14 00:17 BRT
 
