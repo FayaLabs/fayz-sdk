@@ -1,6 +1,6 @@
 import React from 'react'
 import { ShoppingBag } from 'lucide-react'
-import type { Product } from '@fayz-ai/shop'
+import type { Product } from '@fayz-ai/shop/types'
 import { useCartStore } from '../stores/cart.store'
 import { useStorefrontConfig } from '../config'
 import { Link } from '../router'

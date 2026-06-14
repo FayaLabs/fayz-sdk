@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Product } from '@fayz-ai/shop'
+import type { Product } from '@fayz-ai/shop/types'
 import { roundCents } from '../format'
 import type { ResolvedStorefrontConfig } from '../config'
 

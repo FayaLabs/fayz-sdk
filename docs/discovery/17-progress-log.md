@@ -1,5 +1,75 @@
 # 17 — Progress Log
 
+## 2026-06-14 18:09 BRT — M51 Shop/storefront boundary correction
+
+Resultado:
+
+- Restored `@fayz-ai/storefront` as the internal customer-facing store UI/template boundary.
+- Kept `@fayz-ai/shop` as the internal domain/provider/catalog/backend primitive boundary.
+- Kept `@fayz-ai/sdk/shop` as the public SDK-backed data access path.
+- Updated Shopfront, Tannat, and Pulse to import `defineStorefront`, templates, components, and `StorefrontConfig` from `@fayz-ai/storefront`.
+- Kept mock catalog helpers on `@fayz-ai/shop/catalog`.
+- Restored Tailwind scans for store UI to `packages/storefront/src`.
+
+Impacto:
+
+- Corrects the architecture vocabulary before it hardens into generated apps.
+- Avoids a confusing “shop does everything” package while still keeping public npm surface limited to `@fayz-ai/sdk`.
+- Better matches the product model: shop is API/domain; storefront is the store front-end.
+
+Risco:
+
+- App templates/generator still need to centralize this wiring so aliases and Tailwind scans are not manually copied per app.
+- The earlier M50 guidance cleanup is superseded by this correction.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/shop typecheck`
+  - `pnpm --filter @fayz-ai/shop build`
+  - `pnpm --filter @fayz-ai/storefront typecheck`
+  - `pnpm --filter @fayz-ai/storefront build`
+  - `pnpm --filter @fayz-ai/app-runtime typecheck`
+  - `pnpm build` in Shopfront
+  - `pnpm build` in Tannat
+  - `pnpm build` in Pulse
+
+Next:
+
+- Update generated-project templates to emit the same split: public `@fayz-ai/sdk`, local/internal `@fayz-ai/storefront` for UI, `@fayz-ai/shop/catalog` only for explicit mock catalog helpers.
+- Restart shop dev servers so Vite picks up restored storefront aliases.
+
+## 2026-06-14 18:00 BRT — M50 Shop scaffold guidance cleanup
+
+Superseded by M51: the better architecture keeps `storefront` as the customer-facing UI boundary and `shop` as the backend/domain boundary.
+
+Resultado:
+
+- Updated the agent/scaffold guide from the removed `@fayz-ai/storefront` package to the current internal `@fayz-ai/shop` storefront path.
+- Replaced the stale Tailwind content guidance from `packages/storefront` to `packages/shop`.
+- Removed the deleted `@fayz-ai/storefront` package from the Changesets linked package list.
+
+Impacto:
+
+- Reduces the chance that the next shop scaffold or agent-created app repeats the CSS purge bug that broke Shopfront, Tannat, and Pulse.
+- Keeps the public package decision clear: `@fayz-ai/sdk` remains the only required public package; shop remains internal/local until dogfood proves a public boundary.
+
+Risco:
+
+- This fixes the operational guide/release config, not the generator source itself. The generator/template still needs a centralized style-content helper or preset contract.
+
+Gate:
+
+- Passed:
+  - no `@fayz-ai/storefront` / `packages/storefront` references remain in `docs/agent-guide.md` or `.changeset/config.json`
+  - `pnpm --filter @fayz-ai/shop typecheck`
+  - `pnpm --filter @fayz-ai/app-runtime typecheck`
+
+Next:
+
+- Find the actual generated-project template path in Fayz and move Tailwind SDK package scans into a single scaffold-owned convention.
+- Continue product QA for the three shops before rating the shop vertical near 9/10.
+
 ## 2026-06-14 17:58 BRT — M49 Shop app Tailwind scan repair
 
 Resultado:

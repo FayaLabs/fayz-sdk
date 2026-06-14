@@ -21,7 +21,7 @@ export function resolveAuthAdapter(
   if (configured && configured !== 'mock' && configured !== 'supabase') return configured
   if (configured === 'supabase') {
     console.warn(
-      '@fayz-ai/storefront: auth.adapter="supabase" is legacy. Pass an explicit AuthAdapter or use the Fayz SDK broker path.',
+      '@fayz-ai/shop: auth.adapter="supabase" is legacy. Pass an explicit AuthAdapter or use the Fayz SDK broker path.',
     )
   }
   return createMockAuthAdapter()

@@ -52,7 +52,7 @@ export function initStorefrontRuntime(config: StorefrontConfig): void {
 
   if (config.supabaseUrl || config.supabaseAnonKey) {
     console.warn(
-      '@fayz-ai/storefront: supabaseUrl/supabaseAnonKey are legacy fields. Pass an explicit provider/adapter or use the Fayz SDK broker path.',
+      '@fayz-ai/shop: supabaseUrl/supabaseAnonKey are legacy fields. Pass an explicit provider/adapter or use the Fayz SDK broker path.',
     )
   }
 }

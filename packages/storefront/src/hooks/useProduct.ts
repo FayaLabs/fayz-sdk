@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getShopProvider } from '@fayz-ai/shop'
-import type { Product } from '@fayz-ai/shop'
+import { getShopProvider } from '@fayz-ai/shop/runtime'
+import type { Product } from '@fayz-ai/shop/types'
 
 export function useProduct(slug: string): {
   product: Product | null

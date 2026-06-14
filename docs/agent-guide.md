@@ -970,9 +970,16 @@ export const App = createSaasApp({
 
 ---
 
-## @fayz-ai/shop — Ecommerce package
+## @fayz-ai/shop — internal shop domain/provider package
 
-`@fayz-ai/shop` is the ecommerce layer, a peer to `@fayz-ai/saas`. It uses the **same Supabase project** as the rest of the app (same `VITE_SUPABASE_URL`). No separate database.
+`@fayz-ai/shop` is the internal ecommerce domain/provider layer: products, orders,
+customers, discounts, catalog mocks, tenant scoping, and backend adapters. It is not
+the customer-facing storefront UI package. Generated/customer apps should still treat
+`@fayz-ai/sdk` as the only public required package; shop internals are reached through
+local workspace aliases/templates until dogfood proves a stable public boundary.
+
+For real app data access, prefer the public SDK path (`@fayz-ai/sdk/shop` now,
+eventually `fayz.shop.*`) so the app repo does not own provider plumbing.
 
 ### Tables required (add to your Supabase migrations)
 
@@ -1173,13 +1180,14 @@ RLS is applied via `tenant_id` on all tables. The auth user → tenant mapping i
 
 ---
 
-## @fayz-ai/storefront — customer-facing ecommerce template
+## @fayz-ai/storefront — internal customer-facing ecommerce template
 
-The storefront counterpart of `createSaasApp`: a Shopify-style **public store**
+The storefront counterpart of the SaaS app shell: a Shopify-style **public store**
 (catalog, filters, cart, checkout, purchase history) — not an admin. Use it when
 the project is an online store the *customers* visit; use `createShopPlugin`
-inside `createSaasApp` for the merchant back office. They share `@fayz-ai/shop`
-(same provider, same tables), so one Supabase project powers both.
+inside the merchant back office. `@fayz-ai/storefront` owns front-end store assembly;
+`@fayz-ai/shop` owns domain/provider primitives; `@fayz-ai/sdk/shop` owns Fayz-backed
+data access.
 
 ```typescript
 import { createStorefrontApp } from '@fayz-ai/storefront'
@@ -1224,7 +1232,7 @@ Template personalities: `mare` (airy fashion, Rio), `sertao` (editorial serif, U
 ### Per-store catalog + auth
 
 ```typescript
-import { buildMockCatalog } from '@fayz-ai/shop'
+import { buildMockCatalog } from '@fayz-ai/shop/catalog'
 
 const catalog = buildMockCatalog({
   categories: [{ name: 'Tintos' }],
