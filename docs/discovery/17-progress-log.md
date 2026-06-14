@@ -1,5 +1,31 @@
 # 17 — Progress Log
 
+## 2026-06-14 18:51 BRT — M55 Fayz scaffold learns storefront slot contracts
+
+Resultado:
+
+- Updated Fayz ecommerce integration prompt to require `productCardSlotContract` for custom `ProductCard` slots.
+- Updated generated-project `AGENTS.md` with the same rule.
+- Updated ecommerce integration README and scaffold library guidelines.
+
+Impacto:
+
+- The generator no longer just knows the package split; it now knows how to preserve storefront QA/agent contracts when apps customize UI.
+- This closes the loop from dogfood bug → SDK helper → generated-project guidance.
+
+Risco:
+
+- This is still guidance, not a full dedicated storefront scaffold. The real template should later emit a custom-card example using the helper.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @wowsome/api build`
+
+Next:
+
+- Continue fourth-app dogfood and then create the dedicated storefront scaffold once the app shape is 9/10.
+
 ## 2026-06-14 18:43 BRT — M54 SDK-owned storefront slot contract helper
 
 Resultado:
