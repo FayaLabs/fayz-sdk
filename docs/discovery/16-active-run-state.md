@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 12:39 BRT
+Last updated: 2026-06-14 15:55 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green for Beauty style restoration in the new manifest/runtime path, green for Pulse/Tannat storefront config-folder dogfood, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -37,8 +37,10 @@ Current focus:
 9. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
 10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, keep improving `resto-saas`, `shopfront`, and at least one more Fayz app until 4 apps reach roughly 9/10. Only after that should Fayz Agents be taught to operate `fayz-sdk`.
 11. Generated apps should not own direct provider clients by default. `integrations/supabase` is a smell for generated apps unless hidden behind an optional SDK adapter; default API/data access should go through `@fayz-ai/sdk` / Fayz broker, Base44-style.
-12. Current SDK/API abstraction proof: Beauty dashboard KPI and today-schedule section now call `fayz.data.countRows/listRows` instead of importing Supabase directly. Next frontier is moving remaining app/plugin provider wiring behind SDK/platform adapters.
-13. Current `createSaasApp` deprecation proof: Beauty now builds locally with `FayzAppConfig.org` and no `SaasAppConfig`/`organization` config references. Browser smoke opened `http://localhost:5180/` successfully. Because Beauty is ahead/behind with broad worktree changes, do not commit Beauty without curated staging.
+12. Current SDK/API abstraction proof: Beauty dashboard KPI and today-schedule section now call `fayz.data.countRows/listRows` instead of importing Supabase directly. Next frontier is moving remaining app/plugin/provider wiring behind SDK/platform adapters.
+13. Current `createSaasApp` deprecation proof: Beauty now builds locally with `FayzAppConfig.org` and no `SaasAppConfig`/`organization` config references. Browser smoke opened `http://localhost:5180/` successfully. Because Beauty has broad unrelated worktree changes, do not commit Beauty without curated staging.
+14. Storefront proof: Shopfront, Tannat, and Pulse now prove the right direction: catalog/checkout/profile/header/footer are platform-owned in `packages/storefront`, while each store owns config, theme, catalog, copy, images, and business-specific customization. Next step is reducing internal provider leakage and making the local/private storefront boundary feel like one clean SDK-backed contract.
+15. Current running ports for Vini inspection: Beauty `5180`, Resto `5181`, Shopfront `5183`, Tannat `5184`, Pulse `5185`.
 
 Idle-loop rule:
 
@@ -52,6 +54,31 @@ Executive answer to Vini's latest check:
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: curate/package Beauty source-only migration proof, then remove remaining provider leaks and continue fourth-app dogfood.
+
+## M37 Beauty style fix + storefront dogfood cleanup — 2026-06-14 15:55 BRT
+
+Result:
+
+- Restored Beauty theming in the new `renderApp(defineSaas(config))` path by applying the theme store initialization inside the shared admin provider stack.
+- Left five local apps running for inspection: Beauty `5180`, Resto `5181`, Shopfront `5183`, Tannat `5184`, Pulse `5185`.
+- Confirmed all five ports return HTTP 200.
+- Refactored Pulse and Tannat toward the Shopfront shape: tiny `App.tsx`, config in `/src/config`, `@fayz-ai/*` local aliases, and only `@fayz-ai/sdk` as the public dependency.
+- Verified Pulse and Tannat with `pnpm build`.
+
+Impact:
+
+- Beauty no longer loses brand styling just because it uses the new manifest/runtime path.
+- The three storefronts now show the intended product split: shared platform owns storefront mechanics; each client app owns theme, catalog, copy, images, and business configuration.
+
+Risk:
+
+- Storefront builds still show Supabase pulled internally through SDK/platform packages. That is acceptable for local dogfood, but it is the next architecture cleanup before calling storefront 9/10.
+- `@fayz-ai/core`, `@fayz-ai/storefront`, `@fayz-ai/shop`, and `@fayz-ai/ui` remain internal/local implementation imports; do not publish them as public product API yet.
+
+Next:
+
+- Package the SDK theme fix and Pulse/Tannat dogfood commits after staged diff review.
+- Continue storefront abstraction: define override slots/data-provider contract so checkout/catalog/profile stay shared without blocking deep client customization.
 
 ## M36 Beauty `FayzAppConfig.org` local migration proof — 2026-06-14 12:39 BRT
 

@@ -17,6 +17,9 @@ import { PermissionsProvider } from '../permissions/context'
 import { useBillingStore } from '../billing/store'
 import type { Plan } from '@fayz-ai/core'
 import type { PlanConfig } from '../shell/types/billing'
+import { useThemeStore } from '../shell/stores/theme.store'
+import { resolveTheme, type CreateThemeOptions } from '../shell/config/theme/utils'
+import type { SaasTheme } from '../shell/config/theme/tokens'
 import { AdminShell } from './AdminShell'
 import { useAdminPath } from './routing'
 import type { FayzAppConfig } from './config'
@@ -102,6 +105,30 @@ function normalizeBillingPlan(plan: PlanConfig): Plan {
   }
 }
 
+function ThemeInitializer({ config }: { config: FayzAppConfig }) {
+  const initialize = useThemeStore((s) => s.initialize)
+  const setOverrides = useThemeStore((s) => s.setOverrides)
+  const setMode = useThemeStore((s) => s.setMode)
+
+  React.useEffect(() => {
+    if (config.theme) {
+      const isSaasTheme = 'brand' in config.theme && (
+        'radius' in config.theme || 'sidebar' in config.theme || 'font' in config.theme
+      )
+      const resolved = isSaasTheme
+        ? resolveTheme(config.theme as SaasTheme)
+        : config.theme as CreateThemeOptions
+      setOverrides(resolved)
+    }
+    if (config.defaultThemeMode && typeof window !== 'undefined' && !localStorage.getItem('saas-core:theme-mode')) {
+      setMode(config.defaultThemeMode)
+    }
+    initialize()
+  }, [config.defaultThemeMode, config.theme, initialize, setMode, setOverrides])
+
+  return null
+}
+
 // ---------------------------------------------------------------------------
 // AdminProviders — the provider stack shared by the createFayzApp/createSaasApp
 // sugar path AND the manifest-driven AdminScaffold. Resolves adapters + i18n
@@ -153,6 +180,7 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
         <PluginRuntimeProvider value={runtime}>
           <PermissionsProvider config={config.permissions}>
             <I18nProvider value={resolved.i18n}>
+              <ThemeInitializer config={config} />
               <BillingInitializer config={config} />
               {children}
             </I18nProvider>

@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 15:55 BRT — M37 Beauty style fix + storefront dogfood cleanup
+
+Resultado:
+
+- Beauty style regression fixed in the new `renderApp(defineSaas(config))` path by applying theme initialization in the shared admin provider stack.
+- Apps are running for inspection:
+  - Beauty: `http://localhost:5180/`
+  - Resto: `http://localhost:5181/`
+  - Shopfront: `http://localhost:5183/`
+  - Tannat: `http://localhost:5184/`
+  - Pulse: `http://localhost:5185/`
+- All five ports returned HTTP 200.
+- Pulse and Tannat moved closer to the target app shape: tiny `App.tsx`, `/src/config` ownership for app/catalog settings, `@fayz-ai/*` local aliases, and only `@fayz-ai/sdk` as public dependency.
+
+Impacto:
+
+- Confirms the storefront direction: shared platform owns catalog/checkout/profile/header/footer; each store owns business config, theme, catalog, copy, and images.
+- Confirms Beauty can continue migrating away from `createSaasApp` without sacrificing brand styling.
+
+Risco:
+
+- Storefront still pulls Supabase internally through platform/auth code during build. That should move behind the SDK/Fayz broker path before rating storefront 9/10.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/pulse-store`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/tannat-store`
+
 ## 2026-06-14 12:39 BRT — M36 Beauty `FayzAppConfig.org` local migration proof
 
 ### Executive outcome
