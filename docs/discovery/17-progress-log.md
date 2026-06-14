@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:52 UTC / 20:52 BRT — M75 Resto env-gated Orders provider wiring
+
+Resultado:
+
+- Added `src/config/orders.ts` in Resto.
+- Resto now activates `createFayzOrdersProvider()` when `VITE_FAYZ_ORDERS_PROVIDER=fayz` or `sdk`.
+- Local dev keeps the mock provider fallback when env is absent.
+- Resto build and authenticated `/orders` smoke remain green.
+
+Impacto:
+
+- Orders now matches Menu/Tables in app shape: config/env in app, private plugin owns provider/UI, public SDK owns API transport.
+- Resto can switch all three restaurant domains from mock to Fayz SDK-backed data without app code changes.
+
+Risco:
+
+- Real Orders provider activation still needs concrete Fayz project/runtime token and table contract validation.
+- Payments, table sessions, delivery channels, and fulfillment events may still need broker-owned semantics beyond raw row CRUD.
+
+Proximo:
+
+- Run a real Orders provider smoke once env/tables are supplied.
+- Then move attention back to Beauty provider leaks or shop/storefront dogfood depth.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/orders
+```
+
 ## 2026-06-14 23:45 UTC / 20:45 BRT — M74 private Orders provider on SDK data API
 
 Resultado:
