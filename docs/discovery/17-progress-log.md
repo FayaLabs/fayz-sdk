@@ -1,5 +1,34 @@
 # 17 — Progress Log
 
+## 2026-06-14 22:45 UTC / 19:45 BRT — M65 Resto authenticated route smoke
+
+Resultado:
+
+- Ran an authenticated Resto smoke with the mock auth path.
+- Confirmed these routes avoid 404/loading traps: `/clients`, `/settings`, `/registry/staff`, `/menu`, `/tables`, `/sales/leads/list`.
+- Resto production build remains green.
+
+Impacto:
+
+- Resto route/runtime parity is no longer the immediate risk. The next Resto work should be app quality: replacing placeholder Menu/Tables surfaces with reusable SDK/plugin-backed restaurant capabilities.
+- This keeps the dogfood program focused on whether SDK/app-shell abstractions improve real app usefulness, not just whether routes compile.
+
+Risco:
+
+- `/menu` and `/tables` currently render "coming soon" style screens, so Resto is not near 9/10 yet.
+- `/sales/leads/list` reaches CRM but shows onboarding until setup is skipped/completed.
+
+Proximo:
+
+- Define the next Resto app-score slice: make Menu/Tables useful through existing plugin surfaces or document the missing SDK/plugin capability if the abstraction is not ready.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/
+```
+
 ## 2026-06-14 22:39 UTC / 19:39 BRT — M64 Beauty authenticated route smoke
 
 Resultado:
