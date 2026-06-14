@@ -81,7 +81,7 @@ function normalizeBaseUrl(baseUrl: string): string {
 
 function assertRequired(value: string, field: string): string {
   const normalized = value.trim()
-  if (!normalized) throw new Error(`[@fayz/core] ${field} is required`)
+  if (!normalized) throw new Error(`[@fayz-ai/core] ${field} is required`)
   return normalized
 }
 
@@ -119,7 +119,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const message = typeof body === 'object' && body && 'message' in body
       ? String((body as { message: unknown }).message)
-      : `[@fayz/core] Runtime request failed with status ${response.status}`
+      : `[@fayz-ai/core] Runtime request failed with status ${response.status}`
     throw new FayzRuntimeError(message, response.status, body)
   }
 

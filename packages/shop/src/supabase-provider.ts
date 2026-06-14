@@ -1,4 +1,4 @@
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import type { ShopProvider } from './provider'
 import { getShopTenantId } from './tenant'
 import type {
@@ -13,7 +13,7 @@ import type {
 
 function getDb(): any {
   const supabase = getSupabaseClientOptional()
-  if (!supabase) throw new Error('@fayz/shop: Supabase client not initialized. Call setGlobalSupabaseClient() first.')
+  if (!supabase) throw new Error('@fayz-ai/shop: Supabase client not initialized. Call setGlobalSupabaseClient() first.')
   return supabase
 }
 

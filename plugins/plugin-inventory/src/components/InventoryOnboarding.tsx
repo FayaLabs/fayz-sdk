@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Package, Ruler, MapPin, ChevronRight, Check } from 'lucide-react'
-import { useTranslation } from '@fayz/core'
-import { Button } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { Button } from '@fayz-ai/ui'
 
 const STEPS = [
   { id: 'welcome', icon: Package, titleKey: 'inventory.onboarding.welcome', descKey: 'inventory.onboarding.description' },

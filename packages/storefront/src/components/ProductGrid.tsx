@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Product } from '@fayz/shop'
+import type { Product } from '@fayz-ai/shop'
 import { ProductCard } from './ProductCard'
 import { TID } from '../testids'
 

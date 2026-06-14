@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { setGlobalSupabaseClient } from '@fayz/core'
+import { setGlobalSupabaseClient } from '@fayz-ai/core'
 
 /** Schema name for core platform tables */
 export const CORE_SCHEMA = 'saas_core'
@@ -8,7 +8,7 @@ let _client: SupabaseClient | null = null
 
 /**
  * Create (and cache) the Supabase client for the Fayz app.
- * Also registers it as the global client in @fayz/core so data providers
+ * Also registers it as the global client in @fayz-ai/core so data providers
  * can resolve it without prop-drilling.
  *
  * Idempotent — subsequent calls with the same URL return the cached client.
@@ -18,7 +18,7 @@ export function createFayzSupabaseClient(url: string, anonKey: string): Supabase
 
   if (!url || !anonKey) {
     throw new Error(
-      '[@fayz/saas] Supabase URL and anon key are required. ' +
+      '[@fayz-ai/saas] Supabase URL and anon key are required. ' +
         'Pass supabaseUrl and supabaseAnonKey to createFayzApp.',
     )
   }
@@ -27,7 +27,7 @@ export function createFayzSupabaseClient(url: string, anonKey: string): Supabase
     auth: { autoRefreshToken: true, persistSession: true },
   })
 
-  // Register globally so @fayz/core data providers can use it
+  // Register globally so @fayz-ai/core data providers can use it
   setGlobalSupabaseClient(_client)
 
   return _client
@@ -37,7 +37,7 @@ export function createFayzSupabaseClient(url: string, anonKey: string): Supabase
 export function getFayzSupabaseClient(): SupabaseClient {
   if (!_client) {
     throw new Error(
-      '[@fayz/saas] Supabase client not initialised. Call createFayzApp with supabaseUrl and supabaseAnonKey first.',
+      '[@fayz-ai/saas] Supabase client not initialised. Call createFayzApp with supabaseUrl and supabaseAnonKey first.',
     )
   }
   return _client

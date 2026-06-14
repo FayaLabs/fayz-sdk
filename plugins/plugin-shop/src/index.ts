@@ -1,7 +1,7 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
-import { setShopTenantResolver } from '@fayz/shop'
-import { useOrganizationStore } from '@fayz/saas'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import { setShopTenantResolver } from '@fayz-ai/shop'
+import { useOrganizationStore } from '@fayz-ai/saas'
 
 const ShopPage = React.lazy(() => import('./ShopPage').then((m) => ({ default: m.ShopPage })))
 
@@ -125,9 +125,9 @@ export function createShopPlugin(options?: ShopPluginOptions): PluginManifest {
   }
 }
 
-// Re-export shop types so consumer apps only need @fayz/plugin-shop
+// Re-export shop types so consumer apps only need @fayz-ai/plugin-shop
 export type {
   Product, Order, ShopCustomer, Discount, Category,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions,
-} from '@fayz/shop'
+} from '@fayz-ai/shop'

@@ -1,5 +1,5 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { TablesDataProvider, TableSession } from './types'
 import { tablesRegistries } from './registries'
 import { tablesLocales } from './locales'

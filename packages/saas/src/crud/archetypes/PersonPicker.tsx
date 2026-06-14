@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, Plus, X, User, Loader2, Check } from 'lucide-react'
-import { Input } from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { Input } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import { useOrganizationStore } from '../../org'
 
 interface Person {

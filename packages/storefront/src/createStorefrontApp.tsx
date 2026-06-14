@@ -1,6 +1,6 @@
 import React from 'react'
-import { setGlobalSupabaseClient } from '@fayz/core'
-import { setShopProvider, createMockShopProvider } from '@fayz/shop'
+import { setGlobalSupabaseClient } from '@fayz-ai/core'
+import { setShopProvider, createMockShopProvider } from '@fayz-ai/shop'
 import { initCustomerAuth, resolveAuthAdapter } from './auth'
 import { StorefrontConfigProvider, resolveConfig, useStorefrontConfig } from './config'
 import type { StorefrontConfig } from './config'

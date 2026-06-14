@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { getShopProvider } from '@fayz/shop'
+import { getShopProvider } from '@fayz-ai/shop'
 
 export interface DiscountValidation {
   valid: boolean

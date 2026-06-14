@@ -58,7 +58,7 @@ export function renderApp(
   const Scaffold = getScaffold(surface.scaffold)
   if (!Scaffold) {
     throw new Error(
-      `Scaffold "${surface.scaffold}" is not registered. Import the package that provides it (e.g. @fayz/saas or @fayz/storefront) before calling renderApp.`,
+      `Scaffold "${surface.scaffold}" is not registered. Import the package that provides it (e.g. @fayz-ai/saas or @fayz-ai/storefront) before calling renderApp.`,
     )
   }
   return React.createElement(

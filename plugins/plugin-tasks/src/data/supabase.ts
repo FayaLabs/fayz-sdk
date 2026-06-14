@@ -1,6 +1,6 @@
 import type { TasksDataProvider } from './types'
 import type { Task, TaskLabel, TasksSummary, TaskStatus } from '../types'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import { getTasksTenantId } from '../lib/tenant'
 
 function getTenantId(): string | undefined {

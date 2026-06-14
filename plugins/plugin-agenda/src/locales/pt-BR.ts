@@ -97,6 +97,7 @@ export const ptBR: Record<string, string> = {
   "agenda.contextMenu.notAvailable": "(indisponível)",
   "agenda.index.settingsSubtitle": "Horários de funcionamento, preferências de agendamento e confirmações",
   "agenda.index.settingsTitle": "Configurações da Agenda",
+  "settings.plugin.agenda-working-hours": "Horário de Funcionamento",
   "agenda.popover.unknown": "Desconhecido",
   "agenda.settings.autoConfirm": "Confirmar Automaticamente",
   "agenda.settings.autoConfirmDesc": "Confirmar automaticamente novos agendamentos",

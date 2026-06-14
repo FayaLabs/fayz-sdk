@@ -4,7 +4,7 @@ import { useProducts } from '../hooks/useProducts'
 import { ProductGrid } from '../components/ProductGrid'
 import { FiltersPanel } from '../components/FiltersPanel'
 import { useStorefrontConfig } from '../config'
-import type { ListProductsOptions } from '@fayz/shop'
+import type { ListProductsOptions } from '@fayz-ai/shop'
 
 const SORT_MAP: Record<string, Pick<ListProductsOptions, 'orderBy' | 'order'>> = {
   newest: { orderBy: 'created_at', order: 'desc' },

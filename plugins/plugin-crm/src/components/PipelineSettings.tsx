@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { useCrmStore } from '../CrmContext'
-import { SettingsGroup } from '@fayz/saas'
-import { useTranslation } from '@fayz/core'
+import { SettingsGroup } from '@fayz-ai/saas'
+import { useTranslation } from '@fayz-ai/core'
 
 export function PipelineSettings() {
   const t = useTranslation()

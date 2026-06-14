@@ -5,7 +5,7 @@ import {
   ChevronDown, CircleDot, Tags, CheckSquare,
   Image, GalleryHorizontalEnd, Receipt,
 } from 'lucide-react'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import type { FormFieldType } from '../types'
 
 export interface FieldTypeItem {

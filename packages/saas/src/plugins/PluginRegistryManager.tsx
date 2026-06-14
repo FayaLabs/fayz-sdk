@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react'
-import type { PluginRegistryDef } from '@fayz/core'
-import type { EntityDef } from '@fayz/core'
+import type { PluginRegistryDef } from '@fayz-ai/core'
+import type { EntityDef } from '@fayz-ai/core'
 import { createCrudStore } from '../stores/createCrudStore'
-import { createMockProvider } from '@fayz/core'
+import { createMockProvider } from '@fayz-ai/core'
 import { CrudPage } from '../crud/CrudPage'
-import { cn } from '@fayz/ui'
-import { ICON_MAP } from '@fayz/ui'
+import { cn } from '@fayz-ai/ui'
+import { ICON_MAP } from '@fayz-ai/ui'
 
 /**
  * Internal CRUD view for a single registry.

@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react'
 import { FileText, Pencil } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { DataTable } from '@fayz/ui'
+import { DataTable } from '@fayz-ai/ui'
 import { useCrmStore, useCrmConfig, formatCurrency } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 import type { Quote } from '../types'
 
 const STATUS_COLORS: Record<string, string> = {

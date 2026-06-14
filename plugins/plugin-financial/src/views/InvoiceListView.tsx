@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { FileText, CircleDashed, CircleEllipsis, CircleCheckBig, CircleAlert, Ban } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ListView } from '@fayz/ui'
+import { ListView } from '@fayz-ai/ui'
 import { useFinancialConfig, useFinancialStore, formatCurrency } from '../FinancialContext'
-import { SubpageHeader } from '@fayz/ui'
-import { PersonLink } from '@fayz/saas'
-import { useTranslation } from '@fayz/core'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { PersonLink } from '@fayz-ai/saas'
+import { useTranslation } from '@fayz-ai/core'
 import type { TransactionDirection, InvoiceStatus, Invoice } from '../types'
 
 const STATUS_OPTIONS: { value: InvoiceStatus; labelKey: string; color: string; icon: React.ElementType }[] = [

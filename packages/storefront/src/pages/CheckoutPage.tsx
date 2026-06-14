@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { CreditCard, Lock, PackageCheck } from 'lucide-react'
-import { getShopProvider } from '@fayz/shop'
+import { getShopProvider } from '@fayz-ai/shop'
 import { prefersReducedMotion } from '../motion'
 import {
   useCartStore,

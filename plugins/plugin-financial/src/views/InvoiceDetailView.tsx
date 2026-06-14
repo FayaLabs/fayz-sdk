@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Pencil, DollarSign, FileText, Calendar, Hash, User, X, MoreVertical, Ban, ChevronDown, CreditCard, Banknote, Building2, CircleDashed, CircleEllipsis, CircleCheckBig, CircleAlert, CalendarDays, ExternalLink } from 'lucide-react'
-import { PersonLink } from '@fayz/saas'
+import { PersonLink } from '@fayz-ai/saas'
 import { useFinancialConfig, useFinancialStore, useFinancialProvider, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
-import { SubpageHeader } from '@fayz/ui'
+import { SubpageHeader } from '@fayz-ai/ui'
 import { PaymentModal } from '../components/PaymentModal'
-import { useTranslation } from '@fayz/core'
-import { Button } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { Button } from '@fayz-ai/ui'
 import type { Invoice, InvoiceItem, FinancialMovement, TransactionDirection } from '../types'
 
 const STATUS_COLORS: Record<string, { bg: string; icon: React.ElementType; labelKey: string }> = {

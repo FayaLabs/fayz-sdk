@@ -1,6 +1,6 @@
 import * as React from 'react'
-import type { OrgAdapter, Organization, OrgMembership } from '@fayz/core'
-import { useAuthStore } from '@fayz/auth'
+import type { OrgAdapter, Organization, OrgMembership } from '@fayz-ai/core'
+import { useAuthStore } from '@fayz-ai/auth'
 import { useOrganizationStore, getPersistedOrgId } from './store'
 
 // ---------------------------------------------------------------------------

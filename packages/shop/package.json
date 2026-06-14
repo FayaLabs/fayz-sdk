@@ -1,5 +1,5 @@
 {
-  "name": "@fayz/shop",
+  "name": "@fayz-ai/shop",
   "version": "0.1.0",
   "description": "Fayz SDK ecommerce layer — products, orders, customers, discounts, shipping",
   "type": "module",
@@ -37,7 +37,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fayz/core": "workspace:*",
+    "@fayz-ai/core": "workspace:^",
     "@supabase/supabase-js": "^2.45.0"
   },
   "peerDependencies": {

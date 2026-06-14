@@ -283,7 +283,7 @@ export function createMockAgendaProvider(): AgendaDataProvider {
         assigneeId: input.assigneeId, locationId: input.locationId ?? null,
         dayOfWeek: input.dayOfWeek ?? null, specificDate: input.specificDate ?? null,
         startsAt: input.startsAt, endsAt: input.endsAt,
-        isActive: input.isActive !== false, metadata: {},
+        isActive: input.isActive !== false, metadata: input.metadata ?? {},
       }
       schedules.push(schedule)
       return schedule

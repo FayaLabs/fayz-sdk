@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { getShopProvider } from '@fayz/shop'
-import type { Product, Order, ShopCustomer, Discount, ListProductsOptions } from '@fayz/shop'
+import { getShopProvider } from '@fayz-ai/shop'
+import type { Product, Order, ShopCustomer, Discount, ListProductsOptions } from '@fayz-ai/shop'
 
 // ---------------------------------------------------------------------------
 // Shared helpers

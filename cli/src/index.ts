@@ -5,7 +5,7 @@ import { extract } from './commands/extract.js'
 const HELP = `fayz — Fayz SDK CLI
 
 Usage:
-  fayz create <storefront|admin> <name>   Scaffold a new repo-per-app project
+  fayz create <storefront|admin|member> <name>   Scaffold a new repo-per-app project
   fayz doctor [dir]                       Validate app.manifest.json + plugin deps
   fayz extract [dir]                      Assisted code-config → manifest migration
   fayz --help                             Show this help

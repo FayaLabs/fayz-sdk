@@ -1,6 +1,6 @@
 import React from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Button } from '@fayz/ui'
+import { Button } from '@fayz-ai/ui'
 
 interface ReportPaginationProps {
   page: number

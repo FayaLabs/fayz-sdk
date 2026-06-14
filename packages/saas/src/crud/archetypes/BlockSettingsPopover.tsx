@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { X, ChevronDown } from 'lucide-react'
 import type { BlockSettings } from '../../lib/schedule-service'
 import type { ScheduleBlockConfig } from '../../lib/schedule-config'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Props

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Check, Banknote, QrCode, CreditCard, ArrowRightLeft, FileCheck, ExternalLink } from 'lucide-react'
 import { useAgendaConfig } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import type { BookingPaymentDetail } from '../financial-bridge'
 
 // ---------------------------------------------------------------------------

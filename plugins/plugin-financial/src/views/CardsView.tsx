@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react'
 import { CreditCard, Check } from 'lucide-react'
 import { useFinancialConfig, useFinancialStore, formatCurrency } from '../FinancialContext'
-import { SubpageHeader } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 
 export function CardsView() {
   const t = useTranslation()

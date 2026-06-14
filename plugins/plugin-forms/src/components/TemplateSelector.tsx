@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { FileText, Search } from 'lucide-react'
-import { Input } from '@fayz/ui'
-import { Badge } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { Input } from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { CustomFormsDataProvider } from '../data/types'
 import type { FormTemplate } from '../types'
 

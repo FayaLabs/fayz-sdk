@@ -1,5 +1,5 @@
 import type React from 'react'
-import type { VerticalId } from '@fayz/core'
+import type { VerticalId } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // KPI Metric system

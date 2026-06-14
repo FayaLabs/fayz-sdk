@@ -6,7 +6,7 @@ import type {
   ProductQuery, MovementQuery,
   PaginatedResult, InventorySummary, MovementType,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import { getInventoryTenantId } from '../lib/tenant'
 
 function getTenantId(): string | undefined {

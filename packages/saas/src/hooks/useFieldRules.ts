@@ -1,4 +1,4 @@
-import type { FieldDef } from '@fayz/core'
+import type { FieldDef } from '@fayz-ai/core'
 
 // Tenant field-rule overrides (required / visibility / custom fields). Currently
 // a permissive identity pass-through; tenant-level customization (blueprint

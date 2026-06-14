@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { ArrowLeft, Trash2, Calendar, ChevronDown } from 'lucide-react'
 import { useTasksStore } from '../TasksContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import { TaskPriorityBadge } from './TaskPriorityBadge'
 import { TaskLabelBadges } from './TaskLabelBadge'
 import { TaskQuickAdd } from './TaskQuickAdd'

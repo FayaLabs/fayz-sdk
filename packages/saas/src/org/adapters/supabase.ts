@@ -6,8 +6,8 @@ import type {
   CreateOrgOptions,
   Location,
   Invite,
-} from '@fayz/core'
-import type { PermissionProfile } from '@fayz/core'
+} from '@fayz-ai/core'
+import type { PermissionProfile } from '@fayz-ai/core'
 import { getFayzSupabaseClient, CORE_SCHEMA } from '../../supabase/client'
 
 // ---------------------------------------------------------------------------
@@ -176,7 +176,7 @@ function buildPermissionProfiles(
       id: role,
       name: capitalize(role),
       isSystem: true,
-      features,
+      grants: features,
     }
   })
 }
@@ -349,7 +349,7 @@ export function createSupabaseOrgAdapter(config?: SupabaseOrgAdapterConfig): Org
       profileId: string,
       data: Partial<PermissionProfile>,
     ): Promise<PermissionProfile> {
-      if (data.features) {
+      if (data.grants) {
         await core()
           .from('tenant_role_overrides')
           .delete()
@@ -363,7 +363,7 @@ export function createSupabaseOrgAdapter(config?: SupabaseOrgAdapterConfig): Org
           granted: boolean
         }> = []
 
-        for (const [category, actions] of Object.entries(data.features)) {
+        for (const [category, actions] of Object.entries(data.grants)) {
           for (const action of actions) {
             const dbActionMap: Record<string, string> = {
               read: 'read',

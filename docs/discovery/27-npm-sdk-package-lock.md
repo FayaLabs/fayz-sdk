@@ -13,10 +13,10 @@ This unblocks generated projects from using SDK packages directly and removes th
 - `@fayz-ai/sdk`: default package for every generated project.
   - Owns app params, normalized Fayz API access, shared types, and Runtime OAuth broker helpers.
   - Must stay browser-safe and focused: no React peer dependency, no UI bundle, no provider secrets.
-- `@fayz-ai/runtime`: app-rendering package.
+- `@fayz-ai/app-runtime`: app-rendering package.
   - Owns `renderApp(manifest)`, styles, scaffolds, registry helpers, and plugin runtime wiring.
   - Used by manifest UI apps, not required for every simple API-only project.
-- `@fayz/core`, `@fayz/auth`, `@fayz/ui`, `@fayz/saas`, plugins:
+- `@fayz-ai/core`, `@fayz-ai/auth`, `@fayz-ai/ui`, `@fayz-ai/saas`, plugins:
   - Remain modular packages for SDK internals and power users.
   - New generated apps should not default to `createSaasApp`.
 
@@ -24,10 +24,10 @@ This unblocks generated projects from using SDK packages directly and removes th
 
 Every generated project may install public npm `@fayz-ai/sdk`.
 
-Manifest-rendered projects also install `@fayz-ai/runtime` and render:
+Manifest-rendered projects also install `@fayz-ai/app-runtime` and render:
 
 ```ts
-import { renderApp } from '@fayz-ai/runtime'
+import { renderApp } from '@fayz-ai/app-runtime'
 import manifest from '../app.manifest.json'
 
 renderApp(manifest)
@@ -44,7 +44,7 @@ Generated projects must not ship local forks of runtime OAuth helpers.
 Generated-project `package.json` should stay thin. Default runtime app dependencies are:
 
 - `@fayz-ai/sdk`
-- `@fayz-ai/runtime`
+- `@fayz-ai/app-runtime`
 - `react`
 - `react-dom`
 
@@ -63,8 +63,8 @@ Before publishing:
 pnpm --filter @fayz-ai/sdk typecheck
 pnpm --filter @fayz-ai/sdk test
 pnpm --filter @fayz-ai/sdk build
-pnpm --filter @fayz-ai/runtime typecheck
-pnpm --filter @fayz-ai/runtime build
+pnpm --filter @fayz-ai/app-runtime typecheck
+pnpm --filter @fayz-ai/app-runtime build
 pnpm check:manifest
 ```
 

@@ -98,6 +98,76 @@ export interface TopbarProps {
   currentPath?: string
   onNavigate?: (route: string) => void
   searchPlaceholder?: string
+  onSignOut?: () => void
+  onProfile?: () => void
+  onSettings?: () => void
+  onBilling?: () => void
+  userMenuExtras?: { label: string; icon?: React.ReactNode; onClick: () => void }[]
+}
+
+function TopbarUserMenu({
+  user,
+  onSignOut,
+  onProfile,
+  onSettings,
+  onBilling,
+  userMenuExtras,
+}: Pick<TopbarProps, 'user' | 'onSignOut' | 'onProfile' | 'onSettings' | 'onBilling' | 'userMenuExtras'>) {
+  const [open, setOpen] = React.useState(false)
+  if (!user) return null
+  const initial = (user.fullName?.trim()?.[0] ?? user.email?.[0] ?? '?').toUpperCase()
+  const item = (label: string, onClick?: () => void, Icon?: LucideIcon) =>
+    onClick ? (
+      <button
+        key={label}
+        onClick={() => { setOpen(false); onClick() }}
+        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-popover-foreground transition-colors hover:bg-muted/70"
+      >
+        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+        <span>{label}</span>
+      </button>
+    ) : null
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          aria-label="User menu"
+          className="ml-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-semibold text-primary-foreground ring-2 ring-transparent transition hover:ring-sidebar-border"
+        >
+          {user.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initial
+          )}
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={8}
+          className="z-50 min-w-[220px] rounded-xl border border-border bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
+        >
+          <div className="border-b border-border px-3 py-2">
+            <p className="truncate text-sm font-medium text-foreground">{user.fullName || user.email}</p>
+            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+          </div>
+          <div className="mt-1 space-y-0.5">
+            {item('Perfil', onProfile, UserCog)}
+            {item('Configurações', onSettings, Settings)}
+            {item('Cobrança', onBilling, CreditCard)}
+            {userMenuExtras?.map((e) => item(e.label, e.onClick))}
+            {onSignOut && (
+              <>
+                <div className="my-1 border-t border-border" />
+                {item('Sair', onSignOut)}
+              </>
+            )}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
 }
 
 export const ICON_MAP: Record<string, LucideIcon> = {
@@ -179,12 +249,18 @@ function NavDropdown({ item, currentPath, onNavigate }: {
 export function Topbar({
   navigation,
   logo,
+  user,
   onMenuClick,
   leftContent,
   rightContent,
   currentPath = '/',
   onNavigate,
   searchPlaceholder = 'Search...',
+  onSignOut,
+  onProfile,
+  onSettings,
+  onBilling,
+  userMenuExtras,
 }: TopbarProps) {
   const setCommandPaletteOpen = useLayoutStore((s) => s.setCommandPaletteOpen)
 
@@ -233,6 +309,14 @@ export function Topbar({
           <div className="flex items-center gap-1">
             {leftContent}
             {rightContent}
+            <TopbarUserMenu
+              user={user}
+              onSignOut={onSignOut}
+              onProfile={onProfile}
+              onSettings={onSettings}
+              onBilling={onBilling}
+              userMenuExtras={userMenuExtras}
+            />
           </div>
         </div>
       </div>

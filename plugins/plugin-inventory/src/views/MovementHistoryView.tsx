@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { ArrowUpRight, ArrowDownRight, RefreshCw, ArrowRightLeft, Trash2 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ListView } from '@fayz/ui'
+import { ListView } from '@fayz-ai/ui'
 import { useInventoryStore, formatCurrency, useInventoryConfig } from '../InventoryContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 import type { MovementType, StockMovement } from '../types'
 
 const TYPE_ICONS: Record<MovementType, React.ElementType> = {

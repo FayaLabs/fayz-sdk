@@ -1,6 +1,6 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
-import type { EntityLookup } from '@fayz/saas'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import type { EntityLookup } from '@fayz-ai/saas'
 import type { MenuDataProvider } from './types'
 import { menuRegistries } from './registries'
 import { menuLocales } from './locales'

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { User, Clock, FileText } from 'lucide-react'
-import { Card, CardContent } from '@fayz/ui'
-import { Badge } from '@fayz/ui'
+import { Card, CardContent } from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
 import { PersonLink } from './EntityLink'
-import { getSupabaseClientOptional } from '@fayz/core'
-import { useTranslation } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { useTranslation } from '@fayz-ai/core'
 
 function ComingSoon({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   const t = useTranslation()

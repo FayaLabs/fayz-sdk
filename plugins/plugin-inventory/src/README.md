@@ -5,7 +5,7 @@ Product catalog, stock management, movement tracking, and recipe/production form
 ## Quick Start
 
 ```typescript
-import { createInventoryPlugin } from '@fayz/saas-core/plugins/inventory'
+import { createInventoryPlugin } from '@fayz-ai/saas-core/plugins/inventory'
 
 // In your createSaasApp config:
 plugins: [
@@ -149,7 +149,7 @@ All tables use `tenant_id` for multi-tenant isolation.
 ### Custom Data Provider
 
 ```typescript
-import type { InventoryDataProvider } from '@fayz/saas-core/plugins/inventory'
+import type { InventoryDataProvider } from '@fayz-ai/saas-core/plugins/inventory'
 
 const supabaseProvider: InventoryDataProvider = {
   async getProducts(query) { /* Supabase query */ },

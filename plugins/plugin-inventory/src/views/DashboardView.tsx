@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Package, AlertTriangle, TrendingDown, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react'
 import { useInventoryConfig, useInventoryStore, formatCurrency } from '../InventoryContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 function StatCard({ label, value, subtitle, icon: Icon, color }: {
   label: string; value: string; subtitle: string; icon: React.ElementType; color: string

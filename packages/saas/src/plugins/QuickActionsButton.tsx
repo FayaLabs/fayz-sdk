@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Plus, X } from 'lucide-react'
-import { cn } from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { ICON_MAP } from '@fayz/ui'
-import type { PluginQuickAction } from '@fayz/core'
+import { cn } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { ICON_MAP } from '@fayz-ai/ui'
+import type { PluginQuickAction } from '@fayz-ai/core'
 
 /**
  * Quick actions button for plugin modules.

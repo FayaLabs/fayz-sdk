@@ -3,7 +3,7 @@ import { useStore, type StoreApi } from 'zustand'
 import type { CrmPluginLabels } from './index'
 import type { CrmDataProvider } from './data/types'
 import type { CrmUIState } from './store'
-import type { EntityLookupMap, EntityLookup } from '@fayz/saas'
+import type { EntityLookupMap, EntityLookup } from '@fayz-ai/saas'
 
 export interface CrmModules {
   quotes: boolean

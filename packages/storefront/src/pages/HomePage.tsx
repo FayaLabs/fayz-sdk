@@ -1,5 +1,5 @@
 import React from 'react'
-import { renderBlocks } from '@fayz/core'
+import { renderBlocks } from '@fayz-ai/core'
 import type { HomeSection } from '../sections'
 import { sectionsToBlocks } from '../blocks'
 

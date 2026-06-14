@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Filter, Globe, Target, ChevronRight, Check } from 'lucide-react'
-import { useTranslation } from '@fayz/core'
-import { Button } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { Button } from '@fayz-ai/ui'
 
 const STEPS = [
   { id: 'welcome', icon: Filter, titleKey: 'crm.onboarding.welcome', descKey: 'crm.onboarding.description' },

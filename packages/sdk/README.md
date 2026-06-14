@@ -59,7 +59,7 @@ const calendars = await runtime.googleCalendar(grant.token).listCalendars()
 ## Package Roles
 
 - `@fayz-ai/sdk`: default SDK package for every generated project.
-- `@fayz-ai/runtime`: manifest app rendering and UI/plugin runtime package. Use it only when rendering a Fayz manifest app.
+- `@fayz-ai/app-runtime`: manifest app rendering and UI/plugin runtime package. Use it only when rendering a Fayz manifest app.
 
 ## Security Boundary
 

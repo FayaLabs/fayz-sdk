@@ -1,5 +1,5 @@
-import { registerBlock } from '@fayz/core'
-import type { BlockNode } from '@fayz/core'
+import { registerBlock } from '@fayz-ai/core'
+import type { BlockNode } from '@fayz-ai/core'
 import type { HomeSection } from './sections'
 import { HeroSection } from './components/sections/HeroSection'
 import { CategoryShowcase } from './components/sections/CategoryShowcase'

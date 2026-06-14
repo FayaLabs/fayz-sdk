@@ -6,9 +6,9 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+} from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 
 interface DeleteConfirmDialogProps {
   open: boolean

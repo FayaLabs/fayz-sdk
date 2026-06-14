@@ -1,5 +1,5 @@
-import type { PluginRegistryDef } from '@fayz/core'
-import type { EntityDef } from '@fayz/core'
+import type { PluginRegistryDef } from '@fayz-ai/core'
+import type { EntityDef } from '@fayz-ai/core'
 
 const allergenEntity: EntityDef = {
   name: 'Allergen',

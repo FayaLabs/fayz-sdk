@@ -8,7 +8,7 @@ import type {
   LocaleConfig,
   PermissionsConfig,
   BillingConfig,
-} from '@fayz/core'
+} from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Page registration

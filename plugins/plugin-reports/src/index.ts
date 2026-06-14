@@ -1,11 +1,11 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
-import { registerTranslations } from '@fayz/core'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import { registerTranslations } from '@fayz-ai/core'
 import { ReportsPage } from './ReportsPage'
 import type { ReportDataProvider } from './data/types'
 import { createSupabaseReportProvider } from './data/supabase'
 import { createMockReportProvider } from './data/mock'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import { getReportsTenantId } from './lib/tenant'
 
 function createSafeReportProvider(): ReportDataProvider {

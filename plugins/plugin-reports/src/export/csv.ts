@@ -1,5 +1,5 @@
-import { exportCSV } from '@fayz/core'
-import type { CSVColumn } from '@fayz/core'
+import { exportCSV } from '@fayz-ai/core'
+import type { CSVColumn } from '@fayz-ai/core'
 import type { ReportColumnDef } from '../types'
 import { formatValuePlain } from '../lib/columns'
 

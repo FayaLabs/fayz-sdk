@@ -1,10 +1,10 @@
 import type { Config } from 'tailwindcss'
 
 /**
- * Tailwind CSS preset for @fayz/ui.
+ * Tailwind CSS preset for @fayz-ai/ui.
  * Include this in your tailwind.config.ts:
  *
- *   import { fayzUiPreset } from '@fayz/ui/theme'
+ *   import { fayzUiPreset } from '@fayz-ai/ui/theme'
  *   export default { presets: [fayzUiPreset], ... }
  */
 const fayzUiPreset: Partial<Config> = {

@@ -1,11 +1,11 @@
 import React from 'react'
 import { Clock, FileText, CalendarDays } from 'lucide-react'
-import { Card, CardContent } from '@fayz/ui'
-import { Badge } from '@fayz/ui'
+import { Card, CardContent } from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
 import { ScheduleEditor } from './ScheduleEditor'
-import { useTranslation } from '@fayz/core'
-import { usePluginRuntimeOptional as usePluginsOptional } from '@fayz/core'
-import { getWidgetsForZone } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
+import { usePluginRuntimeOptional as usePluginsOptional } from '@fayz-ai/core'
+import { getWidgetsForZone } from '@fayz-ai/core'
 
 function ComingSoon({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   const t = useTranslation()

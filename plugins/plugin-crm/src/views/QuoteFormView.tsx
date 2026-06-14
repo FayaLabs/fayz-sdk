@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Save, Plus, Trash2, X, Check, ChevronDown } from 'lucide-react'
 import { useCrmConfig, useCrmStore, useCrmProvider, formatCurrency } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
-import type { EntityLookupMap } from '@fayz/saas'
-import { SubpageHeader } from '@fayz/ui'
-import { SearchSelect, type SearchSelectOption } from '@fayz/ui'
-import { CurrencyInput } from '@fayz/ui'
-import { DatePicker } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import type { EntityLookupMap } from '@fayz-ai/saas'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { SearchSelect, type SearchSelectOption } from '@fayz-ai/ui'
+import { CurrencyInput } from '@fayz-ai/ui'
+import { DatePicker } from '@fayz-ai/ui'
 
 // ---------------------------------------------------------------------------
 // Status indicator pills

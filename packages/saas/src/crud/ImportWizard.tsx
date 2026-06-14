@@ -6,11 +6,11 @@ import {
 import {
   Modal, ModalContent, ModalHeader, ModalBody,
   ModalTitle,
-} from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { cn } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
-import type { FieldDef, EntityDef } from '@fayz/core'
+} from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { cn } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
+import type { FieldDef, EntityDef } from '@fayz-ai/core'
 
 type ImportStep = 'download' | 'upload' | 'mapping' | 'importing' | 'done'
 

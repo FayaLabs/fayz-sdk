@@ -1,11 +1,11 @@
-import type { AuthAdapter, AuthUser } from '@fayz/core'
-import { createMockAuthAdapter, createSupabaseAuthAdapter } from '@fayz/auth'
-import { getShopProvider } from '@fayz/shop'
+import type { AuthAdapter, AuthUser } from '@fayz-ai/core'
+import { createMockAuthAdapter, createSupabaseAuthAdapter } from '@fayz-ai/auth'
+import { getShopProvider } from '@fayz-ai/shop'
 import { useSessionStore } from './stores/session.store'
 
 // ---------------------------------------------------------------------------
 // Customer auth — the SAME AuthAdapter contract createSaasApp uses, so the
-// mock and Supabase adapters from @fayz/auth serve both the saas admin and
+// mock and Supabase adapters from @fayz-ai/auth serve both the saas admin and
 // the storefront customer. The storefront adds one layer on top: linking the
 // auth identity to a ShopCustomer record (find-or-create by email) so orders
 // and purchase history attach to a customer.

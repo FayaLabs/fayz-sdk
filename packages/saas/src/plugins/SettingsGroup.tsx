@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@fayz/ui'
+import { cn } from '@fayz-ai/ui'
 
 // ---------------------------------------------------------------------------
 // ToggleRow — a single setting with label, description, and checkbox

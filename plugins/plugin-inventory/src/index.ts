@@ -1,11 +1,11 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import { InventoryPage } from './InventoryPage'
 import type { ResolvedInventoryConfig } from './InventoryContext'
 import type { InventoryDataProvider } from './data/types'
 import { createMockInventoryProvider } from './data/mock'
 import { createSupabaseInventoryProvider } from './data/supabase'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz/core'
+import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
 
 function createSafeInventoryProvider(): InventoryDataProvider {
   let resolved: InventoryDataProvider | null = null

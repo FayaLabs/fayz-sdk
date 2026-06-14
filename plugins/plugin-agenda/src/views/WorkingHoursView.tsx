@@ -1,20 +1,25 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Clock, Plus, Trash2, Copy, Save } from 'lucide-react'
-import { toast } from '@fayz/ui'
-import { useAgendaConfig, useAgendaProvider, useAgendaStore } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
+import { toast } from '@fayz-ai/ui'
+import { useAgendaProvider, useAgendaStore } from '../AgendaContext'
+import { getCurrentLocale, useTranslation } from '@fayz-ai/core'
 import type { Schedule, SaveScheduleInput } from '../types'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const WEEKDAY_ANCHOR_SUNDAY = Date.UTC(2026, 0, 4)
 
 interface DaySchedule {
   enabled: boolean
-  periods: { id?: string; startsAt: string; endsAt: string }[]
+  periods: {
+    id?: string
+    startsAt: string
+    endsAt: string
+    locationId?: string | null
+    metadata?: Record<string, unknown>
+  }[]
 }
 
 type WeekSchedule = Record<number, DaySchedule>
@@ -32,7 +37,13 @@ function schedulesToWeek(schedules: Schedule[]): WeekSchedule {
     if (s.dayOfWeek == null || !s.isActive) continue
     const day = week[s.dayOfWeek]
     day.enabled = true
-    day.periods.push({ id: s.id, startsAt: s.startsAt, endsAt: s.endsAt })
+    day.periods.push({
+      id: s.id,
+      startsAt: s.startsAt,
+      endsAt: s.endsAt,
+      locationId: s.locationId,
+      metadata: s.metadata,
+    })
   }
   // Sort periods
   for (const day of Object.values(week)) {
@@ -41,13 +52,21 @@ function schedulesToWeek(schedules: Schedule[]): WeekSchedule {
   return week
 }
 
+function formatWeekdayShort(dayOfWeek: number, locale: string): string {
+  const date = new Date(WEEKDAY_ANCHOR_SUNDAY + dayOfWeek * 24 * 60 * 60 * 1000)
+  return new Intl.DateTimeFormat(locale === 'pt-BR' ? 'pt-BR' : 'en-US', {
+    weekday: 'short',
+    timeZone: 'UTC',
+  }).format(date).replace('.', '')
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function WorkingHoursView() {
   const t = useTranslation()
-  const config = useAgendaConfig()
+  const locale = getCurrentLocale()
   const provider = useAgendaProvider()
   const professionals = useAgendaStore((s) => s.professionals)
   const profLoading = useAgendaStore((s) => s.professionalsLoading)
@@ -130,8 +149,10 @@ export function WorkingHoursView() {
     if (!selectedProfId) return
     setSaving(true)
     try {
-      // Delete all existing schedules for this professional
-      for (const s of schedules) {
+      // Replace only weekly schedules. Date-specific exceptions are not
+      // visible in this editor and must not be destroyed by a weekly save.
+      const weeklySchedules = schedules.filter((s) => s.dayOfWeek != null)
+      for (const s of weeklySchedules) {
         await provider.deleteSchedule(s.id)
       }
       // Create new ones
@@ -142,9 +163,11 @@ export function WorkingHoursView() {
           await provider.saveSchedule({
             assigneeId: selectedProfId,
             dayOfWeek,
+            locationId: period.locationId ?? undefined,
             startsAt: period.startsAt,
             endsAt: period.endsAt,
             isActive: true,
+            metadata: period.metadata,
           })
         }
       }
@@ -165,7 +188,7 @@ export function WorkingHoursView() {
             <Clock className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">{config.labels.workingHours}</h2>
+            <h2 className="text-lg font-semibold">{t('agenda.workingHours.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('agenda.workingHours.subtitle')}</p>
           </div>
         </div>
@@ -210,7 +233,7 @@ export function WorkingHoursView() {
                     className={`h-4 w-4 rounded border ${day.enabled ? 'border-primary bg-primary' : 'border-muted-foreground/30'}`}
                   />
                   <span className={`text-sm font-medium ${day.enabled ? '' : 'text-muted-foreground'}`}>
-                    {DAY_NAMES_SHORT[dayOfWeek]}
+                    {formatWeekdayShort(dayOfWeek, locale)}
                   </span>
                 </div>
 

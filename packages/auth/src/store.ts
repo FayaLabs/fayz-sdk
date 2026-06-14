@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AuthUser, AuthSession } from '@fayz/core'
+import type { AuthUser, AuthSession } from '@fayz-ai/core'
 
 export interface AuthState {
   user: AuthUser | null

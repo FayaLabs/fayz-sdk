@@ -1,11 +1,11 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
-import type { EntityLookupMap } from '@fayz/saas'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import type { EntityLookupMap } from '@fayz-ai/saas'
 import { CrmPage } from './CrmPage'
 import { CrmContextProvider, type ResolvedCrmConfig } from './CrmContext'
 import type { CrmDataProvider } from './data/types'
 import { createMockCrmProvider } from './data/mock'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz/core'
+import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
 
 function createSafeCrmProvider(providerOptions?: {
   clientConversion?: { archetypeKind: string; extensionTable: string; fkColumn: string }
@@ -65,7 +65,7 @@ export interface CrmPluginOptions {
   /** Entity lookups for cross-plugin references (e.g., product/service search in quotes) */
   entityLookups?: EntityLookupMap
   /** Contact/person lookup for client search in quotes and leads */
-  contactLookup?: import('@fayz/saas').EntityLookup
+  contactLookup?: import('@fayz-ai/saas').EntityLookup
   /** Client conversion config — when a lead is approved, CRM converts the person
    *  to a client by updating `persons.kind` and creating the extension table record.
    *  @example { archetypeKind: 'customer', extensionTable: 'clients', fkColumn: 'person_id' } */

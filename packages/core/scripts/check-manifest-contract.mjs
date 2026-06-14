@@ -10,7 +10,7 @@ const packageDir = resolve(scriptDir, '..')
 const distEntry = resolve(packageDir, 'dist/index.js')
 
 if (!existsSync(distEntry)) {
-  throw new Error('packages/core/dist/index.js is missing. Run `pnpm --filter @fayz/core build` first.')
+  throw new Error('packages/core/dist/index.js is missing. Run `pnpm --filter @fayz-ai/core build` first.')
 }
 
 const { CURRENT_MANIFEST_VERSION, appManifestSchema, validateManifest } = await import(distEntry)

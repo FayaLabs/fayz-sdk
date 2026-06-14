@@ -1,14 +1,14 @@
 import React, { useCallback } from 'react'
-import { Input } from '@fayz/ui'
+import { Input } from '@fayz-ai/ui'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@fayz/ui'
-import { Badge } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+} from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { FormFieldDef, FormSchema } from '../types'
 
 interface FormRendererProps {

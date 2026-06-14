@@ -1,6 +1,6 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { dedup } from './lib/dedup'
-import { toast } from '@fayz/ui'
+import { toast } from '@fayz-ai/ui'
 import type { CrmDataProvider } from './data/types'
 import type {
   Pipeline, PipelineStage, Lead, Deal, Activity, Quote,

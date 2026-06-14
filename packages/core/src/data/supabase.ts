@@ -76,7 +76,7 @@ export function createSupabaseProvider<T extends { id: string }>(
       schema: (s: string) => unknown
       from: (t: string) => unknown
     } | null
-    if (!supabase) throw new Error(`[@fayz/core] Supabase client not available. Call createFayzApp with a provider first.`)
+    if (!supabase) throw new Error(`[@fayz-ai/core] Supabase client not available. Call createFayzApp with a provider first.`)
     return schema === 'public' ? (supabase as { from: (t: string) => unknown }) : (supabase.schema(schema) as { from: (t: string) => unknown })
   }
 

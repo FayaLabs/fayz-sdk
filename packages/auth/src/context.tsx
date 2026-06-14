@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react'
-import type { AuthAdapter, AuthSession } from '@fayz/core'
+import type { AuthAdapter, AuthSession } from '@fayz-ai/core'
 import { useAuthStore } from './store'
 
 // ---------------------------------------------------------------------------

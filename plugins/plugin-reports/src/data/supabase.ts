@@ -1,4 +1,4 @@
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import type { ReportDef, ReportQueryState } from '../types'
 import type { ReportDataProvider, ReportResult } from './types'
 

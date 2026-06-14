@@ -1,12 +1,12 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
-import type { EntityLookupMap } from '@fayz/saas'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import type { EntityLookupMap } from '@fayz-ai/saas'
 import { FinancialPage } from './FinancialPage'
 import type { ResolvedFinancialConfig } from './FinancialContext'
 import type { FinancialDataProvider } from './data/types'
 import { createMockFinancialProvider } from './data/mock'
 import { createSupabaseFinancialProvider } from './data/supabase'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz/core'
+import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
 
 function createSafeFinancialProvider(): FinancialDataProvider {
   let resolved: FinancialDataProvider | null = null
@@ -101,7 +101,7 @@ export interface FinancialPluginOptions {
   entityLookups?: EntityLookupMap
 
   /** Contact/person lookup for "Pay to" / "Receive from" fields. Queries persons archetype. */
-  contactLookup?: import('@fayz/saas').EntityLookup
+  contactLookup?: import('@fayz-ai/saas').EntityLookup
 
   /** Callback when user clicks a booking link on an invoice. Receives the order ID. */
   onBookingClick?: (orderId: string) => void

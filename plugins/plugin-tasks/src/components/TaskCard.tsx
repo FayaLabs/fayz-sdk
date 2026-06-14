@@ -1,6 +1,6 @@
 import React from 'react'
 import { Calendar, ListChecks } from 'lucide-react'
-import { Checkbox } from '@fayz/ui'
+import { Checkbox } from '@fayz-ai/ui'
 import { useTasksStore } from '../TasksContext'
 import { TaskPriorityBadge } from './TaskPriorityBadge'
 import { TaskLabelBadges } from './TaskLabelBadge'

@@ -1,9 +1,9 @@
 import React from 'react'
-import type { PluginManifest } from '@fayz/core'
+import type { PluginManifest } from '@fayz-ai/core'
 import type { CustomFormsDataProvider } from './data/types'
 import { createMockFormsProvider } from './data/mock'
 import { createSupabaseFormsProvider } from './data/supabase'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz/core'
+import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
 import { createCustomFormsStore } from './store'
 import { customFormsLocales } from './locales'
 import { resolveConfig } from './config'
@@ -76,7 +76,7 @@ export function createCustomFormsPlugin(options?: CustomFormsPluginOptions): Plu
   registerBuiltInProviders(provider)
 
 
-  const formRegistries: import('@fayz/core').PluginRegistryDef[] = [
+  const formRegistries: import('@fayz-ai/core').PluginRegistryDef[] = [
     {
       id: 'form-categories',
       entity: {

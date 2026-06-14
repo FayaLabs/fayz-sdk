@@ -1,4 +1,10 @@
-export type PermissionAction = 'read' | 'write' | 'delete' | 'manage' | (string & {})
+export type PermissionAction = 'read' | 'create' | 'edit' | 'write' | 'delete' | 'manage' | (string & {})
+
+export type SystemPermission =
+  | 'manage_team'
+  | 'manage_billing'
+  | 'manage_settings'
+  | 'manage_permissions'
 
 export interface FeatureDeclaration {
   id: string
@@ -13,8 +19,11 @@ export interface FeatureDeclaration {
 export interface PermissionProfile {
   id: string
   name: string
+  description?: string
   isSystem?: boolean
-  features: Record<string, PermissionAction[]>
+  systemPermissions?: SystemPermission[]
+  /** feature key → allowed actions. The canonical permission map (saas-core shell name). */
+  grants: Record<string, PermissionAction[]>
 }
 
 export interface PermissionsConfig {

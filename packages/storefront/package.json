@@ -1,5 +1,5 @@
 {
-  "name": "@fayz/storefront",
+  "name": "@fayz-ai/storefront",
   "version": "0.1.0",
   "description": "Fayz SDK storefront kit — Shopify-style customer-facing ecommerce template components",
   "type": "module",
@@ -25,10 +25,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fayz/auth": "workspace:*",
-    "@fayz/core": "workspace:*",
-    "@fayz/shop": "workspace:*",
-    "@fayz/ui": "workspace:*",
+    "@fayz-ai/auth": "workspace:^",
+    "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/shop": "workspace:^",
+    "@fayz-ai/ui": "workspace:^",
     "@supabase/supabase-js": "^2.45.0",
     "lucide-react": "^0.400.0",
     "zustand": "^4.5.0"

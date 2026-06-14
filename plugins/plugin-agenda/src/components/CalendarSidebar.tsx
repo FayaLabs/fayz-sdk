@@ -1,7 +1,7 @@
 import React from 'react'
 import { Filter, X } from 'lucide-react'
 import { useAgendaConfig, useAgendaStore } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import type { Professional } from '../types'
 
 export function CalendarSidebar() {

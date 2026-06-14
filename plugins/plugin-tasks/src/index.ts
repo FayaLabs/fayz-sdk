@@ -1,10 +1,10 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import { TasksContextProvider, type ResolvedTasksConfig, type TasksPluginLabels } from './TasksContext'
 import type { TasksDataProvider } from './data/types'
 import type { TaskPriority } from './types'
 import { createMockTasksProvider } from './data/mock'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz/core'
+import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
 import { createSupabaseTasksProvider } from './data/supabase'
 import { createTasksStore } from './store'
 import { tasksLocales } from './locales'
@@ -126,7 +126,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.tsk_labels TO authenticated;`
 export function createTasksPlugin(options?: TasksPluginOptions): PluginManifest {
   const config = resolveConfig(options)
   // Register locales globally so the plugin's translations resolve even when the
-  // host shell does not mount @fayz/core's I18nProvider (incremental de-bridge).
+  // host shell does not mount @fayz-ai/core's I18nProvider (incremental de-bridge).
   registerTranslations(tasksLocales)
   const provider = options?.dataProvider ?? createSafeTasksProvider()
   const store = createTasksStore(provider)

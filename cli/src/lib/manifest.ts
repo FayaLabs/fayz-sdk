@@ -2,8 +2,8 @@ import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 // Minimal, dependency-free manifest checks for the CLI. The published JSON
-// Schema (@fayz/core app-manifest.schema.json) is the source of truth; these
-// mirror @fayz/core's validateManifest for fast local feedback without pulling
+// Schema (@fayz-ai/core app-manifest.schema.json) is the source of truth; these
+// mirror @fayz-ai/core's validateManifest for fast local feedback without pulling
 // the browser runtime into a Node CLI.
 
 export interface ManifestLike {
@@ -57,7 +57,7 @@ export function missingPluginDeps(m: ManifestLike, dir: string): string[] {
   const missing: string[] = []
   for (const surface of Object.values(m.surfaces ?? {})) {
     for (const ref of surface.plugins ?? []) {
-      const pkgName = `@fayz/plugin-${ref.id}`
+      const pkgName = `@fayz-ai/plugin-${ref.id}`
       if (!deps.has(pkgName)) missing.push(`${ref.id} (expected dependency ${pkgName})`)
     }
   }

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Organization, OrgMember, OrgMembership } from '@fayz/core'
+import type { Organization, OrgMember, OrgMembership } from '@fayz-ai/core'
 
 const STORAGE_KEY = 'fayz:current-org'
 

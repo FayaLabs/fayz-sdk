@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react'
 import { CrudPage } from './CrudPage'
 import { createCrudStore } from '../stores/createCrudStore'
-import { resolveDataProvider } from '@fayz/core'
-import { registerEntity, deriveEntityKey } from '@fayz/core'
-import type { EntityDef } from '@fayz/core'
-import type { DataProvider } from '@fayz/core'
+import { resolveDataProvider } from '@fayz-ai/core'
+import { registerEntity, deriveEntityKey } from '@fayz-ai/core'
+import type { EntityDef } from '@fayz-ai/core'
+import type { DataProvider } from '@fayz-ai/core'
 
 interface CreateCrudPageOptions<T extends { id: string }> {
   mockData?: T[]

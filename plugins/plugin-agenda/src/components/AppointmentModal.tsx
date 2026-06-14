@@ -7,18 +7,18 @@ const BOOKING_TYPE_ICONS: Record<string, React.ElementType> = {
 }
 import {
   Modal, ModalContent, ModalTitle,
-} from '@fayz/ui'
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@fayz/ui'
-import { cn } from '@fayz/ui'
+} from '@fayz-ai/ui'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@fayz-ai/ui'
+import { cn } from '@fayz-ai/ui'
 import { SearchCombobox, type ComboboxOption } from './SearchCombobox'
-import { PersonLink } from '@fayz/saas'
+import { PersonLink } from '@fayz-ai/saas'
 import { BookingPaymentPanel } from './BookingPaymentPanel'
-import { CrudDetailPage } from '@fayz/saas'
-import { CrudFormPage } from '@fayz/saas'
-import { Button } from '@fayz/ui'
+import { CrudDetailPage } from '@fayz-ai/saas'
+import { CrudFormPage } from '@fayz-ai/saas'
+import { Button } from '@fayz-ai/ui'
 import { useAgendaConfig, useAgendaProvider, useAgendaStore } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
-import { getCurrentLocale } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
+import { getCurrentLocale } from '@fayz-ai/core'
 import { isStatusAvailable } from '../types'
 import type { CreateBookingInput, BookingTypeId } from '../types'
 
@@ -676,7 +676,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
                     onCancel={() => setClientEditing(false)}
                     onSubmit={async (data) => {
                       try {
-                        const { getSupabaseClientOptional } = await import('@fayz/core')
+                        const { getSupabaseClientOptional } = await import('@fayz-ai/core')
                         const supabase = getSupabaseClientOptional() as any
                         if (!supabase) return
                         const dbData: Record<string, unknown> = {}
@@ -791,7 +791,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
                         onClick={async () => {
                           setCreatingClient(true)
                           try {
-                            const { getSupabaseClientOptional } = await import('@fayz/core')
+                            const { getSupabaseClientOptional } = await import('@fayz-ai/core')
                             const { getAgendaTenantId } = await import('../lib/tenant')
                             const supabase = getSupabaseClientOptional() as any
                             const tenantId = getAgendaTenantId()
@@ -816,7 +816,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
 
                             setClientId(personRow.id); setClientSearch(personRow.name); setQuickCreate(false)
                           } catch (err: any) {
-                            const { toast } = await import('@fayz/ui')
+                            const { toast } = await import('@fayz-ai/ui')
                             toast.error(t('agenda.appointment.createClientFailed'), { description: err?.message })
                           }
                           setCreatingClient(false)

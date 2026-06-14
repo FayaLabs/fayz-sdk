@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import { TaskCard } from './TaskCard'
 import type { Task, TaskStatus } from '../types'
 

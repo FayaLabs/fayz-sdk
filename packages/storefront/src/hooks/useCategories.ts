@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getShopProvider } from '@fayz/shop'
-import type { Category } from '@fayz/shop'
+import { getShopProvider } from '@fayz-ai/shop'
+import type { Category } from '@fayz-ai/shop'
 
 export function useCategories(): { categories: Category[]; loading: boolean } {
   const [categories, setCategories] = useState<Category[]>([])

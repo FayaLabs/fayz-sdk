@@ -1,6 +1,6 @@
 import React from 'react'
-import { registerScaffold, defineApp } from '@fayz/core'
-import type { AppManifest } from '@fayz/core'
+import { registerScaffold, defineApp } from '@fayz-ai/core'
+import type { AppManifest } from '@fayz-ai/core'
 import { StorefrontConfigProvider, resolveConfig } from './config'
 import type { StorefrontConfig } from './config'
 import type { StorefrontTheme } from './theme'

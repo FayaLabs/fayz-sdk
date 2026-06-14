@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Receipt } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { DataTable } from '@fayz/ui'
+import { DataTable } from '@fayz-ai/ui'
 import { useFinancialConfig, useFinancialStore, formatCurrency } from '../FinancialContext'
-import { SubpageHeader } from '@fayz/ui'
-import { DatePicker } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { DatePicker } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { StatementEntry } from '../types'
 
 export function StatementsView() {

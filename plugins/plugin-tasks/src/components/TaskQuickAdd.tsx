@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { Plus } from 'lucide-react'
 import { useTasksStore, useTasksConfig } from '../TasksContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import type { TaskPriority } from '../types'
 
 export function TaskQuickAdd({ parentId }: { parentId?: string | null }) {

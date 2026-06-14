@@ -150,7 +150,7 @@ export const registerPlugin = (id: string, manifest: any, meta?: RegistryMeta) =
 export const getPlugin = (id: string) => pluginRegistry.get(id)
 export const listPlugins = () => pluginRegistry.list()
 
-// Plugin factories — a generated app registers each installed @fayz/plugin-*
+// Plugin factories — a generated app registers each installed @fayz-ai/plugin-*
 // factory by id (src/plugins.generated.ts), so a scaffold can resolve a
 // manifest's PluginRef (id + JSON config) to a live PluginManifest:
 //   getPluginFactory(ref.id)?.(ref.config)

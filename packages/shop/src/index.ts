@@ -21,7 +21,7 @@ export type { TenantResolver } from './tenant'
 // Auto-selecting factory — Supabase when initialized, mock otherwise
 // ---------------------------------------------------------------------------
 
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import type { ShopProvider } from './provider'
 import { createSupabaseShopProvider } from './supabase-provider'
 import { createMockShopProvider } from './mock-provider'

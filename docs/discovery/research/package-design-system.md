@@ -31,7 +31,7 @@ Package and workspace files:
 - `turbo.json`
 - `tsconfig.base.json`
 - `packages/core/package.json`
-- `packages/runtime/package.json`
+- `packages/app-runtime/package.json`
 - `packages/auth/package.json`
 - `packages/ui/package.json`
 - `packages/saas/package.json`
@@ -83,8 +83,8 @@ Core/runtime contract files:
 - `packages/core/src/registry/index.ts`
 - `packages/core/src/types/theme.ts`
 - `packages/core/src/types/permissions.ts`
-- `packages/runtime/src/index.ts`
-- `packages/runtime/tsup.config.ts`
+- `packages/app-runtime/src/index.ts`
+- `packages/app-runtime/tsup.config.ts`
 
 ## 3. Package Boundaries
 

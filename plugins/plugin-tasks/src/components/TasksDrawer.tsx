@@ -1,9 +1,9 @@
 import React from 'react'
 import {
   Sheet, SheetContent, SheetHeader, SheetBody, SheetTitle, SheetDescription,
-} from '@fayz/ui'
+} from '@fayz-ai/ui'
 import { useTasksStore } from '../TasksContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import { TasksFilterBar } from './TasksFilterBar'
 import { TaskQuickAdd } from './TaskQuickAdd'
 import { TaskCard } from './TaskCard'

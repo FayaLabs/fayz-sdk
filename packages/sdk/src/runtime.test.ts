@@ -20,7 +20,7 @@ describe('createFayzRuntimeClient', () => {
       projectId: 'project-1',
       tenantKey: 'tenant-a',
       environment: 'preview',
-      pluginId: '@fayz/plugin-agenda',
+      pluginId: '@fayz-ai/plugin-agenda',
       grants: [{ grantId: 'grant-1', provider: 'google-calendar', scopes: ['calendar.read'] }],
     }))
     const client = createFayzRuntimeClient({
@@ -31,7 +31,7 @@ describe('createFayzRuntimeClient', () => {
     })
 
     const response = await client.exchangePluginOAuth({
-      pluginId: '@fayz/plugin-agenda',
+      pluginId: '@fayz-ai/plugin-agenda',
       scopes: ['calendar.read'],
     })
 
@@ -45,7 +45,7 @@ describe('createFayzRuntimeClient', () => {
           'Content-Type': 'application/json',
         }),
         body: JSON.stringify({
-          pluginId: '@fayz/plugin-agenda',
+          pluginId: '@fayz-ai/plugin-agenda',
           environment: 'preview',
           scopes: ['calendar.read'],
         }),
@@ -113,7 +113,7 @@ describe('createFayzRuntimeClient', () => {
       fetcher,
     })
 
-    await expect(client.exchangePluginOAuth({ pluginId: '@fayz/plugin-agenda' }))
+    await expect(client.exchangePluginOAuth({ pluginId: '@fayz-ai/plugin-agenda' }))
       .rejects.toMatchObject({
         name: 'FayzRuntimeError',
         status: 502,

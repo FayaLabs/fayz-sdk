@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Save } from 'lucide-react'
 import { useCrmStore } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 
 export function LeadFormView({ onSaved }: { onSaved?: (id?: string) => void }) {
   const t = useTranslation()

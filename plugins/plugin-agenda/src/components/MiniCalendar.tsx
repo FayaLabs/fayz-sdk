@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { getCurrentLocale } from '@fayz/core'
+import { getCurrentLocale } from '@fayz-ai/core'
 
 interface MiniCalendarProps {
   selectedDate: Date

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
-import { useTranslation } from '@fayz/core'
-import { getCurrentLocale } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
+import { getCurrentLocale } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // DatePicker — custom dropdown calendar, Google Calendar style

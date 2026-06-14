@@ -1,7 +1,7 @@
 import React from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import type { FormFieldDef, FormFieldType } from '../types'
 import { BuilderField } from './BuilderField'
 import { FIELD_TYPES, DEFAULT_COL_SPAN } from './FieldPalette'

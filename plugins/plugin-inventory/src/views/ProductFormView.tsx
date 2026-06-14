@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Save, ImagePlus, X } from 'lucide-react'
 import { useInventoryConfig, useInventoryStore, useInventoryProvider, formatCurrency } from '../InventoryContext'
-import { SubpageHeader } from '@fayz/ui'
-import { CurrencyInput } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { CurrencyInput } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { ProductType } from '../types'
 
 // ---------------------------------------------------------------------------

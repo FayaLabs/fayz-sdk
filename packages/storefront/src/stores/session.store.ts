@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 // Customer session state. Identity is established through the shared
-// @fayz/auth AuthAdapter (see ../auth.ts) — this store only mirrors the
+// @fayz-ai/auth AuthAdapter (see ../auth.ts) — this store only mirrors the
 // linked ShopCustomer for synchronous UI access.
 
 export interface SessionState {

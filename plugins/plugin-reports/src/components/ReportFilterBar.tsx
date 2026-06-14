@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { DatePicker } from '@fayz/ui'
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@fayz/ui'
-import { Input } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { DatePicker } from '@fayz-ai/ui'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@fayz-ai/ui'
+import { Input } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { ReportFilterDef, ReportDateRange, ReportFilterOption } from '../types'
 
 interface ReportFilterBarProps {

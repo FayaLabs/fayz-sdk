@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { X, Pencil, Trash2, Clock, MapPin, User, FileText, DollarSign, Check, AlertTriangle, HandCoins } from 'lucide-react'
-import { PersonLink } from '@fayz/saas'
+import { PersonLink } from '@fayz-ai/saas'
 import { FloatingPanel, type FloatingPanelRef } from './FloatingPanel'
 import { useAgendaConfig, useAgendaStore } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import { isStatusAvailable } from '../types'
 import type { CalendarBooking } from '../types'
 

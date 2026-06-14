@@ -36,7 +36,7 @@ Candidate files:
 - `packages/core/src/index.ts`
 - `packages/core/package.json`
 - `packages/core/scripts/check-manifest-contract.mjs`
-- `packages/runtime/*`
+- `packages/app-runtime/*`
 - root `package.json`
 - `turbo.json`
 - lockfile/workspace changes only if required by the above
@@ -218,7 +218,7 @@ Candidate files:
 - SDK package metadata and `.changeset/config.json`
 - `packages/sdk/**`
 - `packages/core/src/runtime/index.ts`
-- `packages/runtime/**`
+- `packages/app-runtime/**`
 - SDK CLI generator package/dependency docs
 - Fayz generated scaffold dependency/template/tests
 - discovery docs and agent guide

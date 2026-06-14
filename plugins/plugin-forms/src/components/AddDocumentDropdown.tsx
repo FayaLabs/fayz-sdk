@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react'
 import { Plus, ChevronDown } from 'lucide-react'
-import { Button } from '@fayz/ui'
+import { Button } from '@fayz-ai/ui'
 import {
   Dropdown,
   DropdownTrigger,
@@ -8,8 +8,8 @@ import {
   DropdownItem,
   DropdownLabel,
   DropdownSeparator,
-} from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+} from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import { getAllDocumentTypes, type DocumentTypeOption } from '../document-types'
 
 interface AddDocumentDropdownProps {

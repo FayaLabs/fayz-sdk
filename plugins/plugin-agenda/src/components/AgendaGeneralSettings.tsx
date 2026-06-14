@@ -1,6 +1,6 @@
 import React from 'react'
-import { SettingsGroup, ToggleRow, SelectRow } from '@fayz/saas'
-import { useTranslation } from '@fayz/core'
+import { SettingsGroup, ToggleRow, SelectRow } from '@fayz-ai/saas'
+import { useTranslation } from '@fayz-ai/core'
 import { useAgendaSettings } from '../hooks/useAgendaSettings'
 
 const HOUR_OPTIONS = Array.from({ length: 18 }, (_, i) => {

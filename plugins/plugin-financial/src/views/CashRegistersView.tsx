@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Landmark, Play, Square, Clock, ChevronDown, ChevronUp, Calculator, X, Check, StickyNote } from 'lucide-react'
 import { useFinancialConfig, useFinancialStore, formatCurrency } from '../FinancialContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
-import { CurrencyInput } from '@fayz/ui'
-import { Button } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { CurrencyInput } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
 
 // ---------------------------------------------------------------------------
 // Denomination definitions (BRL default — overridden by currency config)

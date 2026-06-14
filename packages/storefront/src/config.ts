@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react'
-import type { ShopProvider, MockShopSeed } from '@fayz/shop'
+import type { ShopProvider, MockShopSeed } from '@fayz-ai/shop'
 import type { StorefrontTheme } from './theme'
 import type { HomeConfig, NavLink, FooterConfig } from './sections'
 import type { StorefrontAuthAdapter } from './auth'

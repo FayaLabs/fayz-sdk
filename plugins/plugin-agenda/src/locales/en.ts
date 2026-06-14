@@ -97,6 +97,7 @@ export const en: Record<string, string> = {
   "agenda.contextMenu.notAvailable": "(not available)",
   "agenda.index.settingsSubtitle": "Working hours, scheduling preferences, and confirmations",
   "agenda.index.settingsTitle": "Agenda Settings",
+  "settings.plugin.agenda-working-hours": "Working Hours",
   "agenda.popover.unknown": "Unknown",
   "agenda.settings.autoConfirm": "Auto-confirm",
   "agenda.settings.autoConfirmDesc": "Automatically confirm new bookings",

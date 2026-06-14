@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus } from 'lucide-react'
-import { toast } from '@fayz/ui'
+import { toast } from '@fayz-ai/ui'
 import { useCrmStore, useCrmConfig, formatCurrency } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 import { DealSidebar } from './DealSidebar'
 import type { Deal } from '../types'
 

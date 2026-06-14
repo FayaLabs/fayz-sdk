@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import * as LucideIcons from 'lucide-react'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@fayz/ui/primitives'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@fayz-ai/ui/primitives'
 import type { DashboardMetric, DashboardSection, MetricValue, MetricFormat } from './types'
 
 export interface DashboardPageProps {

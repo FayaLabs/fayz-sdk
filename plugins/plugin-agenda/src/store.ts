@@ -1,7 +1,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { dedup } from './lib/dedup'
-import { toast } from '@fayz/ui'
-import { getScheduleBlockConfig, setScheduleBlockConfig } from '@fayz/saas'
+import { toast } from '@fayz-ai/ui'
+import { getScheduleBlockConfig, setScheduleBlockConfig } from '@fayz-ai/saas'
 import type { AgendaDataProvider } from './data/types'
 import type { AgendaFinancialBridge } from './financial-bridge'
 import type {
@@ -72,6 +72,15 @@ export interface AgendaUIState {
 // Store factory
 // ---------------------------------------------------------------------------
 
+function getCurrentBookingQuery(state: AgendaUIState, dateRange = state.dateRange): BookingQuery {
+  return {
+    dateRange,
+    professionalIds: state.selectedProfessionalIds.length ? state.selectedProfessionalIds : undefined,
+    locationId: state.selectedLocationId ?? undefined,
+    statuses: state.selectedStatuses.length ? state.selectedStatuses : undefined,
+  }
+}
+
 export function createAgendaStore(provider: AgendaDataProvider, financialBridge?: AgendaFinancialBridge): StoreApi<AgendaUIState> {
   return createStore<AgendaUIState>((set, get) => ({
     bookings: [],
@@ -102,12 +111,7 @@ export function createAgendaStore(provider: AgendaDataProvider, financialBridge?
       return dedup(key, async () => {
         set({ bookingsLoading: true, dateRange: range })
         const state = get()
-        const query: BookingQuery = {
-          dateRange: range,
-          professionalIds: state.selectedProfessionalIds.length ? state.selectedProfessionalIds : undefined,
-          locationId: state.selectedLocationId ?? undefined,
-          statuses: state.selectedStatuses.length ? state.selectedStatuses : undefined,
-        }
+        const query = getCurrentBookingQuery(state, range)
         let bookings = await provider.getBookings(query)
 
         // Enrich with payment status if financial bridge is available
@@ -170,9 +174,9 @@ export function createAgendaStore(provider: AgendaDataProvider, financialBridge?
       try {
         const booking = await provider.createBooking(input)
         // Refresh bookings for current range
-        const { dateRange } = get()
-        if (dateRange.start && dateRange.end) {
-          const bookings = await provider.getBookings({ dateRange })
+        const state = get()
+        if (state.dateRange.start && state.dateRange.end) {
+          const bookings = await provider.getBookings(getCurrentBookingQuery(state))
           set({ bookings })
         }
         toast.success('Appointment created')
@@ -186,9 +190,9 @@ export function createAgendaStore(provider: AgendaDataProvider, financialBridge?
     async updateBooking(id, data) {
       try {
         const booking = await provider.updateBooking(id, data)
-        const { dateRange } = get()
-        if (dateRange.start && dateRange.end) {
-          const bookings = await provider.getBookings({ dateRange })
+        const state = get()
+        if (state.dateRange.start && state.dateRange.end) {
+          const bookings = await provider.getBookings(getCurrentBookingQuery(state))
           set({ bookings })
         }
         toast.success('Appointment updated')
@@ -202,9 +206,9 @@ export function createAgendaStore(provider: AgendaDataProvider, financialBridge?
     async deleteBooking(id) {
       try {
         await provider.deleteBooking(id)
-        const { dateRange } = get()
-        if (dateRange.start && dateRange.end) {
-          const bookings = await provider.getBookings({ dateRange })
+        const state = get()
+        if (state.dateRange.start && state.dateRange.end) {
+          const bookings = await provider.getBookings(getCurrentBookingQuery(state))
           set({ bookings })
         }
         toast.success('Appointment deleted')
@@ -221,9 +225,9 @@ export function createAgendaStore(provider: AgendaDataProvider, financialBridge?
       try {
         await provider.updateBookingStatus(id, status)
         // Refresh from server to get full data
-        const { dateRange } = get()
-        if (dateRange.start && dateRange.end) {
-          const bookings = await provider.getBookings({ dateRange })
+        const state = get()
+        if (state.dateRange.start && state.dateRange.end) {
+          const bookings = await provider.getBookings(getCurrentBookingQuery(state))
           set({ bookings })
         }
         toast.success('Status updated')
@@ -257,9 +261,9 @@ export function createAgendaStore(provider: AgendaDataProvider, financialBridge?
           endsAt: newEnd,
           ...(newProfessionalId && { professionalId: newProfessionalId }),
         })
-        const { dateRange } = get()
-        if (dateRange.start && dateRange.end) {
-          const bookings = await provider.getBookings({ dateRange })
+        const state = get()
+        if (state.dateRange.start && state.dateRange.end) {
+          const bookings = await provider.getBookings(getCurrentBookingQuery(state))
           set({ bookings })
         }
         toast.success('Appointment rescheduled')

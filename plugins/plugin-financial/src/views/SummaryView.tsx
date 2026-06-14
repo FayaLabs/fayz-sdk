@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, AlertTriangle, BarChart3, CircleDollarSign } from 'lucide-react'
 import { useFinancialConfig, useFinancialStore, formatCurrency } from '../FinancialContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Stat card

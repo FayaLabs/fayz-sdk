@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
-import { Button } from '@fayz/ui'
+import { Button } from '@fayz-ai/ui'
 import {
   Dropdown,
   DropdownTrigger,
   DropdownContent,
   DropdownItem,
-} from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+} from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { ReportColumnDef } from '../types'
 import { exportToCsv } from '../export/csv'
 
