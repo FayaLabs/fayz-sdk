@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import releaseChannels from './release-channels.json' with { type: 'json' }
 import {
   resolveFayzPackageDependencies,
+  fayzPackageVersionSets,
   resolveFayzPackageVersion,
   resolveFayzPackageVersions,
 } from './release-channels'
@@ -26,5 +28,15 @@ describe('release channels', () => {
     expect(() => resolveFayzPackageVersion('@fayz-ai/app-runtime')).toThrow(
       'No Fayz package version configured for @fayz-ai/app-runtime in stable channel',
     )
+  })
+
+  it('keeps the machine-readable release-channel manifest aligned with the typed export', () => {
+    expect(releaseChannels).toEqual({
+      channels: {
+        stable: fayzPackageVersionSets.stable.packages,
+        latest: fayzPackageVersionSets.latest.packages,
+        preview: fayzPackageVersionSets.preview.packages,
+      },
+    })
   })
 })

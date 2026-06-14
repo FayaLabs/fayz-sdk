@@ -1,3 +1,5 @@
+import releaseChannels from './release-channels.json'
+
 export type FayzPackageChannel = 'stable' | 'latest' | 'preview'
 
 export interface FayzPackageVersionSet {
@@ -5,23 +7,19 @@ export interface FayzPackageVersionSet {
   packages: Record<string, string>
 }
 
-const stablePackageVersions: FayzPackageVersionSet = {
-  channel: 'stable',
-  packages: {
-    '@fayz-ai/sdk': '^0.1.3',
-  },
+const releaseChannelPackages = releaseChannels.channels as Record<FayzPackageChannel, Record<string, string>>
+
+function buildVersionSet(channel: FayzPackageChannel): FayzPackageVersionSet {
+  return {
+    channel,
+    packages: { ...releaseChannelPackages[channel] },
+  }
 }
 
 export const fayzPackageVersionSets: Record<FayzPackageChannel, FayzPackageVersionSet> = {
-  stable: stablePackageVersions,
-  latest: {
-    channel: 'latest',
-    packages: stablePackageVersions.packages,
-  },
-  preview: {
-    channel: 'preview',
-    packages: stablePackageVersions.packages,
-  },
+  stable: buildVersionSet('stable'),
+  latest: buildVersionSet('latest'),
+  preview: buildVersionSet('preview'),
 }
 
 export function resolveFayzPackageVersions(channel: FayzPackageChannel = 'stable'): FayzPackageVersionSet {

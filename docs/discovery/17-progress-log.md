@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:14 BRT — M32 SDK machine-readable release-channel manifest
+
+### Executive outcome
+
+`@fayz-ai/sdk` now publishes a machine-readable `release-channels.json` export, and the typed SDK release-channel helpers derive from that same JSON.
+
+### Business impact
+
+- This turns the SDK package into the single checked-in version-channel source in both typed and machine-readable forms.
+- It removes the need for Fayz to parse SDK TypeScript during the final `FAY-1183` scaffold cutover.
+- Public package strategy stays unchanged: still one public package, now with a cleaner cross-repo handoff surface.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/sdk typecheck
+pnpm --filter @fayz-ai/sdk test
+pnpm --filter @fayz-ai/sdk build
+```
+
+Result: all three gates passed after adding the JSON export and the alignment test.
+
+### Risk
+
+The last duplication still lives in Fayz because this automation sandbox can read `/Users/fayalabs/dev/fayz` but cannot write there. Channel values also remain checked-in constants for now, which is acceptable until dogfood proof justifies dist-tags or API backing.
+
+### Next
+
+When the Fayz repo is writable, replace its scaffold snapshot/parser path with direct consumption of the SDK `release-channels.json` export.
+
 ## 2026-06-14 12:11 BRT — M31 Beauty dashboard/reports extraction
 
 ### Executive outcome

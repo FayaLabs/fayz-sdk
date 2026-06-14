@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 12:11 BRT
+Last updated: 2026-06-14 12:14 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -29,7 +29,7 @@ Current focus:
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
 3. Continue `FAY-1184` from the public npm decision: default `@fayz-ai/sdk` is published. Stop expanding public npm surface; app-runtime/plugins/core/UI packages are internal/private until Beauty + 2 more apps prove a real public boundary.
-4. Continue `FAY-1183`: the SDK now owns the release-channel resolver and the CLI reads from it. Next step is making Fayz scaffold consume the same exported SDK source so the cross-repo duplication disappears, then deciding whether channels stay checked-in or become npm dist-tag/API-backed.
+4. Continue `FAY-1183`: the SDK now owns the typed release-channel resolver, the CLI reads from it, and the package now exports a machine-readable release-channel manifest. Next step is making Fayz scaffold consume that SDK export so the cross-repo duplication disappears, then deciding whether channels stay checked-in or become npm dist-tag/API-backed.
 5. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
 6. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
 7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates. The app-runtime concept is internal/local until dogfood proves it should become a package.
@@ -49,7 +49,37 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
+- Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel manifest/source, then continue Beauty/manual dogfood before generator-heavy work.
+
+## M32 SDK machine-readable release-channel manifest — 2026-06-14 12:14 BRT
+
+Result:
+
+- Added a machine-readable `release-channels.json` export to `@fayz-ai/sdk`.
+- Switched the typed SDK resolver to derive from that JSON so the package now has one checked-in version-channel source.
+- Locked JSON and typed exports together with SDK tests.
+
+Impact:
+
+- Finishes the SDK side of `FAY-1183` in a Fayz-consumable format without expanding the public npm surface.
+- Removes the need for Fayz to parse SDK TypeScript by regex during the final cutover.
+- Keeps version governance inside the public SDK package contract, not in app repos.
+
+Risk:
+
+- The final Fayz scaffold cutover is still pending because this automation sandbox can read `/Users/fayalabs/dev/fayz` but cannot write there.
+- Channel values remain checked-in constants for now; dist-tags/API backing is still a later decision after dogfood proof.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk typecheck`
+  - `pnpm --filter @fayz-ai/sdk test`
+  - `pnpm --filter @fayz-ai/sdk build`
+
+Next:
+
+- When the Fayz repo is writable, replace the scaffold snapshot/parser path with direct consumption of the SDK `release-channels.json` export.
 
 ## M31 Beauty dashboard/reports extraction — 2026-06-14 12:11 BRT
 

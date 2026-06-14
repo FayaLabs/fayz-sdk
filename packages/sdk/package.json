@@ -31,6 +31,7 @@
       "import": "./dist/release-channels.js",
       "require": "./dist/release-channels.cjs"
     },
+    "./release-channels.json": "./src/release-channels.json",
     "./runtime": {
       "source": "./src/runtime.ts",
       "types": "./dist/runtime.d.ts",
