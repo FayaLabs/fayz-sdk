@@ -37,7 +37,7 @@ npm publish --dry-run --access public
 
 Keep `@fayz/sdk` lightweight: no React peer dependency, no UI bundle, no Supabase/provider SDK dependency, and no server-side secrets.
 
-Actual `npm publish --access public` is blocked by npm account policy: the provided token authenticates and dry-run succeeds, but real publish requires either a current OTP or a granular/automation token with 2FA bypass enabled.
+Actual `npm publish --access public` is blocked by npm scope/org permission, not package code. The provided token authenticates as `fayalabs`, recovery-code OTP moves past the previous 2FA blocker, but npm returns `E404` for publishing `@fayz/sdk@0.1.0` and `E403` for `npm org ls fayz`. This means the authenticated account/token cannot publish under the `@fayz` scope yet.
 
 ### Next
 
@@ -46,7 +46,7 @@ Linear tracking updated:
 - `FAY-1181` comment `197e46fa-fca0-4b9a-8bae-6e3a5000c5a1`
 - `FAY-1182` comment `295f0885-7d2a-414b-95dd-f29e64a9ab70`
 
-Get npm OTP or a granular automation token that can publish under `@fayz`, then publish `@fayz/sdk@0.1.0`. Continue Beauty extraction only after package lock is reviewed.
+Create/enable npm org/scope `fayz` and add `fayalabs` with publish rights, or approve switching package scope to `@fayalabs/*`. Then publish `@fayz/sdk@0.1.0`. Continue Beauty extraction only after package lock is reviewed.
 
 ## 2026-06-14 08:25 BRT — M17 createSaasApp deprecation stance hardened
 

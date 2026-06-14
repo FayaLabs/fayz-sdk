@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 npm package-source implementation with npm publish blocked only by 2FA/token policy, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 npm package-source implementation with npm publish blocked only by npm `@fayz` scope/org permission, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -69,7 +69,7 @@ Risk:
 
 - Keep `@fayz/sdk` lean. Do not add React, UI, Supabase, or provider SDKs to it.
 - Do not refactor Beauty destructively before package gates pass.
-- Npm publish requires either a current OTP or a granular/automation token allowed to bypass 2FA. Current token authenticates and passes dry-run, but real publish returns npm `E403` 2FA policy.
+- Npm publish now passes auth/2FA but is blocked by scope permission. Current npm account authenticates as `fayalabs`; `npm publish --access public --otp <recovery-code>` returns npm `E404` on `@fayz/sdk`, and `npm org ls fayz` returns `E403`, meaning this account/token cannot publish under the `@fayz` scope yet.
 
 Gate:
 
@@ -86,7 +86,8 @@ Gate:
 
 Publish:
 
-- `npm publish --access public` blocked by npm 2FA/token policy before publishing `@fayz/sdk@0.1.0`.
+- `npm publish --access public` blocked by npm `@fayz` scope/org permission before publishing `@fayz/sdk@0.1.0`.
+- Required human action: create/enable the npm org/scope `fayz` and add account `fayalabs` with publish rights, or approve switching the npm scope to `@fayalabs/*`.
 
 Tracking:
 
