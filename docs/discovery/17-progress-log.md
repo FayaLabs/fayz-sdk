@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:01 UTC / 20:01 BRT — M68 public SDK data mutations
+
+Resultado:
+
+- Added `fayz.data.createRow()`, `fayz.data.updateRow()`, and `fayz.data.deleteRows()` to the public `@fayz-ai/sdk` client.
+- Added typed options/response exports for row mutations.
+- Covered admin/runtime row mutation paths with SDK tests.
+- SDK test/build gates pass.
+
+Impacto:
+
+- This closes a key SDK API gap before wiring real providers into Menu/Tables, Beauty, and Marketplace.
+- Apps/plugins can now use one Base44-style SDK client for reads and writes instead of owning ad hoc fetch/Supabase mutation code.
+
+Risco:
+
+- This is the transport layer, not yet a domain provider. Menu/Tables still need provider factories that map plugin domain models to Fayz rows.
+- Runtime writes still depend on the Fayz API permission/tenant enforcement already defined server-side.
+
+Proximo:
+
+- Build the first private plugin provider on top of these SDK mutations, starting with Resto Tables or Menu.
+- Keep public package surface unchanged: this is inside `@fayz-ai/sdk`, not another npm package.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/sdk test
+pnpm --filter @fayz-ai/sdk build
+```
+
 ## 2026-06-14 22:59 UTC / 19:59 BRT — M67 Resto Menu/Tables promoted to private SDK plugins
 
 Resultado:

@@ -99,4 +99,78 @@ describe('createFayzClient', () => {
     expect(url).toContain('page=1')
     expect(url).toContain('limit=1')
   })
+
+  it('creates table rows through the Fayz data API', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ id: 'menu-1', name: 'Burger' }, 201))
+    const client = createFayzClient({
+      baseUrl: 'https://api.fayz.ai',
+      appId: 'app-1',
+      token: 'runtime-token',
+      fetcher,
+    })
+
+    const row = await client.data.createRow<{ id: string; name: string }>({
+      projectId: 'project-1',
+      table: 'menu_items',
+      schema: 'public',
+      runtime: true,
+      row: { name: 'Burger' },
+    })
+
+    expect(row).toEqual({ id: 'menu-1', name: 'Burger' })
+
+    const [url, init] = fetcher.mock.calls[0] ?? []
+    expect(url).toBe('https://api.fayz.ai/api/v1/runtime/projects/project-1/database/tables/menu_items/rows?schema=public')
+    expect(init).toEqual(expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ name: 'Burger' }),
+      headers: expect.objectContaining({
+        'Content-Type': 'application/json',
+        'X-App-Id': 'app-1',
+        Authorization: 'Bearer runtime-token',
+      }),
+    }))
+  })
+
+  it('updates table rows by primary key through the Fayz data API', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ id: 'table-1', status: 'occupied' }))
+    const client = createFayzClient({ baseUrl: 'https://api.fayz.ai', fetcher })
+
+    const row = await client.data.updateRow<{ id: string; status: string }>({
+      projectId: 'project-1',
+      table: 'restaurant_tables',
+      primaryKeys: { id: 'table-1' },
+      row: { status: 'occupied' },
+    })
+
+    expect(row.status).toBe('occupied')
+
+    const [url, init] = fetcher.mock.calls[0] ?? []
+    expect(url).toBe('https://api.fayz.ai/api/projects/project-1/database/tables/restaurant_tables/rows')
+    expect(init).toEqual(expect.objectContaining({
+      method: 'PATCH',
+      body: JSON.stringify({
+        primaryKeys: { id: 'table-1' },
+        data: { status: 'occupied' },
+      }),
+    }))
+  })
+
+  it('deletes table rows through the Fayz data API', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ deletedCount: 1 }))
+    const client = createFayzClient({ baseUrl: 'https://api.fayz.ai', fetcher })
+
+    await expect(client.data.deleteRows({
+      projectId: 'project-1',
+      table: 'restaurant_tables',
+      rows: [{ id: 'table-1' }],
+    })).resolves.toEqual({ deletedCount: 1 })
+
+    const [url, init] = fetcher.mock.calls[0] ?? []
+    expect(url).toBe('https://api.fayz.ai/api/projects/project-1/database/tables/restaurant_tables/rows')
+    expect(init).toEqual(expect.objectContaining({
+      method: 'DELETE',
+      body: JSON.stringify({ rows: [{ id: 'table-1' }] }),
+    }))
+  })
 })

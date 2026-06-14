@@ -7,6 +7,11 @@ export type {
   FayzTableFilterOperator,
   FayzTableListOptions,
   FayzTableListResponse,
+  FayzTableMutationOptions,
+  FayzTableCreateOptions,
+  FayzTableUpdateOptions,
+  FayzTableDeleteOptions,
+  FayzTableDeleteResponse,
 } from './client'
 export {
   fayzPackageVersionSets,
