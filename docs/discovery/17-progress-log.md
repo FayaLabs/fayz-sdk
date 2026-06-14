@@ -1,5 +1,37 @@
 # 17 — Progress Log
 
+## 2026-06-14 11:40 BRT — M26 Resto manifest/registry split
+
+### Executive outcome
+
+Resto moved one step closer to the scalable app shape: `App.tsx` renders only, `app.manifest.ts` defines the manifest, and `registry.tsx` now owns the first custom app widget boundary.
+
+### Business impact
+
+- The repo is easier for agents and humans to operate: app entry, manifest definition, custom registry code, and config are no longer all collapsed into one file.
+- This keeps the public package strategy unchanged: only `@fayz-ai/sdk` is public; app-runtime/core/saas/plugins stay internal/local during dogfood.
+- The refactor is incremental and gated, so it can continue without destabilizing the restaurant app.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/resto-saas
+pnpm build
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Result: both builds passed after the split. Resto was committed and pushed as `039b844 refactor: split resto manifest and registry`. Beauty stayed on a tiny `App.tsx` because a separate `app.manifest.ts` would currently be a redundant wrapper without registry/serializable-manifest value.
+
+### Risk
+
+Resto still has large plugin configuration blocks. The next useful extraction is dashboard metrics/sections and entity pages into explicit registry/config modules, followed by domain plugins.
+
+### Next
+
+Continue with Resto because it is clean and committable. Add a Beauty `app.manifest` file only when it contains real manifest data or imports real registry-owned code.
+
 ## 2026-06-14 11:45 BRT — M25 Beauty/Resto renderApp dogfood bridge
 
 ### Executive outcome

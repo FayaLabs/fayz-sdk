@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 11:45 BRT
+Last updated: 2026-06-14 11:40 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto manifest/registry split, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -49,6 +49,42 @@ Executive answer to Vini's latest check:
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
+
+## M26 Resto manifest/registry split — 2026-06-14 11:40 BRT
+
+Result:
+
+- Resto now follows the cleaner scalable file shape:
+  - `src/App.tsx` only renders.
+  - `src/app.manifest.ts` owns `defineSaas(restoAppConfig)`.
+  - `src/registry.tsx` owns the first app-specific custom plugin/widget boundary.
+  - `src/app.config.tsx` imports registry-owned custom code instead of mixing everything inline.
+
+Impact:
+
+- This is a concrete step from "config-as-code monolith" toward "manifest + registry + app config".
+- It proves the refactor can be incremental and gated without breaking the app.
+- It gives agents a clearer edit surface before scaling this pattern into generated apps.
+
+Risk:
+
+- Resto still has large plugin config blocks; the next useful slice is extracting dashboard sections/metrics and entity pages into clearer registry/config modules.
+- Beauty intentionally does not get a separate `app.manifest.ts` yet because it would only wrap `defineSaas(beautyAppConfig)` without a registry boundary. Keep Beauty on a tiny `App.tsx` until the manifest becomes real data or registry-owned code appears.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Commit:
+
+- Resto: `039b844 refactor: split resto manifest and registry`
+
+Next:
+
+- Continue Resto extraction in narrow slices: dashboard metrics/sections, entity pages, then domain plugins.
+- Apply the same pattern to Beauty only when there is a real `registry.tsx` or serializable manifest boundary, not just a duplicate wrapper file.
 
 ## M25 Beauty/Resto renderApp dogfood bridge — 2026-06-14 11:45 BRT
 
