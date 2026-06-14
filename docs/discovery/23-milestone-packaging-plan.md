@@ -1,14 +1,14 @@
 # 23 — Milestone Packaging Plan
 
-Last updated: 2026-06-13 22:20 BRT
+Last updated: 2026-06-14 08:47 BRT
 
 ## Executive Summary
 
-The weekend work is moving, but the delivery risk is now packaging, not implementation.
+The weekend work is moving, but the delivery risk is packaging discipline, not raw implementation.
 
-Current issue: `fayz-sdk`, `fayz`, and `beauty-saas` all have large dirty worktrees. Tests are mostly green, but review/rollback confidence drops every hour we keep adding work without milestone commits.
+Current issue: `fayz-sdk`, `fayz`, and `beauty-saas` all have large dirty worktrees. Tests are mostly green, but review/rollback confidence drops if package-source, SDK runtime, and Beauty migration are mixed.
 
-Decision: switch from micro-hardening to packaging mode. No broad new implementation until the current work is split into coherent reviewable commits.
+Decision: package-source is now public npm. Commit the package lock as a coherent milestone before any broad Beauty refactor.
 
 ## Commit Policy
 
@@ -205,11 +205,51 @@ fix(agenda): stabilize beauty booking lifecycle proof
 
 Commit not created in this cycle. Reconcile Beauty branch before committing Beauty source changes.
 
+### M18 — Public npm + Lean `@fayz/sdk`
+
+Status: gated at 2026-06-14 08:47 BRT.
+
+Repo: `/Users/fayalabs/dev/fayz-sdk` plus generated scaffold in `/Users/fayalabs/dev/fayz`
+
+Purpose: unblock real SDK usage in generated projects without making every project install the heavy app runtime.
+
+Candidate files:
+
+- SDK package metadata and `.changeset/config.json`
+- `packages/sdk/**`
+- `packages/core/src/runtime/index.ts`
+- `packages/runtime/**`
+- SDK CLI generator package/dependency docs
+- Fayz generated scaffold dependency/template/tests
+- discovery docs and agent guide
+
+Gate:
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz/sdk typecheck
+pnpm --filter @fayz/sdk test
+pnpm --filter @fayz/sdk build
+pnpm --filter @fayz/core typecheck
+pnpm --filter @fayz/runtime typecheck
+pnpm --filter @fayz/runtime build
+pnpm check:manifest
+
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
+```
+
+Suggested commit:
+
+```txt
+feat(sdk): publish lean npm package contract
+```
+
 ## Stop Conditions
 
 Stop and ask Vini before:
 
-- changing package publication/source strategy for `@fayz/*`;
+- changing package publication/source strategy away from public npm for `@fayz/*`;
 - claiming public generated-app `fayz-api` production readiness;
 - storing OAuth secrets or refresh tokens in SDK/generated app repos;
 - broad Beauty branch pull/rebase/merge while it is behind origin;

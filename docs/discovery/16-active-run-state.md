@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 08:25 BRT
+Last updated: 2026-06-14 08:47 BRT
 
 ## Mode
 
@@ -8,36 +8,37 @@ Active autonomous execution is approved. This file is the fast resume snapshot f
 
 The heartbeat is a fallback/resume mechanism, not the main worker. The active thread should keep executing in continuous small cycles: inspect, run the next gate, fix the narrow failure, update docs, repeat. Stop only for blockers that require Vini's product/architecture approval.
 
-Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready but package-source blocked for hard runtime dependency. Beauty agenda lifecycle proof is broad and was revalidated after the runtime/API work.
+Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is now locked to public npm. Beauty agenda lifecycle proof is broad and was revalidated after the runtime/API work.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
 - Fayz branch: `weekend-fayz-sdk-panel-manifest`
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green/yellow for FAY-1182 after OAuth broker read/write Calendar proxy, revocation/audit foundation, generated-app helper contract/tests, and local SDK helper package**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 npm package-source implementation, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
 - Current active issues: `FAY-1178` — `[SDK] DB-backed AppManifest foundation for generated panels`; `FAY-1182` — `[SDK] Server-side tenant enforcement for Fayz API data provider`
 - Completed related issues: `FAY-1179`, `FAY-1180`
-- Deferred related issue: `FAY-1181` — package real `fayz-sdk` only after package-source decision is locked
+- Reactivated related issue: `FAY-1181` — package real `fayz-sdk` on public npm with lean `@fayz/sdk` default package
 - Historical origin: `FAY-924`
 
 Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, generated-app helper contract/tests, and local packaged SDK helper into provider onboarding UI or SDK remote publication.
-4. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
-5. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates.
-6. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
-7. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
+3. Continue `FAY-1181` package implementation from the public npm decision: lean `@fayz/sdk`, public package metadata, generated scaffold dependency update, and release checklist.
+4. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
+5. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
+6. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates.
+7. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
+8. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
 
 Idle-loop rule:
 
-- While M15 is awaiting Vini approval, heartbeat executions should stay lightweight: read this file and `17-progress-log.md`, inspect minimal git/process health, and return `DONT_NOTIFY` if nothing changed.
-- Do not create new code/product milestones for provider onboarding until Vini approves option 1 or chooses another direction.
+- While provider onboarding is awaiting final UX approval, heartbeat executions should stay lightweight unless package/publication work is actively unblocked.
+- Do not create new provider onboarding UI/product routes until Vini approves option 1 or chooses another direction.
 - Notify immediately if a process is stuck, Beauty stops serving `127.0.0.1:5180`, a new user decision arrives, or an unblocked packaging/publication path appears.
 
 Executive answer to Vini's latest check:
@@ -45,7 +46,44 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`, approve manifest-first generated-app contract in `26-app-contract-and-integrations-decision.md`, or confirm SDK remote/package-source so M13/M14/M16/M17 can be pushed/published.
+- Next target: finish and gate the public npm / lean `@fayz/sdk` implementation, then approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`.
+
+## M18 Public npm + lean SDK package lock — 2026-06-14 08:47 BRT
+
+Result:
+
+- Vini approved npm public as the SDK package-source standard.
+- `@fayz/sdk` is now the lean always-safe package for generated projects.
+- `@fayz/runtime` remains the manifest app-rendering package.
+- GitHub Packages / `NODE_AUTH_TOKEN` is no longer the generated-project path.
+
+Impact:
+
+- `FAY-1181` is unblocked from decision state into implementation/gating.
+- Generated projects can normalize API access, app params, shared types, and Runtime OAuth broker calls through `@fayz/sdk`.
+- This follows the Base44-style pattern without making every simple project install the heavy runtime/UI bundle.
+
+Risk:
+
+- Keep `@fayz/sdk` lean. Do not add React, UI, Supabase, or provider SDKs to it.
+- Do not refactor Beauty destructively before package gates pass.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz/sdk typecheck`
+  - `pnpm --filter @fayz/sdk test`
+  - `pnpm --filter @fayz/sdk build`
+  - `pnpm --filter @fayz/core typecheck`
+  - `pnpm --filter @fayz/runtime typecheck`
+  - `pnpm --filter @fayz/runtime build`
+  - `pnpm check:manifest`
+  - `npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts`
+
+Tracking:
+
+- Linear `FAY-1181` comment `197e46fa-fca0-4b9a-8bae-6e3a5000c5a1`
+- Linear `FAY-1182` comment `295f0885-7d2a-414b-95dd-f29e64a9ab70`
 
 ## M17 createSaasApp deprecation stance — 2026-06-14 08:25 BRT
 

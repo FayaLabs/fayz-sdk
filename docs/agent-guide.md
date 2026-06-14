@@ -2,12 +2,14 @@
 
 This document is the primary reference for AI agents generating new projects with `@fayz/saas-core` (current) or the `fayz-sdk` packages (future). Read it entirely before scaffolding or modifying any app.
 
-## Current Operating Status — 2026-06-13
+## Current Operating Status — 2026-06-14
 
 Fayz-generated projects are moving to a manifest-first SDK contract.
 
 For new work in Fayz-generated projects:
 
+- Use public npm `@fayz/sdk` as the lean default package for every generated project: app params, normalized API access, shared types, and runtime OAuth broker helpers.
+- Use public npm `@fayz/runtime` only when the project renders a Fayz manifest app with `renderApp(manifest)` or needs registry/scaffold/plugin runtime helpers.
 - Treat Fayz SDK as open-source client/runtime code. Do not add secrets, OAuth client secrets, provider refresh tokens, partner API keys, or tenant-authority decisions to SDK packages, generated repos, manifests, or browser code.
 - Plugin/integration authentication uses OAuth through Fayz/server-side infrastructure. Plugins may declare required providers/scopes and call SDK/Fayz OAuth helpers, but OAuth token storage, refresh, revocation, audit, and tenant grants belong to Fayz-controlled services.
 - Treat `app.manifest.json` as the first edit surface for pages, surfaces, plugins, entities, permissions, theme, and backend provider selection.
@@ -26,7 +28,7 @@ For new work in Fayz-generated projects:
   - Default generated-project scope is `tenantKey="default"`, `environment="preview"`, and `surface="panel"`.
   - Trim scope strings before writes/reads; blank scope values resolve to defaults, while unsupported enum values must fail before persistence.
   - Use only supported environments `preview` or `production` and supported binding surfaces `panel`, `admin`, `storefront`, or `portal`.
-- Do not add `@fayz/runtime` to generated `package.json` until package source is locked. As of this checkpoint, `@fayz/runtime`, `@fayz/core`, and `@fayz/saas` are not available from npm public or the currently configured GitHub Packages registry.
+- Package source is locked to public npm under the `@fayz/*` scope. Do not reintroduce GitHub Packages `.npmrc` auth requirements into generated apps.
 - For `backend.provider = "fayz-api"`:
   - editor/admin tooling uses the authenticated Fayz route `/api/projects/:projectId/database/...`;
   - generated runtime apps must use `createFayzApiProvider({ runtimeToken })`, which calls `/api/v1/runtime/projects/:projectId/database/...`;
@@ -34,7 +36,7 @@ For new work in Fayz-generated projects:
   - public generated apps must not claim production readiness on `fayz-api` until the OAuth-backed Runtime Session Broker / server-side exchange is enabled;
   - never embed OAuth secrets, provider refresh tokens, partner `ApiToken`, raw Fayz secrets, or caller-provided tenant authority in browser code.
 - For plugin/provider calls such as Google Calendar:
-  - use `createFayzRuntimeClient()` from `@fayz/runtime`, `@fayz/core/runtime`, or `@fayz/core` once the package source is available;
+  - use `createFayzRuntimeClient()` from `@fayz/sdk`;
   - exchange a runtime-data token through Fayz for a short-lived Plugin OAuth broker token;
   - call brokered helpers such as `fayz.googleCalendar(broker.token).createEvent(...)`;
   - do not create OAuth clients or direct provider API calls in browser/generated code.
@@ -51,6 +53,8 @@ bridges to `@fayz/saas-core` internally, but consumer code never imports
 
 | Plugin / utility | Import from |
 |---|---|
+| `fayz`, `createFayzClient`, `appParams`, `createFayzRuntimeClient` | `@fayz/sdk` |
+| `renderApp`, `defineApp`, registry/scaffold helpers | `@fayz/runtime` |
 | `createSaasApp`, `createCrudPage`, `createArchetypeLookup`, `createPlaceholder` | `@fayz/saas` |
 | `createDashboardPlugin` | `@fayz/plugin-dashboard` |
 | `createAgendaPlugin`, `createFinancialBridge` | `@fayz/plugin-agenda` |
@@ -65,7 +69,7 @@ bridges to `@fayz/saas-core` internally, but consumer code never imports
 | `createMenuPlugin` | `@fayz/plugin-menu` |
 | `createTablesPlugin` | `@fayz/plugin-tables` |
 | `Card`, `Badge`, `Button`, UI primitives | `@fayz/ui` |
-| `createFayzRuntimeClient`, `FayzRuntimeError` | `@fayz/runtime` or `@fayz/core/runtime` |
+| `createFayzRuntimeClient`, `FayzRuntimeError` | `@fayz/sdk` |
 
 Types (`EntityDef`, `FieldDef`, `PageConfig`, `SaasTheme`, etc.) come from `@fayz/saas`
 (or `@fayz/saas-core` — same types via the bridge). `PluginManifest` comes from `@fayz/core`.
@@ -76,9 +80,9 @@ Types (`EntityDef`, `FieldDef`, `PageConfig`, `SaasTheme`, etc.) come from `@fay
 
 ---
 
-## What a generated app looks like
+## Legacy `createSaasApp` Reference
 
-Every Fayz-generated app is a single `App.tsx` file that calls `createSaasApp(config)`. The config declares everything: name, auth, theme, navigation pages, plugins. Nothing is imperative — you describe what you want and the SDK wires it together.
+Existing Beauty/resto apps may still call `createSaasApp(config)` while we extract them. This is migration reference, not the default for new generated projects. New generated apps should use `app.manifest.json` plus `renderApp(manifest)`.
 
 ```tsx
 // src/App.tsx

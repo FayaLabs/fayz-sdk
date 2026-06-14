@@ -1,5 +1,47 @@
 # 17 — Progress Log
 
+## 2026-06-14 08:47 BRT — M18 Public npm + lean SDK package lock gated
+
+### Executive outcome
+
+Vini approved public npm as the Fayz SDK package-source standard, and the first implementation gate passed.
+
+### Business impact
+
+- `@fayz/sdk` becomes the lean default package for every generated project.
+- `@fayz/runtime` remains the heavier manifest app-rendering package.
+- The old GitHub Packages / `NODE_AUTH_TOKEN` blocker is retired for generated apps.
+- Generated projects can now use SDK helpers instead of local runtime OAuth helper forks.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz/sdk typecheck
+pnpm --filter @fayz/sdk test
+pnpm --filter @fayz/sdk build
+pnpm --filter @fayz/core typecheck
+pnpm --filter @fayz/runtime typecheck
+pnpm --filter @fayz/runtime build
+pnpm check:manifest
+
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
+```
+
+### Risk
+
+Keep `@fayz/sdk` lightweight: no React peer dependency, no UI bundle, no Supabase/provider SDK dependency, and no server-side secrets.
+
+### Next
+
+Linear tracking updated:
+
+- `FAY-1181` comment `197e46fa-fca0-4b9a-8bae-6e3a5000c5a1`
+- `FAY-1182` comment `295f0885-7d2a-414b-95dd-f29e64a9ab70`
+
+Commit the SDK/publication slice and Fayz scaffold slice separately, then continue Beauty extraction only after package lock is reviewed.
+
 ## 2026-06-14 08:25 BRT — M17 createSaasApp deprecation stance hardened
 
 ### Executive outcome

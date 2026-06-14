@@ -1,6 +1,6 @@
 # 26 - App Contract and Integrations Decision
 
-Last updated: 2026-06-14 08:25 BRT
+Last updated: 2026-06-14 08:47 BRT
 
 ## Executive Summary
 
@@ -14,6 +14,7 @@ Do not keep `createSaasApp` as strategic architecture.
 - `createFayzApp`: transitional developer helper only if it compiles to/through manifest-first rendering.
 - `createAgendaPlugin`, `createFinancialPlugin`, and other `create*Plugin` factories: plugin package internals/developer API, not generated-app contract.
 - Generated app default: `app.manifest.json` plus `renderApp(manifest)` and a small `registry.tsx` only when the app needs custom code.
+- Package default: every generated project may use lean public npm `@fayz/sdk`; manifest-rendered apps add `@fayz/runtime`.
 - New templates, docs, and AI generation should not emit `createSaasApp`.
 
 ## Why This Matters
@@ -55,6 +56,16 @@ Why not delete it today:
 - Beauty is still the highest-value contract specimen.
 - Removing the adapter before extraction would create churn without proving the new contract.
 - The right move is to make it a one-way migration path, not a product API.
+
+## Package Decision
+
+Fayz SDK packages publish to public npm under `@fayz/*`.
+
+- `@fayz/sdk`: lean default package for every generated project.
+- `@fayz/runtime`: app-rendering package for `renderApp(manifest)`.
+- `@fayz/core`, `@fayz/auth`, `@fayz/ui`, `@fayz/saas`, and plugins remain modular for internals/power users.
+
+This copies the useful Base44-style pattern: even simple projects get normalized API access and app params, without forcing the full UI/runtime bundle into every project.
 
 ## Plugin Factory Decision
 
@@ -170,9 +181,9 @@ src/registry.tsx  -> Beauty-only metrics/blocks/lookups
 5. Replace direct bridge patterns with event/capability contracts as the next shared plugin API milestone.
 6. Continue OAuth-backed Runtime Session Broker as the provider access boundary.
 
-## Blockers
+## Remaining Decisions
 
-- Vini approval that manifest-first is the official generated-app contract.
-- SDK remote/package-source destination for publishing the open-source SDK.
+- Provider onboarding UX and permission names in `25-provider-onboarding-decision-brief.md`.
+- Beauty extraction sequence after package gates pass.
 
-Until then, do not refactor Beauty's `App.tsx` blindly; use it as the golden migration specimen and extract it toward the new contract.
+Do not refactor Beauty's `App.tsx` blindly; use it as the golden migration specimen and extract it toward the new contract after the package lock passes.
