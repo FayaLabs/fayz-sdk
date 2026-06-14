@@ -174,4 +174,6 @@ export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
 }
 
 export type { MenuDataProvider } from './data/types'
+export { createFayzMenuProvider } from './data/fayz'
+export type { FayzMenuProviderOptions } from './data/fayz'
 export type { ResolvedMenuConfig } from './MenuContext'

@@ -714,6 +714,9 @@ importers:
       '@fayz-ai/saas':
         specifier: workspace:^
         version: link:../../packages/saas
+      '@fayz-ai/sdk':
+        specifier: workspace:^
+        version: link:../../packages/sdk
       '@fayz-ai/ui':
         specifier: workspace:^
         version: link:../../packages/ui

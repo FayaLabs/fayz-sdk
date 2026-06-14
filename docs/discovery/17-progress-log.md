@@ -1,5 +1,39 @@
 # 17 — Progress Log
 
+## 2026-06-14 23:17 UTC / 20:17 BRT — M71 private Menu provider on SDK data API
+
+Resultado:
+
+- Added `createFayzMenuProvider()` to private `@fayz-ai/plugin-menu`.
+- The provider maps menu categories/items to Fayz SDK data access over `categories` and `products`, with menu-specific fields stored in product metadata.
+- Exposed provider options/types from the private Menu plugin package.
+- Plugin Menu typecheck/build passes.
+- Resto production build and authenticated `/menu` smoke remain green.
+
+Impacto:
+
+- Menu now follows the same architecture as Tables: plugin owns domain provider/UI, public SDK owns data transport, app owns only config/env.
+- This further reduces the need for app-owned Supabase/fetch code in restaurant apps.
+
+Risco:
+
+- Resto does not activate the Fayz Menu provider yet; it still uses mock fallback until env-gated wiring is added.
+- Modifier groups remain intentionally blocked behind a future dedicated table/broker contract.
+
+Proximo:
+
+- Add `src/config/menu.ts` in Resto with env-gated `createFayzMenuProvider()`.
+- Then test a real read/write path once runtime env is available.
+
+Verification:
+
+```bash
+pnpm --filter @fayz-ai/plugin-menu typecheck
+pnpm --filter @fayz-ai/plugin-menu build
+cd /Users/fayalabs/dev/fayz-app/resto-saas && pnpm build
+Playwright headless authenticated smoke on http://localhost:5181/#/menu
+```
+
 ## 2026-06-14 23:10 UTC / 20:10 BRT — M70 Resto env-gated Tables provider wiring
 
 Resultado:

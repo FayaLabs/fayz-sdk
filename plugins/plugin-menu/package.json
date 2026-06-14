@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/sdk": "workspace:^",
     "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
     "lucide-react": "^0.400.0",
