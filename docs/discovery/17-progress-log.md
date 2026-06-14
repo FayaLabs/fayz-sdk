@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-14 18:43 BRT — M54 SDK-owned storefront slot contract helper
+
+Resultado:
+
+- Added `productCardSlotContract` and `storefrontSlotContracts` to `@fayz-ai/storefront`.
+- Updated the default storefront `ProductCard` to use the exported contract.
+- Documented the custom-slot rule in the SDK agent guide.
+- Updated Tannat and Pulse custom product cards to dogfood the helper instead of hard-coding selector strings.
+
+Impacto:
+
+- The contract is no longer tribal knowledge from the last bug; it is now an SDK-owned API that generated/custom apps can copy safely.
+- This keeps the scale model intact: app teams can deeply customize product cards without breaking cart, checkout smoke tests, QA, or future Fayz agents.
+
+Risco:
+
+- This only covers the first proven slot: `ProductCard`. New slot contracts should be added only when dogfood proves a real customization need.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/storefront typecheck`
+  - `pnpm --filter @fayz-ai/storefront build`
+  - `pnpm build` in Tannat
+  - `pnpm build` in Pulse
+
+Next:
+
+- Encode `productCardSlotContract` into the generated storefront template when the dedicated storefront scaffold is created.
+- Continue fourth-app dogfood before Fayz Agents SDK operation.
+
 ## 2026-06-14 18:31 BRT — M53 Storefront custom slot contract preservation
 
 Resultado:

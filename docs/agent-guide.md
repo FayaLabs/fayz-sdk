@@ -1258,6 +1258,29 @@ What it includes out of the box:
 - Every interactive element carries a `data-testid` (exported as `TID`) and every
   price a `data-price` attribute — Playwright suites assert against those
 
+When a client app overrides a storefront slot, keep the slot contract. For
+example, a custom product card can change all visual structure but must preserve
+the exported `productCardSlotContract` anchors:
+
+```tsx
+import { Price, productCardSlotContract, useCartStore } from '@fayz-ai/storefront'
+import type { ProductCardProps } from '@fayz-ai/storefront'
+
+export function CustomProductCard({ product }: ProductCardProps) {
+  const addItem = useCartStore((s) => s.addItem)
+
+  return (
+    <article {...productCardSlotContract.root}>
+      <h3 {...productCardSlotContract.name}>{product.name}</h3>
+      <Price value={product.price} testId={productCardSlotContract.priceTestId} />
+      <button {...productCardSlotContract.addButton} onClick={() => addItem(product)}>
+        Adicionar
+      </button>
+    </article>
+  )
+}
+```
+
 Composable exports for custom layouts: `StorefrontHeader`, `ProductGrid`,
 `ProductCard`, `FiltersPanel`, `CartDrawer`, `Price`, page components, the
 `useCartStore`/`useSessionStore`/`useCatalogStore` stores, and hooks

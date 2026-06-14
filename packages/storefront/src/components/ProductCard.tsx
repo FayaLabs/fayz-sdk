@@ -6,6 +6,7 @@ import { useStorefrontConfig } from '../config'
 import { Link } from '../router'
 import { Price } from './Price'
 import { TID } from '../testids'
+import { productCardSlotContract } from '../slot-contracts'
 
 export interface ProductCardProps {
   product: Product
@@ -23,7 +24,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div
-      data-testid={TID.productCard}
+      {...productCardSlotContract.root}
       data-slug={product.slug}
       className={`group flex flex-col overflow-hidden transition-all duration-300 ${
         cardStyle === 'editorial'
@@ -65,7 +66,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <span className="text-xs text-muted-foreground">{product.categoryName}</span>
         <Link
           to={`/product/${product.slug}`}
-          data-testid={TID.productCardName}
+          {...productCardSlotContract.name}
           className="font-medium leading-snug hover:underline"
         >
           {product.name}
@@ -74,11 +75,11 @@ export function ProductCard({ product }: ProductCardProps) {
           <Price
             value={product.price}
             compareAt={product.compareAtPrice}
-            testId={TID.productCardPrice}
+            testId={productCardSlotContract.priceTestId}
           />
           <button
             type="button"
-            data-testid={TID.productCardAdd}
+            {...productCardSlotContract.addButton}
             disabled={soldOut}
             aria-label={`Adicionar ${product.name} ao carrinho`}
             onClick={() => {

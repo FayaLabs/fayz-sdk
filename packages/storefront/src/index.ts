@@ -100,3 +100,8 @@ export type { RevealProps } from './motion'
 // Utilities
 export { formatMoney, roundCents } from './format'
 export { TID } from './testids'
+export {
+  productCardSlotContract,
+  storefrontSlotContracts,
+} from './slot-contracts'
+export type { ProductCardSlotContract } from './slot-contracts'

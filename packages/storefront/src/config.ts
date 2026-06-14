@@ -11,7 +11,12 @@ export interface ProductCardSlotProps {
 }
 
 export interface StorefrontSlots {
-  /** Product card renderer used by catalog grids and product rails. */
+  /**
+   * Product card renderer used by catalog grids and product rails.
+   *
+   * Custom renderers must preserve `productCardSlotContract` selectors so
+   * checkout smoke tests, QA, and agents can still operate the storefront.
+   */
   ProductCard?: React.ComponentType<ProductCardSlotProps>
 }
 
