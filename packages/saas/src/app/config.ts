@@ -24,8 +24,12 @@ export interface CustomPage {
   label?: string
   /** Lucide icon name or any string identifier */
   icon?: string
-  component: ComponentType
+  component?: ComponentType
   section?: PageSection
+  position?: number
+  badge?: string | number
+  permission?: { feature: string; action: 'read' | 'create' | 'edit' | 'delete' }
+  children?: CustomPage[]
 }
 
 // ---------------------------------------------------------------------------

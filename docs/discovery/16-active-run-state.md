@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 12:26 BRT
+Last updated: 2026-06-14 12:30 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -38,7 +38,7 @@ Current focus:
 10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, keep improving `resto-saas`, `shopfront`, and at least one more Fayz app until 4 apps reach roughly 9/10. Only after that should Fayz Agents be taught to operate `fayz-sdk`.
 11. Generated apps should not own direct provider clients by default. `integrations/supabase` is a smell for generated apps unless hidden behind an optional SDK adapter; default API/data access should go through `@fayz-ai/sdk` / Fayz broker, Base44-style.
 12. Current SDK/API abstraction proof: Beauty dashboard KPI and today-schedule section now call `fayz.data.countRows/listRows` instead of importing Supabase directly. Next frontier is moving remaining app/plugin provider wiring behind SDK/platform adapters.
-13. Current `createSaasApp` deprecation blocker: Beauty cannot fully switch from legacy `SaasAppConfig` to `FayzAppConfig` until the new AdminShell preserves nested navigation/position and settings affordances. Login logo/copy/OAuth carry-forward is now prepared and gated.
+13. Current `createSaasApp` deprecation blocker: Beauty can now preserve login/logo/OAuth plus app page ordering/children in the new AdminShell. The next gated slice is switching Beauty from legacy `SaasAppConfig.organization` to `FayzAppConfig.org` and visually checking settings/navigation parity before claiming deprecation proof.
 
 Idle-loop rule:
 
@@ -51,7 +51,36 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: finish the new AdminShell parity needed for Beauty to stop hitting the legacy `createSaasApp` path, then remove remaining provider adapter leaks and continue the 4-app dogfood route before generator-heavy work.
+- Next target: migrate Beauty from legacy `SaasAppConfig.organization` to `FayzAppConfig.org` in a curated slice, then visually check navigation/settings parity before claiming `createSaasApp` deprecation proof.
+
+## M35 new AdminShell page ordering/children parity — 2026-06-14 12:30 BRT
+
+Result:
+
+- Extended `FayzAppConfig` custom pages with `position`, `badge`, `permission`, and recursive `children`.
+- Updated the new AdminShell to sort plugin/app navigation by section and position.
+- Updated the new AdminShell to render nested app navigation and collect child routes with components.
+
+Impact:
+
+- Removes another practical blocker to moving Beauty off the legacy `createSaasApp` shell path.
+- Keeps app-specific navigation as business config instead of forcing custom code in each app.
+- Makes the new manifest/runtime path more credible for scaling thousands of apps because app repos can declare pages/subpages without owning shell logic.
+
+Risk:
+
+- This is shell parity, not the final Beauty migration. Beauty still needs a curated switch from `SaasAppConfig` to `FayzAppConfig` and a visual navigation/settings check.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Switch Beauty to `FayzAppConfig.org`/new runtime path in a curated slice and verify the app still feels like Beauty, not a reduced shell.
 
 ## M34 new runtime login/OAuth carry-forward prep — 2026-06-14 12:26 BRT
 

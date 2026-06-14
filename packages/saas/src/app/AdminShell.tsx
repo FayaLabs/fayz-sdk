@@ -39,9 +39,48 @@ function navEntryToItem(entry: PluginNavigationEntry): NavigationItem {
   }
 }
 
+type OrderedNavigationItem = NavigationItem & { position: number }
+
 interface RouteEntry {
   path: string
   Component: React.ComponentType<Record<string, unknown>>
+}
+
+function sectionOrder(section: NavigationItem['section']): number {
+  return section === 'main' ? 0 : section === 'secondary' ? 1 : 2
+}
+
+function compareNavigation(a: OrderedNavigationItem, b: OrderedNavigationItem): number {
+  const sectionDelta = sectionOrder(a.section) - sectionOrder(b.section)
+  if (sectionDelta !== 0) return sectionDelta
+  return a.position - b.position
+}
+
+function pageToNavigationItem(page: CustomPage, fallbackPosition: number): OrderedNavigationItem | null {
+  if (!page.label) return null
+  return {
+    id: `page:${page.path}`,
+    label: page.label,
+    icon: page.icon ?? 'FileText',
+    route: page.path,
+    section: page.section ?? 'main',
+    badge: page.badge,
+    permission: page.permission,
+    position: page.position ?? fallbackPosition,
+    children: page.children
+      ?.map((child, index) => pageToNavigationItem(child, index))
+      .filter((item): item is OrderedNavigationItem => Boolean(item)),
+  }
+}
+
+function collectPageRoutes(pages: CustomPage[], out: RouteEntry[] = []): RouteEntry[] {
+  for (const page of pages) {
+    if (page.component) {
+      out.push({ path: page.path, Component: page.component as React.ComponentType<Record<string, unknown>> })
+    }
+    if (page.children?.length) collectPageRoutes(page.children, out)
+  }
+  return out
 }
 
 function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [] }: AdminShellProps) {
@@ -56,18 +95,15 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [] }: Admi
 
   // Navigation: plugin entries + custom pages (deduped, plugin order preserved).
   const navigation = React.useMemo<NavigationItem[]>(() => {
-    const items = runtime.navigation.map(navEntryToItem)
-    for (const page of pages) {
-      if (!page.label) continue
-      items.push({
-        id: `page:${page.path}`,
-        label: page.label,
-        icon: page.icon ?? 'FileText',
-        route: page.path,
-        section: page.section ?? 'main',
-      })
+    const items: OrderedNavigationItem[] = runtime.navigation.map((entry) => ({
+      ...navEntryToItem(entry),
+      position: entry.position,
+    }))
+    for (const [index, page] of pages.entries()) {
+      const item = pageToNavigationItem(page, index + 1000)
+      if (item) items.push(item)
     }
-    return items
+    return items.sort(compareNavigation)
   }, [runtime.navigation, pages])
 
   // Route table: plugin routes + custom pages, most-specific-first.
@@ -77,9 +113,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [] }: Admi
       const Component = resolvePluginComponent(r) as React.ComponentType<Record<string, unknown>> | undefined
       if (Component) list.push({ path: r.path, Component })
     }
-    for (const page of pages) {
-      list.push({ path: page.path, Component: page.component as React.ComponentType<Record<string, unknown>> })
-    }
+    collectPageRoutes(pages, list)
     return list.sort((a, b) => routeScore(b.path) - routeScore(a.path))
   }, [runtime.routes, pages])
 

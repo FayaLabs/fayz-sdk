@@ -1,5 +1,38 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:30 BRT — M35 new AdminShell page ordering/children parity
+
+### Executive outcome
+
+The new manifest/runtime AdminShell now supports app page ordering and nested navigation, removing another practical blocker to moving Beauty off `createSaasApp`.
+
+### Business impact
+
+- Apps can keep page/subpage structure as business config instead of owning shell code.
+- Beauty/Resto-style page configs can survive the new runtime path with less product regression risk.
+- This makes the SDK/runtime route more credible for scaling many apps because navigation conventions remain centralized.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/saas build
+
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Result: all gates passed. Beauty build warning remains the existing chunk/provider warning, not a new blocker.
+
+### Risk
+
+This is not yet the final Beauty migration. The next slice must switch Beauty to `FayzAppConfig.org`, verify navigation/settings visually, and only then claim `createSaasApp` deprecation proof.
+
+### Next
+
+Migrate Beauty off `SaasAppConfig.organization` in a curated slice, then continue provider leak removal.
+
 ## 2026-06-14 12:26 BRT — M34 new runtime login/OAuth carry-forward prep
 
 ### Executive outcome
