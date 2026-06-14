@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 12:05 BRT
+Last updated: 2026-06-14 12:11 BRT
 
 ## Mode
 
@@ -15,7 +15,7 @@ Research is complete; architecture lock and implementation plan exist. Narrow Pa
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Shopfront config-folder/storefront proof, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
@@ -50,6 +50,36 @@ Executive answer to Vini's latest check:
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
 - Next target: remove the last cross-repo version duplication by switching Fayz scaffold to the SDK-exported release-channel source, then continue Beauty/manual dogfood before generator-heavy work.
+
+## M31 Beauty dashboard/reports extraction — 2026-06-14 12:11 BRT
+
+Result:
+
+- Extracted Beauty dashboard config to `src/config/dashboard.tsx`.
+- Extracted Beauty reports config to `src/config/reports.ts`.
+- Reduced `src/config/app.tsx` from a large mixed config surface to roughly 210 lines focused on app composition.
+- Kept `src/App.tsx` render-only through `renderApp(defineSaas(beautyAppConfig))`.
+
+Impact:
+
+- Beauty is now much closer to Resto's scalable app shape while preserving the paid agenda proof path.
+- The remaining high-value architecture issue is not file organization; it is API access abstraction.
+- Dashboard still imports `../integrations/supabase/client`, which confirms Vini's point: generated apps should use a Base44-like `@fayz-ai/sdk` client/helper instead of direct provider clients.
+
+Risk:
+
+- This remains a local gated Beauty slice. The repo is behind origin by 2 and has broad existing changes, so do not package/commit Beauty without a curated branch/staging decision.
+- The direct Supabase dashboard query is now isolated, but not solved architecturally yet.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Implement or expose the SDK API helper needed to replace direct Beauty dashboard Supabase queries.
+- Continue the 4-app dogfood route before Fayz Agents SDK operation.
 
 ## M30 Shopfront config-folder/storefront proof — 2026-06-14 12:05 BRT
 

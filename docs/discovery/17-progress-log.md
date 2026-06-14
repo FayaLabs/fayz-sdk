@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-14 12:11 BRT — M31 Beauty dashboard/reports extraction
+
+### Executive outcome
+
+Beauty moved materially closer to the Resto/Shopfront app shape: app entry is render-only, `src/config/app.tsx` is now mostly plugin composition, and dashboard/reports live in focused config modules.
+
+### Business impact
+
+- `src/config/app.tsx` is down to roughly 210 lines from the earlier large mixed config surface.
+- Beauty now has `src/config/*` modules for billing, dashboard, pages, permissions, reports, and theme.
+- This is the highest-value Beauty cleanup so far because it keeps the paid agenda proof stable while making the app easier for humans and agents to operate.
+- It exposed the real next SDK problem: Beauty dashboard still needs direct Supabase access for a metric. That should become a Base44-like SDK/API helper rather than app-owned provider client usage.
+
+### Gate passed
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm build
+```
+
+Result: build passed after dashboard and reports extraction.
+
+### Risk
+
+This is still local-gated, not a packaged Beauty milestone. Beauty is behind origin by 2 and has broad existing changes, so committing without curated staging would mix unrelated work. The direct Supabase import is isolated in `src/config/dashboard.tsx`, but it is not architecturally solved yet.
+
+### Next
+
+Add/expose the `@fayz-ai/sdk` API helper needed to replace Beauty dashboard direct Supabase queries, then continue toward four 9/10 dogfood apps before Fayz Agents SDK operation.
+
 ## 2026-06-14 12:05 BRT — M30 Shopfront config-folder/storefront proof
 
 ### Executive outcome
