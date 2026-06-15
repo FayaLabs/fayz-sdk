@@ -12,15 +12,22 @@ Current rollout state:
 
 - Four dogfood apps pass strict generated-app gates for constrained app-owned
   edits: Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
-- Three real runtime projects have passed scoped MCP proofs:
+- Four real runtime projects have passed scoped MCP proofs:
   `ce17885d-862c-4673-b4f2-514bfaee20eb` and
   `bfb74227-0e3c-4226-bbc5-4f5a01ec8fae`, plus
-  `2a558057-7135-4229-8c9f-6cea559b8188`.
+  `2a558057-7135-4229-8c9f-6cea559b8188` and
+  `2eedffdc-fc14-4685-8617-a0b45118d910`.
 - A fourth diagnostic runtime project,
   `b0b9bbb6-e2e5-497d-b3df-cee8988e0957`, confirmed the route override seam
   on a fresh scaffold and exposed the final `route`/`path` alias gap. The
   scaffold runtime now treats `pages[].route` as the preferred route field and
   keeps `pages[].path` as a compatibility alias.
+- The final clean route proof,
+  `2eedffdc-fc14-4685-8617-a0b45118d910`, passed without placeholder autofix:
+  the agent edited `app.manifest.json` and `src/registry.tsx`, `Index.tsx`
+  stayed at scaffold baseline, local gates passed, production build passed
+  after refreshing temp npm deps, and browser smoke rendered
+  `#/hash-proof-final`.
 - That proof edited only app-owned files, resolved a custom route through
   `app.manifest.json` plus `src/registry.tsx`, reached
   `finalStatus: "ready"`, created a `RELEASED` version, and passed deferred

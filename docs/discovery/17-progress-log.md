@@ -1,5 +1,52 @@
 # 17 — Progress Log
 
+## 2026-06-15 09:09 UTC / 06:09 BRT — Clean route proof closed without autofix
+
+Resultado:
+
+- Removed the stale generated scaffold placeholder from `src/pages/Index.tsx`
+  in Fayz and made it delegate to the same manifest runtime as `src/main.tsx`.
+- Created fresh runtime project `2eedffdc-fc14-4685-8617-a0b45118d910` from
+  that corrected scaffold.
+- Baseline checks confirmed the project had no `Welcome to Your Blank App`
+  placeholder, had `pages[].route` support, and returned
+  `requestedProjectReady: true`.
+- Ran scoped MCP `send_message` for `/hash-proof-final` with the explicit
+  allowed files `app.manifest.json` and `src/registry.tsx`.
+- Verification passed on attempt `1/5`, with no placeholder autofix and no
+  `src/pages/Index.tsx` edit. The generated project reached `finalStatus:
+  "ready"` and released version 1 `Add final hash proof route`.
+- Local SDK gates passed:
+  `pnpm check:generated-app /tmp/fayalabs-projects/2eedffdc-fc14-4685-8617-a0b45118d910`
+  and
+  `pnpm check:generated-agent-scope /tmp/fayalabs-projects/2eedffdc-fc14-4685-8617-a0b45118d910 --paths app.manifest.json,src/registry.tsx --strict --json`.
+- Local production build passed after refreshing npm optional dependencies in
+  the temporary project.
+- Browser smoke at `http://127.0.0.1:5199/#/hash-proof-final` confirmed the
+  route rendered `Final hash route override active.` and the `pages[].route`
+  explanation.
+
+Impacto:
+
+- FAY-1191/FAY-1192/FAY-1193 now have the intended proof shape: a generated app
+  can add a custom route through app-owned manifest/registry files while the
+  route matching and runtime mechanics stay scaffold/platform-owned.
+- The scaffold no longer forces agents into unnecessary `Index.tsx` autofixes
+  during manifest-runtime proofs.
+
+Risco:
+
+- The runtime project version still appears as an initial 53-file release
+  because fresh local projects initialize git after generation. This is a
+  versioning/reporting limitation, not a route-contract failure.
+
+Proximo:
+
+- Stop route-mechanics work for now.
+- Continue the higher-level route: objective dogfood status, SDK/app operating
+  contract, agent guide, and generated-app gates/doctor checks before broad
+  Fayz Agent operation.
+
 ## 2026-06-15 08:52 UTC / 05:52 BRT — Hash route proof found route/path alias gap
 
 Resultado:
