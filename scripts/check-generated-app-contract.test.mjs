@@ -124,6 +124,49 @@ describe('generated app contract gate', () => {
     assert.match(result.stderr, /uses top-level routes/)
   })
 
+  it('fails manifests that omit the strict v2 manifest version', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'app.manifest.json'),
+      JSON.stringify({
+        id: 'generated-app',
+        name: 'Generated App',
+        surfaces: {
+          admin: {
+            pages: [],
+          },
+        },
+      }),
+    )
+
+    const result = runContract(appRoot)
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /must use manifestVersion 2/)
+  })
+
+  it('fails manifests that bump the manifest version without migration support', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'app.manifest.json'),
+      JSON.stringify({
+        manifestVersion: 3,
+        id: 'generated-app',
+        name: 'Generated App',
+        surfaces: {
+          admin: {
+            pages: [],
+          },
+        },
+      }),
+    )
+
+    const result = runContract(appRoot)
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /approved SDK\/API manifest migration/)
+  })
+
   it('fails surface page component refs that are not registered', () => {
     const appRoot = createGeneratedApp()
     write(

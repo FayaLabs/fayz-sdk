@@ -125,6 +125,10 @@ if (manifestPath) {
     const manifest = readJson(manifestPath)
     const manifestRel = relative(root, manifestPath)
 
+    if (manifest.manifestVersion !== 2) {
+      fail(`${manifestRel} must use manifestVersion 2. Do not bump or omit this field without an approved SDK/API manifest migration.`)
+    }
+
     if (Array.isArray(manifest.routes) && manifest.routes.length > 0) {
       fail(`${manifestRel} uses top-level routes. Current generated runtime resolves pages from surfaces.<surface>.pages; route overrides must be declared there or the runtime must explicitly support routes.`)
     }

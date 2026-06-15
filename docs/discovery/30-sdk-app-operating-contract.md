@@ -71,6 +71,9 @@ Blocked by default:
 
 ## Route And Screen Overrides
 
+- `app.manifest.json` must stay on `manifestVersion: 2` unless an approved
+  SDK/API manifest migration exists; generated-app gates fail missing or
+  unsupported manifest versions.
 - New custom routes live under `surfaces.<surface>.pages` in
   `app.manifest.json`.
 - New route entries use `pages[].route`. `pages[].path` is compatibility only;

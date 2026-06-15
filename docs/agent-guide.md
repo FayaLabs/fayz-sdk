@@ -224,7 +224,7 @@ For new work in Fayz-generated projects:
 - Use `src/registry.tsx` for app-owned code referenced by manifest ids such as `custom:dashboard.Home`.
 - Use `src/plugins.generated.ts` only for Fayz-installed plugin registrations; Fayz owns that file.
 - New AppManifest writes must stay inside the strict v2 schema. Do not add ad hoc fields like top-level `title`, `surfaces.*.id`, `surfaces.*.name`, `surfaces.*.title`, page `id`, page `title`, plugin `pluginId`, plugin `title`, or plugin `label`.
-- Keep `manifestVersion` at `2` unless a real SDK/API manifest migration is registered and approved. SDK `validateManifest()` and Fayz API public writes reject any other version. Do not bump this field manually to signal feature work.
+- Keep `manifestVersion` at `2` unless a real SDK/API manifest migration is registered and approved. SDK `validateManifest()`, Fayz API public writes, and generated-app gates reject missing or unsupported versions. Do not bump this field manually to signal feature work.
 - When changing `@fayz-ai/core` AppManifest runtime/schema behavior, run `pnpm --filter @fayz-ai/core typecheck` and then root `pnpm check:manifest`. The root manifest check is turbo-filtered to `@fayz-ai/core`, builds/checks the package only, imports built `dist`, validates canonical v2, confirms schema `manifestVersion.const = 2`, and rejects v1/v3. Do not run unfiltered `turbo check:manifest`; it expands into unrelated package builds.
 - Put page display text in `pages[].label`, plugin display/config metadata in `plugins[].config` such as `config.label`, and surface-level display/config metadata in `surfaces.*.options`.
 - Plugin refs must use canonical `plugins[].id`. Do not write new `plugins[].pluginId` refs.
