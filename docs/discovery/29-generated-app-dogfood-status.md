@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 01:47 UTC / 22:47 BRT
+Snapshot: 2026-06-15 01:56 UTC / 22:56 BRT
 
 ## Executive Status
 
@@ -38,7 +38,7 @@ Proximo:
 
 | App | Contract + typecheck | Warnings | SDK value proven | Next objective gate |
 |---|---:|---|---|---|
-| Beauty / BeautyPlace | pass | Supabase type metadata remains; `typecheck` script exists only in current Beauty migration worktree | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins | package the pending Beauty migration coherently or move the typecheck script into that milestone |
+| Beauty / BeautyPlace | pass | Supabase type metadata remains | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins | move or delete remaining Supabase type metadata once SDK/shared types cover the need |
 | shopfront / Aurora | pass | none | commerce app customizes brand/checkout behavior while checkout/order/cart primitives stay in storefront/shop SDK internals | keep checkout/account/order tracking tests focused on SDK primitives, not app-local copies |
 | Resto / The Chef | pass | Supabase type metadata remains | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic | move or delete remaining Supabase type metadata once SDK/shared types cover the need |
 | Marketplace/admin | pass | none | marketplace dashboard/admin uses provider injection and SDK shop provider path | keep shop admin data behind injected provider |
@@ -46,7 +46,7 @@ Proximo:
 ## Operating Decision
 
 Do not start broad Fayz Agent SDK operation yet. Start with constrained agent
-operation after these two hardening steps:
+operation after these hardening rules:
 
 1. Generated-app gate is mandatory for every app edit.
 2. Each dogfood app passes the full dogfood gate:

@@ -1,5 +1,42 @@
 # 17 — Progress Log
 
+## 2026-06-15 01:56 UTC / 22:56 BRT — Beauty SDK app-contract migration packaged
+
+Resultado:
+
+- Packaged the Beauty/BeautyPlace SDK app-contract migration in the app repo.
+- Beauty now has committed local/published SDK scripts, local SDK aliases,
+  `FayzAppConfig.org`, and dashboard reads through `@fayz-ai/sdk` data helpers.
+- Re-ran `pnpm check:generated-dogfood:full`; all four dogfood apps pass
+  contract + typecheck after the Beauty commit.
+
+Impacto:
+
+- The previous full-gate caveat is closed: Beauty no longer only passes because
+  of an unpackaged migration worktree.
+- The remaining Beauty issue is now narrower and explicit: Supabase type
+  metadata should move behind SDK-owned shared types or an optional adapter
+  metadata contract.
+
+Risco:
+
+- Beauty still has separate uncommitted DB/roadmap artifacts. They were
+  intentionally left out of this SDK app-contract milestone.
+
+Proximo:
+
+- Close the Beauty/Resto Supabase metadata warning as the next contract cleanup.
+- Keep product dogfood additions behind `pnpm check:generated-dogfood:full`.
+
+Verification:
+
+```bash
+pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
+cd /Users/fayalabs/dev/fayz-app/beauty-saas && npm run typecheck
+cd /Users/fayalabs/dev/fayz-app/beauty-saas && npm run build
+pnpm check:generated-dogfood:full
+```
+
 ## 2026-06-15 01:47 UTC / 22:47 BRT — Full dogfood gate with typecheck
 
 Resultado:
@@ -18,9 +55,9 @@ Impacto:
 
 Risco:
 
-- Beauty's passing typecheck depends on its current broader migration worktree;
-  package that migration coherently before treating the clean repo as fully
-  agent-ready.
+- Superseded by the 01:56 UTC Beauty packaging slice. Beauty's SDK
+  app-contract migration is now committed; remaining risk is only provider
+  metadata cleanup.
 
 Proximo:
 
