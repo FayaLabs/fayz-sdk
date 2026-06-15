@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:52 UTC / 02:52 BRT
+Snapshot: 2026-06-15 05:57 UTC / 02:57 BRT
 
 ## Executive Status
 
@@ -80,6 +80,9 @@ Resultado:
 - The MCP fallback now has a direct `handleSendMessage` unit test with mocked
   credits, DB, and generation pipeline. This proves the runtime-facing tool
   returns persisted refusal text without requiring another LLM run.
+- Post-fix strict doctor remains green with
+  `rolloutStatus: "ready_for_scoped_agent_operation"` and
+  `rolloutReady: true`.
 
 Impacto:
 
@@ -90,6 +93,8 @@ Impacto:
   edits out of app-agent reach.
 - This is not approval for broad agent operation or SDK/internal edits by app
   agents.
+- The immediate operational path is now ready for the next constrained
+  app-owned Fayz Agent run on the runtime UUID, not more local app-theme churn.
 
 Risco:
 
