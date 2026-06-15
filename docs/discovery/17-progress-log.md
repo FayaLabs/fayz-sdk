@@ -7884,3 +7884,21 @@ npm run build -w @wowsome/api
 - Observe the warning gate on local generated app edits.
 - If warnings are stable and useful, promote `FAYZ_SDK_AGENT_SCOPE_GATE=block` for SDK dogfood projects only.
 - Continue formalizing the generated-app operating contract before broad Fayz Agent integration.
+
+## 2026-06-14 — Generated app gate docs aligned with runtime paths
+
+### Resultado
+
+- Updated the SDK agent guide to document `check:generated-agent-scope --paths`.
+- Updated Fayz generated-project `AGENTS.md` template and scaffold guidance to include the runtime changed-path gate.
+
+### Impacto
+
+- New generated apps now teach both workflows:
+  - git-based dogfood validation with `--base`;
+  - Fayz runtime validation with explicit `--paths`.
+- This reduces the gap between standalone repo dogfood and Fayz Agents operating app-owned generated files.
+
+### Proximo
+
+- Keep the next code slice focused on enforcement/observability, not vertical feature expansion.

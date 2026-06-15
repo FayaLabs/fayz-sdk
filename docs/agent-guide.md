@@ -56,6 +56,19 @@ Edit-scope gate for a single generated app:
 pnpm check:generated-agent-scope /path/to/generated-app --base HEAD~1 --strict
 ```
 
+When Fayz already has the runtime list of changed files, use the same gate
+without git diff:
+
+```bash
+pnpm check:generated-agent-scope /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --strict
+```
+
+In the Fayz repo, the operator wrapper is:
+
+```bash
+npm run check:fayz-sdk-agent-gates -- /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --scope-only
+```
+
 This catches the highest-risk drift:
 
 - generated apps depending publicly on internal `@fayz-ai/*` packages;
