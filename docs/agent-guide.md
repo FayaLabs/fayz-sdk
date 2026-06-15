@@ -4,9 +4,23 @@ This document is the primary reference for AI agents generating or modifying
 Fayz apps on top of the public `@fayz-ai/sdk` package and private/internal SDK
 engines. Read it before scaffolding or changing any generated app.
 
-## Current Operating Status — 2026-06-14
+## Current Operating Status — 2026-06-15
 
 Fayz-generated projects are moving to a manifest-first SDK contract.
+
+Current rollout state:
+
+- Four dogfood apps pass strict generated-app gates for constrained app-owned
+  edits: Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
+- One real runtime project has passed a manifest-first MCP proof end-to-end:
+  `ce17885d-862c-4673-b4f2-514bfaee20eb`.
+- That proof edited only app-owned files, resolved a custom route through
+  `app.manifest.json` plus `src/registry.tsx`, reached
+  `finalStatus: "ready"`, created a `RELEASED` version, and passed deferred
+  build.
+- This is approval for controlled scoped rollout, not broad autonomous agent
+  operation. Each new runtime project must be explicitly scoped by project id
+  before Fayz Agents edit it.
 
 ## Operating Contract — 2026-06-15
 
@@ -111,7 +125,7 @@ Default Fayz Agent edits should stay in these app-owned surfaces:
   cards, and app-specific layout fragments.
 - `src/types/**`, `src/data/**`, `src/i18n/**`: app-owned model labels,
   seed/mock data, translations, and vertical vocabulary.
-- `src/app.manifest.json` and `src/registry.tsx` when the app is manifest-first.
+- `app.manifest.json` and `src/registry.tsx` when the app is manifest-first.
 
 Escalate instead of editing locally when the change touches these seams:
 

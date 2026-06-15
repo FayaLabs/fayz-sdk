@@ -1,5 +1,46 @@
 # 17 — Progress Log
 
+## 2026-06-15 06:45 UTC / 03:45 BRT — Manifest-first MCP proof ready
+
+Resultado:
+
+- Runtime project `ce17885d-862c-4673-b4f2-514bfaee20eb` passed the
+  manifest-first MCP proof end-to-end.
+- The final MCP run edited only `src/pages/Index.tsx`, passed the scoped gate,
+  reached `finalStatus: "ready"`, created a `RELEASED` version, and passed
+  deferred build.
+- Updated the SDK agent guide with the current rollout state and corrected the
+  manifest app-owned path to root `app.manifest.json`.
+- Updated the Fayz generated `AGENTS.md` template and scaffold test so new apps
+  do not tell agents to edit non-existent `src/app.manifest.json`.
+
+Impacto:
+
+- We can move from proof repair into controlled rollout. The next agent run can
+  target a second scoped runtime project or a distinct app-owned workflow under
+  the same project-scoped gate.
+- Broad Fayz Agent operation is still not unlocked; the proof validates the
+  path, not every project.
+
+Risco:
+
+- The main risk is now rollout discipline. If a project id is not explicitly
+  scoped, app agents may operate without the same enforcement assumptions.
+
+Proximo:
+
+- Create or select the next runtime project and run one app-owned workflow under
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<project-id>`.
+- Only after repeated scoped projects stay green should Fayz Agent operating
+  instructions move from controlled rollout to broader automation.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz && npm run build -w @wowsome/api
+cd /Users/fayalabs/dev/fayz-sdk && pnpm test:generated-agent-scope
+```
+
 ## 2026-06-15 02:39 UTC / 23:39 BRT — Scope gate test caught parser bug
 
 Resultado:
