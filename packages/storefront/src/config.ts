@@ -27,6 +27,8 @@ export interface StorefrontRouteComponentProps {
   config: ResolvedStorefrontConfig
 }
 
+export type StorefrontRouteChrome = 'default' | 'focused'
+
 export interface StorefrontRouteDefinition {
   /**
    * Stable identifier for generated-code diffs, QA reports, and route ownership.
@@ -41,6 +43,11 @@ export interface StorefrontRouteDefinition {
    * Intent label for agents and manifests. It does not change matching behavior.
    */
   kind?: StorefrontRouteKind
+  /**
+   * Shell chrome for the route. `focused` hides storefront nav/footer/cart
+   * around high-intent flows such as checkout.
+   */
+  chrome?: StorefrontRouteChrome
   /**
    * App-owned screen/workflow that can still use storefront/shop primitives.
    */

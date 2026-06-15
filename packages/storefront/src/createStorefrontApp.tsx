@@ -16,16 +16,27 @@ import { CheckoutPage } from './pages/CheckoutPage'
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage'
 import { MyPurchasesPage } from './pages/MyPurchasesPage'
 
-function RouteSwitch() {
-  const config = useStorefrontConfig()
-  const path = useHashPath()
-
+function getCustomRouteMatch(config: ReturnType<typeof useStorefrontConfig>, path: string) {
   for (const route of config.routes ?? []) {
     const params = matchPath(route.path, path)
-    if (params) {
-      const CustomRoute = route.component
-      return <CustomRoute path={path} params={params} config={config} />
-    }
+    if (params) return { route, params }
+  }
+  return null
+}
+
+function isFocusedRoute(config: ReturnType<typeof useStorefrontConfig>, path: string): boolean {
+  const custom = getCustomRouteMatch(config, path)
+  if (custom) return custom.route.chrome === 'focused' || custom.route.kind === 'checkout'
+  return Boolean(matchPath('/checkout', path))
+}
+
+function RouteSwitch({ path }: { path: string }) {
+  const config = useStorefrontConfig()
+
+  const custom = getCustomRouteMatch(config, path)
+  if (custom) {
+    const CustomRoute = custom.route.component
+    return <CustomRoute path={path} params={custom.params} config={config} />
   }
 
   const product = matchPath('/product/:slug', path)
@@ -69,13 +80,15 @@ export function initStorefrontRuntime(config: StorefrontConfig): void {
  *  shared by createStorefrontApp and the manifest-driven StorefrontScaffold. */
 export function StorefrontShell() {
   const config = useStorefrontConfig()
+  const path = useHashPath()
+  const focused = isFocusedRoute(config, path)
   return (
     <div className="min-h-screen bg-background text-foreground">
       {config.theme && <StorefrontThemeStyle theme={config.theme} />}
-      <StorefrontHeader />
-      <RouteSwitch />
-      <CartDrawer />
-      <StorefrontFooter />
+      {!focused && <StorefrontHeader />}
+      <RouteSwitch path={path} />
+      {!focused && <CartDrawer />}
+      {!focused && <StorefrontFooter />}
     </div>
   )
 }

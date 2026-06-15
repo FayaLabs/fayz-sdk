@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-15 00:24 UTC / 21:24 BRT — Core high-conversion checkout baseline
+
+Resultado:
+
+- Moved the high-conversion checkout pattern into private `@fayz-ai/storefront` core instead of keeping it as Aurora-only app code.
+- Default `/checkout` now uses focused shell chrome: no storefront header, cart drawer, nav menu, or footer distractions.
+- Default checkout now has stepped contact/delivery/payment flow, saved-address selection, saved-card selection, and the existing `placeStorefrontOrder()` primitive.
+- `shopfront` removed the custom Aurora checkout override and now inherits the SDK checkout baseline.
+
+Impacto:
+
+- Every storefront can get the conversion-focused checkout by default.
+- Generated apps only customize checkout when they have a real differentiated workflow; the baseline is no longer copied per app.
+- The route override seam remains available, but checkout optimization graduates into the reusable engine.
+
+Risco:
+
+- Saved addresses/cards are UI/demo primitives right now; production storage should be broker/account-backed before real payments.
+- The old broad checkout e2e remains fixture-coupled and should be cleaned separately.
+
+Proximo:
+
+- Add account-backed customer address/payment method contracts behind the Fayz broker.
+- Keep custom route overrides for exceptional workflows, not standard checkout behavior.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk && pnpm --filter @fayz-ai/storefront typecheck
+cd /Users/fayalabs/dev/fayz-sdk && pnpm --filter @fayz-ai/storefront build
+cd /Users/fayalabs/dev/fayz-app/shopfront && npm run typecheck
+cd /Users/fayalabs/dev/fayz-app/shopfront && npm run build
+cd /Users/fayalabs/dev/fayz-app/shopfront && VITE_FAYZ_SHOP_PROVIDER=mock npm run e2e -- e2e/route-overrides.spec.ts
+```
+
 ## 2026-06-15 00:11 UTC / 21:11 BRT — FAY-1191/1192/1193 route override test gate
 
 Resultado:

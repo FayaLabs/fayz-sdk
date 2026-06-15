@@ -4,6 +4,7 @@ export type {
   StorefrontConfig,
   ResolvedStorefrontConfig,
   StorefrontRouteComponentProps,
+  StorefrontRouteChrome,
   StorefrontRouteDefinition,
   StorefrontRouteKind,
   StorefrontRouteParams,
