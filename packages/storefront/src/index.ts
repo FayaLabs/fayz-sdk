@@ -52,6 +52,7 @@ export { useProducts, useProduct, useCategories, useMyOrders, useDiscountValidat
 export { StorefrontHeader } from './components/StorefrontHeader'
 export { ProductCard } from './components/ProductCard'
 export type { ProductCardProps } from './components/ProductCard'
+export { OrderTrackingTimeline } from './components/OrderTrackingTimeline'
 export { ProductGrid } from './components/ProductGrid'
 export { FiltersPanel } from './components/FiltersPanel'
 export { CartDrawer } from './components/CartDrawer'

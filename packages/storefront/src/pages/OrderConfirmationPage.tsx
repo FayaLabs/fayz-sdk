@@ -7,6 +7,7 @@ import { Link } from '../router'
 import { formatMoney } from '../format'
 import { TID } from '../testids'
 import { CustomerAccountShell } from '../components/CustomerAccountShell'
+import { OrderTrackingTimeline } from '../components/OrderTrackingTimeline'
 
 const FINANCIAL_LABEL: Record<string, string> = {
   paid: 'Pago',
@@ -129,6 +130,13 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
             <p className="mt-1 font-semibold">{FINANCIAL_LABEL[order.financialStatus] ?? order.financialStatus}</p>
             <p className="text-muted-foreground">Cartão salvo para próximas compras</p>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <h3 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">
+            Acompanhamento
+          </h3>
+          <OrderTrackingTimeline order={order} />
         </div>
 
         <ul className="mt-8 space-y-3 text-left">

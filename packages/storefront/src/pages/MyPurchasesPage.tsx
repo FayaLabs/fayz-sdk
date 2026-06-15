@@ -8,6 +8,7 @@ import { Link } from '../router'
 import { formatMoney } from '../format'
 import { TID } from '../testids'
 import { CustomerAccountShell } from '../components/CustomerAccountShell'
+import { OrderTrackingTimeline } from '../components/OrderTrackingTimeline'
 
 const FINANCIAL_LABEL: Record<string, string> = {
   paid: 'Pago',
@@ -166,6 +167,9 @@ export function MyPurchasesPage() {
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {new Date(order.createdAt).toLocaleDateString(config.locale)}
               </p>
+              <div className="mt-4">
+                <OrderTrackingTimeline order={order} compact />
+              </div>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {order.items.map((item) => (
                   <li key={item.id} className="flex items-center gap-2 rounded-lg border px-2 py-1 text-xs">

@@ -79,6 +79,8 @@ export const TID = {
   // confirmation
   orderNumber: 'order-number',
   orderStatus: 'order-status',
+  orderTracking: 'order-tracking',
+  orderTrackingStep: (step: string) => `order-tracking-step-${step}`,
   orderTotal: 'order-total',
   viewPurchases: 'view-purchases',
   // account
