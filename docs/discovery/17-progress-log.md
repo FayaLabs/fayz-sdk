@@ -8459,6 +8459,9 @@ npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-
 - Hardened the command in Fayz commit `ae0f08cb` so it first requires
   `get_fayz_sdk_agent_rollout_status` to report both rollout and requested
   project readiness before credit seed or generation.
+- Hardened proof credit handling in Fayz commit `9151ef9c`: temporary
+  `OrganizationCredits` changes are restored after success or failure, and the
+  local proof workspace was restored to `dailyLimit=0`.
 - Full run passed on `fayz-sdk-runtime-proof`:
   - runtime proof filesystem/database seed;
   - preflight/app-owned/blocked smoke;
@@ -8481,6 +8484,8 @@ npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-
 - The proof command is self-contained for local dogfood: it seeds local proof
   credits only for `fayz-sdk-runtime-proof` by default and supports
   `--skip-credit-seed` when validating real credit behavior.
+- Proof credit seed no longer leaks unlimited credits into the shared local
+  workspace after the canary exits.
 
 ### Risco
 
