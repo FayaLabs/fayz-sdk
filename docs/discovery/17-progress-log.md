@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-15 01:47 UTC / 22:47 BRT — Full dogfood gate with typecheck
+
+Resultado:
+
+- Added `pnpm check:generated-dogfood:full`.
+- The full gate runs contract checks plus `npm run typecheck` for Beauty,
+  shopfront, Resto, and Marketplace.
+- All four dogfood apps pass the full gate in the current worktree.
+
+Impacto:
+
+- This is the first practical "agent-safe enough" gate for constrained Fayz
+  Agent operation on app-owned files.
+- It catches both architecture drift and TypeScript breakage before a generated
+  app edit is treated as done.
+
+Risco:
+
+- Beauty's passing typecheck depends on its current broader migration worktree;
+  package that migration coherently before treating the clean repo as fully
+  agent-ready.
+
+Proximo:
+
+- Use `pnpm check:generated-dogfood:full` before any broad Fayz Agent edit loop.
+- Continue converting the remaining Beauty/Resto Supabase metadata warnings
+  into SDK-owned shared types or explicit optional adapter metadata.
+
+Verification:
+
+```bash
+node --check scripts/check-generated-dogfood.mjs
+pnpm check:generated-dogfood
+pnpm check:generated-dogfood:full
+```
+
 ## 2026-06-15 01:39 UTC / 22:39 BRT — Dogfood matrix doctor command
 
 Resultado:
@@ -33,6 +69,11 @@ Verification:
 node --check scripts/check-generated-dogfood.mjs
 pnpm check:generated-dogfood
 ```
+
+Follow-up:
+
+- `pnpm check:generated-dogfood:full` now also runs each app's typecheck and
+  passes across Beauty, shopfront, Resto, and Marketplace.
 
 ## 2026-06-15 01:34 UTC / 22:34 BRT — Four-app dogfood gate snapshot
 

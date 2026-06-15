@@ -1,12 +1,12 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 01:38 UTC / 22:38 BRT
+Snapshot: 2026-06-15 01:47 UTC / 22:47 BRT
 
 ## Executive Status
 
 Resultado:
 
-- Four dogfood apps pass the generated-app contract gate:
+- Four dogfood apps pass the generated-app contract and typecheck gate:
   Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
@@ -36,7 +36,7 @@ Proximo:
 
 ## Gate Matrix
 
-| App | Gate | Warnings | SDK value proven | Next objective gate |
+| App | Contract + typecheck | Warnings | SDK value proven | Next objective gate |
 |---|---:|---|---|---|
 | Beauty / BeautyPlace | pass | Supabase type metadata remains; `typecheck` script exists only in current Beauty migration worktree | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins | package the pending Beauty migration coherently or move the typecheck script into that milestone |
 | shopfront / Aurora | pass | none | commerce app customizes brand/checkout behavior while checkout/order/cart primitives stay in storefront/shop SDK internals | keep checkout/account/order tracking tests focused on SDK primitives, not app-local copies |
@@ -49,8 +49,11 @@ Do not start broad Fayz Agent SDK operation yet. Start with constrained agent
 operation after these two hardening steps:
 
 1. Generated-app gate is mandatory for every app edit.
-2. Each dogfood app has a repeatable type/build command or a documented reason
-   it does not.
+2. Each dogfood app passes the full dogfood gate:
+
+```bash
+pnpm check:generated-dogfood:full
+```
 
 Once those are true, Fayz Agents can be asked to edit app-owned files first and
 escalate repeated platform needs into SDK tasks.
@@ -59,6 +62,7 @@ escalate repeated platform needs into SDK tasks.
 
 ```bash
 pnpm check:generated-dogfood
+pnpm check:generated-dogfood:full
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas

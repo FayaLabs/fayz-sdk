@@ -39,6 +39,7 @@ Current four-app dogfood gate:
 
 ```bash
 pnpm check:generated-dogfood
+pnpm check:generated-dogfood:full
 ```
 
 This catches the highest-risk drift:
