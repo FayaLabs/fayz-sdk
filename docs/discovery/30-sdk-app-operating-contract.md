@@ -106,6 +106,12 @@ pnpm check:generated-app /path/to/generated-app
 After a generated-app edit:
 
 ```bash
+pnpm check:generated-agent-readiness /path/to/generated-app --paths <changed-files>
+```
+
+Equivalent low-level gates:
+
+```bash
 pnpm check:generated-agent-scope /path/to/generated-app --paths <changed-files> --strict --json
 pnpm check:generated-app /path/to/generated-app --strict
 ```

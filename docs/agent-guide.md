@@ -103,6 +103,15 @@ Strict pre-agent gate:
 pnpm check:generated-dogfood:strict
 ```
 
+Single-app readiness gate for Fayz Agent:
+
+```bash
+pnpm check:generated-agent-readiness /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --json
+```
+
+This wraps strict contract and scope gates so runtime agents do not need to
+remember the low-level command sequence.
+
 Edit-scope gate for a single generated app:
 
 ```bash

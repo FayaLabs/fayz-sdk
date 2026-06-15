@@ -16,6 +16,8 @@
     "test:generated-app": "node --test ./scripts/check-generated-app-contract.test.mjs",
     "check:generated-agent-scope": "node ./scripts/check-generated-agent-scope.mjs",
     "test:generated-agent-scope": "node --test ./scripts/check-generated-agent-scope.test.mjs",
+    "check:generated-agent-readiness": "node ./scripts/check-generated-agent-readiness.mjs",
+    "test:generated-agent-readiness": "node --test ./scripts/check-generated-agent-readiness.test.mjs",
     "check:generated-dogfood": "node ./scripts/check-generated-dogfood.mjs",
     "test:generated-dogfood": "node --test ./scripts/check-generated-dogfood.test.mjs",
     "check:generated-dogfood:full": "node ./scripts/check-generated-dogfood.mjs --typecheck",
