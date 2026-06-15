@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:20 UTC / 02:20 BRT
+Snapshot: 2026-06-15 05:25 UTC / 02:25 BRT
 
 ## Executive Status
 
@@ -47,6 +47,9 @@ Resultado:
 - Fayz post-generation now has a pipeline test proving that a scoped SDK/app
   gate block stops verification and auto-versioning, transitions the project to
   `ERROR`, and returns the gate reason to the stream.
+- Fayz MCP chat now exposes scoped SDK gate failures as machine-readable
+  `scopeGateBlocked` plus `finalError`, so external agents do not need to parse
+  raw SSE text to detect an app-boundary violation.
 
 Impacto:
 
@@ -68,6 +71,8 @@ Proximo:
 
 - Start the next Fayz Agent proof in scoped mode on one project only:
   `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<project-id>`.
+- Prefer the MCP chat path for the first real agent run so the same
+  `processAgentMessage` and post-generation gate path is exercised end to end.
 - Use the Fayz wrapper for every run:
   `npm run check:fayz-sdk-agent-gates -- <app-path> --paths <changed-files> --scope-json`.
 - Keep objective typecheck/build gates green as apps evolve.
@@ -140,6 +145,8 @@ pnpm test:generated-dogfood
 pnpm test:generated-agent-scope
 pnpm check:generated-agent-scope /Users/fayalabs/dev/fayz-app/shopfront --paths src/config/theme.ts --json --strict
 cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/modules/chat/__tests__/chat-message.service.test.ts
+cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/mcp-chat/tools/__tests__/send-message-summary.test.ts
+cd /Users/fayalabs/dev/fayz && npm run build -w @wowsome/api
 cd /Users/fayalabs/dev/fayz && npm run test:fayz-sdk-agent-gates
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
