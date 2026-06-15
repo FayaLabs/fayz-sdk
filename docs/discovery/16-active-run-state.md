@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 23:27 BRT
+Last updated: 2026-06-14 23:32 BRT
 
 ## Mode
 
@@ -34,6 +34,8 @@ Latest route lock update:
 - Fayz repo now exposes `npm run check:fayz-sdk-agent-gates` as the operator
   wrapper for app scope gate plus strict dogfood gate. It resolves
   `../fayz-sdk` by default and supports `FAYZ_SDK_REPO`.
+- The Fayz wrapper now supports `--dry-run` and has a focused Node test via
+  `npm run test:fayz-sdk-agent-gates`.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`

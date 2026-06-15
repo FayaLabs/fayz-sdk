@@ -1,5 +1,38 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:32 UTC / 23:32 BRT — Fayz gate wrapper tested
+
+Resultado:
+
+- Added `--dry-run` to the Fayz `check:fayz-sdk-agent-gates` wrapper.
+- Added a Node test covering wrapper usage, full dry-run, scope-only dry-run,
+  and dogfood-only dry-run.
+- Re-ran the wrapper scope gate against Resto and dry-ran dogfood-only mode.
+
+Impacto:
+
+- The operator command now has a fast non-destructive inspection mode.
+- The bridge from Fayz agents to SDK gates is covered by a focused test instead
+  of relying only on manual command memory.
+
+Risco:
+
+- The test intentionally does not run full dogfood on every invocation; full
+  dogfood remains the runtime gate, not the wrapper unit test.
+
+Proximo:
+
+- Use the wrapper in a real constrained generated-app edit loop.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test:fayz-sdk-agent-gates
+npm run check:fayz-sdk-agent-gates -- /Users/fayalabs/dev/fayz-app/resto-saas --base HEAD~1 --scope-only
+npm run check:fayz-sdk-agent-gates -- --dogfood-only --dry-run
+```
+
 ## 2026-06-15 02:27 UTC / 23:27 BRT — Fayz repo wrapper runs SDK agent gates
 
 Resultado:
