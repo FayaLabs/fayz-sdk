@@ -1,7 +1,10 @@
 export interface FayzShopProviderOptions {
-  supabaseUrl: string
-  publishableKey: string
-  storeId: string
+  supabaseUrl?: string
+  publishableKey?: string
+  storeId?: string
+  apiBaseUrl?: string
+  projectId?: string
+  mode?: 'broker' | 'supabase'
   productMetadata?: FayzShopProductMetadataOverlay[]
   fetcher?: typeof fetch
 }
@@ -404,6 +407,14 @@ function updateOrderPayload(input: {
 }
 
 export function createFayzShopProvider(options: FayzShopProviderOptions) {
+  if (options.mode === 'broker' || options.apiBaseUrl || options.projectId) {
+    return createBrokerShopProvider(options)
+  }
+
+  if (!options.supabaseUrl || !options.publishableKey || !options.storeId) {
+    throw new FayzShopError('Fayz Shop provider requires either broker apiBaseUrl/projectId or legacy supabaseUrl/publishableKey/storeId.', 400)
+  }
+
   const baseUrl = `${normalizeBaseUrl(options.supabaseUrl)}/rest/v1`
   const fetcher = options.fetcher ?? fetch
   const key = options.publishableKey
@@ -646,6 +657,195 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
     async getDiscount(id: string) {
       const rows = await request<DiscountRow[]>('discounts', { query: singleById(id) })
       return rows[0] ? rowToDiscount(rows[0]) : null
+    },
+    async createDiscount() {
+      throw new FayzShopError('Discount writes require the Fayz admin/broker API.', 501)
+    },
+    async updateDiscount() {
+      throw new FayzShopError('Discount writes require the Fayz admin/broker API.', 501)
+    },
+    async deleteDiscount() {
+      throw new FayzShopError('Discount deletes require the Fayz admin/broker API.', 501)
+    },
+  }
+}
+
+function appendQuery(url: string, values: Record<string, string | number | undefined>): string {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined) query.set(key, String(value))
+  }
+  const serialized = query.toString()
+  return serialized ? `${url}?${serialized}` : url
+}
+
+function normalizeBrokerProduct(product: Record<string, unknown>, overlay?: Map<string, Record<string, unknown>>) {
+  const category = product.category && typeof product.category === 'object'
+    ? product.category as Record<string, unknown>
+    : null
+  const row = {
+    id: product.id as string,
+    tenant_id: product.tenantId as string,
+    name: product.name as string,
+    slug: product.slug as string | undefined,
+    description: product.description as string | null | undefined,
+    price: product.price as number | null | undefined,
+    compare_at_price: product.compareAtPrice as number | null | undefined,
+    currency: product.currency as string | null | undefined,
+    status: product.status as FayzShopProductStatus | null | undefined,
+    inventory_count: product.inventoryCount as number | null | undefined,
+    sku: product.sku as string | null | undefined,
+    sort_order: product.sortOrder as number | null | undefined,
+    metadata: product.metadata as Record<string, unknown> | null | undefined,
+    images: Array.isArray(product.images)
+      ? product.images.map((image): ProductImageRow => {
+        const row = image as Record<string, unknown>
+        return {
+          id: String(row.id ?? ''),
+          product_id: String(row.productId ?? product.id ?? ''),
+          url: String(row.url ?? ''),
+          alt_text: (row.altText as string | null | undefined) ?? null,
+          sort_order: (row.sortOrder as number | null | undefined) ?? 0,
+          is_primary: (row.isPrimary as boolean | null | undefined) ?? false,
+          created_at: (row.createdAt as string | null | undefined) ?? null,
+        }
+      })
+      : [],
+    category_id: (product.categoryId ?? category?.id) as string | null | undefined,
+    category: category ? { name: category.name as string | null | undefined } : null,
+    is_physical: product.isPhysical as boolean | null | undefined,
+    weight: product.weight as number | null | undefined,
+    weight_unit: product.weightUnit as string | null | undefined,
+    created_at: product.createdAt as string | null | undefined,
+    updated_at: product.updatedAt as string | null | undefined,
+  } satisfies ProductRow
+  return rowToProduct(row, overlay)
+}
+
+function normalizeBrokerCategory(category: Record<string, unknown>) {
+  return {
+    id: category.id as string,
+    tenantId: (category.tenantId as string | undefined) ?? 'global',
+    name: category.name as string,
+    slug: (category.slug as string | undefined) ?? slugify(category.name as string),
+    description: (category.description as string | null | undefined) ?? null,
+    parentId: (category.parentId as string | null | undefined) ?? null,
+    sortOrder: (category.sortOrder as number | null | undefined) ?? 0,
+    imageUrl: (category.imageUrl as string | null | undefined) ?? null,
+    createdAt: (category.createdAt as string | null | undefined) ?? nowIso(),
+  }
+}
+
+function createBrokerShopProvider(options: FayzShopProviderOptions) {
+  if (!options.apiBaseUrl || !options.projectId) {
+    throw new FayzShopError('Fayz Shop broker mode requires apiBaseUrl and projectId.', 400)
+  }
+
+  const fetcher = options.fetcher ?? fetch
+  const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl)
+  const projectId = encodeURIComponent(options.projectId)
+  const productMetadataOverlay = buildProductMetadataOverlay(options.productMetadata)
+
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const response = await fetcher(`${apiBaseUrl}/public/projects/${projectId}/shop${path}`, init)
+    const text = await response.text()
+    let body: unknown
+    try {
+      body = text ? JSON.parse(text) : undefined
+    } catch {
+      body = text
+    }
+    if (!response.ok) {
+      const message = typeof body === 'object' && body
+        ? String((body as { message?: unknown; error?: unknown }).message ?? (body as { error?: unknown }).error ?? `Fayz Shop broker request failed with status ${response.status}`)
+        : `Fayz Shop broker request failed with status ${response.status}`
+      throw new FayzShopError(message, response.status, body)
+    }
+    return body as T
+  }
+
+  return {
+    async listProducts(options?: FayzShopListProductsOptions) {
+      if (options?.slug) {
+        const product = await this.getProduct(options.slug)
+        return product ? [product] : []
+      }
+
+      const response = await request<{ products?: Array<Record<string, unknown>> }>(appendQuery('/products', {
+        status: options?.status,
+        categoryId: options?.categoryId,
+        search: options?.search,
+        limit: options?.limit,
+        offset: options?.offset,
+        orderBy: options?.orderBy,
+        order: options?.order,
+      }))
+      return (response.products ?? []).map((product) => normalizeBrokerProduct(product, productMetadataOverlay))
+    },
+    async getProduct(id: string) {
+      const response = await request<{ product?: Record<string, unknown> | null }>(`/products/${encodeURIComponent(id)}`)
+      return response.product ? normalizeBrokerProduct(response.product, productMetadataOverlay) : null
+    },
+    async createProduct() {
+      throw new FayzShopError('Product writes require the Fayz admin/broker API.', 501)
+    },
+    async updateProduct() {
+      throw new FayzShopError('Product writes require the Fayz admin/broker API.', 501)
+    },
+    async deleteProduct() {
+      throw new FayzShopError('Product writes require the Fayz admin/broker API.', 501)
+    },
+    async uploadProductImage() {
+      throw new FayzShopError('Product image uploads require the Fayz admin/broker API.', 501)
+    },
+    async deleteProductImage() {
+      throw new FayzShopError('Product image deletes require the Fayz admin/broker API.', 501)
+    },
+    async listCategories() {
+      const response = await request<{ categories?: Array<Record<string, unknown>> }>('/categories')
+      return (response.categories ?? []).map(normalizeBrokerCategory)
+    },
+    async createCategory() {
+      throw new FayzShopError('Category writes require the Fayz admin/broker API.', 501)
+    },
+    async updateCategory() {
+      throw new FayzShopError('Category writes require the Fayz admin/broker API.', 501)
+    },
+    async deleteCategory() {
+      throw new FayzShopError('Category deletes require the Fayz admin/broker API.', 501)
+    },
+    async listOrders() {
+      throw new FayzShopError('Order reads require the Fayz admin/broker API.', 501)
+    },
+    async getOrder() {
+      throw new FayzShopError('Order reads require the Fayz admin/broker API.', 501)
+    },
+    async createOrder() {
+      throw new FayzShopError('Order writes require the Fayz admin/broker API.', 501)
+    },
+    async updateOrder() {
+      throw new FayzShopError('Order writes require the Fayz admin/broker API.', 501)
+    },
+    async listCustomers() {
+      throw new FayzShopError('Customer reads require the Fayz admin/broker API.', 501)
+    },
+    async getCustomer() {
+      throw new FayzShopError('Customer reads require the Fayz admin/broker API.', 501)
+    },
+    async createCustomer() {
+      throw new FayzShopError('Customer writes require the Fayz admin/broker API.', 501)
+    },
+    async updateCustomer() {
+      throw new FayzShopError('Customer writes require the Fayz admin/broker API.', 501)
+    },
+    async deleteCustomer() {
+      throw new FayzShopError('Customer writes require the Fayz admin/broker API.', 501)
+    },
+    async listDiscounts() {
+      throw new FayzShopError('Discount reads require the Fayz admin/broker API.', 501)
+    },
+    async getDiscount() {
+      throw new FayzShopError('Discount reads require the Fayz admin/broker API.', 501)
     },
     async createDiscount() {
       throw new FayzShopError('Discount writes require the Fayz admin/broker API.', 501)
