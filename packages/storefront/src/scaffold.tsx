@@ -81,6 +81,7 @@ function manifestToStorefrontConfig(manifest: AppManifest, surfaceName: string):
       url: manifest.backend?.url,
     },
     slots: runtimeConfig?.slots,
+    routes: runtimeConfig?.routes,
     provider: runtimeConfig?.provider,
     auth: runtimeConfig?.auth,
     logo: runtimeConfig?.logo,

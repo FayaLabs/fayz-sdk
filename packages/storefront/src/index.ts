@@ -1,6 +1,13 @@
 // Factory
 export { createStorefrontApp, initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
-export type { StorefrontConfig, ResolvedStorefrontConfig } from './config'
+export type {
+  StorefrontConfig,
+  ResolvedStorefrontConfig,
+  StorefrontRouteComponentProps,
+  StorefrontRouteDefinition,
+  StorefrontRouteKind,
+  StorefrontRouteParams,
+} from './config'
 export { useStorefrontConfig } from './config'
 
 // Manifest path (renderApp(defineStorefront(config)) / storefront scaffold)
@@ -56,6 +63,13 @@ export { ProductDetailPage } from './pages/ProductDetailPage'
 export { CheckoutPage } from './pages/CheckoutPage'
 export { OrderConfirmationPage } from './pages/OrderConfirmationPage'
 export { MyPurchasesPage } from './pages/MyPurchasesPage'
+export { placeStorefrontOrder } from './workflows/checkout'
+export type {
+  PlaceStorefrontOrderInput,
+  PlaceStorefrontOrderResult,
+  StorefrontCheckoutAddress,
+  StorefrontCheckoutCustomer,
+} from './workflows/checkout'
 
 // Theming + templates
 export { StorefrontThemeStyle, themeToCss } from './theme'

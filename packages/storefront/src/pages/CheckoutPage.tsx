@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { CreditCard, Lock, PackageCheck } from 'lucide-react'
-import { getShopProvider } from '@fayz-ai/shop/runtime'
 import { prefersReducedMotion } from '../motion'
 import {
   useCartStore,
@@ -10,11 +9,11 @@ import {
   selectTotal,
 } from '../stores/cart.store'
 import { useSessionStore } from '../stores/session.store'
-import { establishCustomerSession } from '../auth'
 import { useStorefrontConfig } from '../config'
 import { navigateTo } from '../router'
 import { formatMoney } from '../format'
 import { TID } from '../testids'
+import { placeStorefrontOrder } from '../workflows/checkout'
 
 interface CheckoutForm {
   email: string
@@ -145,39 +144,21 @@ export function CheckoutPage() {
     ]
     const minDuration = sleep(stepMs * 3)
     try {
-      const provider = getShopProvider()
-      const email = form.email.trim().toLowerCase()
-
-      // One auth path for the whole storefront: the same adapter-backed
-      // session used by the account page, so the buyer lands on "my
-      // purchases" already signed in.
-      let customerId = session.customerId
-      if (!customerId || session.email !== email) {
-        const established = await establishCustomerSession(email, { name: form.name.trim() })
-        customerId = established.customerId
-      }
-
-      const order = await provider.createOrder({
-        customerId,
-        customerName: form.name.trim(),
-        customerEmail: email,
-        currency: config.currency,
-        notes: `Entrega: ${form.street.trim()}, ${form.city.trim()} ${form.zip.trim()}`,
-        discountCode: cart.discountCode ?? undefined,
-        discountTotal,
-        shippingTotal: shipping,
-        items: cart.lines.map((l) => ({
-          productId: l.productId,
-          name: l.name,
-          sku: l.sku ?? undefined,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          imageUrl: l.imageUrl ?? undefined,
-        })),
+      const { order } = await placeStorefrontOrder({
+        config,
+        cart,
+        session,
+        customer: {
+          email: form.email,
+          name: form.name,
+        },
+        address: {
+          street: form.street,
+          city: form.city,
+          zip: form.zip,
+        },
+        markPaid: true,
       })
-
-      // mock payment capture
-      await provider.updateOrder(order.id, { financialStatus: 'paid' })
 
       // let the processing choreography finish before celebrating
       await minDuration

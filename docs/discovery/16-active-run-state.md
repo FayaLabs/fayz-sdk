@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 20:52 BRT
+Last updated: 2026-06-14 21:03 BRT
 
 ## Mode
 
@@ -9,6 +9,15 @@ Active autonomous execution is approved. This file is the fast resume snapshot f
 The heartbeat is a fallback/resume mechanism, not the main worker. The active thread should keep executing in continuous small cycles: inspect, run the next gate, fix the narrow failure, update docs, repeat. Stop only for blockers that require Vini's product/architecture approval.
 
 Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is locked to public npm for `@fayz-ai/sdk` only. Beauty is now the first dogfood app for local SDK/internal app-runtime validation before generator-heavy work. Route recalculation is locked in `28-proof-first-route-lock.md`: proof-first capabilities, one public SDK package, private/internal app-runtime and domain packages until Beauty + second vertical prove stable seams.
+
+Latest route lock update:
+
+- Do not drift into vertical app implementation as the goal. The PoC goal is generated/custom app-owned code on top of reusable SDK engines.
+- Current slice targets `FAY-1191/FAY-1192/FAY-1193`: typed storefront route overrides, app-owned custom files, and commerce primitives for custom workflows.
+- `@fayz-ai/storefront` now has first-match custom route definitions and `placeStorefrontOrder()` as a reusable checkout primitive.
+- `shopfront` proves `/checkout` override through `src/custom/AuroraCheckoutRoute.tsx`, while totals/session/order creation stay in SDK/storefront primitives.
+- Keep `shop` and `storefront` split internally: `shop` is domain/API/provider; `storefront` is customer-facing UI/routes/slots. Do not collapse them.
+- Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
 - Fayz branch: `weekend-fayz-sdk-panel-manifest`

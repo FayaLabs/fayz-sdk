@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-15 00:03 UTC / 21:03 BRT — FAY-1191/1192/1193 storefront route override proof
+
+Resultado:
+
+- Added typed custom route definitions to private `@fayz-ai/storefront`.
+- Custom routes match before SDK default pages, so a generated app can replace `/checkout` or add a new route.
+- Added `placeStorefrontOrder()` as a checkout primitive so custom screens reuse SDK/storefront order/session/totals logic.
+- Updated `shopfront` with app-owned `src/custom/AuroraCheckoutRoute.tsx` and a `/checkout` route override.
+
+Impacto:
+
+- This proves the desired seam: same storefront/shop engine, custom app-owned screen, no copy/paste checkout business logic.
+- The app customization surface is editable by agents without touching SDK internals.
+- `shop`/`storefront` remain private/internal boundaries; no public npm surface expansion.
+
+Risco:
+
+- Existing `shopfront` checkout e2e is provider/fixture-coupled. Against the Fayz shop provider it creates real order numbers like `#1/#2`; against mock mode it needs fixture/server isolation. Do not use that failure to weaken the route contract.
+
+Proximo:
+
+- Add a focused route-override test that asserts custom `/checkout` renders and `placeStorefrontOrder()` closes an order.
+- Document generator guidance: app-owned custom routes live under `src/custom/*`, config wires `routes`, SDK owns primitives.
+- Only after that decide whether The Chef needs a custom checkout/POS route proof.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk && pnpm --filter @fayz-ai/storefront typecheck
+cd /Users/fayalabs/dev/fayz-sdk && pnpm --filter @fayz-ai/storefront build
+cd /Users/fayalabs/dev/fayz-app/shopfront && npm run typecheck
+cd /Users/fayalabs/dev/fayz-app/shopfront && npm run build
+node smoke confirmed http://localhost:5183/#/checkout renders "Compra assistida Aurora" with preloaded cart state
+```
+
 ## 2026-06-14 23:52 UTC / 20:52 BRT — M75 Resto env-gated Orders provider wiring
 
 Resultado:

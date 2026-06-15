@@ -10,6 +10,43 @@ export interface ProductCardSlotProps {
   product: Product
 }
 
+export type StorefrontRouteKind =
+  | 'home'
+  | 'catalog'
+  | 'product'
+  | 'checkout'
+  | 'account'
+  | 'order'
+  | 'custom'
+
+export type StorefrontRouteParams = Record<string, string>
+
+export interface StorefrontRouteComponentProps {
+  path: string
+  params: StorefrontRouteParams
+  config: ResolvedStorefrontConfig
+}
+
+export interface StorefrontRouteDefinition {
+  /**
+   * Stable identifier for generated-code diffs, QA reports, and route ownership.
+   */
+  id: string
+  /**
+   * Hash route pattern. Supports the same params as matchPath, e.g. '/checkout'
+   * or '/collections/:slug'. Custom routes are matched before SDK defaults.
+   */
+  path: string
+  /**
+   * Intent label for agents and manifests. It does not change matching behavior.
+   */
+  kind?: StorefrontRouteKind
+  /**
+   * App-owned screen/workflow that can still use storefront/shop primitives.
+   */
+  component: React.ComponentType<StorefrontRouteComponentProps>
+}
+
 export interface StorefrontSlots {
   /**
    * Product card renderer used by catalog grids and product rails.
@@ -57,6 +94,8 @@ export interface StorefrontConfig {
   features?: { discounts?: boolean; accounts?: boolean }
   /** Code-level customization slots. Kept out of serialized manifests. */
   slots?: StorefrontSlots
+  /** Code-level route overrides/custom routes. Kept out of serialized manifests. */
+  routes?: StorefrontRouteDefinition[]
 }
 
 export interface ResolvedStorefrontConfig extends StorefrontConfig {

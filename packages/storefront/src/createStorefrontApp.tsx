@@ -20,6 +20,14 @@ function RouteSwitch() {
   const config = useStorefrontConfig()
   const path = useHashPath()
 
+  for (const route of config.routes ?? []) {
+    const params = matchPath(route.path, path)
+    if (params) {
+      const CustomRoute = route.component
+      return <CustomRoute path={path} params={params} config={config} />
+    }
+  }
+
   const product = matchPath('/product/:slug', path)
   if (product?.slug) return <ProductDetailPage slug={product.slug} />
 
