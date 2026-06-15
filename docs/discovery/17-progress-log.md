@@ -7908,11 +7908,14 @@ npm run build -w @wowsome/api
 ### Resultado
 
 - Added `--json` to `scripts/check-generated-dogfood.mjs`.
+- Added `--summary` for executive `Resultado / Impacto / Risco / Proximo`
+  status from the same gate data.
 - Added `pnpm test:generated-dogfood` to cover machine-readable pass/warning output.
 
 ### Impacto
 
 - Agents and executive status tooling can consume dogfood status without parsing Markdown tables.
+- Human CTO/status updates can use `--summary` without hand-translating the gate.
 - This supports the "freeze micro dogfood into objective status" milestone before broad Fayz Agent integration.
 
 ### Proximo

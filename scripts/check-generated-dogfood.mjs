@@ -9,7 +9,14 @@ const args = process.argv.slice(2)
 const runTypecheck = args.includes('--typecheck')
 const strictWarnings = args.includes('--strict')
 const jsonOutput = args.includes('--json')
-const appArgs = args.filter((arg) => arg !== '--' && arg !== '--typecheck' && arg !== '--strict' && arg !== '--json')
+const summaryOutput = args.includes('--summary')
+const appArgs = args.filter((arg) =>
+  arg !== '--' &&
+  arg !== '--typecheck' &&
+  arg !== '--strict' &&
+  arg !== '--json' &&
+  arg !== '--summary'
+)
 
 const defaultApps = [
   { id: 'beauty', label: 'Beauty / BeautyPlace', path: '/Users/fayalabs/dev/fayz-app/beauty-saas' },
@@ -80,6 +87,17 @@ if (jsonOutput) {
       missing: result.status === 'missing',
     })),
   }, null, 2))
+} else if (summaryOutput) {
+  const total = results.length
+  const contractPass = results.filter((result) => result.status === 'pass').length
+  const typecheckPass = results.filter((result) => result.typecheck === 'pass').length
+  const warnings = results.flatMap((result) => result.warnings.map((warning) => ({ app: result.app.label, warning })))
+  const failures = results.filter((result) => result.status !== 'pass' || (runTypecheck && result.typecheck !== 'pass'))
+
+  console.log(`Resultado: ${contractPass}/${total} contract gates passed${runTypecheck ? `; ${typecheckPass}/${total} typechecks passed` : ''}; ${warnings.length} warning(s).`)
+  console.log(`Impacto: ${failures.length === 0 ? 'Dogfood baseline can support constrained app-owned agent edits.' : 'Dogfood baseline has blockers before agent edits.'}`)
+  console.log(`Risco: ${warnings.length === 0 && failures.length === 0 ? 'No gate drift detected in the current dogfood set.' : [...failures.map((result) => result.app.label), ...warnings.map((warning) => warning.app)].join(', ')}`)
+  console.log(`Proximo: ${failures.length === 0 && warnings.length === 0 ? 'Keep strict dogfood green and use the scope gate before generated-app edits.' : 'Fix blockers/warnings or escalate them into SDK/internal package work.'}`)
 } else {
   console.log('Generated dogfood gate matrix')
   console.log('')

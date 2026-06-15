@@ -24,6 +24,8 @@ Resultado:
   app-owned/review/blocked/clean paths and the no-`--base` current diff path.
 - `pnpm check:generated-dogfood --json` now emits machine-readable dogfood
   status for agents/status reports without parsing the Markdown table.
+- `pnpm check:generated-dogfood --summary` emits the same status in executive
+  `Resultado / Impacto / Risco / Proximo` format.
 - `pnpm test:generated-dogfood` covers the JSON status output.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
@@ -107,6 +109,7 @@ npm run check:fayz-sdk-agent-gates -- /path/to/generated-app --base <before-ref>
 ```bash
 pnpm check:generated-dogfood
 pnpm check:generated-dogfood --json
+pnpm check:generated-dogfood --summary
 pnpm check:generated-dogfood:full
 pnpm check:generated-dogfood:strict
 pnpm test:generated-dogfood
