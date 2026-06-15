@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 06:07 UTC / 03:07 BRT
+Snapshot: 2026-06-15 06:11 UTC / 03:11 BRT
 
 ## Executive Status
 
@@ -93,6 +93,14 @@ Resultado:
     `Runtime SDK control room` and a 1-file diff (+50/-5).
   - MCP output returned text content, `finalStatus: "ready"`, and
     `scopeGateBlocked: false`.
+- Follow-up inspection found the generated scaffold's local app-runtime stub
+  rendered a static summary and did not resolve `app.manifest.json` custom pages
+  through `src/registry.tsx`. This meant app-owned page edits could pass the
+  scope/verification loop without proving the manifest-first seam was visible.
+- Fayz scaffold template now resolves `surfaces[surface].pages[].component`
+  against `appRegistry.pages`/`appRegistry.components` and renders the matching
+  app-owned custom page. Unregistered component ids now show an explicit runtime
+  fallback message.
 
 Impacto:
 
@@ -107,6 +115,9 @@ Impacto:
   app-owned Fayz Agent run on the runtime UUID, not more local app-theme churn.
 - The second positive runtime run proves the corrected MCP text path and the
   scoped app-owned operation can run repeatedly on the same runtime project.
+- The scaffold runtime correction turns the next proof into a real
+  manifest-to-registry-to-render validation instead of a file-only app-owned
+  edit.
 
 Risco:
 
@@ -137,6 +148,9 @@ Proximo:
 - Promote the next proof from generic runtime copy to a real generated-app
   workflow slice only if it exercises SDK/app boundaries, route overrides, or
   API access through `@fayz-ai/sdk`.
+- Next runtime MCP proof should ask the agent to wire a custom page through
+  `app.manifest.json` + `src/registry.tsx` + `src/pages/**`, then verify the
+  rendered page is actually selected by `renderApp(manifest)`.
 - Avoid trying to force the model to write forbidden files. The safer next proof
   is a deterministic harness/test around MCP summary + post-generation block, or
   another app-owned edit that exercises real runtime verification.
@@ -219,6 +233,7 @@ cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/modules/chat/
 cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/mcp-chat/tools/__tests__/send-message-summary.test.ts
 cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/mcp-chat/tools/__tests__/send-message.test.ts src/mcp-chat/tools/__tests__/send-message-summary.test.ts
 cd /Users/fayalabs/dev/fayz && npm run build -w @wowsome/api
+cd /Users/fayalabs/dev/fayz && npx tsc --noEmit --skipLibCheck --jsx react-jsx --moduleResolution bundler --module ESNext --target ES2020 --lib ES2020,DOM,DOM.Iterable apps/api/src/modules/projects/scaffold/template/src/lib/fayz-runtime.ts apps/api/src/modules/projects/scaffold/template/src/registry.tsx
 cd /Users/fayalabs/dev/fayz && npm run test:fayz-sdk-agent-gates
 cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run doctor:fayz-sdk-agent-gates:json:strict
 cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/4d467cfc-367f-408f-b92a-31098e8c2fab --paths src/App.tsx --scope-only --scope-json
