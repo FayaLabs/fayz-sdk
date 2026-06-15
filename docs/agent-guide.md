@@ -6,6 +6,65 @@ This document is the primary reference for AI agents generating new projects wit
 
 Fayz-generated projects are moving to a manifest-first SDK contract.
 
+## Operating Contract — 2026-06-15
+
+The current PoC goal is no longer "build more vertical apps." The goal is to
+prove that Fayz can generate, customize, and maintain real SaaS/commerce apps
+on top of reusable SDK engines while each client repo keeps its own business
+code and product personality.
+
+Use this order before making generated-app edits:
+
+1. **App-owned first:** business config, copy, theme, product data, route
+   overrides, workflow glue, and bespoke screens live in the app repo.
+2. **SDK primitives second:** auth, tenant context, API access, CRUD providers,
+   runtime broker helpers, checkout/order primitives, plugin runtime, toasts,
+   and shared contracts live in the SDK/platform.
+3. **Override, do not fork:** if a default screen is almost right, add a typed
+   route/slot override that calls SDK primitives. Do not copy the whole plugin
+   or storefront flow into the app.
+4. **Escalate seams:** if two apps need the same non-business logic, move the
+   primitive into SDK/internal packages and leave only configuration/custom UI
+   in app repos.
+5. **Gate every change:** run the generated-app contract check before treating
+   an app as agent-safe.
+
+Recommended gate:
+
+```bash
+pnpm check:generated-app /path/to/generated-app
+```
+
+This catches the highest-risk drift:
+
+- generated apps depending publicly on internal `@fayz-ai/*` packages;
+- legacy `@fayz/*`, `saas-core`, or GitHub Packages registry wiring;
+- direct provider SDK imports such as `@supabase/supabase-js` in generated code;
+- secret/refresh-token/client-secret references in browser/app files;
+- oversized entrypoints and missing app-owned config surfaces.
+
+Warnings are not automatic blockers during dogfood, but they must be reviewed.
+Failures mean the app is not ready for Fayz Agent autonomous operation.
+
+### Product Dogfood Rule
+
+Keep four app families under active dogfood before teaching Fayz Agents to
+operate SDK repos broadly:
+
+- **Beauty SaaS / BeautyPlace refactor:** salon SaaS depth. It should prove
+  agenda, client management, services, financial flow, and product-grade UX.
+- **Commerce shops:** commercial near-term storefronts. They should prove
+  high-conversion checkout, order tracking, product variations, account area,
+  and distinct brand personalities without forking storefront mechanics.
+- **Restaurant / The Chef:** restaurant/POS pressure. It should prove tables,
+  menu, orders, and workflow override seams.
+- **Marketplace/admin app:** merchant/admin pressure. It should prove provider
+  injection, dashboard metrics, and shop-admin data via SDK.
+
+Product depth is allowed when it answers a platform question. Avoid feature
+work that only makes one demo prettier and does not clarify SDK boundaries,
+agent edit surfaces, or reusable primitives.
+
 For new work in Fayz-generated projects:
 
 - Use public npm `@fayz-ai/sdk` as the default package for every generated project: app params, normalized API access, shared types, and runtime OAuth broker helpers.

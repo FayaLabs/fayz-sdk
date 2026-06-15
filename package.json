@@ -12,6 +12,7 @@
     "check:manifest": "turbo check:manifest --filter @fayz-ai/core",
     "check:public-surface": "node ./scripts/check-public-surface.mjs",
     "check:public-package-safety": "node ./scripts/check-public-package-safety.mjs packages/sdk",
+    "check:generated-app": "node ./scripts/check-generated-app-contract.mjs",
     "clean": "turbo clean",
     "changeset": "changeset",
     "version-packages": "changeset version",

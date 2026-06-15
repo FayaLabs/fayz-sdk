@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-15 01:22 UTC / 22:22 BRT — Agent-safe generated app contract gate
+
+Resultado:
+
+- Added `pnpm check:generated-app <path>` as a reusable generated-app contract gate.
+- Updated `docs/agent-guide.md` with the current operating contract for Fayz Agents:
+  app-owned files first, SDK primitives second, override rather than fork, escalate repeated platform logic into SDK/internal packages, and gate every generated-app edit.
+- Locked the next dogfood set as Beauty/BeautyPlace refactor, commerce shops, restaurant/The Chef, and marketplace/admin, with product depth allowed only when it clarifies SDK boundaries or reusable primitives.
+
+Impacto:
+
+- This starts moving the work from manual dogfood into an operational standard that Fayz Agents can follow.
+- The gate catches the main drift risks before autonomous agents edit generated apps: internal public package deps, legacy package names, GitHub Packages auth, direct provider SDK imports, and browser-side secrets.
+
+Risco:
+
+- Existing dogfood apps may still warn/fail because they intentionally use local aliases or older provider files during migration. Treat those as migration signals, not blockers to the gate itself.
+
+Proximo:
+
+- Run the new gate across Beauty and shop apps, then use failures to define the next SDK/app cleanup slices.
+- Continue product dogfood depth in Beauty and shops: Beauty service/client/agenda polish; shops order tracking, product variations, and brand-specific UX without forking storefront mechanics.
+
+Verification:
+
+```bash
+pnpm check:public-surface
+node --check scripts/check-generated-app-contract.mjs
+pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
+```
+
+Calibration:
+
+- `shopfront` passes the generated-app contract gate.
+- `beauty-saas` and `resto-saas` currently fail because `src/integrations/supabase/client.ts` imports `@supabase/supabase-js` directly. This is the next SDK/broker cleanup seam, not a reason to weaken the gate.
+
 ## 2026-06-15 00:24 UTC / 21:24 BRT — Core high-conversion checkout baseline
 
 Resultado:
