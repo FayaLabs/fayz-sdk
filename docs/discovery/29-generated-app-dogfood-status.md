@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 02:15 UTC / 23:15 BRT
+Snapshot: 2026-06-15 02:21 UTC / 23:21 BRT
 
 ## Executive Status
 
@@ -15,6 +15,8 @@ Resultado:
   warnings as blockers for pre-agent operation.
 - `pnpm check:generated-agent-scope <app> --strict` now classifies an edited
   generated app's changed files before the dogfood gate.
+- Fayz generated-app scaffold now emits the app-owned edit boundary and SDK gate
+  instructions in each generated app's `AGENTS.md`.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
   private platform engines own repeated technical complexity.
@@ -39,6 +41,8 @@ Proximo:
   Agent generated-app edits.
 - Use `pnpm check:generated-agent-scope <app> --strict` before the strict
   dogfood gate so autonomous edits stay in app-owned files.
+- Keep Fayz scaffold prompt/guidance aligned with these gates as the contract
+  evolves.
 - Keep direct provider metadata out of generated apps unless an explicit
   optional adapter is selected.
 - Keep repeated plugin/runtime/storefront logic out of generated apps; use

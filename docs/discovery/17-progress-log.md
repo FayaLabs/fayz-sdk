@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:21 UTC / 23:21 BRT — Fayz scaffold consumes agent gates
+
+Resultado:
+
+- Updated Fayz generated-app `AGENTS.md` template with the app-owned edit
+  surfaces and SDK/internal escalation rule.
+- Updated Fayz scaffold library guidance used by the Software Engineer prompt
+  with the same boundaries.
+- Added a scaffold test to keep the generated-agent instructions aligned with
+  `check:generated-agent-scope` and `check:generated-dogfood:strict`.
+
+Impacto:
+
+- The gate is no longer SDK-only documentation. New generated apps now receive
+  the operating contract in their own repo instructions.
+- This is the first controlled bridge toward Fayz Agents operating `fayz-sdk`
+  apps: generation guidance, app-local AGENTS.md, and SDK gates now say the
+  same thing.
+
+Risco:
+
+- This does not yet run the gates automatically inside Fayz agent execution. It
+  teaches the generated app and prompt layer what the gate is.
+
+Proximo:
+
+- Next bridge is execution wiring: after an agent edit, run app scope gate and
+  strict dogfood gate before accepting the change.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts
+```
+
 ## 2026-06-15 02:15 UTC / 23:15 BRT — Generated-agent edit-scope gate
 
 Resultado:
