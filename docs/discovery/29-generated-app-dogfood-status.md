@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:00 UTC / 02:00 BRT
+Snapshot: 2026-06-15 05:20 UTC / 02:20 BRT
 
 ## Executive Status
 
@@ -44,6 +44,9 @@ Resultado:
   - Resto/The Chef: `src/config/app.tsx` and `src/config/pages.tsx` app contract
     alignment to `FayzAppConfig` and `org`.
   - Marketplace/admin: `src/config/app.tsx` operations assistant update.
+- Fayz post-generation now has a pipeline test proving that a scoped SDK/app
+  gate block stops verification and auto-versioning, transitions the project to
+  `ERROR`, and returns the gate reason to the stream.
 
 Impacto:
 
@@ -78,7 +81,8 @@ Proximo:
   copied manually.
 - Use wrapper dry-run for fast inspection, but keep full dogfood as the runtime
   acceptance gate.
-- Keep scope gate test green before wiring it deeper into Fayz Agent runtime.
+- Keep scope gate and post-generation block tests green before enabling real
+  Fayz Agent edits beyond one scoped project at a time.
 - Keep direct provider metadata out of generated apps unless an explicit
   optional adapter is selected.
 - Keep repeated plugin/runtime/storefront logic out of generated apps; use
@@ -135,6 +139,8 @@ pnpm check:generated-dogfood:strict
 pnpm test:generated-dogfood
 pnpm test:generated-agent-scope
 pnpm check:generated-agent-scope /Users/fayalabs/dev/fayz-app/shopfront --paths src/config/theme.ts --json --strict
+cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/modules/chat/__tests__/chat-message.service.test.ts
+cd /Users/fayalabs/dev/fayz && npm run test:fayz-sdk-agent-gates
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas
