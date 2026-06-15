@@ -50,6 +50,12 @@ Strict pre-agent gate:
 pnpm check:generated-dogfood:strict
 ```
 
+Edit-scope gate for a single generated app:
+
+```bash
+pnpm check:generated-agent-scope /path/to/generated-app --base HEAD~1 --strict
+```
+
 This catches the highest-risk drift:
 
 - generated apps depending publicly on internal `@fayz-ai/*` packages;
@@ -64,6 +70,13 @@ Warnings are not automatic blockers during dogfood, but they must be reviewed.
 The strict gate treats warnings as blockers and is the recommended gate before
 letting Fayz Agents edit app-owned files autonomously. Failures mean the app is
 not ready for Fayz Agent autonomous operation.
+
+Use `check:generated-agent-scope` after a generated-app edit and before the
+strict dogfood gate. It classifies changed files as:
+
+- `app-owned`: safe default surface for Fayz Agents.
+- `review`: allowed only with explicit human/CTO review in strict mode.
+- `blocked`: SDK/internal work or explicit architecture approval required.
 
 ### App-Owned Edit Surfaces
 

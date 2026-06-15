@@ -1,5 +1,48 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:15 UTC / 23:15 BRT — Generated-agent edit-scope gate
+
+Resultado:
+
+- Added `pnpm check:generated-agent-scope <app>` to classify generated-app
+  changes before autonomous agent operation.
+- The scope gate separates files into `app-owned`, `review`, and `blocked`.
+- `--strict` fails review files as well, so autonomous runs can require explicit
+  app-owned-only edits before the dogfood strict gate.
+- Re-ran `pnpm check:generated-dogfood:strict`; all four dogfood apps still
+  pass with zero warnings.
+
+Impacto:
+
+- The operating contract is now executable in two steps: first confirm the agent
+  edited only the intended app-owned surfaces, then run the strict four-app
+  dogfood gate.
+- This reduces the risk that a Fayz Agent silently edits provider clients,
+  local plugin engines, package wiring, or platform/runtime code inside a
+  generated app.
+
+Risco:
+
+- Scope checking is intentionally path-based. It catches the main operational
+  risk, but it does not replace product review or the SDK primitive escalation
+  judgment.
+
+Proximo:
+
+- Use this sequence for constrained Fayz Agent operation:
+  `check:generated-agent-scope --strict` on the edited app, then
+  `check:generated-dogfood:strict`.
+- Product dogfood can continue, but only after the changed files fit the
+  app-owned contract or are explicitly escalated.
+
+Verification:
+
+```bash
+node --check scripts/check-generated-agent-scope.mjs
+node scripts/check-generated-agent-scope.mjs /Users/fayalabs/dev/fayz-app/resto-saas --base HEAD~1 --strict
+pnpm check:generated-dogfood:strict
+```
+
 ## 2026-06-15 02:09 UTC / 23:09 BRT — Strict pre-agent dogfood gate
 
 Resultado:

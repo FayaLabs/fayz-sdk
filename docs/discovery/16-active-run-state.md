@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 23:09 BRT
+Last updated: 2026-06-14 23:15 BRT
 
 ## Mode
 
@@ -25,6 +25,9 @@ Latest route lock update:
 - `pnpm check:generated-dogfood:strict` is now the pre-agent gate: it runs the
   four dogfood contract checks in strict warning-as-failure mode plus typecheck.
   It currently passes across Beauty, shopfront, Resto, and Marketplace.
+- `pnpm check:generated-agent-scope <app> --strict` is now the per-app edit
+  scope gate. Run it before the strict dogfood gate when a Fayz Agent edits a
+  generated app; it classifies changed files as app-owned, review, or blocked.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
