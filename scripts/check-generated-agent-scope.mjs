@@ -10,7 +10,7 @@ const baseIndex = args.indexOf('--base')
 const baseRef = baseIndex >= 0 ? args[baseIndex + 1] : undefined
 const appPathArg = args.find((arg, index) =>
   !arg.startsWith('--') &&
-  index !== baseIndex + 1
+  (baseIndex < 0 || index !== baseIndex + 1)
 )
 
 if (!appPathArg || (baseIndex >= 0 && !baseRef)) {

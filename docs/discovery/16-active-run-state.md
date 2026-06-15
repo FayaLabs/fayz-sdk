@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 23:32 BRT
+Last updated: 2026-06-14 23:39 BRT
 
 ## Mode
 
@@ -36,6 +36,8 @@ Latest route lock update:
   `../fayz-sdk` by default and supports `FAYZ_SDK_REPO`.
 - The Fayz wrapper now supports `--dry-run` and has a focused Node test via
   `npm run test:fayz-sdk-agent-gates`.
+- The SDK scope gate itself now has `pnpm test:generated-agent-scope`; this test
+  caught and fixed a parser bug for app paths when `--base` is omitted.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`

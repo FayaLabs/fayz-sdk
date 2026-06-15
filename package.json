@@ -14,6 +14,7 @@
     "check:public-package-safety": "node ./scripts/check-public-package-safety.mjs packages/sdk",
     "check:generated-app": "node ./scripts/check-generated-app-contract.mjs",
     "check:generated-agent-scope": "node ./scripts/check-generated-agent-scope.mjs",
+    "test:generated-agent-scope": "node --test ./scripts/check-generated-agent-scope.test.mjs",
     "check:generated-dogfood": "node ./scripts/check-generated-dogfood.mjs",
     "check:generated-dogfood:full": "node ./scripts/check-generated-dogfood.mjs --typecheck",
     "check:generated-dogfood:strict": "node ./scripts/check-generated-dogfood.mjs --strict --typecheck",

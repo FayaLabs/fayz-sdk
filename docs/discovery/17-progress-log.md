@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:39 UTC / 23:39 BRT — Scope gate test caught parser bug
+
+Resultado:
+
+- Added `pnpm test:generated-agent-scope`.
+- The new test covers app-owned, blocked, review/non-strict, review/strict, and
+  clean generated-app states.
+- The test exposed a real parser bug where app paths were ignored when `--base`
+  was omitted; fixed the argument parsing.
+- Re-ran `pnpm check:generated-dogfood:strict`; all four dogfood apps still pass
+  with zero warnings.
+
+Impacto:
+
+- The scope gate is now covered and more reliable for both operator use and
+  future agent lifecycle wiring.
+- The bug fix matters because local/manual runs may omit `--base` and should
+  still classify current dirty/untracked app changes correctly.
+
+Risco:
+
+- The test validates path classification, not semantic product quality. Product
+  review and SDK escalation judgment remain required.
+
+Proximo:
+
+- Use the tested gate in the first constrained generated-app edit loop.
+
+Verification:
+
+```bash
+pnpm test:generated-agent-scope
+pnpm check:generated-dogfood:strict
+```
+
 ## 2026-06-15 02:32 UTC / 23:32 BRT — Fayz gate wrapper tested
 
 Resultado:

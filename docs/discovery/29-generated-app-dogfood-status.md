@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 02:32 UTC / 23:32 BRT
+Snapshot: 2026-06-15 02:39 UTC / 23:39 BRT
 
 ## Executive Status
 
@@ -20,6 +20,8 @@ Resultado:
 - Fayz repo now exposes `npm run check:fayz-sdk-agent-gates` as a wrapper for
   the scope gate plus strict dogfood gate.
 - The Fayz wrapper now has `--dry-run` and a focused Node test.
+- The SDK scope gate now has `pnpm test:generated-agent-scope`, covering
+  app-owned/review/blocked/clean paths and the no-`--base` current diff path.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
   private platform engines own repeated technical complexity.
@@ -50,6 +52,7 @@ Proximo:
   copied manually.
 - Use wrapper dry-run for fast inspection, but keep full dogfood as the runtime
   acceptance gate.
+- Keep scope gate test green before wiring it deeper into Fayz Agent runtime.
 - Keep direct provider metadata out of generated apps unless an explicit
   optional adapter is selected.
 - Keep repeated plugin/runtime/storefront logic out of generated apps; use
