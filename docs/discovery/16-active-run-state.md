@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 23:21 BRT
+Last updated: 2026-06-14 23:27 BRT
 
 ## Mode
 
@@ -31,6 +31,9 @@ Latest route lock update:
 - Fayz generated-app scaffold now includes the same app-owned edit boundaries
   and SDK gate instructions in generated `AGENTS.md` plus Software Engineer
   scaffold guidance. Test coverage is in Fayz API scaffold tests.
+- Fayz repo now exposes `npm run check:fayz-sdk-agent-gates` as the operator
+  wrapper for app scope gate plus strict dogfood gate. It resolves
+  `../fayz-sdk` by default and supports `FAYZ_SDK_REPO`.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`

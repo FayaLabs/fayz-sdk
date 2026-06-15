@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 02:21 UTC / 23:21 BRT
+Snapshot: 2026-06-15 02:27 UTC / 23:27 BRT
 
 ## Executive Status
 
@@ -17,6 +17,8 @@ Resultado:
   generated app's changed files before the dogfood gate.
 - Fayz generated-app scaffold now emits the app-owned edit boundary and SDK gate
   instructions in each generated app's `AGENTS.md`.
+- Fayz repo now exposes `npm run check:fayz-sdk-agent-gates` as a wrapper for
+  the scope gate plus strict dogfood gate.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
   private platform engines own repeated technical complexity.
@@ -43,6 +45,8 @@ Proximo:
   dogfood gate so autonomous edits stay in app-owned files.
 - Keep Fayz scaffold prompt/guidance aligned with these gates as the contract
   evolves.
+- Use the Fayz wrapper for operator/agent runs so the SDK gate sequence is not
+  copied manually.
 - Keep direct provider metadata out of generated apps unless an explicit
   optional adapter is selected.
 - Keep repeated plugin/runtime/storefront logic out of generated apps; use
@@ -82,6 +86,12 @@ pnpm check:generated-dogfood:strict
 
 Any warning or failure must either be fixed in the app-owned surface or
 escalated into an SDK/internal package task.
+
+When running from the Fayz repo, use the wrapper:
+
+```bash
+npm run check:fayz-sdk-agent-gates -- /path/to/generated-app --base <before-ref>
+```
 
 ## Verification
 

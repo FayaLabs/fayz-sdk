@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:27 UTC / 23:27 BRT — Fayz repo wrapper runs SDK agent gates
+
+Resultado:
+
+- Added `npm run check:fayz-sdk-agent-gates` in the Fayz repo.
+- The wrapper resolves the sibling `../fayz-sdk` checkout, runs
+  `check:generated-agent-scope` for an edited app, and then runs
+  `check:generated-dogfood:strict`.
+- Added the wrapper to the shared engineering playbook for agents.
+
+Impacto:
+
+- Fayz agents no longer need to manually know the SDK repo cwd or remember two
+  separate commands. The Fayz repo now has one command for the constrained
+  generated-app gate sequence.
+- This moves the work from documentation into an executable operator path.
+
+Risco:
+
+- This is still a local/operator wrapper, not a fully automated agent runtime
+  hook. It assumes the sibling SDK checkout exists or `FAYZ_SDK_REPO` is set.
+
+Proximo:
+
+- Use the wrapper in the first constrained agent/app edit loop.
+- If that loop is stable, wire it deeper into the agent execution lifecycle.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+node --check scripts/check-fayz-sdk-agent-gates.mjs
+npm run check:fayz-sdk-agent-gates -- /Users/fayalabs/dev/fayz-app/resto-saas --base HEAD~1 --scope-only
+npm run check:fayz-sdk-agent-gates -- --dogfood-only
+```
+
 ## 2026-06-15 02:21 UTC / 23:21 BRT — Fayz scaffold consumes agent gates
 
 Resultado:
