@@ -62,8 +62,6 @@ function changedFiles() {
 
 const appOwnedFiles = new Set([
   'app.manifest.json',
-  'src/App.tsx',
-  'src/main.tsx',
   'src/styles.css',
   'src/registry.tsx',
   'src/app.manifest.json',
@@ -91,6 +89,8 @@ const reviewFiles = new Set([
   'tsconfig.json',
   'tsconfig.app.json',
   'tsconfig.node.json',
+  'src/App.tsx',
+  'src/main.tsx',
   'tailwind.config.ts',
   'tailwind.config.js',
   'postcss.config.js',

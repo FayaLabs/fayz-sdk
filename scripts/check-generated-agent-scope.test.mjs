@@ -98,6 +98,17 @@ describe('generated agent scope gate', () => {
     assert.match(result.stderr, /review files require explicit approval in strict mode/)
   })
 
+  it('requires review for app entrypoint changes in strict mode', () => {
+    const appRoot = createGeneratedApp()
+    write(join(appRoot, 'src/App.tsx'), 'export function App() { return <main /> }\n')
+
+    const result = runScope(appRoot, ['--strict'])
+
+    assert.equal(result.status, 1)
+    assert.match(result.stdout, /\| review \| src\/App\.tsx \|/)
+    assert.match(result.stderr, /review files require explicit approval in strict mode/)
+  })
+
   it('passes a clean generated app', () => {
     const appRoot = createGeneratedApp()
 
