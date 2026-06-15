@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:45 UTC / 02:45 BRT
+Snapshot: 2026-06-15 05:55 UTC / 02:55 BRT
 
 ## Executive Status
 
@@ -62,11 +62,21 @@ Resultado:
 - Runtime UUID gate proof:
   - `src/App.tsx` => `app-owned` pass.
   - `src/plugins/orders/index.ts` => `blocked` fail.
+- First real MCP/chat scoped proof passed on runtime project
+  `4d467cfc-367f-408f-b92a-31098e8c2fab`:
+  - Prompt requested the smallest app-owned copy edit only.
+  - AI edited `src/pages/Index.tsx`.
+  - Post-generation scope gate classified it as `app-owned` and passed.
+  - Verification reached `READY`; version 2 was created as `RELEASED`.
+  - MCP output returned `finalStatus: "ready"` and `scopeGateBlocked: false`.
 
 Impacto:
 
 - This is enough to start one constrained MCP/chat Fayz Agent proof on the
   runtime project UUID above.
+- The first constrained MCP/chat proof is complete. We can continue with one
+  runtime project at a time, still scoped-blocked, while keeping SDK/internal
+  edits out of app-agent reach.
 - This is not approval for broad agent operation or SDK/internal edits by app
   agents.
 
@@ -78,16 +88,24 @@ Risco:
 - Broad Fayz Agent operation remains gated even with four scoped green dogfood
   runs. Keep enforcement project-scoped and runtime-project-scoped until a real
   Fayz Agent edit path proves the same behavior without manual intervention.
+- Baseline version was created manually for the runtime proof so the next chat
+  would not be treated as first generation. Because that baseline did not have
+  a full snapshot/diff, version 2 reports 53 files changed. This is acceptable
+  for proof telemetry but not a product-quality version-history pattern.
+- Runtime execution must use a single runtime `PROJECTS_DIR` root such as
+  `/tmp/fayalabs-projects`; the comma-separated
+  `/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app` form is for
+  doctor/wrapper discovery only. `FileSyncService` treats `PROJECTS_DIR` as one
+  directory.
 
 Proximo:
 
-- Start the next Fayz Agent proof through MCP/chat on runtime project
-  `4d467cfc-367f-408f-b92a-31098e8c2fab`, with:
-  `PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app`
+- Run the next MCP/chat proof with a controlled blocked edit request or another
+  app-owned business edit, still on one runtime project only.
+- For actual MCP/chat runtime execution, use:
+  `PROJECTS_DIR=/tmp/fayalabs-projects`
   and
   `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab`.
-- Prefer the MCP chat path for the first real agent run so the same
-  `processAgentMessage` and post-generation gate path is exercised end to end.
 - Use the Fayz wrapper for every run:
   `npm run check:fayz-sdk-agent-gates -- <app-path> --paths <changed-files> --scope-json`.
 - Keep objective typecheck/build gates green as apps evolve.
@@ -165,6 +183,7 @@ cd /Users/fayalabs/dev/fayz && npm run build -w @wowsome/api
 cd /Users/fayalabs/dev/fayz && npm run test:fayz-sdk-agent-gates
 cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run doctor:fayz-sdk-agent-gates:json:strict
 cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/4d467cfc-367f-408f-b92a-31098e8c2fab --paths src/App.tsx --scope-only --scope-json
+cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/4d467cfc-367f-408f-b92a-31098e8c2fab --paths src/pages/Index.tsx --scope-only --scope-json
 cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/4d467cfc-367f-408f-b92a-31098e8c2fab --paths src/plugins/orders/index.ts --scope-only --scope-json
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
