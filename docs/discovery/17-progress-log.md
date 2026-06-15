@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-15 01:34 UTC / 22:34 BRT — Four-app dogfood gate snapshot
+
+Resultado:
+
+- Ran the generated-app contract gate across Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
+- All four pass the gate.
+- Added `docs/discovery/29-generated-app-dogfood-status.md` as the objective dogfood status matrix.
+- Added an explicit `typecheck` script to Marketplace and validated it.
+- Validated Beauty typecheck locally through the current Beauty migration worktree, but did not package it as a standalone commit because `package.json` already includes broader pending SDK migration changes.
+
+Impacto:
+
+- The PoC now has a concrete readiness view instead of relying on memory from individual app fixes.
+- Next work can target the remaining warnings and agent-safe gates before broad Fayz Agent SDK operation.
+
+Risco:
+
+- Passing the generated-app contract gate does not mean each product is 9/10 yet; it means the app is within the intended SDK/app boundary.
+
+Proximo:
+
+- Package the pending Beauty migration coherently, including its typecheck script, or split it deliberately after reviewing related `tsconfig`/lockfile changes.
+- Decide where temporary Beauty/Resto Supabase type metadata belongs: SDK-owned shared types or explicit optional adapter metadata.
+- Keep shopfront/Marketplace clean while product dogfood continues.
+
+Verification:
+
+```bash
+pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
+pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
+pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas
+pnpm check:generated-app /Users/fayalabs/dev/fayz-app/marketplace-saas
+cd /Users/fayalabs/dev/fayz-app/beauty-saas && npm run typecheck
+cd /Users/fayalabs/dev/fayz-app/marketplace-saas && npm run typecheck
+```
+
 ## 2026-06-15 01:31 UTC / 22:31 BRT — Resto generated-app provider leak closed
 
 Resultado:
