@@ -1,13 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import {
-  CheckCircle2,
-  ChevronRight,
-  CreditCard,
-  Home,
-  Lock,
-  PackageCheck,
-  ShieldCheck,
-} from 'lucide-react'
+import { CreditCard, Lock, PackageCheck, ShieldCheck, Trash2 } from 'lucide-react'
 import { prefersReducedMotion } from '../motion'
 import {
   useCartStore,
@@ -23,8 +15,6 @@ import { formatMoney } from '../format'
 import { TID } from '../testids'
 import { placeStorefrontOrder } from '../workflows/checkout'
 
-type CheckoutStep = 'contact' | 'delivery' | 'payment'
-
 interface CheckoutForm {
   email: string
   name: string
@@ -36,20 +26,15 @@ interface CheckoutForm {
   cvc: string
 }
 
-const STEPS: Array<{ id: CheckoutStep; label: string }> = [
-  { id: 'contact', label: 'Contato' },
-  { id: 'delivery', label: 'Entrega' },
-  { id: 'payment', label: 'Pagamento' },
-]
+type AddressMode = 'saved' | 'new'
+type PaymentMode = 'saved' | 'new'
 
 const SAVED_ADDRESSES = [
   { id: 'home', label: 'Casa', street: 'Rua das Flores, 123', city: 'São Paulo', zip: '01310-100' },
-  { id: 'work', label: 'Trabalho', street: 'Av. Paulista, 1000', city: 'São Paulo', zip: '01310-200' },
 ]
 
 const SAVED_PAYMENT_METHODS = [
   { id: 'visa', label: 'Visa final 4242', card: '4242 4242 4242 4242', expiry: '12/29', cvc: '123' },
-  { id: 'mastercard', label: 'Mastercard final 5555', card: '5555 5555 5555 4444', expiry: '11/28', cvc: '321' },
 ]
 
 const PROCESSING_STEPS = [
@@ -58,6 +43,8 @@ const PROCESSING_STEPS = [
   { icon: PackageCheck, label: 'Confirmando seu pedido...' },
 ]
 
+const DEFAULT_ADDRESS = SAVED_ADDRESSES[0]!
+const DEFAULT_PAYMENT = SAVED_PAYMENT_METHODS[0]!
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 function ProcessingOverlay({ step }: { step: number }) {
@@ -75,16 +62,6 @@ function ProcessingOverlay({ step }: { step: number }) {
         <Icon key={step} className="h-9 w-9 animate-pop-in text-primary" />
       </div>
       <p key={`label-${step}`} className="mt-6 animate-fade-up font-medium">{current.label}</p>
-      <div className="mt-5 flex gap-1.5">
-        {PROCESSING_STEPS.map((_, index) => (
-          <span
-            key={index}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              index <= step ? 'w-8 bg-primary' : 'w-4 bg-muted'
-            }`}
-          />
-        ))}
-      </div>
       <p className="mt-8 text-xs text-muted-foreground">Pagamento seguro - não feche esta janela</p>
     </div>
   )
@@ -99,38 +76,16 @@ function field(
 ) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium">{label}</span>
+      <span className="sr-only">{label}</span>
       <input
         data-testid={testId}
+        aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+        className="w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
         {...props}
       />
     </label>
-  )
-}
-
-function Stepper({ step }: { step: CheckoutStep }) {
-  const activeIndex = STEPS.findIndex((item) => item.id === step)
-  return (
-    <ol className="grid gap-2 sm:grid-cols-3">
-      {STEPS.map((item, index) => {
-        const done = index < activeIndex
-        const active = item.id === step
-        return (
-          <li
-            key={item.id}
-            className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm ${
-              active ? 'border-primary bg-primary/5 text-primary' : done ? 'border-border bg-muted/40' : 'border-border text-muted-foreground'
-            }`}
-          >
-            {done ? <CheckCircle2 className="h-4 w-4" /> : <span className="flex h-5 w-5 items-center justify-center rounded-full border text-xs">{index + 1}</span>}
-            <span className="font-medium">{item.label}</span>
-          </li>
-        )
-      })}
-    </ol>
   )
 }
 
@@ -139,16 +94,21 @@ export function CheckoutPage() {
   const cart = useCartStore()
   const session = useSessionStore()
 
-  const [step, setStep] = useState<CheckoutStep>('contact')
+  const [selectedAddressId, setSelectedAddressId] = useState(DEFAULT_ADDRESS.id)
+  const [selectedPaymentId, setSelectedPaymentId] = useState(DEFAULT_PAYMENT.id)
+  const [savedAddresses, setSavedAddresses] = useState(SAVED_ADDRESSES)
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState(SAVED_PAYMENT_METHODS)
+  const [addressMode, setAddressMode] = useState<AddressMode>('saved')
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('saved')
   const [form, setForm] = useState<CheckoutForm>({
     email: session.email ?? '',
     name: session.name ?? '',
-    street: '',
-    city: '',
-    zip: '',
-    card: '',
-    expiry: '',
-    cvc: '',
+    street: DEFAULT_ADDRESS.street,
+    city: DEFAULT_ADDRESS.city,
+    zip: DEFAULT_ADDRESS.zip,
+    card: DEFAULT_PAYMENT.card,
+    expiry: DEFAULT_PAYMENT.expiry,
+    cvc: DEFAULT_PAYMENT.cvc,
   })
   const [error, setError] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
@@ -166,35 +126,77 @@ export function CheckoutPage() {
 
   const set = (key: keyof CheckoutForm) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
 
-  function validate(nextStep?: CheckoutStep): boolean {
+  function applySavedAddress(address: typeof SAVED_ADDRESSES[number]) {
+    setAddressMode('saved')
+    setSelectedAddressId(address.id)
+    setForm((current) => ({ ...current, street: address.street, city: address.city, zip: address.zip }))
+  }
+
+  function selectAddress(addressId: string) {
+    const address = savedAddresses.find((item) => item.id === addressId)
+    if (address) applySavedAddress(address)
+  }
+
+  function addNewAddress() {
+    setAddressMode('new')
+    setSelectedAddressId('new')
+    setForm((current) => ({ ...current, street: '', city: '', zip: '' }))
+  }
+
+  function removeAddress(addressId: string) {
+    const nextAddresses = savedAddresses.filter((item) => item.id !== addressId)
+    setSavedAddresses(nextAddresses)
+    if (selectedAddressId !== addressId) return
+    const fallback = nextAddresses[0]
+    if (fallback) applySavedAddress(fallback)
+    else addNewAddress()
+  }
+
+  function applySavedPayment(method: typeof SAVED_PAYMENT_METHODS[number]) {
+    setPaymentMode('saved')
+    setSelectedPaymentId(method.id)
+    setForm((current) => ({ ...current, card: method.card, expiry: method.expiry, cvc: method.cvc }))
+  }
+
+  function selectPayment(paymentId: string) {
+    const method = savedPaymentMethods.find((item) => item.id === paymentId)
+    if (method) applySavedPayment(method)
+  }
+
+  function addNewPayment() {
+    setPaymentMode('new')
+    setSelectedPaymentId('new')
+    setForm((current) => ({ ...current, card: '', expiry: '', cvc: '' }))
+  }
+
+  function removePayment(paymentId: string) {
+    const nextMethods = savedPaymentMethods.filter((item) => item.id !== paymentId)
+    setSavedPaymentMethods(nextMethods)
+    if (selectedPaymentId !== paymentId) return
+    const fallback = nextMethods[0]
+    if (fallback) applySavedPayment(fallback)
+    else addNewPayment()
+  }
+
+  function validate(): boolean {
     setError(null)
     if (!form.email.trim() || !/.+@.+\..+/.test(form.email)) {
       setError('Informe um e-mail válido.')
-      setStep('contact')
       return false
     }
     if (!form.name.trim()) {
       setError('Informe seu nome completo.')
-      setStep('contact')
       return false
     }
-    if ((step !== 'contact' || nextStep === 'payment') && (!form.street.trim() || !form.city.trim() || !form.zip.trim())) {
+    if (!form.street.trim() || !form.city.trim() || !form.zip.trim()) {
       setError('Preencha ou selecione o endereço de entrega.')
-      setStep('delivery')
       return false
     }
-    if (!nextStep && (!/^\d{16}$/.test(form.card.replace(/\s+/g, '')) || !form.expiry.trim() || !form.cvc.trim())) {
+    if (!/^\d{16}$/.test(form.card.replace(/\s+/g, '')) || !form.expiry.trim() || !form.cvc.trim()) {
       setError('Selecione ou preencha um método de pagamento válido.')
-      setStep('payment')
       return false
     }
     return true
-  }
-
-  function advance(nextStep: CheckoutStep) {
-    if (!validate(nextStep)) return
-    setError(null)
-    setStep(nextStep)
   }
 
   async function placeOrder() {
@@ -202,12 +204,12 @@ export function CheckoutPage() {
 
     setPlacing(true)
     setProcessingStep(0)
-    const stepMs = prefersReducedMotion() ? 120 : 700
+    const stepMs = prefersReducedMotion() ? 120 : 600
     const stepTimers = [
       setTimeout(() => setProcessingStep(1), stepMs),
       setTimeout(() => setProcessingStep(2), stepMs * 2),
     ]
-    const minDuration = sleep(stepMs * 3)
+    const minDuration = sleep(stepMs * 2)
     try {
       const { order } = await placeStorefrontOrder({
         config,
@@ -229,174 +231,194 @@ export function CheckoutPage() {
     }
   }
 
-  const selectedAddress = SAVED_ADDRESSES.find((address) =>
-    address.street === form.street && address.city === form.city && address.zip === form.zip
-  )
-  const selectedPayment = SAVED_PAYMENT_METHODS.find((method) =>
-    method.card === form.card && method.expiry === form.expiry
-  )
+  const primaryCta = placing ? 'Processando...' : `Comprar agora - ${money(total)}`
 
   return (
     <main className="min-h-screen bg-background">
       {placing && <ProcessingOverlay step={processingStep} />}
-      <header className="border-b bg-background/95">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Checkout seguro</p>
-            <h1 className="sf-heading text-xl font-bold tracking-tight">{config.name}</h1>
+      <header className="border-b bg-background">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-6">
+          <Link to={config.catalogPath} className="text-sm text-muted-foreground hover:text-foreground">
+            Voltar à loja
+          </Link>
+          <div className="text-center">
+            <div className="sf-heading text-2xl font-bold tracking-tight">{config.logo ?? config.name}</div>
+            <div className="mt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Lock className="h-3.5 w-3.5" />
+              Checkout seguro
+            </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            Pagamento protegido
-          </div>
+          <a href="mailto:suporte@example.com" className="text-sm text-muted-foreground hover:text-foreground">
+            Ajuda
+          </a>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px]">
-        <section className="space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="sf-heading text-3xl font-bold tracking-tight">Finalizar compra</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Etapas curtas, dados salvos e mínimo de distração até o pagamento.</p>
-            </div>
-            <Link to={config.catalogPath} className="rounded-full border px-4 py-2 text-sm font-semibold hover:bg-muted">
-              Voltar à loja
-            </Link>
-          </div>
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-5 lg:px-6">
+        <section className="lg:col-span-3 lg:pr-10">
+          <nav className="mb-8 flex flex-wrap items-center gap-2 text-sm text-muted-foreground" aria-label="Checkout steps">
+            <span className="font-medium text-foreground">Informações</span>
+            <span>/</span>
+            <span>Entrega</span>
+            <span>/</span>
+            <span>Pagamento</span>
+          </nav>
 
-          <Stepper step={step} />
+          <div className="space-y-8">
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <h1 className="text-xl font-semibold tracking-tight">Informações de contato</h1>
+                <span className="text-sm text-muted-foreground">Já tem conta? Entrar</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {field('E-mail', TID.checkoutEmail, form.email, set('email'), {
+                  type: 'email',
+                  placeholder: 'E-mail ou telefone',
+                })}
+                {field('Nome completo', TID.checkoutName, form.name, set('name'), {
+                  placeholder: 'Nome completo',
+                })}
+              </div>
+            </section>
 
-          <div className="rounded-3xl border bg-card p-5 shadow-sm sm:p-6">
-            {step === 'contact' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold">Identificação</h3>
-                  <p className="text-sm text-muted-foreground">Usamos seu e-mail para recibo, rastreio e próximas compras.</p>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {field('E-mail', TID.checkoutEmail, form.email, set('email'), { type: 'email', placeholder: 'voce@exemplo.com' })}
-                  {field('Nome completo', TID.checkoutName, form.name, set('name'), { placeholder: 'Seu nome' })}
-                </div>
+            <section>
+              <h2 className="mb-3 text-xl font-semibold tracking-tight">Endereço de entrega</h2>
+              <div className="mb-3 grid gap-3">
+                {savedAddresses.map((address) => (
+                  <div
+                    key={address.id}
+                    className={`group relative rounded-lg border p-3 pr-11 text-left text-sm transition hover:bg-muted/40 ${
+                      selectedAddressId === address.id ? 'border-primary bg-primary/5' : 'border-border bg-background'
+                    }`}
+                  >
+                    <button type="button" onClick={() => selectAddress(address.id)} className="block w-full text-left">
+                      <span className="flex items-center justify-between gap-3 font-semibold">
+                        {address.label}
+                        {addressMode === 'saved' && selectedAddressId === address.id && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">Selecionado</span>
+                        )}
+                      </span>
+                      <span className="mt-1 block text-muted-foreground">{address.street}</span>
+                      <span className="block text-muted-foreground">{address.city} - {address.zip}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeAddress(address.id)}
+                      className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+                      aria-label={`Remover endereço ${address.label}`}
+                      title="Remover endereço"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
                 <button
                   type="button"
-                  onClick={() => advance('delivery')}
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:opacity-90"
+                  onClick={addNewAddress}
+                  className={`rounded-lg border border-dashed p-3 text-left text-sm transition hover:bg-muted/40 ${
+                    addressMode === 'new' ? 'border-primary bg-primary/5' : 'border-border bg-muted/20'
+                  }`}
                 >
-                  Continuar para entrega <ChevronRight className="h-4 w-4" />
+                  <span className="block font-semibold text-primary">+ Adicionar novo endereço</span>
+                  <span className="mt-1 block text-muted-foreground">Preencher outro endereço para esta compra</span>
                 </button>
               </div>
-            )}
-
-            {step === 'delivery' && (
-              <div className="space-y-5">
-                <div>
-                  <h3 className="text-lg font-semibold">Entrega</h3>
-                  <p className="text-sm text-muted-foreground">Escolha um endereço salvo ou informe um novo.</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {SAVED_ADDRESSES.map((address) => (
-                    <button
-                      key={address.id}
-                      type="button"
-                      onClick={() => setForm((current) => ({ ...current, street: address.street, city: address.city, zip: address.zip }))}
-                      className={`rounded-2xl border p-4 text-left transition hover:bg-muted/50 ${
-                        selectedAddress?.id === address.id ? 'border-primary bg-primary/5' : 'border-border bg-background'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2 font-semibold"><Home className="h-4 w-4" />{address.label}</span>
-                      <span className="mt-2 block text-sm text-muted-foreground">{address.street}</span>
-                      <span className="block text-sm text-muted-foreground">{address.city} - {address.zip}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    {field('Endereço', TID.checkoutStreet, form.street, set('street'), { placeholder: 'Rua, número' })}
+              {addressMode === 'new' && (
+                <div className="grid gap-3">
+                  {field('Endereço', TID.checkoutStreet, form.street, set('street'), { placeholder: 'Endereço' })}
+                  <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
+                    {field('Cidade', TID.checkoutCity, form.city, set('city'), { placeholder: 'Cidade' })}
+                    {field('CEP', TID.checkoutZip, form.zip, set('zip'), { placeholder: 'CEP' })}
                   </div>
-                  {field('Cidade', TID.checkoutCity, form.city, set('city'))}
-                  {field('CEP', TID.checkoutZip, form.zip, set('zip'), { placeholder: '00000-000' })}
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <button type="button" onClick={() => setStep('contact')} className="rounded-full border px-5 py-3 text-sm font-semibold hover:bg-muted">
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => advance('payment')}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:opacity-90"
-                  >
-                    Continuar para pagamento <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </section>
 
-            {step === 'payment' && (
-              <div className="space-y-5">
-                <div>
-                  <h3 className="text-lg font-semibold">Pagamento</h3>
-                  <p className="text-sm text-muted-foreground">Escolha um cartão salvo ou use outro método.</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {SAVED_PAYMENT_METHODS.map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setForm((current) => ({ ...current, card: method.card, expiry: method.expiry, cvc: method.cvc }))}
-                      className={`rounded-2xl border p-4 text-left transition hover:bg-muted/50 ${
-                        selectedPayment?.id === method.id ? 'border-primary bg-primary/5' : 'border-border bg-background'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2 font-semibold"><CreditCard className="h-4 w-4" />{method.label}</span>
-                      <span className="mt-2 block text-sm text-muted-foreground">Expira em {method.expiry}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">Pagamento de demonstração - nenhuma cobrança é feita.</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    {field('Número do cartão', TID.checkoutCard, form.card, set('card'), {
-                      placeholder: '4242 4242 4242 4242',
-                      inputMode: 'numeric',
-                    })}
-                  </div>
-                  {field('Validade', TID.checkoutExpiry, form.expiry, set('expiry'), { placeholder: 'MM/AA' })}
-                  {field('CVC', TID.checkoutCvc, form.cvc, set('cvc'), { placeholder: '123', inputMode: 'numeric' })}
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <button type="button" onClick={() => setStep('delivery')} className="rounded-full border px-5 py-3 text-sm font-semibold hover:bg-muted">
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
-                    data-testid={TID.placeOrder}
-                    onClick={placeOrder}
-                    disabled={placing}
-                    className="rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+            <section>
+              <h2 className="mb-3 text-xl font-semibold tracking-tight">Pagamento</h2>
+              <div className="mb-3 grid gap-3">
+                {savedPaymentMethods.map((method) => (
+                  <div
+                    key={method.id}
+                    className={`group relative rounded-lg border p-3 pr-11 text-left text-sm transition hover:bg-muted/40 ${
+                      selectedPaymentId === method.id ? 'border-primary bg-primary/5' : 'border-border bg-background'
+                    }`}
                   >
-                    {placing ? 'Processando...' : `Pagar ${money(total)}`}
-                  </button>
-                </div>
+                    <button type="button" onClick={() => selectPayment(method.id)} className="block w-full text-left">
+                      <span className="flex items-center justify-between gap-3 font-semibold">
+                        <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" />{method.label}</span>
+                        {paymentMode === 'saved' && selectedPaymentId === method.id && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">Selecionado</span>
+                        )}
+                      </span>
+                      <span className="mt-1 block text-muted-foreground">Expira em {method.expiry}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePayment(method.id)}
+                      className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+                      aria-label={`Remover cartão ${method.label}`}
+                      title="Remover cartão"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addNewPayment}
+                  className={`rounded-lg border border-dashed p-3 text-left text-sm transition hover:bg-muted/40 ${
+                    paymentMode === 'new' ? 'border-primary bg-primary/5' : 'border-border bg-muted/20'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 font-semibold text-primary"><CreditCard className="h-4 w-4" />+ Adicionar novo cartão</span>
+                  <span className="mt-1 block text-muted-foreground">Usar outro cartão nesta compra</span>
+                </button>
               </div>
-            )}
+              {paymentMode === 'new' && (
+                <div className="grid gap-3">
+                  {field('Número do cartão', TID.checkoutCard, form.card, set('card'), {
+                    placeholder: 'Número do cartão',
+                    inputMode: 'numeric',
+                  })}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {field('Validade', TID.checkoutExpiry, form.expiry, set('expiry'), { placeholder: 'MM/AA' })}
+                    {field('CVC', TID.checkoutCvc, form.cvc, set('cvc'), { placeholder: 'CVC', inputMode: 'numeric' })}
+                  </div>
+                </div>
+              )}
+              <p className="mt-2 text-xs text-muted-foreground">Pagamento de demonstração - nenhuma cobrança é feita.</p>
+            </section>
 
             {error && (
-              <p data-testid={TID.checkoutError} className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              <p data-testid={TID.checkoutError} className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                 {error}
               </p>
             )}
+
           </div>
+
+          <footer className="mt-10 flex flex-wrap gap-4 border-t pt-5 text-xs text-muted-foreground">
+            <a href="#/privacy" className="hover:text-foreground">Privacidade</a>
+            <a href="#/terms" className="hover:text-foreground">Termos</a>
+            <a href="#/refunds" className="hover:text-foreground">Trocas e devoluções</a>
+          </footer>
         </section>
 
-        <aside className="h-fit rounded-3xl border bg-card p-5 shadow-sm">
-          <h2 className="font-semibold">Resumo do pedido</h2>
-          <ul className="mt-4 space-y-4">
+        <aside className="rounded-xl border bg-muted/20 p-5 lg:sticky lg:top-6 lg:col-span-2 lg:self-start">
+          <h2 className="sr-only">Resumo do pedido</h2>
+          <ul className="space-y-4">
             {cart.lines.map((line) => (
               <li key={line.productId} className="flex gap-3 text-sm">
-                {line.imageUrl && <img src={line.imageUrl} alt={line.name} className="h-14 w-14 rounded-2xl border object-cover" />}
+                <div className="relative h-16 w-16 flex-none overflow-hidden rounded-lg border bg-background">
+                  {line.imageUrl && <img src={line.imageUrl} alt={line.name} className="h-full w-full object-cover" />}
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-muted-foreground px-1.5 text-[10px] font-bold text-background">
+                    {line.quantity}
+                  </span>
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{line.name}</p>
-                  <p className="text-muted-foreground">Qtd. {line.quantity}</p>
+                  {line.sku && <p className="text-xs text-muted-foreground">{line.sku}</p>}
                 </div>
                 <span data-price={(line.unitPrice * line.quantity).toFixed(2)}>
                   {money(line.unitPrice * line.quantity)}
@@ -404,7 +426,7 @@ export function CheckoutPage() {
               </li>
             ))}
           </ul>
-          <dl className="mt-5 space-y-2 border-t pt-5 text-sm">
+          <dl className="mt-8 space-y-3 border-t pt-6 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd data-price={subtotal.toFixed(2)}>{money(subtotal)}</dd>
@@ -416,14 +438,32 @@ export function CheckoutPage() {
               </div>
             )}
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Frete</dt>
+              <dt className="text-muted-foreground">Entrega</dt>
               <dd data-price={shipping.toFixed(2)}>{shipping === 0 ? 'Grátis' : money(shipping)}</dd>
             </div>
-            <div className="flex justify-between border-t pt-3 text-base font-bold">
+            <div className="flex justify-between border-t pt-5 text-lg font-bold">
               <dt>Total</dt>
               <dd data-price={total.toFixed(2)}>{money(total)}</dd>
             </div>
           </dl>
+          <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            Compra protegida e dados criptografados.
+          </div>
+          <div className="mt-6 grid gap-3 border-t pt-5">
+            <button
+              type="button"
+              data-testid={TID.placeOrder}
+              onClick={placeOrder}
+              disabled={placing}
+              className="rounded-lg bg-primary px-6 py-4 text-sm font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+            >
+              {primaryCta}
+            </button>
+            <Link to={config.catalogPath} className="text-center text-sm text-muted-foreground hover:text-foreground">
+              Voltar ao carrinho
+            </Link>
+          </div>
         </aside>
       </div>
     </main>
