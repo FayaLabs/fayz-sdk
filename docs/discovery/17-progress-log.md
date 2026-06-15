@@ -8410,3 +8410,42 @@ npm run build -w @wowsome/api
   needed.
 - Keep broad Fayz Agent SDK operation gated behind strict dogfood and scope
   checks.
+
+## 2026-06-15 — Runtime readiness wrapper proof
+
+### Resultado
+
+- Added and wired the single generated-app readiness gate:
+  `check:generated-agent-readiness`.
+- Fayz wrapper now delegates app-specific checks to that SDK readiness gate.
+- Runtime proof passed on project
+  `/tmp/fayalabs-projects/2eedffdc-fc14-4685-8617-a0b45118d910`:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-8617-a0b45118d910 --paths app.manifest.json,src/registry.tsx --scope-only --scope-json
+```
+
+### Impacto
+
+- The proof exercised the actual Fayz wrapper path, not only the SDK script.
+- Contract gate passed.
+- Strict scope gate classified `app.manifest.json` and `src/registry.tsx` as
+  app-owned with zero review and zero blocked files.
+- This closes the current item 4 threshold for constrained Fayz Agent edits:
+  objective contract, scope, dogfood, and public-surface gates now exist and are
+  wired into the runtime wrapper.
+
+### Risco
+
+- This is still constrained generated-app operation, not broad autonomous Fayz
+  Agent rollout.
+- Any project outside scoped readiness remains warn-only or blocked by doctor
+  preflight depending on rollout configuration.
+
+### Proximo
+
+- Use `get_fayz_sdk_agent_rollout_status` plus `send_message` on a scoped
+  runtime project to validate the full MCP path.
+- Do not expand public package surface or vertical implementation scope while
+  doing that validation.

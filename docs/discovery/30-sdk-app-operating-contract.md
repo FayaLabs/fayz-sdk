@@ -1,6 +1,6 @@
 # 30 - SDK/App Operating Contract
 
-Snapshot: 2026-06-15 09:11 UTC / 06:11 BRT
+Snapshot: 2026-06-15 09:54 UTC / 06:54 BRT
 
 ## Executive Contract
 
@@ -131,6 +131,16 @@ For Fayz MCP/runtime projects:
 4. Call `send_message` only with constrained app-owned intent.
 5. Treat `scopeGateBlocked`, `finalError`, non-ready status, review files, or
    blocked files as a stop condition.
+
+Runtime proof:
+
+```bash
+cd /Users/fayalabs/dev/fayz
+npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-8617-a0b45118d910 --paths app.manifest.json,src/registry.tsx --scope-only --scope-json
+```
+
+Result: `check:generated-agent-readiness` passed contract and strict scope
+gates; both changed files were app-owned, with zero review or blocked files.
 
 ## Graduation Rule
 
