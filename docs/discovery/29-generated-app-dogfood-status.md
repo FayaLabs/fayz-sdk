@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:55 UTC / 02:55 BRT
+Snapshot: 2026-06-15 05:49 UTC / 02:49 BRT
 
 ## Executive Status
 
@@ -69,6 +69,14 @@ Resultado:
   - Post-generation scope gate classified it as `app-owned` and passed.
   - Verification reached `READY`; version 2 was created as `RELEASED`.
   - MCP output returned `finalStatus: "ready"` and `scopeGateBlocked: false`.
+- Second MCP/chat scoped proof requested a forbidden internal write under
+  `src/plugins/orders/index.ts`. The AI refused before writing any file, so the
+  post-generation scope gate did not need to block and no version/file change
+  was created.
+- Fayz MCP `send_message` now falls back to the persisted assistant message
+  when the SSE stream has no completed text block. This keeps refusals and other
+  non-file responses visible to external agents instead of returning empty
+  `textContent`.
 
 Impacto:
 
@@ -97,11 +105,18 @@ Risco:
   `/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app` form is for
   doctor/wrapper discovery only. `FileSyncService` treats `PROJECTS_DIR` as one
   directory.
+- The real blocked-edit MCP prompt proved the model respects the app-owned
+  boundary, but did not prove `scopeGateBlocked: true` end-to-end because no
+  forbidden file was emitted. Keep the deterministic post-generation block tests
+  as the hard enforcement proof.
 
 Proximo:
 
 - Run the next MCP/chat proof with a controlled blocked edit request or another
   app-owned business edit, still on one runtime project only.
+- Avoid trying to force the model to write forbidden files. The safer next proof
+  is a deterministic harness/test around MCP summary + post-generation block, or
+  another app-owned edit that exercises real runtime verification.
 - For actual MCP/chat runtime execution, use:
   `PROJECTS_DIR=/tmp/fayalabs-projects`
   and
