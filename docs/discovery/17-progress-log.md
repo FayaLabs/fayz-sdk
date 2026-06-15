@@ -1,5 +1,52 @@
 # 17 — Progress Log
 
+## 2026-06-15 08:52 UTC / 05:52 BRT — Hash route proof found route/path alias gap
+
+Resultado:
+
+- Created fresh runtime project `b0b9bbb6-e2e5-497d-b3df-cee8988e0957`
+  from the hash-route-aware scaffold and synced the generated filesystem.
+- Fixed Fayz MCP project accessibility for legacy-owned runtime projects in
+  Fayz commit `fc093925`; rollout status now returns
+  `requestedProjectReady: true` for projects where `creatorId` is still null
+  but `userId` owns the project.
+- Ran scoped MCP `send_message` after that readiness check. The agent added
+  `/hash-proof` to `app.manifest.json` and registered
+  `custom:runtime.HashProof` in `src/registry.tsx`.
+- Fayz released version 1 `Hash proof route override`; project finished
+  `READY`.
+- Local SDK gates passed:
+  `pnpm check:generated-app /tmp/fayalabs-projects/b0b9bbb6-e2e5-497d-b3df-cee8988e0957`
+  and
+  `pnpm check:generated-agent-scope /tmp/fayalabs-projects/b0b9bbb6-e2e5-497d-b3df-cee8988e0957 --paths app.manifest.json,src/registry.tsx --strict --json`.
+- Inspection found a second scaffold contract gap: the app manifest route entry
+  uses `route`, while the generated local runtime matched only `path`.
+- Fayz scaffold now accepts `pages[].route` and keeps `pages[].path` as a
+  compatibility alias; scaffold tests assert both hash route resolution and the
+  `route ?? path` contract.
+
+Impacto:
+
+- The route-override proof is materially stronger: agents can keep custom page
+  code in app-owned manifest/registry files, while routing mechanics remain
+  scaffold-owned.
+- The generated runtime contract is now aligned with the manifest language
+  agents naturally use: `route`.
+
+Risco:
+
+- This proof had one semaforo amarelo: post-generation autofix also touched
+  `src/pages/Index.tsx` to remove a placeholder. That is acceptable for this
+  diagnostic run, but the next clean proof should start from the corrected
+  scaffold and release only the intended app-owned delta.
+
+Proximo:
+
+- Run one final clean runtime proof from the updated scaffold where `/hash-proof`
+  is resolved by `pages[].route` without any `Index.tsx` autofix.
+- After that, stop route-mechanics work and return to the higher-level
+  operating contract plus product dogfood depth.
+
 ## 2026-06-15 08:23 UTC / 05:23 BRT — Business customization seam proof exposed scaffold route gap
 
 Resultado:

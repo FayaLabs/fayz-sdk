@@ -16,6 +16,11 @@ Current rollout state:
   `ce17885d-862c-4673-b4f2-514bfaee20eb` and
   `bfb74227-0e3c-4226-bbc5-4f5a01ec8fae`, plus
   `2a558057-7135-4229-8c9f-6cea559b8188`.
+- A fourth diagnostic runtime project,
+  `b0b9bbb6-e2e5-497d-b3df-cee8988e0957`, confirmed the route override seam
+  on a fresh scaffold and exposed the final `route`/`path` alias gap. The
+  scaffold runtime now treats `pages[].route` as the preferred route field and
+  keeps `pages[].path` as a compatibility alias.
 - That proof edited only app-owned files, resolved a custom route through
   `app.manifest.json` plus `src/registry.tsx`, reached
   `finalStatus: "ready"`, created a `RELEASED` version, and passed deferred
@@ -68,8 +73,9 @@ pnpm check:generated-app /path/to/generated-app
 ```
 
 This gate includes semantic manifest checks. For manifest-first apps, route or
-page overrides must live under `surfaces.<surface>.pages` and every referenced
-component id must be present in `src/registry.tsx`.
+page overrides must live under `surfaces.<surface>.pages`; use `pages[].route`
+for new generated routes, keep `pages[].path` only for compatibility, and make
+sure every referenced component id is present in `src/registry.tsx`.
 
 Current four-app dogfood gate:
 
