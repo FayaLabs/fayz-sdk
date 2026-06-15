@@ -30,6 +30,7 @@ export {
 } from './shop'
 export type {
   FayzShopProviderOptions,
+  FayzShopProductMetadataOverlay,
   FayzShopListProductsOptions,
   FayzShopListOrdersOptions,
   FayzShopListCustomersOptions,

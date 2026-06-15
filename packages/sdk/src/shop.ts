@@ -2,7 +2,14 @@ export interface FayzShopProviderOptions {
   supabaseUrl: string
   publishableKey: string
   storeId: string
+  productMetadata?: FayzShopProductMetadataOverlay[]
   fetcher?: typeof fetch
+}
+
+export interface FayzShopProductMetadataOverlay {
+  sku?: string | null
+  slug?: string | null
+  metadata: Record<string, unknown>
 }
 
 export type FayzShopProductStatus = 'draft' | 'active' | 'archived'
@@ -195,6 +202,19 @@ function present<T>(value: T | null | undefined, fallback: T): T {
   return value == null ? fallback : value
 }
 
+function productMetadataKey(kind: 'sku' | 'slug', value: string): string {
+  return `${kind}:${value.toLowerCase()}`
+}
+
+function buildProductMetadataOverlay(overlays: FayzShopProductMetadataOverlay[] | undefined) {
+  const map = new Map<string, Record<string, unknown>>()
+  for (const overlay of overlays ?? []) {
+    if (overlay.sku) map.set(productMetadataKey('sku', overlay.sku), overlay.metadata)
+    if (overlay.slug) map.set(productMetadataKey('slug', overlay.slug), overlay.metadata)
+  }
+  return map
+}
+
 function asUuid(value: string | null | undefined): string | null {
   if (!value) return null
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
@@ -214,13 +234,21 @@ function rowToImage(row: ProductImageRow) {
   }
 }
 
-function getStoreCategory(row: ProductRow): StoreCategoryMetadata | null {
-  const raw = row.metadata?.fayzStoreCategory
+function getProductMetadata(row: ProductRow, overlay?: Map<string, Record<string, unknown>>): Record<string, unknown> {
+  const metadata = row.metadata ?? {}
+  const bySlug = overlay?.get(productMetadataKey('slug', row.slug ?? slugify(row.name)))
+  const bySku = row.sku ? overlay?.get(productMetadataKey('sku', row.sku)) : undefined
+  return { ...(bySlug ?? {}), ...(bySku ?? {}), ...metadata }
+}
+
+function getStoreCategory(row: ProductRow, overlay?: Map<string, Record<string, unknown>>): StoreCategoryMetadata | null {
+  const raw = getProductMetadata(row, overlay).fayzStoreCategory
   return raw && typeof raw === 'object' ? raw as StoreCategoryMetadata : null
 }
 
-function rowToProduct(row: ProductRow) {
-  const storeCategory = getStoreCategory(row)
+function rowToProduct(row: ProductRow, overlay?: Map<string, Record<string, unknown>>) {
+  const metadata = getProductMetadata(row, overlay)
+  const storeCategory = getStoreCategory(row, overlay)
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -234,7 +262,7 @@ function rowToProduct(row: ProductRow) {
     inventoryCount: row.inventory_count ?? 0,
     sku: row.sku ?? null,
     sortOrder: row.sort_order ?? 0,
-    metadata: row.metadata ?? {},
+    metadata,
     images: Array.isArray(row.images) ? row.images.map(rowToImage) : [],
     categoryId: storeCategory?.id ?? row.category_id ?? null,
     categoryName: storeCategory?.name ?? row.category?.name ?? null,
@@ -380,6 +408,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
   const fetcher = options.fetcher ?? fetch
   const key = options.publishableKey
   const storeId = options.storeId
+  const productMetadataOverlay = buildProductMetadataOverlay(options.productMetadata)
 
   async function request<T>(table: string, init: RequestInit & { query?: URLSearchParams } = {}): Promise<T> {
     const query = init.query?.toString()
@@ -431,14 +460,14 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       query.set('order', `${options?.orderBy ?? 'sort_order'}.${options?.order ?? 'asc'}`)
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      const products = (await request<ProductRow[]>('products', { query })).map(rowToProduct)
+      const products = (await request<ProductRow[]>('products', { query })).map((row) => rowToProduct(row, productMetadataOverlay))
       return options?.categoryId ? products.filter((product) => product.categoryId === options.categoryId) : products
     },
     async getProduct(id: string) {
       const query = singleById(id)
       query.set('select', '*,images:product_images(*),category:categories(name)')
       const rows = await request<ProductRow[]>('products', { query })
-      return rows[0] ? rowToProduct(rows[0]) : null
+      return rows[0] ? rowToProduct(rows[0], productMetadataOverlay) : null
     },
     async createProduct() {
       throw new FayzShopError('Product writes require the Fayz admin/broker API.', 501)
