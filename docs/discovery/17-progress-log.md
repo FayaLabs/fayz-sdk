@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-15 00:11 UTC / 21:11 BRT — FAY-1191/1192/1193 route override test gate
+
+Resultado:
+
+- Added focused `shopfront` e2e coverage for the new custom `/checkout` route.
+- Added `VITE_FAYZ_SHOP_PROVIDER=mock` test override so the route proof does not create remote Supabase/Fayz shop orders.
+- The test confirms the app-owned checkout renders and still completes an order through SDK/storefront primitives.
+
+Impacto:
+
+- The proof is now gated, not only smoke-tested.
+- We can keep moving on generator guidance without treating ecommerce as a fixed template project.
+
+Risco:
+
+- The broader legacy checkout e2e remains provider/fixture-coupled and should be cleaned separately.
+
+Proximo:
+
+- Document the generator contract: `src/custom/*` for app-owned screens, `routes` in config, SDK/storefront primitives for workflows.
+- Then decide the smallest The Chef/POS pressure test for route/workflow override, not a full vertical build.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz-app/shopfront && npm run typecheck
+cd /Users/fayalabs/dev/fayz-app/shopfront && npm run build
+cd /Users/fayalabs/dev/fayz-app/shopfront && VITE_FAYZ_SHOP_PROVIDER=mock npm run e2e -- e2e/route-overrides.spec.ts
+```
+
 ## 2026-06-15 00:03 UTC / 21:03 BRT — FAY-1191/1192/1193 storefront route override proof
 
 Resultado:
