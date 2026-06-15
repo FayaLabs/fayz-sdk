@@ -7849,3 +7849,38 @@ pnpm --filter @wowsome/api build
 Known warning:
 
 - Fayz root has `workspaces` warning under pnpm; existing repo config issue, not caused by this slice.
+
+## 2026-06-14 — Fayz runtime generated-app gate bridge
+
+### Resultado
+
+- Extended `scripts/check-generated-agent-scope.mjs` with `--paths <comma-separated-paths>` so the same SDK edit-scope classifier works without git diff.
+- Updated Fayz wrapper `scripts/check-fayz-sdk-agent-gates.mjs` to forward runtime changed paths.
+- Added Fayz API post-generation hook that runs the scope gate for local Fayz SDK generated apps before final verification.
+- Default is warning mode; `FAYZ_SDK_AGENT_SCOPE_GATE=block` turns it into an enforcement gate.
+
+### Impacto
+
+- Fayz can now start supervising AI-generated app edits with the same app-owned/internal boundary used in SDK dogfood.
+- This moves us from docs-only agent guidance to an executable runtime seam, without publishing more packages or forcing vertical app work.
+
+### Verificacao
+
+Passed:
+
+```bash
+cd /Users/fayalabs/dev/fayz-sdk
+pnpm test:generated-agent-scope
+pnpm check:generated-dogfood:strict
+
+cd /Users/fayalabs/dev/fayz
+npm run test:fayz-sdk-agent-gates
+npm run test -w @wowsome/api -- src/modules/chat/__tests__/fayz-sdk-agent-gates.service.test.ts
+npm run build -w @wowsome/api
+```
+
+### Proximo
+
+- Observe the warning gate on local generated app edits.
+- If warnings are stable and useful, promote `FAYZ_SDK_AGENT_SCOPE_GATE=block` for SDK dogfood projects only.
+- Continue formalizing the generated-app operating contract before broad Fayz Agent integration.

@@ -96,4 +96,14 @@ describe('generated agent scope gate', () => {
     assert.equal(result.status, 0)
     assert.match(result.stdout, /\| clean \| - \|/)
   })
+
+  it('classifies explicit changed paths without reading git diff', () => {
+    const appRoot = createGeneratedApp()
+
+    const result = runScope(appRoot, ['--paths', 'src/config/theme.ts,src/plugins/orders/index.ts'])
+
+    assert.equal(result.status, 1)
+    assert.match(result.stdout, /\| app-owned \| src\/config\/theme\.ts \|/)
+    assert.match(result.stdout, /\| blocked \| src\/plugins\/orders\/index\.ts \|/)
+  })
 })

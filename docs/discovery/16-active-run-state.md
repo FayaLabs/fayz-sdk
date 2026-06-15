@@ -3858,3 +3858,13 @@ Next automatic step is no longer research consolidation. It is browser verificat
 - no Medusa/Cal.diy implementation;
 - no simultaneous edits on generated app runtime before Panel/API + SDK gates are clean;
 - no Beauty app migration from the current dirty/behind worktree unless a failing proof shows the exact minimal edit needed.
+
+## Current focus — Fayz agent gate bridge
+
+- Latest slice bridges the SDK generated-app scope gate into Fayz post-generation:
+  - SDK gate now accepts explicit changed paths via `--paths`, so Fayz runtime does not need git diff for generated projects.
+  - Fayz wrapper forwards `--paths`.
+  - Fayz API post-generation runs the generated-app scope gate for local Fayz SDK apps after edits and before final verification.
+- Default mode is `warn` to avoid breaking normal generations while we observe real traffic/dogfood; set `FAYZ_SDK_AGENT_SCOPE_GATE=block` to enforce.
+- First generations are skipped because scaffolds legitimately create package/config/runtime entry files.
+- This is the first practical bridge toward Fayz agents operating generated apps with SDK boundaries, without broad public package sprawl.

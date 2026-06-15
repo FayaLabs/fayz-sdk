@@ -8,13 +8,24 @@ const strict = args.includes('--strict')
 const staged = args.includes('--staged')
 const baseIndex = args.indexOf('--base')
 const baseRef = baseIndex >= 0 ? args[baseIndex + 1] : undefined
+const pathsIndex = args.indexOf('--paths')
+const explicitPaths = pathsIndex >= 0
+  ? (args[pathsIndex + 1] ?? '')
+    .split(',')
+    .map((path) => path.trim())
+    .filter(Boolean)
+  : undefined
+const valueIndexes = new Set([
+  ...(baseIndex >= 0 ? [baseIndex + 1] : []),
+  ...(pathsIndex >= 0 ? [pathsIndex + 1] : []),
+])
 const appPathArg = args.find((arg, index) =>
   !arg.startsWith('--') &&
-  (baseIndex < 0 || index !== baseIndex + 1)
+  !valueIndexes.has(index)
 )
 
-if (!appPathArg || (baseIndex >= 0 && !baseRef)) {
-  console.error('Usage: pnpm check:generated-agent-scope <path-to-generated-app> [--base <git-ref>] [--staged] [--strict]')
+if (!appPathArg || (baseIndex >= 0 && !baseRef) || (pathsIndex >= 0 && explicitPaths?.length === 0)) {
+  console.error('Usage: pnpm check:generated-agent-scope <path-to-generated-app> [--base <git-ref>] [--staged] [--paths <comma-separated-paths>] [--strict]')
   process.exit(2)
 }
 
@@ -39,6 +50,7 @@ function git(args) {
 }
 
 function changedFiles() {
+  if (explicitPaths) return Array.from(new Set(explicitPaths)).sort()
   if (staged) return git(['diff', '--name-only', '--cached', '--diff-filter=ACMRTUXB', '--'])
   if (baseRef) return git(['diff', '--name-only', '--diff-filter=ACMRTUXB', baseRef, '--'])
 
