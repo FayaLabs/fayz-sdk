@@ -54,6 +54,7 @@ function collectSurfacePageComponents(manifest) {
       refs.push({
         component: page.component,
         path: page.path,
+        route: page.route,
         surface: surfaceName,
         index,
       })
@@ -129,6 +130,12 @@ if (manifestPath) {
     }
 
     const componentRefs = collectSurfacePageComponents(manifest)
+    for (const ref of componentRefs) {
+      if (typeof ref.route !== 'string' || ref.route.length === 0) {
+        warn(`${manifestRel} surfaces.${ref.surface}.pages[${ref.index}] uses component "${ref.component}" without pages[].route. pages[].path is compatibility only; new custom routes should use pages[].route.`)
+      }
+    }
+
     if (componentRefs.length > 0) {
       const registryPath = join(root, 'src/registry.tsx')
       if (!existsSync(registryPath)) {

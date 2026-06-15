@@ -86,7 +86,9 @@ pnpm check:generated-app /path/to/generated-app
 This gate includes semantic manifest checks. For manifest-first apps, route or
 page overrides must live under `surfaces.<surface>.pages`; use `pages[].route`
 for new generated routes, keep `pages[].path` only for compatibility, and make
-sure every referenced component id is present in `src/registry.tsx`.
+sure every referenced component id is present in `src/registry.tsx`. Strict
+generated-app gates warn/fail path-only custom component routes so new agent
+work cannot silently depend on compatibility aliases.
 
 Current four-app dogfood gate:
 

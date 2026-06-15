@@ -73,7 +73,8 @@ Blocked by default:
 
 - New custom routes live under `surfaces.<surface>.pages` in
   `app.manifest.json`.
-- New route entries use `pages[].route`. `pages[].path` is compatibility only.
+- New route entries use `pages[].route`. `pages[].path` is compatibility only;
+  strict generated-app gates warn/fail path-only custom component routes.
 - Route components use `custom:*` ids and are registered in `src/registry.tsx`.
 - The generated app owns the custom screen. The scaffold/runtime owns hash/path
   matching and component resolution.

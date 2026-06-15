@@ -51,7 +51,7 @@ describe('generated app contract gate', () => {
           admin: {
             pages: [
               {
-                path: '/ops',
+                route: '/ops',
                 label: 'Operations Room',
                 component: 'custom:runtime.OperationsRoom',
               },
@@ -66,6 +66,39 @@ describe('generated app contract gate', () => {
 
     assert.equal(result.status, 0)
     assert.match(result.stdout, /Generated app contract check passed/)
+  })
+
+  it('warns on path-only custom route refs and fails them in strict mode', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'app.manifest.json'),
+      JSON.stringify({
+        manifestVersion: 2,
+        id: 'generated-app',
+        name: 'Generated App',
+        surfaces: {
+          admin: {
+            pages: [
+              {
+                path: '/ops',
+                label: 'Operations Room',
+                component: 'custom:runtime.OperationsRoom',
+              },
+            ],
+          },
+        },
+      }),
+    )
+    write(join(appRoot, 'src/registry.tsx'), "export const appRegistry = { pages: { 'custom:runtime.OperationsRoom': () => null } }\n")
+
+    const compatibleResult = runContract(appRoot)
+    const strictResult = runContract(appRoot, ['--strict'])
+
+    assert.equal(compatibleResult.status, 0)
+    assert.match(compatibleResult.stderr, /without pages\[\]\.route/)
+    assert.equal(strictResult.status, 1)
+    assert.match(strictResult.stderr, /Generated app contract check failed in strict mode/)
+    assert.match(strictResult.stderr, /pages\[\]\.path is compatibility only/)
   })
 
   it('fails top-level routes because the generated runtime reads surface pages', () => {
