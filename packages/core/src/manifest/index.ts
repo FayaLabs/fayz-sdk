@@ -20,7 +20,7 @@ import type { BlockNode } from '../blocks'
 
 export const CURRENT_MANIFEST_VERSION = 2
 
-export type BackendProvider = 'supabase' | 'fayz-api' | 'mock' | 'custom'
+export type BackendProvider = 'supabase' | 'fayz-api' | 'fayz-shop' | 'mock' | 'custom'
 
 export interface BackendRef {
   provider: BackendProvider
@@ -50,7 +50,7 @@ export interface PageManifest {
 }
 
 export interface PluginRef {
-  /** Plugin id, resolved to an installed @fayz/plugin-* at build time. */
+  /** Plugin id, resolved to an installed @fayz-ai/plugin-* at build time. */
   id: string
   /** Pure-data config passed to the plugin (labels, kinds, module flags…). */
   config?: Record<string, unknown>
@@ -95,7 +95,7 @@ type AnyManifest = Record<string, any>
 export type ManifestMigration = (m: AnyManifest) => AnyManifest
 
 const migrations = new Map<number, ManifestMigration>()
-const supportedBackendProviders: BackendProvider[] = ['supabase', 'fayz-api', 'mock', 'custom']
+const supportedBackendProviders: BackendProvider[] = ['supabase', 'fayz-api', 'fayz-shop', 'mock', 'custom']
 const supportedPageSections = new Set(['main', 'secondary', 'settings'])
 const allowedManifestKeys = new Set([
   'manifestVersion',
@@ -129,7 +129,7 @@ export function migrateManifest(input: AnyManifest): AppManifest {
   let version = typeof m.manifestVersion === 'number' ? m.manifestVersion : 1
   if (version > CURRENT_MANIFEST_VERSION) {
     throw new Error(
-      `Manifest version ${version} is newer than this SDK supports (${CURRENT_MANIFEST_VERSION}). Upgrade @fayz/runtime.`,
+      `Manifest version ${version} is newer than this SDK supports (${CURRENT_MANIFEST_VERSION}). Upgrade @fayz-ai/app-runtime.`,
     )
   }
   while (version < CURRENT_MANIFEST_VERSION) {

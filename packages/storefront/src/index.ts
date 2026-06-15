@@ -1,6 +1,14 @@
 // Factory
 export { createStorefrontApp, initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
-export type { StorefrontConfig, ResolvedStorefrontConfig } from './config'
+export type {
+  StorefrontConfig,
+  ResolvedStorefrontConfig,
+  StorefrontRouteComponentProps,
+  StorefrontRouteChrome,
+  StorefrontRouteDefinition,
+  StorefrontRouteKind,
+  StorefrontRouteParams,
+} from './config'
 export { useStorefrontConfig } from './config'
 
 // Manifest path (renderApp(defineStorefront(config)) / storefront scaffold)
@@ -43,11 +51,22 @@ export { useProducts, useProduct, useCategories, useMyOrders, useDiscountValidat
 // Components (for custom layouts)
 export { StorefrontHeader } from './components/StorefrontHeader'
 export { ProductCard } from './components/ProductCard'
+export type { ProductCardProps } from './components/ProductCard'
+export { OrderTrackingTimeline } from './components/OrderTrackingTimeline'
 export { ProductGrid } from './components/ProductGrid'
 export { FiltersPanel } from './components/FiltersPanel'
 export { CartDrawer } from './components/CartDrawer'
 export { Price } from './components/Price'
 export { QuantityInput } from './components/QuantityInput'
+export { ProductOptionSelector } from './components/ProductOptionSelector'
+export type { ProductOptionSelectorProps } from './components/ProductOptionSelector'
+export {
+  getProductOptionGroups,
+  normalizeProductOptionSelection,
+  formatProductOptionSelection,
+  productOptionSelectionKey,
+} from './product-options'
+export type { ProductOptionGroup, ProductOptionSelection } from './product-options'
 
 // Pages (for custom routing)
 export { CatalogPage } from './pages/CatalogPage'
@@ -55,6 +74,13 @@ export { ProductDetailPage } from './pages/ProductDetailPage'
 export { CheckoutPage } from './pages/CheckoutPage'
 export { OrderConfirmationPage } from './pages/OrderConfirmationPage'
 export { MyPurchasesPage } from './pages/MyPurchasesPage'
+export { placeStorefrontOrder } from './workflows/checkout'
+export type {
+  PlaceStorefrontOrderInput,
+  PlaceStorefrontOrderResult,
+  StorefrontCheckoutAddress,
+  StorefrontCheckoutCustomer,
+} from './workflows/checkout'
 
 // Theming + templates
 export { StorefrontThemeStyle, themeToCss } from './theme'
@@ -99,3 +125,8 @@ export type { RevealProps } from './motion'
 // Utilities
 export { formatMoney, roundCents } from './format'
 export { TID } from './testids'
+export {
+  productCardSlotContract,
+  storefrontSlotContracts,
+} from './slot-contracts'
+export type { ProductCardSlotContract } from './slot-contracts'

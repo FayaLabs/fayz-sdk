@@ -235,6 +235,7 @@ export interface SaveScheduleInput {
   startsAt: string
   endsAt: string
   isActive?: boolean
+  metadata?: Record<string, unknown>
 }
 
 // ============================================================

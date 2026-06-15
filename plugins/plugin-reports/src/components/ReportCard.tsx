@@ -1,6 +1,6 @@
 import React from 'react'
 import * as LucideIcons from 'lucide-react'
-import { Badge } from '@fayz/ui'
+import { Badge } from '@fayz-ai/ui'
 import type { ReportDef } from '../types'
 
 interface ReportCardProps {

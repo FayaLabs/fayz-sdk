@@ -173,7 +173,7 @@ export function SearchCombobox({
       {hasDropdown && dropRect && createPortal(
         <div ref={listRef} role="listbox" data-modal-passthrough
           style={{ position: 'fixed', left: dropRect.left, top: dropRect.bottom + 4, width: dropRect.width, zIndex: 9999, pointerEvents: 'auto' }}
-          className="max-h-52 overflow-y-auto rounded-lg border bg-popover shadow-lg py-0.5 animate-in fade-in zoom-in-95 duration-100">
+          className="fayz-glass-surface max-h-52 overflow-y-auto rounded-lg border bg-popover shadow-lg py-0.5 animate-in fade-in zoom-in-95 duration-100">
           {loading && options.length === 0 && (
             <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
               <svg className="h-3.5 w-3.5 animate-spin shrink-0" viewBox="0 0 16 16" fill="none">

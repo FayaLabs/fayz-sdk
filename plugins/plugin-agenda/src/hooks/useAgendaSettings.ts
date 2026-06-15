@@ -1,4 +1,4 @@
-import { usePluginPrefs } from '@fayz/saas'
+import { usePluginPrefs } from '@fayz-ai/saas'
 
 const DEFAULTS = {
   startTime: '07:00',

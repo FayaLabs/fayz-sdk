@@ -51,6 +51,25 @@ export interface UIPerceptionTokens {
   shadowButton?: string
   shadowButtonPrimary?: string
   shadowButtonInset?: string
+  surfaceBackdropFilter?: string
+  modalBackground?: string
+  modalBorder?: string
+  modalOverlayBackground?: string
+  modalOverlayBackdropFilter?: string
+  modalShadow?: string
+  glassEdgeGradient?: string
+  glassPrimaryEdgeGradient?: string
+  glassInnerHighlight?: string
+  fieldBackground?: string
+  fieldBorder?: string
+  fieldShadow?: string
+  buttonBackground?: string
+  buttonBackgroundHover?: string
+  buttonBorder?: string
+  buttonPrimaryBackground?: string
+  buttonPrimaryBackgroundHover?: string
+  buttonPrimaryBorder?: string
+  buttonBackdropFilter?: string
 }
 
 export interface ThemeTokens {
@@ -123,6 +142,14 @@ export const lightTheme: ThemeTokens = {
       'inset 0 -1px 0 rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.20), 0 1px 1.5px rgba(0,0,0,0.20)',
     shadowButtonInset:
       'inset 0 2px 1px -1px rgba(0,0,0,0.20), inset 0 0 0 1px rgba(0,0,0,0.05)',
+    surfaceBackdropFilter: 'none',
+    buttonBackground: 'hsl(var(--card))',
+    buttonBackgroundHover: 'hsl(var(--muted))',
+    buttonBorder: 'hsl(var(--border))',
+    buttonPrimaryBackground: 'hsl(var(--primary))',
+    buttonPrimaryBackgroundHover: 'hsl(var(--primary) / 0.9)',
+    buttonPrimaryBorder: 'hsl(var(--primary))',
+    buttonBackdropFilter: 'none',
   },
 }
 
@@ -176,6 +203,14 @@ export const darkTheme: ThemeTokens = {
       'inset 0 -1px 0 rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.40), 0 1px 1.5px rgba(0,0,0,0.40)',
     shadowButtonInset:
       'inset 0 2px 1px -1px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(0,0,0,0.20)',
+    surfaceBackdropFilter: 'none',
+    buttonBackground: 'hsl(var(--card))',
+    buttonBackgroundHover: 'hsl(var(--muted))',
+    buttonBorder: 'hsl(var(--border))',
+    buttonPrimaryBackground: 'hsl(var(--primary))',
+    buttonPrimaryBackgroundHover: 'hsl(var(--primary) / 0.9)',
+    buttonPrimaryBorder: 'hsl(var(--primary))',
+    buttonBackdropFilter: 'none',
   },
 }
 
@@ -226,6 +261,28 @@ const perceptionVarMap: Record<string, string> = {
   shadowSm: '--shadow-sm',
   shadowMd: '--shadow-md',
   shadowLg: '--shadow-lg',
+  shadowButton: '--shadow-button',
+  shadowButtonPrimary: '--shadow-button-primary',
+  shadowButtonInset: '--shadow-button-inset',
+  surfaceBackdropFilter: '--surface-backdrop-filter',
+  modalBackground: '--modal-bg',
+  modalBorder: '--modal-border',
+  modalOverlayBackground: '--modal-overlay-bg',
+  modalOverlayBackdropFilter: '--modal-overlay-backdrop-filter',
+  modalShadow: '--modal-shadow',
+  glassEdgeGradient: '--glass-edge-gradient',
+  glassPrimaryEdgeGradient: '--glass-primary-edge-gradient',
+  glassInnerHighlight: '--glass-inner-highlight',
+  fieldBackground: '--field-bg',
+  fieldBorder: '--field-border',
+  fieldShadow: '--field-shadow',
+  buttonBackground: '--button-bg',
+  buttonBackgroundHover: '--button-hover-bg',
+  buttonBorder: '--button-border',
+  buttonPrimaryBackground: '--button-primary-bg',
+  buttonPrimaryBackgroundHover: '--button-primary-hover-bg',
+  buttonPrimaryBorder: '--button-primary-border',
+  buttonBackdropFilter: '--button-backdrop-filter',
 }
 
 function applyTheme(theme: ThemeTokens, element?: HTMLElement): void {

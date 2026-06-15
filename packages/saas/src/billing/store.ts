@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Plan } from '@fayz/core'
+import type { Plan } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Types

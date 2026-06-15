@@ -1,5 +1,5 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import { DashboardPage } from './DashboardPage'
 import { dashboardLocales } from './locales'
 import type { DashboardMetric, DashboardSection, OnboardingStep } from './types'

@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react'
 import { BookOpen, Plus, Clock, Layers } from 'lucide-react'
 import { useInventoryStore } from '../InventoryContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 
 function RecipeSkeleton() {
   return (

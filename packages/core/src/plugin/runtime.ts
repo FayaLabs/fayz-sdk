@@ -133,7 +133,7 @@ export function resolvePluginRuntime({
       issues.push({
         type: 'incompatible_api_version',
         pluginId: plugin.id,
-        message: `Plugin "${plugin.id}" requires plugin API v${plugin.apiVersion}, but this runtime supports v${PLUGIN_API_VERSION}. Upgrade @fayz/runtime.`,
+        message: `Plugin "${plugin.id}" requires plugin API v${plugin.apiVersion}, but this runtime supports v${PLUGIN_API_VERSION}. Upgrade @fayz-ai/app-runtime.`,
       })
       continue
     }

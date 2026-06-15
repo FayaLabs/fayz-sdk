@@ -1,6 +1,6 @@
 import React from 'react'
-import { setGlobalSupabaseClient } from '@fayz/core'
-import { setShopProvider, createMockShopProvider } from '@fayz/shop'
+import { setShopProvider } from '@fayz-ai/shop/runtime'
+import { createMockShopProvider } from '@fayz-ai/shop/mock'
 import { initCustomerAuth, resolveAuthAdapter } from './auth'
 import { StorefrontConfigProvider, resolveConfig, useStorefrontConfig } from './config'
 import type { StorefrontConfig } from './config'
@@ -16,9 +16,28 @@ import { CheckoutPage } from './pages/CheckoutPage'
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage'
 import { MyPurchasesPage } from './pages/MyPurchasesPage'
 
-function RouteSwitch() {
+function getCustomRouteMatch(config: ReturnType<typeof useStorefrontConfig>, path: string) {
+  for (const route of config.routes ?? []) {
+    const params = matchPath(route.path, path)
+    if (params) return { route, params }
+  }
+  return null
+}
+
+function isFocusedRoute(config: ReturnType<typeof useStorefrontConfig>, path: string): boolean {
+  const custom = getCustomRouteMatch(config, path)
+  if (custom) return custom.route.chrome === 'focused' || custom.route.kind === 'checkout'
+  return Boolean(matchPath('/checkout', path))
+}
+
+function RouteSwitch({ path }: { path: string }) {
   const config = useStorefrontConfig()
-  const path = useHashPath()
+
+  const custom = getCustomRouteMatch(config, path)
+  if (custom) {
+    const CustomRoute = custom.route.component
+    return <CustomRoute path={path} params={custom.params} config={config} />
+  }
 
   const product = matchPath('/product/:slug', path)
   if (product?.slug) return <ProductDetailPage slug={product.slug} />
@@ -37,28 +56,23 @@ function RouteSwitch() {
 /**
  * Side-effect runtime init shared by the factory and the manifest scaffold:
  * wires customer auth and the shop provider. Idempotent and safe to call once
- * before first render. Provider resolution: explicit > Supabase > mock.
+ * before first render. Provider resolution: explicit > catalog mock > empty mock.
  */
 export function initStorefrontRuntime(config: StorefrontConfig): void {
-  initCustomerAuth(
-    resolveAuthAdapter(config.auth?.adapter, {
-      url: config.supabaseUrl,
-      anonKey: config.supabaseAnonKey,
-    }),
-  )
+  initCustomerAuth(resolveAuthAdapter(config.auth?.adapter))
 
   if (config.provider) {
     setShopProvider(config.provider)
-  } else if (config.catalog && !(config.supabaseUrl && config.supabaseAnonKey)) {
+  } else if (config.catalog) {
     setShopProvider(createMockShopProvider(config.catalog))
-  } else if (config.supabaseUrl && config.supabaseAnonKey) {
-    import('@supabase/supabase-js')
-      .then(({ createClient }) => {
-        setGlobalSupabaseClient(createClient(config.supabaseUrl!, config.supabaseAnonKey!))
-      })
-      .catch(() => {
-        /* @supabase/supabase-js not installed — getShopProvider falls back to mock */
-      })
+  } else {
+    setShopProvider(createMockShopProvider())
+  }
+
+  if (config.supabaseUrl || config.supabaseAnonKey) {
+    console.warn(
+      '@fayz-ai/shop: supabaseUrl/supabaseAnonKey are legacy fields. Pass an explicit provider/adapter or use the Fayz SDK broker path.',
+    )
   }
 }
 
@@ -66,13 +80,15 @@ export function initStorefrontRuntime(config: StorefrontConfig): void {
  *  shared by createStorefrontApp and the manifest-driven StorefrontScaffold. */
 export function StorefrontShell() {
   const config = useStorefrontConfig()
+  const path = useHashPath()
+  const focused = isFocusedRoute(config, path)
   return (
     <div className="min-h-screen bg-background text-foreground">
       {config.theme && <StorefrontThemeStyle theme={config.theme} />}
-      <StorefrontHeader />
-      <RouteSwitch />
-      <CartDrawer />
-      <StorefrontFooter />
+      {!focused && <StorefrontHeader />}
+      <RouteSwitch path={path} />
+      {!focused && <CartDrawer />}
+      {!focused && <StorefrontFooter />}
     </div>
   )
 }

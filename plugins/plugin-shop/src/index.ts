@@ -1,7 +1,8 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
-import { setShopTenantResolver } from '@fayz/shop'
-import { useOrganizationStore } from '@fayz/saas'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import { setShopTenantResolver } from '@fayz-ai/shop'
+import { useOrganizationStore } from '@fayz-ai/saas'
+import type { ShopProviderResolver } from './ShopPage'
 
 const ShopPage = React.lazy(() => import('./ShopPage').then((m) => ({ default: m.ShopPage })))
 
@@ -16,6 +17,7 @@ export interface ShopPluginOptions {
   scope?: PluginScope
   verticalId?: VerticalId
   currency?: { code?: string; locale?: string; symbol?: string }
+  provider?: ShopProviderResolver
 }
 
 // ---------------------------------------------------------------------------
@@ -25,13 +27,15 @@ export interface ShopPluginOptions {
 export function createShopPlugin(options?: ShopPluginOptions): PluginManifest {
   const curr = { code: 'BRL', locale: 'pt-BR', symbol: 'R$', ...options?.currency }
 
-  // Scope shop queries to the active organization. Provider selection itself
-  // is lazy — getShopProvider() picks Supabase once the client is initialized.
+  // Scope fallback shop queries to the active organization. Apps can inject a
+  // provider when they want SDK-owned data access instead of the global runtime.
   setShopTenantResolver(() => useOrganizationStore.getState().currentOrg?.id)
 
   const PageComponent: React.ComponentType<unknown> = () =>
     React.createElement(React.Suspense, { fallback: null },
-      React.createElement(ShopPage as any)
+      React.createElement(ShopPage as React.ComponentType<{ provider?: ShopProviderResolver }>, {
+        provider: options?.provider,
+      })
     )
   PageComponent.displayName = 'ShopPageWrapper'
 
@@ -125,9 +129,9 @@ export function createShopPlugin(options?: ShopPluginOptions): PluginManifest {
   }
 }
 
-// Re-export shop types so consumer apps only need @fayz/plugin-shop
+// Re-export shop types so consumer apps only need @fayz-ai/plugin-shop
 export type {
   Product, Order, ShopCustomer, Discount, Category,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions,
-} from '@fayz/shop'
+} from '@fayz-ai/shop'

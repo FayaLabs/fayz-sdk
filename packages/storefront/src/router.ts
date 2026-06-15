@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { hashRouterAdapter } from '@fayz/core'
+import { hashRouterAdapter } from '@fayz-ai/core'
 
 // Minimal hash router for the storefront. Deliberately not react-router:
 // an SDK package shipping a router dependency creates singleton hazards

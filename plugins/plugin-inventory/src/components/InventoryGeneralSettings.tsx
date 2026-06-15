@@ -1,6 +1,6 @@
 import React from 'react'
-import { SettingsGroup, ToggleRow } from '@fayz/saas'
-import { useTranslation } from '@fayz/core'
+import { SettingsGroup, ToggleRow } from '@fayz-ai/saas'
+import { useTranslation } from '@fayz-ai/core'
 
 export function InventoryGeneralSettings() {
   const t = useTranslation()

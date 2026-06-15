@@ -175,9 +175,14 @@ function SidebarLayout({
 function TopbarLayout({
   navigation = [],
   logo,
-  user: _user,
+  user,
   children,
   onNavigate,
+  onSignOut,
+  onProfile,
+  onSettings,
+  onBilling,
+  userMenuExtras,
   frame,
   currentPath,
   topbarStart,
@@ -188,28 +193,37 @@ function TopbarLayout({
   user?: AppShellUser
   children?: React.ReactNode
   onNavigate?: (route: string) => void
+  onSignOut?: () => void
+  onProfile?: () => void
+  onSettings?: () => void
+  onBilling?: () => void
+  userMenuExtras?: AppShellProps['userMenuExtras']
   frame?: boolean
   currentPath?: string
   topbarStart?: React.ReactNode
   topbarEnd?: React.ReactNode
 }) {
+  // Topbar is full-bleed (edge to edge); only the content area gets the frame.
   return (
-    <div className={cn('flex h-screen flex-col overflow-hidden', frame && 'p-2 gap-2 bg-background')}>
-      <div className={cn(frame && 'rounded-xl overflow-hidden')}>
-        <Topbar
-          navigation={navigation}
-          logo={logo}
-          currentPath={currentPath}
-          onNavigate={onNavigate}
-          leftContent={topbarStart}
-          rightContent={topbarEnd}
-        />
-      </div>
-      <main className={cn(
-        'flex-1 overflow-y-auto',
-        frame && 'rounded-xl border border-border bg-card'
-      )}>
-        {children}
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <Topbar
+        navigation={navigation}
+        logo={logo}
+        user={user}
+        currentPath={currentPath}
+        onNavigate={onNavigate}
+        onSignOut={onSignOut}
+        onProfile={onProfile}
+        onSettings={onSettings}
+        onBilling={onBilling}
+        userMenuExtras={userMenuExtras}
+        leftContent={topbarStart}
+        rightContent={topbarEnd}
+      />
+      <main className={cn('flex-1 overflow-y-auto', frame && 'p-2')}>
+        <div className={cn('min-h-full', frame && 'rounded-xl border border-border bg-card')}>
+          {children}
+        </div>
       </main>
     </div>
   )
@@ -350,6 +364,11 @@ export function AppShell({
           logo={logo}
           user={user}
           onNavigate={onNavigate}
+          onSignOut={onSignOut}
+          onProfile={onProfile}
+          onSettings={onSettings}
+          onBilling={onBilling}
+          userMenuExtras={userMenuExtras}
           frame={sidebarFrame}
           currentPath={currentPath}
           topbarStart={topbarStart}

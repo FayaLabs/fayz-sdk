@@ -1,11 +1,11 @@
 import React from 'react'
-import type { FieldDef } from '@fayz/core'
-import { Badge } from '@fayz/ui'
+import type { FieldDef } from '@fayz-ai/core'
+import { Badge } from '@fayz-ai/ui'
 import {
   formatCurrency as formatCurrencyLocale,
   formatDate as formatDateLocale,
   formatDateTime as formatDateTimeLocale,
-} from '@fayz/core'
+} from '@fayz-ai/core'
 
 function formatCurrency(value: any, currency?: string): string {
   const num = typeof value === 'number' ? value : parseFloat(value)

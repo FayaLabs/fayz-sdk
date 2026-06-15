@@ -6,8 +6,8 @@ import type {
   CreateOrgOptions,
   Location,
   Invite,
-} from '@fayz/core'
-import type { PermissionProfile } from '@fayz/core'
+} from '@fayz-ai/core'
+import type { PermissionProfile } from '@fayz-ai/core'
 
 const STORAGE_KEY = 'fayz:mock-orgs'
 

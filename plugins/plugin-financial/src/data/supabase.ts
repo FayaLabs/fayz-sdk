@@ -9,7 +9,7 @@ import type {
   PaginatedResult, FinancialSummary, StatementEntry, CashSessionSummary,
   DateRange,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import { getFinancialTenantId } from '../lib/tenant'
 
 function getTenantId(): string | undefined {
@@ -312,9 +312,9 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
         const { data: order } = await core.from('orders').select('metadata').eq('id', mov.invoice_id).single()
         const meta = (order?.metadata as any) ?? {}
         const invoiceStage = allPaid ? 'paid' : anyPaid ? 'partial' : 'invoiced'
-        // Only update financial stage — agenda status (scheduled/confirmed/etc) is independent
+        // Only update financial order status. Agenda status lives on saas_core.bookings.
         await core.from('orders').update({
-          stage: invoiceStage,
+          status: invoiceStage,
           metadata: { ...meta, paidAmount: totalPaid },
         }).eq('id', mov.invoice_id)
       }

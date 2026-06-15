@@ -5,7 +5,7 @@ Accounts payable/receivable, cash registers, bank statements, and financial repo
 ## Quick Start
 
 ```typescript
-import { createFinancialPlugin } from '@fayz/saas-core/plugins/financial'
+import { createFinancialPlugin } from '@fayz-ai/saas-core/plugins/financial'
 
 // In your createSaasApp config:
 plugins: [
@@ -124,7 +124,7 @@ All tables use `tenant_id` referencing `saas_core.tenants(id)` for multi-tenant 
 ### Custom Data Provider
 
 ```typescript
-import type { FinancialDataProvider } from '@fayz/saas-core/plugins/financial'
+import type { FinancialDataProvider } from '@fayz-ai/saas-core/plugins/financial'
 
 const supabaseProvider: FinancialDataProvider = {
   async getInvoices(query) { /* Supabase query */ },

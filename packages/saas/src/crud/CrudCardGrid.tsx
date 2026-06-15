@@ -1,9 +1,9 @@
 import React from 'react'
 import * as LucideIcons from 'lucide-react'
-import { Card } from '@fayz/ui'
-import { Badge } from '@fayz/ui'
-import type { FieldDef, EntityDef } from '@fayz/core'
-import { formatCurrency, formatDate } from '@fayz/core'
+import { Card } from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
+import type { FieldDef, EntityDef } from '@fayz-ai/core'
+import { formatCurrency, formatDate } from '@fayz-ai/core'
 
 interface CrudCardGridProps<T> {
   items: T[]

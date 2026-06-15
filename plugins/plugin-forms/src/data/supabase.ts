@@ -12,7 +12,7 @@ import type {
   CreateDocumentInput,
   UpdateDocumentInput,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 
 function getTenantId(): string {
   return getFormsTenantId() ?? ''

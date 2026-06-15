@@ -14,7 +14,7 @@ Do not keep `createSaasApp` as strategic architecture.
 - `createFayzApp`: transitional developer helper only if it compiles to/through manifest-first rendering.
 - `createAgendaPlugin`, `createFinancialPlugin`, and other `create*Plugin` factories: plugin package internals/developer API, not generated-app contract.
 - Generated app default: `app.manifest.json` plus `renderApp(manifest)` and a small `registry.tsx` only when the app needs custom code.
-- Package default: every generated project may use lean public npm `@fayz/sdk`; manifest-rendered apps add `@fayz/runtime`.
+- Package default: every generated project may use lean public npm `@fayz-ai/sdk`; manifest-rendered apps use platform-bundled app-runtime until Beauty proves a public package boundary.
 - New templates, docs, and AI generation should not emit `createSaasApp`.
 
 ## Why This Matters
@@ -59,11 +59,11 @@ Why not delete it today:
 
 ## Package Decision
 
-Fayz SDK packages publish to public npm under `@fayz/*`.
+Only `@fayz-ai/sdk` is the public npm contract right now.
 
-- `@fayz/sdk`: lean default package for every generated project.
-- `@fayz/runtime`: app-rendering package for `renderApp(manifest)`.
-- `@fayz/core`, `@fayz/auth`, `@fayz/ui`, `@fayz/saas`, and plugins remain modular for internals/power users.
+- `@fayz-ai/sdk`: lean default package for every generated project.
+- app-runtime: internal/platform-bundled rendering concept for `renderApp(manifest)`, not public npm yet.
+- core/auth/ui/saas/domain/plugins remain modular monorepo code boundaries, not public product API.
 
 This copies the useful Base44-style pattern: even simple projects get normalized API access and app params, without forcing the full UI/runtime bundle into every project.
 

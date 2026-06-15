@@ -1,4 +1,4 @@
-import type { AuthAdapter, AuthUser, AuthSession } from '@fayz/core'
+import type { AuthAdapter, AuthUser, AuthSession } from '@fayz-ai/core'
 
 export interface MockUser {
   id: string

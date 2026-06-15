@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@fayz-ai/shop": ["src/index.ts"],
+      "@fayz-ai/shop/*": ["src/*"]
+    }
   },
   "include": ["src"]
 }

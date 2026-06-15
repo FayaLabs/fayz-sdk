@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
-import { useTranslation } from '@fayz/core'
-import { getCurrentLocale } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
+import { getCurrentLocale } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // DatePicker — custom dropdown calendar, Google Calendar style
@@ -138,7 +138,7 @@ export function DatePicker({ value, onChange, className, defaultOpen, onOpenChan
       {open && createPortal(
         <div ref={dropdownRef} data-modal-passthrough
           style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999, pointerEvents: 'auto' }}
-          className="rounded-xl border bg-popover shadow-xl p-3 w-[260px]">
+          className="fayz-glass-surface rounded-xl border bg-popover shadow-xl p-3 w-[260px]">
           {/* Month nav */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium capitalize">{monthLabel}</span>

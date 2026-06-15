@@ -3,5 +3,5 @@ packages:
   - "plugins/*"
   - "cli"
   - "examples/*"
-  - "../../resto-saas"
-  - "../../beauty-saas"
+  - "../../fayz-app/resto-saas"
+  - "../../fayz-app/beauty-saas"

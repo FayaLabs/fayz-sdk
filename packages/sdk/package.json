@@ -25,6 +25,19 @@
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
     },
+    "./shop": {
+      "source": "./src/shop.ts",
+      "types": "./dist/shop.d.ts",
+      "import": "./dist/shop.js",
+      "require": "./dist/shop.cjs"
+    },
+    "./release-channels": {
+      "source": "./src/release-channels.ts",
+      "types": "./dist/release-channels.d.ts",
+      "import": "./dist/release-channels.js",
+      "require": "./dist/release-channels.cjs"
+    },
+    "./release-channels.json": "./src/release-channels.json",
     "./runtime": {
       "source": "./src/runtime.ts",
       "types": "./dist/runtime.d.ts",

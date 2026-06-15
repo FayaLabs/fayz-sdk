@@ -14,6 +14,65 @@ export interface FayzRequestOptions extends Omit<RequestInit, 'headers'> {
   token?: string
 }
 
+export type FayzTableFilterOperator =
+  | 'eq'
+  | 'neq'
+  | 'gt'
+  | 'lt'
+  | 'gte'
+  | 'lte'
+  | 'like'
+  | 'ilike'
+  | 'is_null'
+  | 'is_not_null'
+
+export interface FayzTableFilter {
+  column: string
+  operator: FayzTableFilterOperator
+  value?: unknown
+}
+
+export interface FayzTableListOptions {
+  projectId?: string
+  table: string
+  schema?: string
+  filters?: FayzTableFilter[]
+  sortColumn?: string
+  sortDirection?: 'asc' | 'desc'
+  page?: number
+  limit?: number
+  runtime?: boolean
+}
+
+export interface FayzTableListResponse<T> {
+  rows: T[]
+  total: number
+}
+
+export interface FayzTableMutationOptions {
+  projectId?: string
+  table: string
+  schema?: string
+  runtime?: boolean
+}
+
+export interface FayzTableCreateOptions<T = Record<string, unknown>> extends FayzTableMutationOptions {
+  row: T
+}
+
+export interface FayzTableUpdateOptions<T = Record<string, unknown>> extends FayzTableMutationOptions {
+  primaryKeys: Record<string, unknown>
+  row: Partial<T>
+}
+
+export interface FayzTableDeleteOptions extends FayzTableMutationOptions {
+  rows: Record<string, unknown>[]
+}
+
+export interface FayzTableDeleteResponse {
+  deletedCount: number
+}
+
 export class FayzApiError extends Error {
   constructor(
     message: string,
@@ -66,6 +125,39 @@ function unwrapUser(body: FayzUser | FayzAuthMeResponse): FayzUser {
     : body as FayzUser
 }
 
+function tableRowsPath(options: FayzTableListOptions): string {
+  const route = tableRowsRoute(options)
+  const params = new URLSearchParams()
+
+  if (options.schema) params.set('schema', options.schema)
+  if (options.filters?.length) params.set('filters', JSON.stringify(options.filters))
+  if (options.sortColumn) params.set('sortColumn', options.sortColumn)
+  if (options.sortDirection) params.set('sortDirection', options.sortDirection)
+  if (options.page != null) params.set('page', String(options.page))
+  if (options.limit != null) params.set('limit', String(options.limit))
+
+  const query = params.toString()
+  return query ? `${route}?${query}` : route
+}
+
+function tableRowsRoute(options: FayzTableMutationOptions): string {
+  const projectId = encodeURIComponent(options.projectId ?? appParams.projectId ?? 'current')
+  const table = encodeURIComponent(options.table)
+  return options.runtime
+    ? `/api/v1/runtime/projects/${projectId}/database/tables/${table}/rows`
+    : `/api/projects/${projectId}/database/tables/${table}/rows`
+}
+
+function mutationRowsPath(options: FayzTableMutationOptions): string {
+  const route = tableRowsRoute(options)
+  const params = new URLSearchParams()
+
+  if (options.schema) params.set('schema', options.schema)
+
+  const query = params.toString()
+  return query ? `${route}?${query}` : route
+}
+
 export function createFayzClient(options: FayzClientOptions = {}) {
   const baseUrl = normalizeBaseUrl(options.baseUrl ?? appParams.apiBaseUrl)
   const fetcher = options.fetcher ?? fetch
@@ -92,6 +184,40 @@ export function createFayzClient(options: FayzClientOptions = {}) {
     auth: {
       async me(): Promise<FayzUser> {
         return unwrapUser(await request<FayzUser | FayzAuthMeResponse>('/auth/me'))
+      },
+    },
+    data: {
+      async listRows<T = Record<string, unknown>>(options: FayzTableListOptions): Promise<FayzTableListResponse<T>> {
+        return request<FayzTableListResponse<T>>(tableRowsPath(options))
+      },
+      async countRows(options: FayzTableListOptions): Promise<number> {
+        const response = await request<FayzTableListResponse<unknown>>(tableRowsPath({
+          ...options,
+          page: options.page ?? 1,
+          limit: 1,
+        }))
+        return response.total
+      },
+      async createRow<T = Record<string, unknown>>(options: FayzTableCreateOptions<Partial<T>>): Promise<T> {
+        return request<T>(mutationRowsPath(options), {
+          method: 'POST',
+          body: JSON.stringify(options.row),
+        })
+      },
+      async updateRow<T = Record<string, unknown>>(options: FayzTableUpdateOptions<T>): Promise<T> {
+        return request<T>(mutationRowsPath(options), {
+          method: 'PATCH',
+          body: JSON.stringify({
+            primaryKeys: options.primaryKeys,
+            data: options.row,
+          }),
+        })
+      },
+      async deleteRows(options: FayzTableDeleteOptions): Promise<FayzTableDeleteResponse> {
+        return request<FayzTableDeleteResponse>(mutationRowsPath(options), {
+          method: 'DELETE',
+          body: JSON.stringify({ rows: options.rows }),
+        })
       },
     },
     runtime: {

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { FeatureDeclaration, PermissionProfile } from '@fayz/core'
+import type { FeatureDeclaration, PermissionProfile } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Store interface

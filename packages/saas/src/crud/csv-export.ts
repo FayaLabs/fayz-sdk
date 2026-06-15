@@ -1,6 +1,6 @@
-import { exportCSV } from '@fayz/core'
-import type { CSVColumn } from '@fayz/core'
-import type { EntityDef } from '@fayz/core'
+import { exportCSV } from '@fayz-ai/core'
+import type { CSVColumn } from '@fayz-ai/core'
+import type { EntityDef } from '@fayz-ai/core'
 
 export function exportToCSV<T extends Record<string, any>>(
   items: T[],

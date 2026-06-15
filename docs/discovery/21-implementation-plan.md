@@ -56,7 +56,7 @@ In `/Users/fayalabs/dev/fayz-sdk`:
 - `packages/core/src/data/index.ts`
 - new: `packages/core/src/data/fayz-api.ts`
 - `packages/core/src/index.ts`
-- `packages/runtime/src/index.ts`
+- `packages/app-runtime/src/index.ts`
 - runtime/package CSS config or generated-project CSS import decision
 
 ### Tasks
@@ -123,7 +123,7 @@ Observed runtime build behavior:
 
 - core package typecheck/build pass with the current manifest/provider changes;
 - declaration/export collision is no longer blocking `@fayz/runtime`;
-- build now emits JS bundles and copies `@fayz/ui` CSS to `packages/runtime/dist/styles.css`;
+- build now emits JS bundles and copies `@fayz/ui` CSS to `packages/app-runtime/dist/styles.css`;
 - `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`, but it did not block local typecheck/build.
 
 Remaining before Workstream 1 is fully done:

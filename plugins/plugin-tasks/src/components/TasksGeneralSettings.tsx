@@ -1,5 +1,5 @@
 import React from 'react'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 export function TasksGeneralSettings() {
   const t = useTranslation()

@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Pencil, DollarSign, FileText, Calendar, Hash, User, X, MoreVertical, Ban, ChevronDown, CreditCard, Banknote, Building2, CircleDashed, CircleEllipsis, CircleCheckBig, CircleAlert, CalendarDays, ExternalLink } from 'lucide-react'
-import { PersonLink } from '@fayz/saas'
+import { PersonLink } from '@fayz-ai/saas'
 import { useFinancialConfig, useFinancialStore, useFinancialProvider, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
-import { SubpageHeader } from '@fayz/ui'
+import { SubpageHeader } from '@fayz-ai/ui'
 import { PaymentModal } from '../components/PaymentModal'
-import { useTranslation } from '@fayz/core'
-import { Button } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { Button } from '@fayz-ai/ui'
 import type { Invoice, InvoiceItem, FinancialMovement, TransactionDirection } from '../types'
 
 const STATUS_COLORS: Record<string, { bg: string; icon: React.ElementType; labelKey: string }> = {
@@ -219,7 +219,7 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
                   <MoreVertical className="h-4 w-4" />
                 </Button>
                 {menuOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border bg-popover shadow-md z-20 py-1" style={{ animation: 'field-slide-in 150ms ease-out' }}>
+                  <div className="fayz-glass-surface absolute right-0 top-full mt-1 w-44 rounded-lg border bg-popover shadow-md z-20 py-1" style={{ animation: 'field-slide-in 150ms ease-out' }}>
                     <button
                       onClick={() => { setConfirmCancel(true); setMenuOpen(false) }}
                       className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 transition-colors"

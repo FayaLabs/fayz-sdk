@@ -3,9 +3,9 @@
 // Consumer apps call this at plugin wiring time.
 // ---------------------------------------------------------------------------
 
-import type { FinancialDataProvider } from '@fayz/plugin-financial'
+import type { FinancialDataProvider } from '@fayz-ai/plugin-financial'
 import type { AgendaFinancialBridge, BookingPaymentSummary, BookingPaymentDetail, BookingPaymentStatus } from '../financial-bridge'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 
 function computeStatus(movements: Array<{ status: string }>): BookingPaymentStatus {
   if (movements.length === 0) return 'none'
@@ -40,21 +40,38 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
       if (!supabase) return result
 
       try {
-        const { data: orders } = await supabase
-          .schema('saas_core')
-          .from('orders')
-          .select('id, kind, stage, status, total, reference_number, metadata')
-          .in('id', orderIds)
-          .in('stage', ['booked', 'invoiced', 'paid', 'partial', 'overdue', 'cancelled'])
+        const [{ data: orders }, { data: movements }] = await Promise.all([
+          supabase
+            .schema('saas_core')
+            .from('orders')
+            .select('id, kind, status, total, reference_number, metadata')
+            .in('id', orderIds),
+          supabase
+            .from('financial_movements')
+            .select('invoice_id, status, paid_amount')
+            .in('invoice_id', orderIds),
+        ])
+
+        const movementsByOrderId = new Map<string, Array<{ status: string; paid_amount: number }>>()
+        for (const movement of movements ?? []) {
+          const invoiceId = movement.invoice_id as string | undefined
+          if (!invoiceId) continue
+          movementsByOrderId.set(invoiceId, [...(movementsByOrderId.get(invoiceId) ?? []), movement])
+        }
 
         for (const order of orders ?? []) {
+          const orderMovements = movementsByOrderId.get(order.id) ?? []
           const meta = (order.metadata ?? {}) as Record<string, unknown>
+          const paidAmount = orderMovements.length > 0
+            ? orderMovements.reduce((sum, movement) => sum + (Number(movement.paid_amount) || 0), 0)
+            : Number(meta.paidAmount) || 0
+
           result.set(order.id, {
             invoiceId: order.id,
             referenceNumber: order.reference_number as string | undefined,
-            status: mapInvoiceStatus(order.stage as string),
+            status: orderMovements.length > 0 ? computeStatus(orderMovements) : mapInvoiceStatus(order.status as string),
             totalAmount: Number(order.total) || 0,
-            paidAmount: Number(meta.paidAmount) || 0,
+            paidAmount,
           })
         }
       } catch { /* non-blocking */ }
@@ -68,7 +85,7 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
 
       // Single query: get order + movements in parallel
       const [orderRes, movRes] = await Promise.all([
-        supabase.schema('saas_core').from('orders').select('id, stage, total, reference_number, metadata').eq('id', orderId).single(),
+        supabase.schema('saas_core').from('orders').select('id, status, total, reference_number, metadata').eq('id', orderId).single(),
         supabase.from('financial_movements').select('*').eq('invoice_id', orderId).order('due_date'),
       ])
 
@@ -100,7 +117,7 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
       return {
         invoiceId: order.id,
         referenceNumber: order.reference_number as string | undefined,
-        status: mapInvoiceStatus(order.stage as string),
+        status: movements.length > 0 ? computeStatus(movements) : mapInvoiceStatus(order.status as string),
         totalAmount: Number(order.total) || 0,
         paidAmount: Number(meta.paidAmount) || 0,
         movements,
@@ -156,15 +173,22 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
         .rpc('next_sequence', { p_tenant_id: order.tenant_id, p_kind: 'invoice_receivable' })
       const referenceNumber = seq ? `REC-${String(seq).padStart(5, '0')}` : undefined
 
-      // 2. Promote order stage to invoiced — don't touch agenda status
+      // 2. Promote the linked order to an invoice-like document without
+      // touching booking status. Beauty's current schema has no stage column.
       await supabase
         .schema('saas_core')
         .from('orders')
         .update({
-          stage: 'invoiced',
-          direction: 'credit',
+          status: 'invoiced',
           reference_number: referenceNumber,
-          metadata: { ...((order.metadata as Record<string, unknown>) ?? {}), source: 'agenda', itemsSummary, contactName, installmentCount },
+          metadata: {
+            ...((order.metadata as Record<string, unknown>) ?? {}),
+            source: 'agenda',
+            itemsSummary,
+            contactName,
+            installmentCount,
+            direction: 'credit',
+          },
         })
         .eq('id', orderId)
 
@@ -260,13 +284,19 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
   }
 }
 
-function mapInvoiceStatus(stage: string): BookingPaymentStatus {
-  switch (stage) {
+function mapInvoiceStatus(status: string): BookingPaymentStatus {
+  switch (status) {
     case 'paid': return 'paid'
     case 'partial': return 'partial'
     case 'overdue': return 'overdue'
     case 'cancelled': return 'cancelled'
     case 'invoiced': return 'pending'
+    case 'pending': return 'pending'
+    case 'scheduled': return 'none'
+    case 'confirmed': return 'none'
+    case 'in_progress': return 'none'
+    case 'completed': return 'none'
+    case 'no_show': return 'none'
     case 'booked': return 'none'
     default: return 'pending'
   }

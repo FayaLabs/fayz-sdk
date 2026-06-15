@@ -3,7 +3,7 @@ import { useStore, type StoreApi } from 'zustand'
 import type { FinancialPluginLabels, ItemTypeOption } from './index'
 import type { FinancialDataProvider } from './data/types'
 import type { FinancialUIState } from './store'
-import type { EntityLookupMap, EntityLookup } from '@fayz/saas'
+import type { EntityLookupMap, EntityLookup } from '@fayz-ai/saas'
 
 // ---------------------------------------------------------------------------
 // Resolved config — fully merged, no optionals

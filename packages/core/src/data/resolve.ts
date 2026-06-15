@@ -57,7 +57,7 @@ export function resolveDataProvider<T extends { id: string }>(
     const adapterId = backend.adapterId
     const factory = adapterId ? options.customProviders?.[adapterId] : undefined
     if (!adapterId || !factory) {
-      throw new Error(`[@fayz/core] Custom data provider "${adapterId ?? 'unknown'}" is not registered.`)
+      throw new Error(`[@fayz-ai/core] Custom data provider "${adapterId ?? 'unknown'}" is not registered.`)
     }
     return factory<T>(entityDef, mockData)
   }

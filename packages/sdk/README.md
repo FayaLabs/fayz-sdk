@@ -35,6 +35,24 @@ const fayz = createFayzClient({
 const user = await fayz.auth.me()
 ```
 
+## Data/API Access
+
+Generated apps should call Fayz through the SDK instead of importing provider clients directly.
+
+```ts
+import { fayz } from '@fayz-ai/sdk'
+
+const appointmentsToday = await fayz.data.countRows({
+  table: 'v_bookings',
+  filters: [
+    { column: 'starts_at', operator: 'gte', value: dayStart },
+    { column: 'starts_at', operator: 'lt', value: dayEnd },
+    { column: 'status', operator: 'neq', value: 'cancelled' },
+    { column: 'status', operator: 'neq', value: 'no_show' },
+  ],
+})
+```
+
 ## Runtime OAuth Broker
 
 Provider OAuth secrets and refresh tokens stay server-side in Fayz. Generated projects should exchange a short-lived runtime token through Fayz and call brokered helpers.
@@ -59,7 +77,8 @@ const calendars = await runtime.googleCalendar(grant.token).listCalendars()
 ## Package Roles
 
 - `@fayz-ai/sdk`: default SDK package for every generated project.
-- `@fayz-ai/runtime`: manifest app rendering and UI/plugin runtime package. Use it only when rendering a Fayz manifest app.
+
+App runtime, shell, UI, and plugin modules are platform-bundled/internal while the Beauty manifest proof validates the right public boundary. Do not install or publish separate runtime/plugin packages for generated apps yet.
 
 ## Security Boundary
 

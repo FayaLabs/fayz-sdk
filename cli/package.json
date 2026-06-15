@@ -1,5 +1,5 @@
 {
-  "name": "@fayz/cli",
+  "name": "@fayz-ai/cli",
   "version": "0.1.0",
   "description": "Fayz CLI — scaffold, validate, extract and upgrade repo-per-app projects",
   "type": "module",

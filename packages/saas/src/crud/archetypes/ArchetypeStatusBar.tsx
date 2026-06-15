@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge } from '@fayz/ui'
+import { Badge } from '@fayz-ai/ui'
 
 interface ArchetypeStatusBarProps {
   isActive?: boolean

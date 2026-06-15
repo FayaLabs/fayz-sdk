@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useSyncExternalStore } from 'react'
 import { Clock, Plus, Trash2, Copy, Save, CalendarOff, CalendarPlus, Check, Settings, X } from 'lucide-react'
-import { toast } from '@fayz/ui'
+import { toast } from '@fayz-ai/ui'
 import {
   getSchedules,
   replaceWeeklySchedules,
@@ -11,17 +11,17 @@ import {
 import type { ScheduleRecord, BlockSettings } from '../../lib/schedule-service'
 import { getScheduleBlockConfig, subscribeScheduleBlockConfig } from '../../lib/schedule-config'
 import type { ScheduleBlockConfig } from '../../lib/schedule-config'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import { BlockSettingsPopover } from './BlockSettingsPopover'
-import { Card, CardContent } from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { Badge } from '@fayz/ui'
-import { Skeleton } from '@fayz/ui'
-import { DatePicker } from '@fayz/ui'
-import { TimePicker } from '@fayz/ui'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@fayz/ui'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalTitle, ModalDescription } from '@fayz/ui'
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@fayz/ui'
+import { Card, CardContent } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
+import { Skeleton } from '@fayz-ai/ui'
+import { DatePicker } from '@fayz-ai/ui'
+import { TimePicker } from '@fayz-ai/ui'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@fayz-ai/ui'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalTitle, ModalDescription } from '@fayz-ai/ui'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@fayz-ai/ui'
 
 // ---------------------------------------------------------------------------
 // Constants

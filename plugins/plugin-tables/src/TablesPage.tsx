@@ -1,12 +1,20 @@
 import React from 'react'
+import type { StoreApi } from 'zustand/vanilla'
+import { TablesContextProvider, type ResolvedTablesConfig } from './TablesContext'
+import { FloorPlanView } from './views/FloorPlanView'
+import type { TablesDataProvider } from './data/types'
+import type { TablesUIState } from './store'
+import type { PluginRegistryDef } from '@fayz-ai/core'
 
-export const TablesPage: React.FC = () => {
+export function TablesPage({ config, provider, store, registries }: {
+  config: ResolvedTablesConfig
+  provider: TablesDataProvider
+  store: StoreApi<TablesUIState>
+  registries?: PluginRegistryDef[]
+}) {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold">Tables</h1>
-      <p className="text-muted-foreground mt-2">Floor plan management coming soon.</p>
-    </div>
+    <TablesContextProvider config={config} provider={provider} store={store}>
+      <FloorPlanView />
+    </TablesContextProvider>
   )
 }
-
-TablesPage.displayName = 'TablesPage'

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Phone, Mail, Users, FileText, CheckSquare, MessageCircle, Check, Clock, Filter, Calendar } from 'lucide-react'
 import { useCrmStore } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 import type { ActivityType } from '../types'
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; label: string }> = {

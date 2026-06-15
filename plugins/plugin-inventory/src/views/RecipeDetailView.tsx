@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { BookOpen, Clock, Layers, Package } from 'lucide-react'
 import { useInventoryProvider } from '../InventoryContext'
-import { useTranslation } from '@fayz/core'
-import { Breadcrumb } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { Breadcrumb } from '@fayz-ai/ui'
 import type { Recipe, RecipeIngredient } from '../types'
 
 function DetailSkeleton() {

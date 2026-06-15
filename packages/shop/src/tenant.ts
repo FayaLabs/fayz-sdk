@@ -1,5 +1,5 @@
-// Tenant scoping for shop queries. @fayz/shop has no dependency on @fayz/saas —
-// the host app (or @fayz/plugin-shop) registers a resolver that returns the
+// Tenant scoping for shop queries. @fayz-ai/shop has no dependency on @fayz-ai/saas —
+// the host app (or @fayz-ai/plugin-shop) registers a resolver that returns the
 // current tenant id. When no resolver is set, queries are unscoped (RLS still
 // applies server-side).
 

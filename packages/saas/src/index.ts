@@ -1,8 +1,15 @@
 // ---------------------------------------------------------------------------
 // App factory (main entry point)
 // ---------------------------------------------------------------------------
-export { createFayzApp } from './app/createFayzApp'
+export { createFayzApp, AdminProviders } from './app/createFayzApp'
 export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, CustomPage, PageSection } from './app/config'
+
+// Native admin scaffold — manifest-first entry. Importing this registers the
+// 'admin' scaffold so renderApp(manifest) can resolve it.
+export { defineSaas, AdminScaffold } from './app/scaffold'
+export { AdminShell } from './app/AdminShell'
+export { LoginPage } from './app/LoginPage'
+export { navigateTo as adminNavigateTo, useAdminPath } from './app/routing'
 
 // ---------------------------------------------------------------------------
 // CRUD engine — NATIVE code is now in ./crud (de-bridged from saas-core: the
@@ -26,11 +33,14 @@ export { PermissionGate } from './permissions/PermissionGate'
 export { WidgetSlot } from './plugins/WidgetSlot'
 export { useFieldRules } from './hooks/useFieldRules'
 
-// Shell bridge — createSaasApp + the default createCrudPage stay on saas-core
-// until the shell de-bridges (last W6 step).
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — cross-package bridge; resolved by vite alias in consumer apps
-export { createSaasApp, createCrudPage } from '@fayz/saas-core'
+// Native admin shell — createSaasApp orchestrator (de-bridged from saas-core
+// into ./shell). The default createCrudPage is the native one.
+export { createSaasApp } from './shell/createSaasApp'
+export type { SaasAppConfig, PageConfig } from './shell/createSaasApp'
+export { createCrudPage } from './crud/createCrudPage'
+// Client-orders archetype (used by beauty-saas client detail tab)
+export { ClientOrdersTab } from './shell/components/crud/archetypes/ClientOrdersTab'
+export { createClientOrdersProvider } from './shell/lib/create-client-orders-provider'
 
 // ---------------------------------------------------------------------------
 // Archetype lookup
@@ -92,8 +102,8 @@ export { useBillingStore } from './billing/index'
 export type { BillingStore, BillingState, Subscription, Invoice } from './billing/index'
 
 // ---------------------------------------------------------------------------
-// Re-export commonly needed @fayz/core types so consumers can import
-// everything from a single package when building on top of @fayz/saas
+// Re-export commonly needed @fayz-ai/core types so consumers can import
+// everything from a single package when building on top of @fayz-ai/saas
 // ---------------------------------------------------------------------------
 export type {
   // Org
@@ -117,7 +127,6 @@ export type {
   PluginManifest,
   PluginRuntime,
   // Theme
-  SaasTheme,
   ThemeMode,
   ThemeBrand,
   ThemeRadius,
@@ -126,7 +135,7 @@ export type {
   // Billing
   BillingConfig,
   Plan,
-} from '@fayz/core'
+} from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Page helpers
@@ -142,3 +151,13 @@ export { PersonLink } from './components/shared/PersonLink'
 export { resolveEntityHref } from './lib/entity-routes'
 export { usePluginPrefs } from './hooks/usePluginPrefs'
 export { setScheduleBlockConfig, getScheduleBlockConfig, subscribeScheduleBlockConfig } from './lib/schedule-config'
+
+// Shell plugin-settings panel + dedup util (used by vertical plugins)
+export { PluginSettingsPanel } from './shell/components/plugins/PluginSettingsPanel'
+export { dedup } from './shell/lib/dedup'
+
+// Full admin theme type (the shell's theme system, richer than @fayz-ai/core's).
+export type { SaasTheme } from './shell/config/theme/tokens'
+export type { CreateThemeOptions } from './shell/config/theme/utils'
+export { createFayzTheme, fayzThemePresets } from '@fayz-ai/ui'
+export type { FayzThemePresetId } from '@fayz-ai/ui'

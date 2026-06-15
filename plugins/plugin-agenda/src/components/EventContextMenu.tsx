@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Pencil, Trash2, Check } from 'lucide-react'
 import { FloatingPanel } from './FloatingPanel'
 import { useAgendaConfig, useAgendaStore } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import { isStatusAvailable } from '../types'
 import type { CalendarBooking } from '../types'
 

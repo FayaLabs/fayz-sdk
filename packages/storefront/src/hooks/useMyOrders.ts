@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getShopProvider } from '@fayz/shop'
-import type { Order } from '@fayz/shop'
+import { getShopProvider } from '@fayz-ai/shop/runtime'
+import type { Order } from '@fayz-ai/shop/types'
 import { useSessionStore } from '../stores/session.store'
 
 export function useMyOrders(): { orders: Order[]; loading: boolean; refresh: () => void } {

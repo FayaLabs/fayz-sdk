@@ -1,0 +1,1 @@
+export { usePermissionsStore } from '../../permissions'

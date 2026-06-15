@@ -1,7 +1,7 @@
 import React from 'react'
 import { DollarSign, Check, AlertTriangle, Clock } from 'lucide-react'
 import type { BookingPaymentStatus } from '../financial-bridge'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 const STATUS_CONFIG: Record<BookingPaymentStatus, {
   dot: string

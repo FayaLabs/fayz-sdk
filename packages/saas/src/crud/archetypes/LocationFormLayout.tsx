@@ -1,8 +1,8 @@
 import React from 'react'
 import { MapPin } from 'lucide-react'
-import { Card, CardContent } from '@fayz/ui'
+import { Card, CardContent } from '@fayz-ai/ui'
 import { ActiveToggle } from './ActiveToggle'
-import type { FieldDef, FieldGroup } from '@fayz/core'
+import type { FieldDef, FieldGroup } from '@fayz-ai/core'
 
 interface LocationFormLayoutProps {
   fields: FieldDef[]

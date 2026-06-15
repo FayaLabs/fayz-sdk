@@ -1,7 +1,7 @@
 import React from 'react'
 import { useFinancialConfig } from '../FinancialContext'
-import { SubpageHeader } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 
 export function CommissionsView() {
   const t = useTranslation()

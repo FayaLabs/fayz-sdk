@@ -1,0 +1,52 @@
+{
+  "name": "@fayz-ai/plugin-orders",
+  "version": "0.1.0",
+  "description": "Fayz SDK — plugin-orders plugin",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/sdk": "workspace:^",
+    "@fayz-ai/saas": "workspace:^",
+    "lucide-react": "^0.400.0",
+    "sonner": "^2.0.7",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "react": "^18.3.0",
+    "tsup": "^8.2.0",
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "fayz",
+    "fayz-plugin",
+    "fayz-sdk"
+  ],
+  "private": true
+}

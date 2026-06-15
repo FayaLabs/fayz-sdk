@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { UserPlus } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ListView } from '@fayz/ui'
+import { ListView } from '@fayz-ai/ui'
 import { useCrmStore } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 import type { Lead, LeadStatus } from '../types'
 
 const STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [

@@ -5,6 +5,8 @@ export default defineConfig({
     index: 'src/index.ts',
     'app-params': 'src/app-params.ts',
     client: 'src/client.ts',
+    shop: 'src/shop.ts',
+    'release-channels': 'src/release-channels.ts',
     runtime: 'src/runtime.ts',
     types: 'src/types.ts',
   },

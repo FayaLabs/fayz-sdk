@@ -1,12 +1,12 @@
 import React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReportColumnDef } from '../types'
-import { PersonLink } from '@fayz/saas'
+import { PersonLink } from '@fayz-ai/saas'
 import {
   formatCurrency as formatCurrencyLocale,
   formatDate as formatDateLocale,
   formatDateTime as formatDateTimeLocale,
-} from '@fayz/core'
+} from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Formatters (mirrors fieldToColumn.tsx logic)

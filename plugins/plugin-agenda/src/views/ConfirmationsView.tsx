@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { CheckCircle, Phone, MessageCircle, XCircle, Clock } from 'lucide-react'
 import { useAgendaConfig, useAgendaStore } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import type { CalendarBooking, ConfirmationRecord } from '../types'
 
 // ---------------------------------------------------------------------------

@@ -1,12 +1,15 @@
 import React from 'react'
-import { registerScaffold, defineApp } from '@fayz/core'
-import type { AppManifest } from '@fayz/core'
+import { registerScaffold, defineApp } from '@fayz-ai/core'
+import type { AppManifest, BackendProvider } from '@fayz-ai/core'
 import { StorefrontConfigProvider, resolveConfig } from './config'
 import type { StorefrontConfig } from './config'
 import type { StorefrontTheme } from './theme'
 import type { HomeConfig, NavLink, FooterConfig } from './sections'
 import { initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
 import './blocks' // ensure section blocks are registered
+
+type StorefrontBackendProvider = NonNullable<StorefrontConfig['backend']>['provider']
+const runtimeConfigRegistry = new Map<string, StorefrontConfig>()
 
 // ---------------------------------------------------------------------------
 // Storefront scaffold — renders a store from a pure-data AppManifest. The
@@ -21,10 +24,17 @@ function slug(name: string): string {
 
 /** StorefrontConfig → AppManifest (the sugar-to-data direction). */
 export function defineStorefront(config: StorefrontConfig): AppManifest {
+  const id = slug(config.name)
+  runtimeConfigRegistry.set(id, config)
+  const backendProvider = (config.backend?.provider ?? (config.provider ? 'custom' : 'mock')) as BackendProvider
+
   return defineApp({
-    id: slug(config.name),
+    id,
     name: config.name,
-    backend: config.supabaseUrl ? { provider: 'supabase', url: config.supabaseUrl } : { provider: 'mock' },
+    backend: {
+      provider: backendProvider,
+      url: config.backend?.url,
+    },
     locale: {
       default: config.locale ?? 'pt-BR',
       supported: [config.locale ?? 'pt-BR'],
@@ -50,9 +60,11 @@ export function defineStorefront(config: StorefrontConfig): AppManifest {
 
 /** AppManifest → StorefrontConfig (the data-to-render direction). */
 function manifestToStorefrontConfig(manifest: AppManifest, surfaceName: string): StorefrontConfig {
+  const runtimeConfig = runtimeConfigRegistry.get(manifest.id)
   const surface = manifest.surfaces[surfaceName]
   const o = (surface?.options ?? {}) as Record<string, unknown>
   return {
+    ...runtimeConfig,
     name: manifest.name,
     currency: (manifest.locale as { currency?: string } | undefined)?.currency,
     locale: (manifest.locale as { default?: string } | undefined)?.default,
@@ -64,7 +76,15 @@ function manifestToStorefrontConfig(manifest: AppManifest, surfaceName: string):
     shipping: o.shipping as StorefrontConfig['shipping'],
     features: o.features as StorefrontConfig['features'],
     catalog: o.catalog as StorefrontConfig['catalog'],
-    supabaseUrl: manifest.backend?.url,
+    backend: {
+      provider: manifest.backend?.provider as StorefrontBackendProvider,
+      url: manifest.backend?.url,
+    },
+    slots: runtimeConfig?.slots,
+    routes: runtimeConfig?.routes,
+    provider: runtimeConfig?.provider,
+    auth: runtimeConfig?.auth,
+    logo: runtimeConfig?.logo,
   }
 }
 

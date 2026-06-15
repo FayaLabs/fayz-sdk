@@ -1,4 +1,4 @@
-import type { PluginScope, VerticalId } from '@fayz/core'
+import type { PluginScope, VerticalId } from '@fayz-ai/core'
 import type { CustomFormsDataProvider } from './data/types'
 
 export interface CustomFormsPluginOptions {

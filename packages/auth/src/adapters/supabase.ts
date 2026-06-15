@@ -1,9 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
-import type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from '@fayz/core'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from '@fayz-ai/core'
 
 export interface SupabaseAuthConfig {
   supabaseUrl: string
   supabaseAnonKey: string
+  supabaseClient?: SupabaseClient
 }
 
 function mapSupabaseUser(supabaseUser: {
@@ -44,7 +45,7 @@ function mapSupabaseSession(session: {
 }
 
 export function createSupabaseAuthAdapter(config: SupabaseAuthConfig): AuthAdapter {
-  const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey)
+  const supabase = config.supabaseClient ?? createClient(config.supabaseUrl, config.supabaseAnonKey)
 
   return {
     async getSession() {

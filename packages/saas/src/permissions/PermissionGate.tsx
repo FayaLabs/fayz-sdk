@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { PermissionAction } from '@fayz/core'
+import type { PermissionAction } from '@fayz-ai/core'
 import { usePermissionOptional } from './context'
 
 interface PermissionGateProps {

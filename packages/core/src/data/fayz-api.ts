@@ -59,7 +59,7 @@ function appendQuery(
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const text = await response.text().catch(() => '')
-    throw new Error(`[@fayz/core] Fayz API request failed (${response.status}): ${text || response.statusText}`)
+    throw new Error(`[@fayz-ai/core] Fayz API request failed (${response.status}): ${text || response.statusText}`)
   }
   return response.json() as Promise<T>
 }
@@ -156,7 +156,7 @@ export function createFayzApiProvider<T extends { id: string }>(
 
     const result = await listRows({ filters: { [idColumn]: id }, page: 1, pageSize: 1 })
     if (result.data.length === 0) {
-      throw new Error(`[@fayz/core] Row "${id}" was not found for the active tenant.`)
+      throw new Error(`[@fayz-ai/core] Row "${id}" was not found for the active tenant.`)
     }
   }
 

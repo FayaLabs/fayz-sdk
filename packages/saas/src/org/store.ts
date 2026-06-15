@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Organization, OrgMember, OrgMembership } from '@fayz/core'
+import { setActiveTenantId, type Organization, type OrgMember, type OrgMembership } from '@fayz-ai/core'
 
 const STORAGE_KEY = 'fayz:current-org'
 
@@ -53,6 +53,7 @@ export const useOrganizationStore = create<OrgStore>((set) => ({
   loading: false,
 
   setCurrentOrg: (org) => {
+    setActiveTenantId(org?.id)
     persistOrgId(org?.id ?? null)
     set({ currentOrg: org })
   },
@@ -60,6 +61,7 @@ export const useOrganizationStore = create<OrgStore>((set) => ({
   setMembers: (members) => set({ members }),
   setLoading: (loading) => set({ loading }),
   reset: () => {
+    setActiveTenantId(undefined)
     persistOrgId(null)
     set({ currentOrg: null, userOrgs: [], members: [], loading: false })
   },

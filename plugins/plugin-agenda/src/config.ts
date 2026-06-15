@@ -1,9 +1,9 @@
-import type { PluginScope, VerticalId } from '@fayz/core'
-import type { EntityLookup } from '@fayz/saas'
+import type { PluginScope, VerticalId } from '@fayz-ai/core'
+import type { EntityLookup } from '@fayz-ai/saas'
 import type { AgendaDataProvider } from './data/types'
 import type { StatusConfig, BookingTypeConfig } from './types'
 import type { AgendaFinancialBridge } from './financial-bridge'
-import type { EntityDef } from '@fayz/core'
+import type { EntityDef } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Public options interface

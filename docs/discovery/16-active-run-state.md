@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 08:47 BRT
+Last updated: 2026-06-15 11:29 BRT
 
 ## Mode
 
@@ -8,18 +8,60 @@ Active autonomous execution is approved. This file is the fast resume snapshot f
 
 The heartbeat is a fallback/resume mechanism, not the main worker. The active thread should keep executing in continuous small cycles: inspect, run the next gate, fix the narrow failure, update docs, repeat. Stop only for blockers that require Vini's product/architecture approval.
 
-Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is now locked to public npm. Beauty agenda lifecycle proof is broad and was revalidated after the runtime/API work.
+Research is complete; architecture lock and implementation plan exist. Narrow Panel manifest slice is in progress/review on feature branches. Generated-project scaffold is SDK-ready and the package-source decision is locked to public npm for `@fayz-ai/sdk` only. Beauty is now the first dogfood app for local SDK/internal app-runtime validation before generator-heavy work. Route recalculation is locked in `28-proof-first-route-lock.md`: proof-first capabilities, one public SDK package, private/internal app-runtime and domain packages until Beauty + second vertical prove stable seams.
+
+Latest route lock update:
+
+- Do not drift into vertical app implementation as the goal. The PoC goal is generated/custom app-owned code on top of reusable SDK engines.
+- Current slice targets `FAY-1191/FAY-1192/FAY-1193`: typed storefront route overrides, app-owned custom files, and commerce primitives for custom workflows.
+- `@fayz-ai/storefront` now has first-match custom route definitions and `placeStorefrontOrder()` as a reusable checkout primitive.
+- `shopfront` proves `/checkout` override through `src/custom/AuroraCheckoutRoute.tsx`, while totals/session/order creation stay in SDK/storefront primitives.
+- Keep `shop` and `storefront` split internally: `shop` is domain/API/provider; `storefront` is customer-facing UI/routes/slots. Do not collapse them.
+- Generated apps now have a stricter app-owned edit surface rule: config, pages,
+  custom routes, components, types, i18n, and data may live in the app; repeated
+  plugin/runtime/storefront engines should live in SDK/internal packages. The
+  contract gate warns on local engine copies under `src/plugins`, `src/runtime`,
+  or `src/app-runtime`.
+- `pnpm check:generated-dogfood:strict` is now the pre-agent gate: it runs the
+  four dogfood contract checks in strict warning-as-failure mode plus typecheck.
+  It currently passes across Beauty, shopfront, Resto, and Marketplace.
+- `pnpm check:generated-agent-scope <app> --strict` is now the per-app edit
+  scope gate. Run it before the strict dogfood gate when a Fayz Agent edits a
+  generated app; it classifies changed files as app-owned, review, or blocked.
+- Fayz generated-app scaffold is being corrected toward a lean default: new
+  scaffolds should not require app-local `AGENTS.md`. Agent instructions belong
+  in internal SDK/Fayz docs, capability metadata, and executable gates queried
+  on demand. Fayz API scaffold tests now block `AGENTS.md` from being emitted
+  by default.
+- Fayz repo now exposes `npm run check:fayz-sdk-agent-gates` as the operator
+  wrapper for app scope gate plus strict dogfood gate. It resolves
+  `../fayz-sdk` by default and supports `FAYZ_SDK_REPO`.
+- The Fayz wrapper now supports `--dry-run` and has a focused Node test via
+  `npm run test:fayz-sdk-agent-gates`.
+- The SDK scope gate itself now has `pnpm test:generated-agent-scope`; this test
+  caught and fixed a parser bug for app paths when `--base` is omitted.
+- Fayz repo now has a repeatable real MCP proof command:
+  `npm run proof:fayz-sdk-agent-send-message -- --project-id=fayz-sdk-runtime-proof`.
+  Full run is green with seed, smoke, real `send_message`, single app-owned DB
+  diff, final readiness gate, healthcheck, deferred build pass, and released
+  runtime version 3. The command seeds local proof credits only for
+  `fayz-sdk-runtime-proof` by default and supports `--skip-credit-seed`. It now
+  also requires `get_fayz_sdk_agent_rollout_status` to report the requested
+  project ready before any credit seed or generation. The proof credit seed is
+  restored after success, generation failure, or post-send audit failure, so
+  local `OrganizationCredits` state does not leak across dogfood runs.
+- Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
 - Fayz branch: `weekend-fayz-sdk-panel-manifest`
 
 ## Fast snapshot
 
-Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
+Status: **green for FAY-1178 cleanup, green for FAY-1181 default SDK published under npm org `@fayz-ai`, green for public-surface correction where only `@fayz-ai/sdk` remains public, green for Beauty local-SDK build + tenant/backend save proof, green for FAY-1183 SDK-owned release-channel source now powering the CLI, green for FAY-1183 machine-readable SDK release-channel manifest export, green for first `@fayz-ai/sdk` data API helper + Beauty dashboard SDK data proof, green for M68 public SDK data mutations, green for M69 private Tables provider on SDK data API, green for M70 Resto env-gated Tables provider wiring, green for M71 private Menu provider on SDK data API, green for M72 Resto env-gated Menu provider wiring, green for M73 private Orders plugin extraction consumed by Resto, green for M74 private Orders provider on SDK data API, green for M75 Resto env-gated Orders provider wiring, green for new runtime login/OAuth config carry-forward prep, green for new AdminShell app-page ordering/children parity, green local-gated for Beauty `FayzAppConfig.org` migration proof, green for Beauty/Resto `renderApp(defineSaas(config))` dogfood bridge, green for Resto config-folder/page/dashboard/reports/theme split, green local-gated for Beauty config-folder permissions/pages/billing/dashboard/reports/theme split, green for Beauty style restoration in the new manifest/runtime path, green for M38 provider-leak reduction, green for M39/M40 ProductCard slot dogfood across Pulse and Tannat, green for M41/M42 Fayz Shop SDK adapter + tenant seed, green for M43 shop naming refactor, green for M46 new AdminShell settings/frame parity across Beauty/Resto, green for M47 login/logout parity, green local-gated for M48 Liquid Glass global contrast/modal field tokens, green for M49 shop app Tailwind scan repair, green for M51 shop/storefront boundary correction, green for M52 Fayz ecommerce scaffold cleanup, green for M53/M54 storefront custom slot contract preservation across SDK/Tannat/Pulse, green for M55 Fayz scaffold guidance using the SDK slot contract, green for M56/M57 Marketplace baseline and manifest-first config on current `@fayz-ai/*` local SDK, green for M58 Marketplace dashboard/config split, green for M59 Marketplace dashboard SDK shop provider path, green for M60 plugin-shop provider injection dogfood in Marketplace, green for M61/M62 scaffold guidance and concrete ecommerce shop-provider template, green for M63 manifest AdminShell wildcard/CRUD route normalization, green for M67 private SDK Menu/Tables real surfaces consumed by Resto, green/yellow for FAY-1182 provider onboarding after OAuth broker read/write Calendar proxy and revocation/audit foundation**.
 
 Linear anchor:
 
-- Current active issues: `FAY-1178` — `[SDK] DB-backed AppManifest foundation for generated panels`; `FAY-1182` — `[SDK] Server-side tenant enforcement for Fayz API data provider`
+- Current active issues: `FAY-1178` — `[SDK] DB-backed AppManifest foundation for generated panels`; `FAY-1182` — `[SDK] Server-side tenant enforcement for Fayz API data provider`; `FAY-1183` — `[SDK] Centralized SDK version manager for generated projects`
 - Completed related issues: `FAY-1179`, `FAY-1180`
 - Reactivated related issue: `FAY-1181` — package real `fayz-sdk` on public npm with default `@fayz-ai/sdk` package
 - Historical origin: `FAY-924`
@@ -28,12 +70,42 @@ Current focus:
 
 1. Packaging mode is active: use `/Users/fayalabs/dev/fayz-sdk/docs/discovery/23-milestone-packaging-plan.md` before staging or committing.
 2. Report progress in executive format: Resultado, Impacto, Risco, Proximo. Technical detail is evidence, not the headline.
-3. Continue `FAY-1181` package implementation from the public npm decision: default `@fayz-ai/sdk`, public package metadata, generated scaffold dependency update, and release checklist.
-4. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
-5. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
-6. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates.
-7. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
-8. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
+3. Continue `FAY-1184` from the public npm decision: default `@fayz-ai/sdk` is published. Stop expanding public npm surface; app-runtime/plugins/core/UI packages are internal/private until Beauty + 2 more apps prove a real public boundary.
+4. Continue `FAY-1183`: the SDK now owns the typed release-channel resolver, the CLI reads from it, and the package now exports a machine-readable release-channel manifest. Next step is making Fayz scaffold consume that SDK export so the cross-repo duplication disappears, then deciding whether channels stay checked-in or become npm dist-tag/API-backed.
+5. Continue `FAY-1182` from the committed OAuth-backed broker foundation, exchange route, Google Calendar read/write proxy, revocation/audit foundation, and SDK helper into provider onboarding UI after product approval.
+6. Treat Fayz SDK as open source; keep secrets, OAuth refresh tokens, provider credentials, and tenant authority in Fayz/server-side infrastructure.
+7. Treat `AppManifest + renderApp(manifest)` as the recommended repo x SDK contract. `createSaasApp` is legacy compatibility only; do not use it for new generated apps or templates. The app-runtime concept is internal/local until dogfood proves it should become a package.
+8. Keep Beauty paid demo proof booking intact; use separate seeded bookings for destructive tests.
+9. Keep docs/Linear updated before and after each gated slice so the 30-minute status agent has a clean snapshot.
+10. Dogfood order before generator-heavy work: finish Beauty UI save confirmation, keep improving `resto-saas`, `shopfront`, and at least one more Fayz app until 4 apps reach roughly 9/10. Only after that should Fayz Agents be taught to operate `fayz-sdk`.
+11. Generated apps should not own direct provider clients by default. `integrations/supabase` is a smell for generated apps unless hidden behind an optional SDK adapter; default API/data access should go through `@fayz-ai/sdk` / Fayz broker, Base44-style.
+12. Current SDK/API abstraction proof: Beauty dashboard KPI and today-schedule section now call `fayz.data.countRows/listRows` instead of importing Supabase directly. Next frontier is moving remaining app/plugin/provider wiring behind SDK/platform adapters.
+12a. M68 extends the public `@fayz-ai/sdk` data API with `createRow`, `updateRow`, and `deleteRows` over the existing Fayz database row endpoints. This is the foundation for Menu/Tables/Beauty/Marketplace providers to stop owning ad hoc fetch/Supabase mutation code.
+12b. M69 adds `createFayzTablesProvider()` inside private `@fayz-ai/plugin-tables`, backed by `@fayz-ai/sdk` data reads/mutations for `restaurant_tables`. Resto still uses mock provider by default until its runtime project/token/tenant env is explicitly wired.
+12c. M70 wires Resto Tables through `src/config/tables.ts`: `VITE_FAYZ_TABLES_PROVIDER=fayz` activates `createFayzTablesProvider()`, while default local dev remains on mock fallback. Resto build and authenticated `/tables` smoke pass.
+12d. M71 adds `createFayzMenuProvider()` inside private `@fayz-ai/plugin-menu`, backed by `@fayz-ai/sdk` data reads/mutations for `saas_core.categories` and `saas_core.products` with menu-specific metadata.
+12e. M72 wires Resto Menu through `src/config/menu.ts`: `VITE_FAYZ_MENU_PROVIDER=fayz` or `sdk` activates `createFayzMenuProvider()`, while default local dev remains on mock fallback. Resto build and authenticated `/menu` smoke pass.
+12f. M73 promotes Resto's app-local Orders UI/provider contract into private `@fayz-ai/plugin-orders` and switches Resto to consume the package import. The old `src/plugins/orders` copy is removed from Resto. Plugin typecheck/build, Resto build, and authenticated `/orders` smoke pass.
+12g. M74 adds `createFayzOrdersProvider()` inside private `@fayz-ai/plugin-orders`, backed by `@fayz-ai/sdk` data reads/mutations for configurable `orders` and `order_items` tables. Resto still uses mock fallback until a concrete order table/runtime env contract is activated.
+12h. M75 wires Resto Orders through `src/config/orders.ts`: `VITE_FAYZ_ORDERS_PROVIDER=fayz` or `sdk` activates `createFayzOrdersProvider()`, while default local dev remains on mock fallback. Resto build and authenticated `/orders` smoke pass.
+13. M63-M67 route-shell and Resto restaurant proof is local-gated: `@fayz-ai/saas`, `@fayz-ai/plugin-crm`, `@fayz-ai/plugin-agenda`, `@fayz-ai/plugin-menu`, and `@fayz-ai/plugin-tables` gates pass; Beauty/Resto production builds pass; ports 5180/5181/5183/5184/5185/5186 respond 200. Authenticated Beauty QA confirmed `/clients`, client detail click, `/settings`, `/registry/services/new`, and real staff schedule route. Authenticated Resto QA confirmed `/clients`, `/settings`, `/registry/staff`, `/menu`, `/tables`, and `/sales/leads/list` avoid 404. M67 promoted Resto's rich Menu/Tables surfaces into private SDK plugin packages and returned Resto to `@fayz-ai/plugin-menu` / `@fayz-ai/plugin-tables`; authenticated smoke now shows real menu management and floor-plan screens through SDK package imports. CRM still shows onboarding until setup is completed/skipped.
+14. Current `createSaasApp` deprecation proof: Beauty now builds locally with `FayzAppConfig.org` and no `SaasAppConfig`/`organization` config references. Browser smoke opened `http://localhost:5180/` successfully. Because Beauty has broad unrelated worktree changes, do not commit Beauty without curated staging.
+15. Shop proof: Shopfront, Tannat, and Pulse now prove the right direction with corrected naming: `@fayz-ai/shop` owns domain/provider/catalog/backend primitives, `@fayz-ai/storefront` owns customer-facing store UI/templates/pages/slots, and `@fayz-ai/sdk/shop` owns Fayz-backed data access. The packages remain internal/local except public `@fayz-ai/sdk`. M39/M40 proved the first code-level customization slot (`ProductCard`) across Pulse streetwear and Tannat wine without copying catalog/checkout/account pages. Next step is expanding slots only where real app customization pressure proves they are needed.
+16. Fayz Shop backend proof: `@fayz-ai/sdk/shop` now exposes the Fayz-owned shop backend as a normalized provider for products, categories, orders, customers, and discounts. Shopfront, Pulse, and Tannat use the SDK provider with mock fallback; app repos configure `storeId`/tenant env only and do not import Supabase directly. M42 seeded separate tenants: Aurora/Shopfront `10000000-0000-4000-8000-000000000101` with 16 products, Pulse `10000000-0000-4000-8000-000000000102` with 8 products, and Tannat `10000000-0000-4000-8000-000000000103` with 8 products. Storefront categories are currently tenant-owned via product metadata because global `categories` is RLS-protected.
+17. Current running ports for Vini inspection: Beauty `5180`, Resto `5181`, Shopfront `5183`, Tannat `5184`, Pulse `5185`.
+18. Current visual/theme proof: Liquid Glass now has global modal, divider, field, button, card, and popover tokens, but Beauty has been returned to `classic_admin` for the primary SaaS proof. Next Liquid Glass dogfood should happen in a controlled app/sandbox while plugin surfaces that still force local `bg-card`/`border`/`shadow` classes are migrated to tokens.
+19. Shop breakage root cause: Shopfront, Tannat, and Pulse had stale Tailwind package scans during the shop/storefront refactor. The corrected architecture restores `packages/storefront` for UI scans and keeps `packages/shop` for backend/domain imports. Next step is moving this wiring into generator/template code instead of hand-written per-app globs.
+20. Fayz scaffold cleanup: the ecommerce integration no longer generates `@fayz/shop-core`, app-owned ecommerce clients, layout/header/footer, or local cart hooks. It now teaches the corrected split: public `@fayz-ai/sdk/shop` for data, internal `@fayz-ai/storefront` for UI, and internal `@fayz-ai/shop/catalog` only for explicit mock/seed catalogs. Do not collapse `shop` and `storefront`: `shop` is backend/domain/API, `storefront` is customer-facing UI/templates/slots.
+21. Custom storefront slots must preserve SDK/storefront automation contracts. Tannat and Pulse custom `ProductCard` implementations now keep `product-card`, `product-card-name`, `product-card-price`, and `product-card-add` test IDs while preserving client-specific visuals. Browser smoke confirmed Tannat/Pulse add-to-cart opens the cart, checkout/account routes avoid 404s, and Shopfront catalog still exposes the same contract. This is the current rule for scale: client apps can customize appearance, but they cannot silently break the platform/agent/QA surface.
+22. M54 moved that rule into SDK code: `@fayz-ai/storefront` now exports `productCardSlotContract` / `storefrontSlotContracts`, the default `ProductCard` uses it, and Tannat/Pulse custom cards dogfood it. Future generated custom slots should import the contract instead of hard-coding selector strings.
+23. M55 propagated the slot-contract rule into Fayz generated-project guidance: ecommerce integration prompt, generated `AGENTS.md`, ecommerce README, and library guidelines now instruct custom `ProductCard` slots to import `productCardSlotContract`. Gate passed with `pnpm --filter @wowsome/api build`.
+24. Fourth-app dogfood started with `marketplace-saas`. M56 migrated the app from broken legacy `@fayz/*` / `saas-core` package wiring to current local `@fayz-ai/*` SDK aliases while keeping only public `@fayz-ai/sdk` in dependencies. Build passes and the app runs on `http://localhost:5186/`. Next marketplace step is manifest/config-folder migration (`renderApp(defineSaas(config))`) and then SDK-backed shop/admin data proof.
+25. M57 moved `marketplace-saas` to the same manifest-first app contract as Beauty/Resto: tiny `src/App.tsx`, `src/config/app.tsx`, `defineSaas(config)`, and `renderApp(manifest, { surface: 'admin' })`. Build and browser smoke are green on `http://localhost:5186/`.
+26. M58 split Marketplace dashboard metrics and shared currency into `/src/config/dashboard.ts` and `/src/config/currency.ts`. `src/config/app.tsx` is now a thinner app assembly file and the shop provider dependency is isolated in dashboard config as the explicit next swap point for `@fayz-ai/sdk`/broker-backed data access. Build and browser smoke are green on `http://localhost:5186/`.
+27. M59 moved Marketplace dashboard shop metrics onto the public SDK shop provider path: `src/config/shop-provider.ts` uses `@fayz-ai/sdk/shop` when `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` are present and falls back to the internal mock provider for local dev. This keeps Marketplace running while proving the app-owned code can depend on the SDK data boundary. Build and browser smoke are green on `http://localhost:5186/`.
+28. M60 added provider injection to `@fayz-ai/plugin-shop` and Marketplace now passes `getMarketShopProvider` into `createShopPlugin`. This moves both Marketplace dashboard metrics and the Shop admin page toward the same SDK-owned provider path while preserving the plugin's global provider fallback for older apps. Plugin typecheck/build, Marketplace build, browser smoke, and port checks are green.
+29. M61 propagated the M60 provider-injection rule into Fayz scaffold guidance and the SDK agent guide. New generated merchant/admin shop apps should build a provider with `createFayzShopProvider` from `@fayz-ai/sdk/shop` and pass it into `createShopPlugin({ provider })`; the plugin global provider is compatibility only. Fayz API build gate is green.
+30. M62 added a concrete generated ecommerce template file at `src/integrations/ecommerce/shop-provider.ts`. It delegates to `@fayz-ai/sdk/shop`, reads `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`/`VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_FAYZ_STORE_ID`, and returns undefined when env is incomplete. This gives future generated shop/admin apps a real provider factory without generating app-owned Supabase clients. Fayz API build gate is green.
 
 Idle-loop rule:
 
@@ -46,7 +118,536 @@ Executive answer to Vini's latest check:
 - Are we committing? Yes. First milestone commit is done: `c967b26`.
 - Are we moving fast enough? Yes after the packaging correction: M1-M4 are committed, M5 Beauty proof is validated, M6-M12 OAuth broker/scaffold slices are committed/pushed in Fayz, and M13 is committed locally in SDK.
 - Are we stuck/rabbit-looping? No stuck process was found. The main risk is reviewability, not runtime blocking.
-- Next target: finish and gate the public npm / default `@fayz-ai/sdk` implementation, then approve provider onboarding direction in `25-provider-onboarding-decision-brief.md`.
+- Next target: curate/package Beauty source-only migration proof, then remove remaining provider leaks and continue fourth-app dogfood.
+
+## M37 Beauty style fix + storefront dogfood cleanup — 2026-06-14 15:55 BRT
+
+Result:
+
+- Restored Beauty theming in the new `renderApp(defineSaas(config))` path by applying the theme store initialization inside the shared admin provider stack.
+- Left five local apps running for inspection: Beauty `5180`, Resto `5181`, Shopfront `5183`, Tannat `5184`, Pulse `5185`.
+- Confirmed all five ports return HTTP 200.
+- Refactored Pulse and Tannat toward the Shopfront shape: tiny `App.tsx`, config in `/src/config`, `@fayz-ai/*` local aliases, and only `@fayz-ai/sdk` as the public dependency.
+- Verified Pulse and Tannat with `pnpm build`.
+
+Impact:
+
+- Beauty no longer loses brand styling just because it uses the new manifest/runtime path.
+- The three shop apps now show the intended product split: shared platform owns shop mechanics; each client app owns theme, catalog, copy, images, and business configuration.
+
+Risk:
+
+- Shop builds still show Supabase pulled internally through SDK/platform packages. That is acceptable for local dogfood, but it is the next architecture cleanup before calling shop 9/10.
+- `@fayz-ai/core`, `@fayz-ai/shop`, and `@fayz-ai/ui` remain internal/local implementation imports; do not publish them as public product API yet. `packages/storefront` was removed to avoid a second shop concept.
+
+Next:
+
+- Package the SDK theme fix and Pulse/Tannat dogfood commits after staged diff review.
+- Continue shop abstraction: define override slots/data-provider contract so checkout/catalog/profile stay shared without blocking deep client customization.
+
+## M36 Beauty `FayzAppConfig.org` local migration proof — 2026-06-14 12:39 BRT
+
+Result:
+
+- Extended the new `FayzAppConfig` contract to accept the rich theme, billing plan config, and chat title shape Beauty already uses.
+- Added billing plan normalization in the new runtime provider path.
+- Locally migrated Beauty config from `SaasAppConfig.organization` to `FayzAppConfig.org`.
+- Confirmed no `SaasAppConfig`/`organization` references remain in Beauty config.
+- Opened Beauty in browser at `http://localhost:5180/` without an initial crash.
+
+Impact:
+
+- This is the strongest proof so far that `renderApp(defineSaas(config))` can become the real app contract and `createSaasApp` can move toward compatibility-only.
+- The SDK adapted to a real app instead of forcing Beauty to simplify product config.
+
+Risk:
+
+- Beauty migration is local-gated and uncommitted because the Beauty repo is `ahead 1, behind 2` with broad unrelated changes.
+- Still need visual navigation/settings inspection before claiming full production-grade parity.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+  - Browser smoke: `http://localhost:5180/`
+
+Next:
+
+- Package Beauty source-only migration separately after branch/staging cleanup.
+- Continue provider leak removal and fourth-app dogfood.
+
+## M35 new AdminShell page ordering/children parity — 2026-06-14 12:30 BRT
+
+Result:
+
+- Extended `FayzAppConfig` custom pages with `position`, `badge`, `permission`, and recursive `children`.
+- Updated the new AdminShell to sort plugin/app navigation by section and position.
+- Updated the new AdminShell to render nested app navigation and collect child routes with components.
+
+Impact:
+
+- Removes another practical blocker to moving Beauty off the legacy `createSaasApp` shell path.
+- Keeps app-specific navigation as business config instead of forcing custom code in each app.
+- Makes the new manifest/runtime path more credible for scaling thousands of apps because app repos can declare pages/subpages without owning shell logic.
+
+Risk:
+
+- This is shell parity, not the final Beauty migration. Beauty still needs a curated switch from `SaasAppConfig` to `FayzAppConfig` and a visual navigation/settings check.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Switch Beauty to `FayzAppConfig.org`/new runtime path in a curated slice and verify the app still feels like Beauty, not a reduced shell.
+
+## M34 new runtime login/OAuth carry-forward prep — 2026-06-14 12:26 BRT
+
+Result:
+
+- Extended the new `FayzAppConfig` auth contract with login logo/layout/copy/OAuth provider fields already used by Beauty.
+- Passed logo/login/OAuth config through `createFayzApp()` and manifest `AdminScaffold` into the new AdminShell/LoginPage.
+- Exposed `signInWithOAuth()` through the shared `@fayz-ai/auth` hook so the new runtime path can call OAuth adapters.
+
+Impact:
+
+- Removes a real blocker to deprecating `createSaasApp`: Beauty no longer needs the legacy shell only to preserve login copy/OAuth intent.
+- Keeps the product-quality bar: we are not forcing Beauty into the new runtime while losing UX.
+- Confirms the next blocker is AdminShell parity for nested navigation/position/settings, not login/auth wiring.
+
+Risk:
+
+- Beauty still uses the legacy config path today because its app pages rely on navigation children/positions that the new AdminShell does not yet fully preserve.
+- OAuth provider secrets still must stay behind Fayz server-side broker; this slice only exposes the runtime hook path.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/auth typecheck`
+  - `pnpm --filter @fayz-ai/auth build`
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm --filter @fayz-ai/saas build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Add AdminShell support for app page ordering/children/settings parity, then switch Beauty from `organization`/`SaasAppConfig` to `org`/`FayzAppConfig`.
+
+## M33 SDK data API + Beauty dashboard proof — 2026-06-14 12:20 BRT
+
+Result:
+
+- Added `fayz.data.listRows()` and `fayz.data.countRows()` to the public `@fayz-ai/sdk` client.
+- Added SDK tests covering Fayz project table row routes, filters, sorting, runtime routes, app id, and bearer token headers.
+- Updated SDK README with the Base44-like data access pattern.
+- Switched Beauty dashboard KPI and today's schedule section from direct Supabase queries to the SDK data helper.
+- Added Beauty local SDK aliases for `@fayz-ai/sdk` so app dogfood can validate SDK edits without npm publish.
+
+Impact:
+
+- This is the first concrete proof that Fayz SDK removes a real app-owner technical burden: app dashboard code no longer knows Supabase query syntax for its agenda metrics.
+- Beauty is now closer to the desired split: app-owned business config/components stay local, while data/API access starts moving into the SDK/platform contract.
+- The remaining value gap is clearer: CRUD/plugin internals and provider adapters still need to move behind SDK/platform boundaries before claiming a 9/10 lock.
+
+Risk:
+
+- Beauty is still a local-gated, broad worktree and is behind origin by 2. Do not broad-commit Beauty until staging is curated or a branch packaging decision is made.
+- SDK helper currently covers list/count row reads. Mutations, typed models, tenant defaults, and richer filters still need follow-up before generated apps can fully drop provider clients.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk test`
+  - `pnpm --filter @fayz-ai/sdk build`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Package SDK helper commit separately from unrelated release-channel/doc dirt.
+- Replace remaining direct provider access in app-owned code, then continue dogfood with a fourth app before Fayz Agents SDK operation.
+
+## M32 SDK machine-readable release-channel manifest — 2026-06-14 12:14 BRT
+
+Result:
+
+- Added a machine-readable `release-channels.json` export to `@fayz-ai/sdk`.
+- Switched the typed SDK resolver to derive from that JSON so the package now has one checked-in version-channel source.
+- Locked JSON and typed exports together with SDK tests.
+
+Impact:
+
+- Finishes the SDK side of `FAY-1183` in a Fayz-consumable format without expanding the public npm surface.
+- Removes the need for Fayz to parse SDK TypeScript by regex during the final cutover.
+- Keeps version governance inside the public SDK package contract, not in app repos.
+
+Risk:
+
+- The final Fayz scaffold cutover is still pending because this automation sandbox can read `/Users/fayalabs/dev/fayz` but cannot write there.
+- Channel values remain checked-in constants for now; dist-tags/API backing is still a later decision after dogfood proof.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk typecheck`
+  - `pnpm --filter @fayz-ai/sdk test`
+  - `pnpm --filter @fayz-ai/sdk build`
+
+Next:
+
+- When the Fayz repo is writable, replace the scaffold snapshot/parser path with direct consumption of the SDK `release-channels.json` export.
+
+## M31 Beauty dashboard/reports extraction — 2026-06-14 12:11 BRT
+
+Result:
+
+- Extracted Beauty dashboard config to `src/config/dashboard.tsx`.
+- Extracted Beauty reports config to `src/config/reports.ts`.
+- Reduced `src/config/app.tsx` from a large mixed config surface to roughly 210 lines focused on app composition.
+- Kept `src/App.tsx` render-only through `renderApp(defineSaas(beautyAppConfig))`.
+
+Impact:
+
+- Beauty is now much closer to Resto's scalable app shape while preserving the paid agenda proof path.
+- The remaining high-value architecture issue is not file organization; it is API access abstraction.
+- Dashboard still imports `../integrations/supabase/client`, which confirms Vini's point: generated apps should use a Base44-like `@fayz-ai/sdk` client/helper instead of direct provider clients.
+
+Risk:
+
+- This remains a local gated Beauty slice. The repo is behind origin by 2 and has broad existing changes, so do not package/commit Beauty without a curated branch/staging decision.
+- The direct Supabase dashboard query is now isolated, but not solved architecturally yet.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Implement or expose the SDK API helper needed to replace direct Beauty dashboard Supabase queries.
+- Continue the 4-app dogfood route before Fayz Agents SDK operation.
+
+## M30 Shopfront config-folder/storefront proof — 2026-06-14 12:05 BRT
+
+Result:
+
+- Refactored Shopfront to the same app shape:
+  - `src/App.tsx` is render-only.
+  - `src/config/app.ts` owns store-specific storefront config.
+  - `src/config/catalog.ts` owns catalog data/image mapping.
+- Removed direct `@supabase/supabase-js` dependency from the Shopfront app package.
+- Updated README away from direct Supabase "go live" instructions and toward SDK/API broker access.
+
+Impact:
+
+- Proves the `src/config/*` pattern applies beyond SaaS admin apps.
+- Confirms storefront apps can reuse shell/layout/navigation/pages while keeping each shop's custom source/config explicit.
+- Reinforces the product rule: app repos should not default to provider SDKs; Fayz SDK should abstract API/client access.
+
+Risk:
+
+- Build still shows Supabase in the bundle through internal SDK/storefront imports. That is an SDK boundary issue, not a Shopfront app dependency issue.
+- Add backlog: split provider adapters behind optional SDK/storefront entrypoints so API-only or mock storefront apps do not pull provider clients.
+
+Gate:
+
+- Passed:
+  - `npm run build` in `/Users/fayalabs/dev/fayz-app/shopfront`
+
+Commit:
+
+- Shopfront: `3d88049 refactor: split shopfront config`
+
+Next:
+
+- Continue 9/10 dogfood across 4 apps before implementing Fayz Agents SDK operation.
+- For SDK: make provider clients optional/adapter-owned and expose Base44-like API access via `@fayz-ai/sdk`.
+
+## M29 Beauty config-folder local slice — 2026-06-14 12:00 BRT
+
+Result:
+
+- Moved Beauty theme to `src/config/theme.ts`.
+- Extracted Beauty permissions to `src/config/permissions.ts`.
+- Extracted Beauty pages to `src/config/pages.tsx`.
+- Extracted Beauty billing plans to `src/config/billing.ts`.
+- Kept `src/App.tsx` as render-only through `renderApp(defineSaas(beautyAppConfig))`.
+
+Impact:
+
+- Beauty now follows the same basic `src/config/*` pattern as Resto for app-owned business configuration.
+- This reduces root/source clutter and gives agents clearer edit surfaces before dashboard/reports/plugin extraction.
+- The Beauty proof remains build-green while preserving the local SDK development loop.
+
+Risk:
+
+- This is not committed in Beauty yet. Beauty is still behind origin by 2 and has broad existing changes, including untracked `src/config/`.
+- Do not package Beauty until staging is reviewed or a branch/commit strategy is chosen.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Next:
+
+- Continue Beauty extraction in narrow local slices: dashboard first, then reports/plugins.
+- Package Beauty only after deciding how to isolate this work from the pre-existing dirty/behind worktree.
+
+## M28 Resto dashboard/reports/theme split — 2026-06-14 11:56 BRT
+
+Result:
+
+- Extracted Resto dashboard config to `src/config/dashboard.tsx`.
+- Extracted Resto reports config to `src/config/reports.ts`.
+- Moved visual theme from `src/theme.ts` to `src/config/theme.ts`.
+- Kept `src/App.tsx` as render-only and `src/config/app.tsx` as app composition.
+
+Impact:
+
+- Resto now looks materially closer to the shape we can scale: entrypoint, registry, and domain config are separated.
+- `src/config/app.tsx` dropped from a large mixed config file into a readable composition file.
+- Confirms the generator should prefer `src/config/*` modules instead of root-level `.config` clutter or decorative `.manifest.ts` wrappers.
+
+Risk:
+
+- Resto still has more plugin factories in app composition; acceptable for this slice.
+- Beauty build passes with `theme` moved under `src/config`, but Beauty remains broad/behind origin and should be packaged separately.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Commit:
+
+- Resto: `9ca593b refactor: split resto dashboard and reports config`
+
+Next:
+
+- Apply the same config-folder extraction to Beauty in narrow slices: permissions, pages, dashboard, then reports/plugins.
+- Do not reintroduce `.manifest.ts` unless it contains real serialized manifest data or a real registry boundary.
+
+## M27 Resto config-folder/page split — 2026-06-14 11:49 BRT
+
+Result:
+
+- Removed redundant `src/app.manifest.ts` from Resto. The app stays on a tiny `App.tsx` until a manifest file contains real serialized data or real registry boundary value.
+- Grouped business config under `src/config/`:
+  - `src/config/app.tsx`
+  - `src/config/billing.ts`
+  - `src/config/permissions.ts`
+  - `src/config/pages.tsx`
+- Split Resto pages out of the main app config.
+
+Impact:
+
+- Cleaner app contract: root files are real entry/registry surfaces; business config lives in one folder.
+- Avoids aesthetic architecture and prevents the generator from copying redundant wrapper files.
+- Moves Resto closer to a format we can be happy scaling: App entry + registry + organized config modules.
+
+Risk:
+
+- Resto plugin/dashboard config remains the next large block to extract.
+- Beauty has the same "no redundant manifest wrapper" rule and a local `src/config/app.tsx`, but remains broad/behind origin and should be packaged separately.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+
+Commits:
+
+- Resto: `1de3dd5 refactor: group resto config files`
+- Resto: `cd3473b refactor: split resto page config`
+
+Next:
+
+- Extract Resto dashboard metrics/sections into `src/config/dashboard.tsx`.
+- Apply the config-folder pattern to Beauty as a coherent packaging slice after deciding how to handle its broad worktree.
+
+## M26 Resto manifest/registry split — 2026-06-14 11:40 BRT
+
+Result:
+
+- Superseded by M27. Resto now follows the cleaner scalable file shape:
+  - `src/App.tsx` only renders.
+  - `src/registry.tsx` owns app-specific custom plugin/widget code.
+  - `src/config/*` owns business config.
+
+Impact:
+
+- This is a concrete step from "config-as-code monolith" toward "manifest + registry + app config".
+- It proves the refactor can be incremental and gated without breaking the app.
+- It gives agents a clearer edit surface before scaling this pattern into generated apps.
+
+Risk:
+
+- Resto still has large plugin config blocks; the next useful slice is extracting dashboard sections/metrics and entity pages into clearer registry/config modules.
+- Beauty intentionally does not get a separate `app.manifest.ts` yet because it would only wrap `defineSaas(beautyAppConfig)` without a registry boundary. Keep Beauty on a tiny `App.tsx` until the manifest becomes real data or registry-owned code appears.
+
+Gate:
+
+- Passed:
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+
+Commit:
+
+- Resto: `039b844 refactor: split resto manifest and registry`
+
+Next:
+
+- Continue Resto extraction in narrow slices: dashboard metrics/sections, entity pages, then domain plugins.
+- Apply the same pattern to Beauty only when there is a real `registry.tsx` or serializable manifest boundary, not just a duplicate wrapper file.
+
+## M25 Beauty/Resto renderApp dogfood bridge — 2026-06-14 11:45 BRT
+
+Result:
+
+- Beauty and Resto now enter through `renderApp(defineSaas(config), { surface: 'admin' })` instead of app code calling `createSaasApp`.
+- Added an SDK bridge so config-authored SaaS apps keep their live plugin/page config during migration. This preserves Beauty/Resto behavior while the pure JSON manifest + registry path matures.
+- Resto was split into a tiny `src/App.tsx` plus `src/app.config.tsx`. Beauty already had the split and now uses the same renderApp entry.
+
+Impact:
+
+- `createSaasApp` is now deprecable as an app-authoring API without forcing a risky all-at-once rewrite of plugin-heavy apps.
+- This validates the direction on two SaaS verticals before generator-heavy work.
+- The next architectural pressure point is no longer "can renderApp run these apps"; it is "how quickly can we extract live config into serializable manifest + registry without losing customization."
+
+Risk:
+
+- The SDK bridge intentionally still uses the legacy shell internally for rich config-backed apps. That is acceptable as a migration bridge, not the final thousand-app architecture.
+- Beauty worktree remains broad and behind origin; package only narrow Beauty slices after a staging decision.
+- Resto is clean enough to package after focused review.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/resto-saas`
+
+Next:
+
+- Refactor plugin/page config toward `app.manifest` + `registry` so the bridge can shrink.
+- Keep `@fayz-ai/sdk` as the only public npm package while app-runtime/core/saas/plugins remain internal/local.
+- Use Shopfront as the 9/10 target shape: thin app entry, focused config, fewer live escape hatches.
+
+## M24 SDK-owned release-channel source for CLI — 2026-06-14 11:34 BRT
+
+Result:
+
+- Moved the package-channel map into the public SDK source as a first-class `release-channels` module.
+- Rewired the CLI to consume that SDK-owned resolver instead of maintaining its own local version map.
+- Added SDK tests and exports so the release-channel source is publishable and reviewable as part of the public package contract.
+
+Impact:
+
+- One repo-local source now governs package channels for the SDK and CLI, reducing silent drift before Fayz is switched over.
+- The public npm package gains a clean future seam for Fayz/API to consume instead of copying literals.
+- This advances `FAY-1183` without expanding the public package surface beyond `@fayz-ai/sdk`.
+
+Risk:
+
+- Fayz scaffold still keeps its own checked-in resolver today, so cross-repo duplication is reduced but not fully removed yet.
+- Channel values are still checked-in constants, not npm dist-tag/API-backed data. That is acceptable for now because it is explicit and testable.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/sdk test`
+  - `pnpm --filter @fayz-ai/sdk build`
+  - `pnpm --filter @fayz-ai/cli typecheck`
+
+## M23 Public surface correction + Beauty tenant dogfood — 2026-06-14 10:59 BRT
+
+Result:
+
+- Corrected the package strategy after Vini's product call: only `@fayz-ai/sdk` is public/required now.
+- Marked app-runtime, core/auth/ui/saas/shop/storefront/portal/courses, and plugin packages private/internal in package manifests.
+- Added `pnpm check:public-surface` so future releases fail if anything except `@fayz-ai/sdk` becomes publishable.
+- Fayz scaffold and SDK CLI now emit generated apps with `@fayz-ai/sdk` only; app-runtime is a local/platform-bundled placeholder until dogfood proves otherwise.
+- Beauty now defaults to local SDK aliases for fast development instead of requiring npm publish for every SDK/plugin edit.
+- Fixed the Beauty "No tenant selected" save failure by syncing the active organization store to the core tenant context.
+
+Impact:
+
+- Reduces public API/product surface and avoids premature package sprawl.
+- Keeps the open-source SDK useful while preserving internal implementation freedom.
+- Gives Beauty a realistic development loop: edit SDK locally, reload Beauty, then publish only after a coherent milestone gate.
+
+Risk:
+
+- Beauty has broad pre-existing worktree changes and is behind origin by 2; do not stage broad Beauty changes without a packaging decision.
+- Manual browser save still needs human/UI confirmation after reload because browser automation could not type into the login form in this environment. Backend tenant proof passed with the documented test user: signed in, selected a real tenant, created a temporary client, and cleaned it up.
+
+Gate:
+
+- Passed:
+  - `pnpm --filter @fayz-ai/core typecheck`
+  - `pnpm --filter @fayz-ai/saas typecheck`
+  - `pnpm build` in `/Users/fayalabs/dev/fayz-app/beauty-saas` with local SDK aliases
+  - `curl http://localhost:5180/@fs/Users/fayalabs/dev/fayz-sdk/packages/saas/src/org/store.ts` confirms Beauty dev server is serving the local tenant-context fix
+  - Supabase dogfood proof with `teste@teste.com`: selected tenant, inserted temporary `CODEx TEST ...` client rows, then deleted them
+
+## M22 Route correction after package-wave risk — 2026-06-14 10:27 BRT
+
+Result:
+
+- Superseded the app-runtime/package-wave direction after Vini flagged public npm sprawl risk.
+- Current public npm registry check confirms only `@fayz-ai/sdk` exists publicly; `@fayz-ai/app-runtime`, `core`, `auth`, `ui`, `shop`, `saas`, and `storefront` return npm 404.
+- Repo guard now passes with one publishable package: `pnpm check:public-surface` -> `only @fayz-ai/sdk is publishable`.
+- Route lock captured in `28-proof-first-route-lock.md`.
+
+Impact:
+
+- `@fayz-ai/sdk` remains the lean public API/client package.
+- `app-runtime` is an internal/platform-bundled app shell concept, not a public generated-app dependency.
+- Beauty migration is a dogfood proof with local/internal package aliases, not justification to publish a package graph.
+
+Risk:
+
+- Older progress notes below may mention runtime/package-wave exploration. Treat those as historical exploration, not current route.
+- Do not over-invest in the Fayz repo generator before manual dogfood. The generator should copy a proven app contract, not become the first validation surface.
+
+Gate:
+
+- Passed:
+  - `pnpm check:public-surface`
+  - `npm view @fayz-ai/sdk version` -> `0.1.3`
+  - `npm view @fayz-ai/app-runtime`, `core`, `auth`, `ui`, `shop`, `saas`, `storefront` -> 404/not public
+
+## M21 Runtime publish safety gate — 2026-06-14 10:11 BRT
+
+Result:
+
+- Added a public-npm publish-safety gate for Fayz packages.
+- `@fayz-ai/app-runtime` now fails before publish when its dependency chain still points at internal workspace packages outside the public `@fayz-ai/*` scope.
+- `@fayz-ai/sdk` passes the same gate, so the safe/default package path stays green.
+
+Impact:
+
+- Removes the highest packaging risk: shipping a runtime package that installs publicly but breaks generated projects downstream.
+- Turns the runtime package-wave decision into an explicit go/no-go gate instead of a hidden release footgun.
+- Gives the next agent a clean signal: centralize versions next, do not try to publish runtime until the internal package chain is made public-safe.
+
+Risk:
+
+- This is a guardrail, not the dependency-chain migration itself. Runtime is still intentionally blocked until the internal `@fayz-ai/*` packages are renamed/published under `@fayz-ai/*` or removed from the public install path.
+
+Gate:
+
+- Passed:
+  - `node ./scripts/check-public-package-safety.mjs packages/sdk`
+- Expected block:
+  - `pnpm --filter @fayz-ai/app-runtime run check:publish-safety`
 
 ## M18 Public npm + default SDK package lock — 2026-06-14 08:47 BRT
 
@@ -54,7 +655,7 @@ Result:
 
 - Vini approved npm public as the SDK package-source standard.
 - `@fayz-ai/sdk` is now the default package for generated projects.
-- `@fayz-ai/runtime` remains the manifest app-rendering package.
+- `@fayz-ai/app-runtime` remains the manifest app-rendering package.
 - GitHub Packages / `NODE_AUTH_TOKEN` is no longer the generated-project path.
 - Created GitHub repo: `https://github.com/FayaLabs/fayz-sdk`
 - Pushed SDK commits to `main` and `weekend-fayz-sdk-architecture-lock`.
@@ -70,8 +671,8 @@ Risk:
 - Keep `@fayz-ai/sdk` focused on API access, app params, runtime broker helpers, and shared types. Do not add React, UI, Supabase, or provider SDKs to it.
 - Do not refactor Beauty destructively before package gates pass.
 - `@fayz-ai/sdk@0.1.3` is published with README, GitHub repository link, homepage, bug tracker metadata, and package copy focused on the problem it solves. Npm reports `latest: 0.1.3`, access is public, and a clean unauthenticated `npm install @fayz-ai/sdk@0.1.3` passed.
-- `@fayz-ai/runtime` was not published in this slice because it still depends on internal packages that are not yet available under the public npm scope. Publishing it now would shift the failure to generated-project installs.
-- Fayz generated scaffold is now dependency-thin: direct runtime app dependencies are `@fayz-ai/sdk`, `@fayz-ai/runtime`, `react`, and `react-dom`; UI/form/chart libraries move behind runtime/UI packages or explicit app-owned opt-ins.
+- `@fayz-ai/app-runtime` was not published in this slice because it still depends on internal packages that are not yet available under the public npm scope. Publishing it now would shift the failure to generated-project installs.
+- Fayz generated scaffold should stay dependency-thin: direct default app dependencies are `@fayz-ai/sdk`, `react`, and `react-dom`; app-runtime/internal UI/capability code is platform-bundled/local until dogfood proves a public boundary.
 
 Gate:
 
@@ -79,9 +680,9 @@ Gate:
   - `pnpm --filter @fayz-ai/sdk typecheck`
   - `pnpm --filter @fayz-ai/sdk test`
   - `pnpm --filter @fayz-ai/sdk build`
-  - `pnpm --filter @fayz/core typecheck`
-  - `pnpm --filter @fayz-ai/runtime typecheck`
-  - `pnpm --filter @fayz-ai/runtime build`
+  - `pnpm --filter @fayz-ai/core typecheck`
+  - `pnpm --filter @fayz-ai/app-runtime typecheck`
+  - `pnpm --filter @fayz-ai/app-runtime build`
   - `pnpm check:manifest`
   - `npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts`
   - `npm publish --dry-run --access public` in `packages/sdk`
@@ -98,6 +699,55 @@ Tracking:
 
 - Linear `FAY-1181` comment `197e46fa-fca0-4b9a-8bae-6e3a5000c5a1`
 - Linear `FAY-1182` comment `295f0885-7d2a-414b-95dd-f29e64a9ab70`
+
+## M19 Central SDK version resolver bridge — 2026-06-14 09:55 BRT
+
+Result:
+
+- Added a central Fayz package version resolver in the Fayz scaffold path.
+- Generated package dependencies now read `@fayz-ai/sdk` and `@fayz-ai/app-runtime` versions from one checked-in source instead of duplicating literals in scaffold definitions.
+- Added `stable`, `latest`, and `preview` channels as the first bridge toward `FAY-1183`.
+
+Impact:
+
+- Future SDK/runtime version changes no longer require hunting through scaffold templates and tests.
+- This creates the seam needed for a later npm dist-tag/API-backed channel resolver without changing generated app templates again.
+
+Risk:
+
+- This is a local checked-in resolver, not the final centralized platform service. The next step is sharing it between Fayz API scaffold and SDK CLI.
+
+Gate:
+
+- Passed: `npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts`
+
+Tracking:
+
+- Linear `FAY-1183`
+
+## M20 CLI create version resolver bridge — 2026-06-14 10:00 BRT
+
+Result:
+
+- Added the same local package-version channel resolver to the SDK CLI create path.
+- `fayz create` now resolves `@fayz-ai/sdk` and `@fayz-ai/app-runtime` versions from one CLI source instead of command-local literals.
+
+Impact:
+
+- API scaffold and SDK CLI now follow the same version-channel shape.
+- This reduces release drift while `FAY-1183` moves toward a real shared channel source.
+
+Risk:
+
+- API and CLI still each have local checked-in resolvers. The final milestone must make them read the same source of truth.
+
+Gate:
+
+- Passed: `pnpm --filter @fayz-ai/cli typecheck`
+
+Tracking:
+
+- Linear `FAY-1183`
 
 ## M17 createSaasApp deprecation stance — 2026-06-14 08:25 BRT
 
@@ -188,7 +838,7 @@ Gate:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
+pnpm --filter @fayz-ai/core typecheck
 ```
 
 Result: passed. Known non-blocking noise: `.npmrc` warns about missing `${NODE_AUTH_TOKEN}`.
@@ -199,13 +849,13 @@ Result:
 
 - SDK commit `fdb2d22` created locally: `feat(core): add runtime oauth broker helper`.
 - Tracking updated: Linear `FAY-1182` comment `e55b109e-d0e7-4055-bbd0-1d2519f534ca`.
-- Added `createFayzRuntimeClient()` and typed Plugin OAuth/Google Calendar broker helpers under `@fayz/core`.
-- Added `@fayz/core/runtime` subpath and root exports; `@fayz-ai/runtime` receives it through the umbrella re-export.
+- Added `createFayzRuntimeClient()` and typed Plugin OAuth/Google Calendar broker helpers under `@fayz-ai/core`.
+- Added `@fayz-ai/core/runtime` subpath and root exports; `@fayz-ai/app-runtime` receives it through the umbrella re-export.
 
 Impact:
 
 - The scaffold helper now has a real SDK home.
-- Once SDK remote/package-source is confirmed, generated apps can stop carrying the temporary local helper and import from `@fayz-ai/runtime`.
+- Once SDK remote/package-source is confirmed, generated apps can stop carrying the temporary local helper and import from `@fayz-ai/app-runtime`.
 
 Risk:
 
@@ -216,10 +866,10 @@ Gate:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
-pnpm --filter @fayz-ai/runtime typecheck
-pnpm --filter @fayz-ai/runtime build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
+pnpm --filter @fayz-ai/app-runtime typecheck
+pnpm --filter @fayz-ai/app-runtime build
 ```
 
 Result: passed. Known non-blocking noise: `.npmrc` warns about missing `${NODE_AUTH_TOKEN}`.
@@ -269,7 +919,7 @@ Impact:
 
 Risk:
 
-- This is a scaffold helper, not the final packaged open-source SDK helper. The package-source/SDK remote decision still blocks publishing it as `@fayz-ai/runtime`.
+- This is a scaffold helper, not the final packaged open-source SDK helper. The package-source/SDK remote decision still blocks publishing it as `@fayz-ai/app-runtime`.
 - Full template typecheck still has pre-existing missing dependency noise for shadcn/Radix files; the new helper was typechecked in isolation with template-compatible compiler options.
 
 Gate:
@@ -523,19 +1173,19 @@ c967b26 feat(sdk): lock app manifest runtime contract
 What this protects:
 
 - SDK `AppManifest` v2 validation and exported JSON Schema strictness.
-- `fayz-api` data provider entrypoint in `@fayz/core`.
+- `fayz-api` data provider entrypoint in `@fayz-ai/core`.
 - Manifest-aware `resolveDataProvider()` backend routing.
-- Runtime umbrella export cleanup and real `@fayz-ai/runtime/styles.css` build output.
-- Repeatable root `pnpm check:manifest` gate scoped to `@fayz/core`.
+- Runtime umbrella export cleanup and real `@fayz-ai/app-runtime/styles.css` build output.
+- Repeatable root `pnpm check:manifest` gate scoped to `@fayz-ai/core`.
 
 Gate run before commit:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
+pnpm --filter @fayz-ai/core typecheck
 pnpm check:manifest
-pnpm --filter @fayz-ai/runtime typecheck
-pnpm --filter @fayz-ai/runtime build
+pnpm --filter @fayz-ai/app-runtime typecheck
+pnpm --filter @fayz-ai/app-runtime build
 ```
 
 Result: passed. Known non-blocking noise: SDK `.npmrc` warns about missing `${NODE_AUTH_TOKEN}`.
@@ -716,7 +1366,7 @@ cd /Users/fayalabs/dev/fayz-sdk
 pnpm check:manifest
 ```
 
-Result: packages in scope `@fayz/core`; 2 successful tasks; build cache hit; manifest contract check passed.
+Result: packages in scope `@fayz-ai/core`; 2 successful tasks; build cache hit; manifest contract check passed.
 - Known non-blocking noise: SDK `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`.
 - Runtime/log check: app terminal tool was unavailable in this heartbeat, but process snapshots showed no stuck test/build process before or after this slice. Beauty Vite on port `5180` remains healthy; long-lived Codex/browser MCP daemons remain idle.
 - Self-improvement: schema drift is as dangerous as validator drift because generated agents and docs can learn from exported JSON Schema. Keep schema strictness in the same repeatable contract gate.
@@ -737,7 +1387,7 @@ cd /Users/fayalabs/dev/fayz-sdk
 pnpm check:manifest
 ```
 
-Result: packages in scope `@fayz/core`; 2 successful tasks; build cache hit; manifest contract check passed.
+Result: packages in scope `@fayz-ai/core`; 2 successful tasks; build cache hit; manifest contract check passed.
 - Known non-blocking noise: SDK `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`.
 - Runtime/log check: no app terminal session attached; no stuck test/build process found before or after this slice. Beauty Vite on port `5180` remains healthy; long-lived Codex/browser MCP daemons remain idle.
 - Self-improvement: whenever agent docs prohibit a manifest field, the repeatable SDK contract gate should assert that exact field is rejected, not rely on generic unsupported-key coverage.
@@ -757,10 +1407,10 @@ cd /Users/fayalabs/dev/fayz-sdk
 pnpm check:manifest
 ```
 
-Result: packages in scope `@fayz/core`; 2 successful tasks; manifest contract check passed.
+Result: packages in scope `@fayz-ai/core`; 2 successful tasks; manifest contract check passed.
 - Known non-blocking noise: SDK `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`.
 - Runtime/log check: no app terminal session attached; no stuck test/build process found before or after this slice. Beauty Vite on port `5180` remains healthy; long-lived Codex/browser MCP daemons remain idle.
-- Self-improvement: SDK manifest contract gates should cover runtime ambiguity, not only schema/version drift. If agents create ambiguous pages or duplicate plugin/page ids, fail in `@fayz/core` before the manifest reaches scaffold/runtime.
+- Self-improvement: SDK manifest contract gates should cover runtime ambiguity, not only schema/version drift. If agents create ambiguous pages or duplicate plugin/page ids, fail in `@fayz-ai/core` before the manifest reaches scaffold/runtime.
 
 Latest `FAY-1178` SDK manifest drift contract gate passed at 2026-06-13 21:31 BRT:
 
@@ -778,7 +1428,7 @@ cd /Users/fayalabs/dev/fayz-sdk
 pnpm check:manifest
 ```
 
-Result: packages in scope `@fayz/core`; 2 successful tasks; manifest contract check passed.
+Result: packages in scope `@fayz-ai/core`; 2 successful tasks; manifest contract check passed.
 - Known non-blocking noise: SDK `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`.
 - Runtime/log check: no app terminal session attached; no stuck test/build process found before or after this slice. Beauty Vite on port `5180` remains healthy; long-lived Codex/browser MCP daemons remain idle.
 - Self-improvement: manifest contract gates should lock both version compatibility and forbidden legacy write-shape drift, otherwise agents can pass version checks while reintroducing fields the API/Panel cleanup already removed.
@@ -806,9 +1456,9 @@ Latest `FAY-1178` root manifest gate optimization passed at 2026-06-13 21:21 BRT
 - Updated `/Users/fayalabs/dev/fayz-sdk/package.json`.
 - Updated `/Users/fayalabs/dev/fayz-sdk/turbo.json`.
 - Updated `/Users/fayalabs/dev/fayz-sdk/docs/agent-guide.md`.
-- Root `pnpm check:manifest` now runs `turbo check:manifest --filter @fayz/core`.
-- Added a `check:manifest` turbo task depending on `build`, so the root command builds/checks only `@fayz/core` before importing `dist`.
-- Corrected an inefficient first attempt: unfiltered `turbo check:manifest` ran 23 successful tasks across unrelated packages. The fixed root command ran only 2 cached tasks: `@fayz/core:build` and `@fayz/core:check:manifest`.
+- Root `pnpm check:manifest` now runs `turbo check:manifest --filter @fayz-ai/core`.
+- Added a `check:manifest` turbo task depending on `build`, so the root command builds/checks only `@fayz-ai/core` before importing `dist`.
+- Corrected an inefficient first attempt: unfiltered `turbo check:manifest` ran 23 successful tasks across unrelated packages. The fixed root command ran only 2 cached tasks: `@fayz-ai/core:build` and `@fayz-ai/core:check:manifest`.
 - Verification:
 
 ```bash
@@ -816,7 +1466,7 @@ cd /Users/fayalabs/dev/fayz-sdk
 pnpm check:manifest
 ```
 
-Result: packages in scope `@fayz/core`; 2 successful tasks; manifest contract check passed.
+Result: packages in scope `@fayz-ai/core`; 2 successful tasks; manifest contract check passed.
 - Known non-blocking noise: SDK `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`.
 - Runtime/log check: no app terminal session attached; no stuck test/build process remains after the optimization. Beauty Vite on port `5180` remains healthy; long-lived Codex/browser MCP daemons remain idle.
 - Self-improvement: never run unfiltered `turbo check:manifest` for a core-only manifest contract. Use root `pnpm check:manifest`, which is now filtered, to avoid broad package builds in heartbeat loops.
@@ -824,12 +1474,12 @@ Result: packages in scope `@fayz/core`; 2 successful tasks; manifest contract ch
 Latest `FAY-1178` SDK agent-guide validation loop update passed at 2026-06-13 21:16 BRT:
 
 - Updated `/Users/fayalabs/dev/fayz-sdk/docs/agent-guide.md`.
-- The guide now tells SDK agents changing `@fayz/core` AppManifest runtime/schema behavior to run:
+- The guide now tells SDK agents changing `@fayz-ai/core` AppManifest runtime/schema behavior to run:
 
 ```bash
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
-pnpm --filter @fayz/core check:manifest
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
+pnpm --filter @fayz-ai/core check:manifest
 ```
 
 - This makes the new repeatable manifest contract gate discoverable from the primary agent guide, not only package metadata or progress docs.
@@ -837,7 +1487,7 @@ pnpm --filter @fayz/core check:manifest
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core check:manifest
+pnpm --filter @fayz-ai/core check:manifest
 ```
 
 Result: manifest contract check passed using the previously built `dist`.
@@ -849,15 +1499,15 @@ Latest `FAY-1178` SDK AppManifest contract check script passed at 2026-06-13 21:
 
 - Updated `/Users/fayalabs/dev/fayz-sdk/packages/core/package.json`.
 - Added `/Users/fayalabs/dev/fayz-sdk/packages/core/scripts/check-manifest-contract.mjs`.
-- The manual SDK AppManifest smoke is now a repeatable package command: `pnpm --filter @fayz/core check:manifest`.
+- The manual SDK AppManifest smoke is now a repeatable package command: `pnpm --filter @fayz-ai/core check:manifest`.
 - The check imports the built `packages/core/dist/index.js`, confirms `CURRENT_MANIFEST_VERSION === 2`, confirms exported JSON schema `manifestVersion.const === 2`, validates a canonical v2 manifest, and rejects v1/v3 manifests with `manifest.manifestVersion must be 2`.
 - Verification:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
-pnpm --filter @fayz/core check:manifest
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
+pnpm --filter @fayz-ai/core check:manifest
 ```
 
 Result: typecheck passed; build passed; manifest contract check passed.
@@ -918,12 +1568,12 @@ Previous `FAY-1178` SDK AppManifest version lock passed at 2026-06-13 20:57 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module -e "import { validateManifest, CURRENT_MANIFEST_VERSION, appManifestSchema } from './packages/core/dist/index.js'; /* v2 valid, v1/v3 rejected, schema const smoke */"
 ```
 
-Result: `@fayz/core` typecheck passed; build passed; Node smoke returned `validProblems: 0`, v1/v3 problems `manifest.manifestVersion must be 2`, and `schemaConst: 2`.
+Result: `@fayz-ai/core` typecheck passed; build passed; Node smoke returned `validProblems: 0`, v1/v3 problems `manifest.manifestVersion must be 2`, and `schemaConst: 2`.
 - Known non-blocking noise: SDK `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`.
 - Runtime/log check: no app terminal session attached; no stuck/redundant test or build process found before this slice. Beauty Vite on port `5180` remains healthy; long-lived Codex/browser MCP daemons remain idle at 0% CPU.
 - Self-improvement: do not use `pnpm exec tsx` for SDK smokes unless `tsx` is installed in the SDK workspace; build first and smoke `packages/core/dist/index.js` with Node.
@@ -959,7 +1609,7 @@ Previous `FAY-1178` scaffold AppManifest write-boundary guardrail passed at 2026
 - No runtime, scaffold output, or SDK package wiring changed in this slice.
 - Added a controller regression that loads the generated scaffold `/Users/fayalabs/dev/fayz/apps/api/src/modules/projects/scaffold/template/app.manifest.json` through `getBaseFiles()` and writes it through the real `createManifest` request validation path.
 - This proves the template given to generated-project agents is accepted by the Fayz API AppManifest write boundary before it reaches `ProjectAppManifest` persistence.
-- Did not add a hard test dependency on `@fayz/core` from the Fayz repo; `FAY-1181` package-source remains deferred. The cross-repo SDK `validateManifest()` smoke remains documented/manual until package wiring is locked.
+- Did not add a hard test dependency on `@fayz-ai/core` from the Fayz repo; `FAY-1181` package-source remains deferred. The cross-repo SDK `validateManifest()` smoke remains documented/manual until package wiring is locked.
 - Verification:
 
 ```bash
@@ -971,7 +1621,7 @@ npm run test -w @wowsome/api -- src/modules/projects/__tests__/app-manifests.con
 Result: focused controller test 23 passed; integrated API AppManifest/scaffold/generation gate 64 passed.
 - Build intentionally not repeated because this was test-only controller/scaffold coverage.
 - Runtime/log check: no app terminal session attached; no stuck/redundant test or build process found before this slice. Beauty Vite on port `5180` remains healthy; long-lived Codex/browser MCP daemons remain idle at 0% CPU.
-- Self-improvement: when SDK package-source is blocked, prefer a Fayz API write-boundary regression over a brittle cross-repo test import; keep the SDK validator smoke manual/documented until `@fayz/core` source/version is locked.
+- Self-improvement: when SDK package-source is blocked, prefer a Fayz API write-boundary regression over a brittle cross-repo test import; keep the SDK validator smoke manual/documented until `@fayz-ai/core` source/version is locked.
 - Linear `FAY-1178` consolidated checkpoint comment updated with this scaffold AppManifest write-boundary guardrail.
 
 Previous `FAY-1178` scaffold surface set guardrail passed at 2026-06-13 20:41 BRT:
@@ -1196,8 +1846,8 @@ Latest `FAY-1181` generated scaffold package-source guardrail passed at 2026-06-
 
 - Updated `/Users/fayalabs/dev/fayz/apps/api/src/modules/projects/__tests__/scaffold.test.ts`.
 - No runtime/scaffold output changed in this slice; this is regression coverage for the existing blocked state.
-- Added scaffold coverage proving generated projects remain free of hard `@fayz/*` package dependencies and static executable `@fayz/*` imports until package source is locked.
-- The test still allows agent-facing guidance in `AGENTS.md` to mention future `@fayz-ai/runtime` usage after package-source setup.
+- Added scaffold coverage proving generated projects remain free of hard `@fayz-ai/*` package dependencies and static executable `@fayz-ai/*` imports until package source is locked.
+- The test still allows agent-facing guidance in `AGENTS.md` to mention future `@fayz-ai/app-runtime` usage after package-source setup.
 - Verification:
 
 ```bash
@@ -1408,14 +2058,14 @@ Latest SDK core AppManifest validator smoke passed at 2026-06-13 18:13 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core build
 node --input-type=module <validateManifest smoke>
 ```
 
-Result: `@fayz/core` build passed; smoke checked 7 cases successfully.
+Result: `@fayz-ai/core` build passed; smoke checked 7 cases successfully.
 - Known non-blocking warning: `.npmrc` still references missing `${NODE_AUTH_TOKEN}` while reading config.
 - Runtime/log check: no app terminal session attached; no stuck SDK build/test process found after the gate. Build did not add `dist` git churn.
-- Self-improvement: `@fayz/core` currently has no package-local test script/runner. Do not add a new test runner opportunistically inside a heartbeat; first choose a repo-wide test standard. Also, avoid fragile `xargs sh -c node -e ...` quoting for package-script inventory; use direct `node` scripts or `jq` when available.
+- Self-improvement: `@fayz-ai/core` currently has no package-local test script/runner. Do not add a new test runner opportunistically inside a heartbeat; first choose a repo-wide test standard. Also, avoid fragile `xargs sh -c node -e ...` quoting for package-script inventory; use direct `node` scripts or `jq` when available.
 - Linear `FAY-1178` consolidated checkpoint comment updated with this SDK validator smoke.
 
 Latest `FAY-1178` AppManifest route guard coverage passed at 2026-06-13 18:08 BRT:
@@ -1580,13 +2230,13 @@ Result: focused service test 7 passed; integrated API AppManifest/scaffold/gener
 Latest Fayz scaffold x SDK validator contract smoke passed at 2026-06-13 17:29 BRT:
 
 - No code change in this slice.
-- Rebuilt `@fayz/core` and validated Fayz generated-project template `/Users/fayalabs/dev/fayz/apps/api/src/modules/projects/scaffold/template/app.manifest.json` with the real SDK `validateManifest()` from `/Users/fayalabs/dev/fayz-sdk/packages/core/dist/index.js`.
-- Result: `problemCount: 0`; the generated scaffold manifest remains SDK-valid while `@fayz-ai/runtime` package-source is intentionally deferred.
+- Rebuilt `@fayz-ai/core` and validated Fayz generated-project template `/Users/fayalabs/dev/fayz/apps/api/src/modules/projects/scaffold/template/app.manifest.json` with the real SDK `validateManifest()` from `/Users/fayalabs/dev/fayz-sdk/packages/core/dist/index.js`.
+- Result: `problemCount: 0`; the generated scaffold manifest remains SDK-valid while `@fayz-ai/app-runtime` package-source is intentionally deferred.
 - Verification:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core build
 node --input-type=module <validate Fayz scaffold app.manifest.json with SDK validateManifest>
 ```
 
@@ -1624,7 +2274,7 @@ Latest Beauty agenda non-destructive browser proof passed at 2026-06-13 17:25 BR
 Latest SDK core AppManifest validator smoke passed at 2026-06-13 17:17 BRT:
 
 - No code change in this slice.
-- Rebuilt `@fayz/core` and ran a Node smoke against `validateManifest()` from `packages/core/dist/index.js`.
+- Rebuilt `@fayz-ai/core` and ran a Node smoke against `validateManifest()` from `packages/core/dist/index.js`.
 - Smoke asserted the SDK validator rejects all documented legacy/non-v2 display fields:
   - top-level `title`;
   - `surfaces.*.id`, `surfaces.*.name`, `surfaces.*.title`;
@@ -1634,13 +2284,13 @@ Latest SDK core AppManifest validator smoke passed at 2026-06-13 17:17 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core build
 node --input-type=module <validateManifest legacy-field smoke>
 ```
 
 Result: core build passed; smoke checked 9 expected validator problems and found all 9. Known `.npmrc` `${NODE_AUTH_TOKEN}` warning remains non-blocking.
 - Process/log check: no app terminal session attached; no stuck test/build process found after the gate. Beauty Vite remains the only expected product dev server.
-- Self-improvement: rebuilding `@fayz/core` did not add `packages/core/dist` git churn in this run. For no-code validator checks, prefer build + Node smoke over adding package-level test infra during heartbeat loops.
+- Self-improvement: rebuilding `@fayz-ai/core` did not add `packages/core/dist` git churn in this run. For no-code validator checks, prefer build + Node smoke over adding package-level test infra during heartbeat loops.
 - Linear not updated for this no-code SDK validation to avoid checkpoint noise.
 
 Latest AppManifest controller regression coverage passed at 2026-06-13 17:12 BRT:
@@ -1762,16 +2412,16 @@ Result: API AppManifest/scaffold/generation gate 34 passed; web Panel renderer g
 
 Latest SDK auth singleton type-hardening passed at 2026-06-13 16:46 BRT:
 
-- Narrowed the injected `@fayz/auth` Supabase client type from `unknown` to `SupabaseClient`.
+- Narrowed the injected `@fayz-ai/auth` Supabase client type from `unknown` to `SupabaseClient`.
 - This keeps the singleton fix from 16:42 BRT, but removes the broad escape hatch from the public auth config.
 - Verification:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/auth typecheck
-pnpm --filter @fayz/auth build
-pnpm --filter @fayz/saas typecheck
-pnpm --filter @fayz/saas build
+pnpm --filter @fayz-ai/auth typecheck
+pnpm --filter @fayz-ai/auth build
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/saas build
 ```
 
 Result: all passed. Known `.npmrc` `${NODE_AUTH_TOKEN}` warning remains non-blocking.
@@ -1781,8 +2431,8 @@ Result: all passed. Known `.npmrc` `${NODE_AUTH_TOKEN}` warning remains non-bloc
 Latest SDK Supabase auth singleton cleanup passed at 2026-06-13 16:42 BRT:
 
 - Fixed a structural version of the Beauty GoTrue duplicate-client issue in Fayz SDK:
-  - `@fayz/auth` `createSupabaseAuthAdapter()` can now receive an already-initialized Supabase client;
-  - `@fayz/saas` `createFayzApp` passes the SDK Supabase singleton into `@fayz/auth` instead of letting auth create a second browser client.
+  - `@fayz-ai/auth` `createSupabaseAuthAdapter()` can now receive an already-initialized Supabase client;
+  - `@fayz-ai/saas` `createFayzApp` passes the SDK Supabase singleton into `@fayz-ai/auth` instead of letting auth create a second browser client.
 - Files:
   - `/Users/fayalabs/dev/fayz-sdk/packages/auth/src/adapters/supabase.ts`;
   - `/Users/fayalabs/dev/fayz-sdk/packages/saas/src/app/createFayzApp.tsx`.
@@ -1790,10 +2440,10 @@ Latest SDK Supabase auth singleton cleanup passed at 2026-06-13 16:42 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/auth typecheck
-pnpm --filter @fayz/auth build
-pnpm --filter @fayz/saas typecheck
-pnpm --filter @fayz/saas build
+pnpm --filter @fayz-ai/auth typecheck
+pnpm --filter @fayz-ai/auth build
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/saas build
 
 cd /Users/fayalabs/dev/fayz-app/beauty-saas
 npm run build
@@ -1823,7 +2473,7 @@ Result: scaffold test 6 passed in 430ms.
 
 Latest Beauty Supabase-client hygiene + paid proof passed at 2026-06-13 16:33 BRT:
 
-- Fixed `/Users/fayalabs/dev/fayz-app/beauty-saas/src/integrations/supabase/client.ts` to reuse the Fayz SDK `@fayz/saas` Supabase singleton instead of creating a second browser GoTrue client.
+- Fixed `/Users/fayalabs/dev/fayz-app/beauty-saas/src/integrations/supabase/client.ts` to reuse the Fayz SDK `@fayz-ai/saas` Supabase singleton instead of creating a second browser GoTrue client.
 - Reason: Beauty browser console had a Supabase warning for multiple GoTrueClient instances under the same storage key. This can produce undefined auth behavior and makes heartbeat browser checks noisier.
 - Verification:
 
@@ -1935,8 +2585,8 @@ npm run build:api
 npm run test -w @wowsome/api -- src/modules/projects/__tests__/app-manifests.controller.test.ts src/modules/projects/__tests__/app-manifests.service.test.ts src/modules/projects/__tests__/project-app-manifest.seed.test.ts src/modules/projects/__tests__/scaffold.test.ts src/modules/generations/__tests__/generations.service.test.ts
 
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module -e 'import { validateManifest } from "./packages/core/dist/index.js"; /* entity item validation smoke */'
 ```
 
@@ -1951,8 +2601,8 @@ Latest `FAY-1178` schema-only renderer/permission cleanup passed at 2026-06-13 1
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module -e 'import fs from "node:fs"; import { validateManifest } from "./packages/core/dist/index.js"; /* schema minLength + validateManifest smoke */'
 ```
 
@@ -1976,8 +2626,8 @@ npm run build:api
 npm run test -w @wowsome/api -- src/modules/projects/__tests__/app-manifests.controller.test.ts src/modules/projects/__tests__/app-manifests.service.test.ts src/modules/projects/__tests__/project-app-manifest.seed.test.ts src/modules/projects/__tests__/scaffold.test.ts src/modules/generations/__tests__/generations.service.test.ts
 
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module -e 'import { validateManifest } from "./packages/core/dist/index.js"; /* backend optional string smoke */'
 ```
 
@@ -2101,12 +2751,12 @@ npm run build:api
 ```
 
 Result: controller + seed tests 19 passed; API build passed.
-- SDK runtime cleanup at 15:10 BRT: `@fayz/core` manifest validation now reports normalized duplicate page/plugin refs. Verification:
+- SDK runtime cleanup at 15:10 BRT: `@fayz-ai/core` manifest validation now reports normalized duplicate page/plugin refs. Verification:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module # smoke imported packages/core/dist/index.js validateManifest and asserted normalized duplicate page/plugin messages
 ```
 
@@ -2120,8 +2770,8 @@ npm run test -w @wowsome/api -- src/modules/projects/__tests__/app-manifests.con
 npm run build:api
 
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module # smoke imported packages/core/dist/index.js validateManifest and asserted invalid id message
 ```
 
@@ -2298,7 +2948,7 @@ Previous `FAY-1182` trusted runtime auth checkpoint passed at 2026-06-13 14:12 B
 - Added versioned runtime row route:
   - `/api/v1/runtime/projects/:projectId/database/tables/:tableName/rows`
   - backed by the same row handlers, but tenant/perms come from signed claims.
-- Updated `@fayz/core` `createFayzApiProvider()`:
+- Updated `@fayz-ai/core` `createFayzApiProvider()`:
   - new opt-in `runtimeToken`;
   - runtime token switches to `/api/v1/runtime/...`;
   - runtime token adds Bearer Authorization;
@@ -2311,8 +2961,8 @@ npm run test -w @wowsome/api -- src/modules/database/__tests__/database.service.
 npm run build:api
 
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module <<'NODE'
 // smoke createFayzApiProvider({ runtimeToken }) route/header/no-client-tenant-filter
 NODE
@@ -2322,7 +2972,7 @@ Result:
 
 - 43 targeted API database/runtime tests passed.
 - API build passed.
-- `@fayz/core` typecheck/build passed.
+- `@fayz-ai/core` typecheck/build passed.
 - SDK runtime provider smoke passed.
 
 Remaining `FAY-1182` gap:
@@ -2383,7 +3033,7 @@ cd /Users/fayalabs/dev/fayz
 npm run test -w @wowsome/api -- src/modules/projects/__tests__/scaffold.test.ts src/modules/projects/__tests__/project-app-manifest.seed.test.ts src/modules/generations/__tests__/generations.service.test.ts
 npm run build:api
 node --input-type=module <<'NODE'
-// validate scaffold app.manifest.json with @fayz/core validateManifest()
+// validate scaffold app.manifest.json with @fayz-ai/core validateManifest()
 NODE
 ```
 
@@ -2395,14 +3045,14 @@ Result:
 
 Package-source blocker confirmed at 2026-06-13 11:44 BRT:
 
-- `npm view @fayz-ai/runtime` on npm public with forced `@fayz:registry=https://registry.npmjs.org` returns 404.
-- `npm view @fayz/core` on npm public returns 404.
-- `npm view @fayz/saas` on npm public returns 404.
-- `npm view @fayz-ai/runtime` on GitHub Packages returns 404 under owner `fayz`.
+- `npm view @fayz-ai/app-runtime` on npm public with forced `@fayz:registry=https://registry.npmjs.org` returns 404.
+- `npm view @fayz-ai/core` on npm public returns 404.
+- `npm view @fayz-ai/saas` on npm public returns 404.
+- `npm view @fayz-ai/app-runtime` on GitHub Packages returns 404 under owner `fayz`.
 - `npm whoami --registry=https://npm.pkg.github.com` returns 403.
 - Current SDK `.npmrc` maps `@fayz` to GitHub Packages and package `publishConfig` is `restricted`, but the packages are not available to this environment.
-- Decision remains required before generated apps can hard-add `@fayz-ai/runtime`: publish public npm packages, fix GitHub Packages owner/auth, use a private registry with token injection, or use another install source.
-- Until then, Fayz scaffold must stay JSON/registry-ready and avoid adding `@fayz-ai/runtime` to generated `package.json`.
+- Decision remains required before generated apps can hard-add `@fayz-ai/app-runtime`: publish public npm packages, fix GitHub Packages owner/auth, use a private registry with token injection, or use another install source.
+- Until then, Fayz scaffold must stay JSON/registry-ready and avoid adding `@fayz-ai/app-runtime` to generated `package.json`.
 
 Agent/runbook alignment passed at 2026-06-13 11:45 BRT:
 
@@ -2411,7 +3061,7 @@ Agent/runbook alignment passed at 2026-06-13 11:45 BRT:
   - use `plugins[].id`, not `pluginId`;
   - keep `surfaces.panel` for Fayz editor Panel seed unless explicitly removed;
   - `surfaces.admin` is the generated app admin surface;
-  - do not add `@fayz-ai/runtime` until package source is locked.
+  - do not add `@fayz-ai/app-runtime` until package source is locked.
 - Verification:
 
 ```bash
@@ -2478,7 +3128,7 @@ Result: 19 manifest/scaffold tests passed, API build passed.
 
 Latest SDK core validator alignment passed at 2026-06-13 11:56 BRT:
 
-- `@fayz/core` `validateManifest()` now enforces the same AppManifest v2 strictness expected by the JSON schema:
+- `@fayz-ai/core` `validateManifest()` now enforces the same AppManifest v2 strictness expected by the JSON schema:
   - unsupported top-level, backend, surface, page, permission, plugin-ref, and block fields are reported;
   - basic runtime types are checked for `manifestVersion`, object fields, `entities`, plugin config/enabled, page section, permissions, and recursive blocks;
   - valid manifests still pass without requiring a new schema-validation dependency.
@@ -2487,8 +3137,8 @@ Latest SDK core validator alignment passed at 2026-06-13 11:56 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module -e "import { validateManifest } from './packages/core/dist/index.js'; /* smoke valid + invalid */"
 ```
 
@@ -2531,7 +3181,7 @@ Result: scaffold tests 5 passed, API build passed.
 
 SDK `fayz-api` provider aligned to real Fayz API at 2026-06-13 12:03 BRT:
 
-- Fixed `@fayz/core` `createFayzApiProvider()` to call the existing Fayz endpoint:
+- Fixed `@fayz-ai/core` `createFayzApiProvider()` to call the existing Fayz endpoint:
   - from aspirational `/api/projects/:projectId/data/:entity`;
   - to real `/api/projects/:projectId/database/tables/:tableName/rows`.
 - Mapped SDK CRUD contract to Fayz database rows contract:
@@ -2541,13 +3191,13 @@ SDK `fayz-api` provider aligned to real Fayz API at 2026-06-13 12:03 BRT:
   - remove: sends `{ rows: [primaryKeys] }`.
 - Resolver now passes `schema`, `idColumn`, `tenantIdColumn`, and `searchColumns` from `EntityDef.data`.
 - Tenant id from config now wins over caller-provided row data.
-- Root `@fayz/core` now exports `createFayzApiProvider`, `FayzApiProviderConfig`, and `BackendProvider`.
+- Root `@fayz-ai/core` now exports `createFayzApiProvider`, `FayzApiProviderConfig`, and `BackendProvider`.
 - Verification:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module <<'NODE'
 // smoke: createFayzApiProvider list/create/update/remove URL + payload mapping
 NODE
@@ -2583,8 +3233,8 @@ SDK `fayz-api` tenant mutation guard added at 2026-06-13 12:07 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 node --input-type=module <<'NODE'
 // smoke: update/delete preflight tenant-scoped GET before mutation
 NODE
@@ -2615,8 +3265,8 @@ npm run build:api
 npm run build:web
 
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
 ```
 
 Result:
@@ -2625,7 +3275,7 @@ Result:
 - Fayz Web manifest renderer tests: 6 passed.
 - Fayz API build: passed.
 - Fayz Web build: passed with known Tailwind/font/chunk warnings.
-- SDK `@fayz/core` typecheck/build: passed with known `.npmrc` `NODE_AUTH_TOKEN` warning.
+- SDK `@fayz-ai/core` typecheck/build: passed with known `.npmrc` `NODE_AUTH_TOKEN` warning.
 
 Latest useful Panel proof for `FAY-1179` passed and Linear was closed at 2026-06-13 12:27 BRT:
 
@@ -2684,7 +3334,7 @@ Latest Fayz generated-project manifest seed passed at 2026-06-13 11:41 BRT:
 - Scaffold `app.manifest.json` now declares both:
   - `surfaces.panel` for Fayz editor Panel bootstrap;
   - `surfaces.admin` for generated app admin scaffold compatibility.
-- This avoids depending on unpublished `@fayz-ai/runtime`; the seed is pure JSON.
+- This avoids depending on unpublished `@fayz-ai/app-runtime`; the seed is pure JSON.
 - Live local API proof passed:
   - created project `7d2c2d53-e4ff-43e3-bf0a-ba8d27950e0e` (`CODEx SDK Seed Proof 11h42`);
   - immediate active lookup returned binding `acf423be-d7b9-469b-b134-620720b71b1e`;
@@ -2805,10 +3455,10 @@ npm run test -w @wowsome/api -- src/modules/projects/__tests__/app-manifests.ser
 npm run test -w @wowsome/web -- src/__tests__/components/dashboard/ManifestSurfaceSection.test.tsx
 
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/core typecheck
-pnpm --filter @fayz/core build
-pnpm --filter @fayz-ai/runtime typecheck
-pnpm --filter @fayz-ai/runtime build
+pnpm --filter @fayz-ai/core typecheck
+pnpm --filter @fayz-ai/core build
+pnpm --filter @fayz-ai/app-runtime typecheck
+pnpm --filter @fayz-ai/app-runtime build
 ```
 
 Known non-blocking warnings:
@@ -2829,8 +3479,8 @@ Latest browser verification passed at 2026-06-13 09:47 BRT:
 
 Latest scaffold prep passed at 2026-06-13 09:57 BRT:
 
-- New generated projects are SDK-ready, but do **not** hard-depend on `@fayz-ai/runtime` yet.
-- Reason: `@fayz-ai/runtime` is not currently available from npm public or GitHub Packages under the `@fayz` scope, so adding it now would break `npm install` for generated projects.
+- New generated projects are SDK-ready, but do **not** hard-depend on `@fayz-ai/app-runtime` yet.
+- Reason: `@fayz-ai/app-runtime` is not currently available from npm public or GitHub Packages under the `@fayz` scope, so adding it now would break `npm install` for generated projects.
 - Template now includes:
   - `app.manifest.json`;
   - `AGENTS.md`;
@@ -2849,11 +3499,11 @@ Result: 12 targeted API tests passed; API build passed.
 
 Decision needed before full `FAY-1180` completion:
 
-- Lock how generated projects resolve the SDK package: publish `@fayz-ai/runtime`, change package scope, use a private registry mapping, or use another install source.
+- Lock how generated projects resolve the SDK package: publish `@fayz-ai/app-runtime`, change package scope, use a private registry mapping, or use another install source.
 
 Latest Beauty agenda SDK cleanup passed at 2026-06-13 10:02 BRT:
 
-- `@fayz/plugin-agenda` Supabase provider now writes canonical agenda records to `saas_core.bookings` and `saas_core.booking_items`.
+- `@fayz-ai/plugin-agenda` Supabase provider now writes canonical agenda records to `saas_core.bookings` and `saas_core.booking_items`.
 - It still creates/maintains the linked `saas_core.orders` + `saas_core.order_items` row for financial bridge compatibility.
 - Runtime reads still use the public `v_bookings` view, so create/update/delete/check-conflict now align with the Beauty SQL view contract.
 - Financial bridge no longer selects/updates nonexistent `orders.stage` or `orders.direction`; it maps payment status from `orders.status` plus `financial_movements`, and stores financial direction only in metadata/movement rows.
@@ -2861,15 +3511,15 @@ Latest Beauty agenda SDK cleanup passed at 2026-06-13 10:02 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/plugin-agenda typecheck
-pnpm --filter @fayz/plugin-agenda build
+pnpm --filter @fayz-ai/plugin-agenda typecheck
+pnpm --filter @fayz-ai/plugin-agenda build
 ```
 
 Result: typecheck and build passed. `.npmrc` still warns about missing `${NODE_AUTH_TOKEN}`; non-blocking.
 
 Latest Beauty client Orders SDK cleanup passed at 2026-06-13 10:05 BRT:
 
-- `@fayz/saas` client-orders provider no longer selects/filters nonexistent `orders.stage`.
+- `@fayz-ai/saas` client-orders provider no longer selects/filters nonexistent `orders.stage`.
 - It no longer selects nonexistent `orders.starts_at`.
 - It filters the UI's historical stage groups against `orders.status`.
 - It fetches linked booking start times from `saas_core.bookings` by `order_id` so appointment dates can still render when available.
@@ -2877,11 +3527,11 @@ Latest Beauty client Orders SDK cleanup passed at 2026-06-13 10:05 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/saas typecheck
-pnpm --filter @fayz/saas build
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/saas build
 ```
 
-Result: typecheck and build passed. Build emits existing bundle unused-import warnings from `@fayz/core`; non-blocking.
+Result: typecheck and build passed. Build emits existing bundle unused-import warnings from `@fayz-ai/core`; non-blocking.
 
 Latest Beauty app proof passed at 2026-06-13 10:12 BRT:
 
@@ -2890,7 +3540,7 @@ Latest Beauty app proof passed at 2026-06-13 10:12 BRT:
   - `/Users/fayalabs/dev/fayz-app/beauty-saas/tsconfig.json`;
   - `/Users/fayalabs/dev/fayz-app/beauty-saas/tailwind.config.ts`.
 - Reason: Beauty lives under `/Users/fayalabs/dev/fayz-app/beauty-saas`; the SDK lives at `/Users/fayalabs/dev/fayz-sdk`.
-- `@fayz/saas` tenant plugin RPC hydration is now opt-in via `pluginRuntime.hydrateTenantPlugins === true`, removing the recurring `get_tenant_active_plugins` 404 from static plugin apps.
+- `@fayz-ai/saas` tenant plugin RPC hydration is now opt-in via `pluginRuntime.hydrateTenantPlugins === true`, removing the recurring `get_tenant_active_plugins` 404 from static plugin apps.
 - Browser proof:
   - URL: `http://127.0.0.1:5180/#/agenda`;
   - login: `teste@teste.com` / `teste123` from Beauty `docs/testing.md`;
@@ -2905,8 +3555,8 @@ cd /Users/fayalabs/dev/fayz-app/beauty-saas
 ./node_modules/.bin/vite build
 
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/saas typecheck
-pnpm --filter @fayz/saas build
+pnpm --filter @fayz-ai/saas typecheck
+pnpm --filter @fayz-ai/saas build
 ```
 
 Result: all passed. Beauty Vite build has existing chunk/dynamic-import warnings; non-blocking.
@@ -2929,7 +3579,7 @@ Latest Beauty booking mutation proof passed at 2026-06-13 10:26 BRT:
   - Beauty Agenda renders the created booking after reload;
   - screenshot: `/Users/fayalabs/dev/fayz/beauty-booking-mutation-proof-2026-06-13-1026.png`.
 - SDK fix:
-  - `@fayz/plugin-agenda` now merges `public.v_bookings` rows with canonical `saas_core.bookings` reads;
+  - `@fayz-ai/plugin-agenda` now merges `public.v_bookings` rows with canonical `saas_core.bookings` reads;
   - `getBookingById()` falls back from `v_bookings.id` to `bookings.id` / `bookings.order_id`;
   - `createBooking()` now throws if the created record cannot resolve from the read model instead of returning `null` after a success toast.
 - Why this matters:
@@ -2940,8 +3590,8 @@ Latest Beauty booking mutation proof passed at 2026-06-13 10:26 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/plugin-agenda typecheck
-pnpm --filter @fayz/plugin-agenda build
+pnpm --filter @fayz-ai/plugin-agenda typecheck
+pnpm --filter @fayz-ai/plugin-agenda build
 
 cd /Users/fayalabs/dev/fayz-app/beauty-saas
 ./node_modules/.bin/tsc --noEmit
@@ -2969,17 +3619,17 @@ Latest Beauty financial bridge proof passed at 2026-06-13 10:33 BRT:
   - `orders.metadata.paidAmount=120`.
 - Screenshot: `/Users/fayalabs/dev/fayz/beauty-agenda-financial-paid-proof-2026-06-13-1034.png`.
 - SDK fixes:
-  - `@fayz/plugin-agenda` financial bridge `resolvePaymentStatuses()` now resolves status from `financial_movements` in batch, not only from `orders.status`;
+  - `@fayz-ai/plugin-agenda` financial bridge `resolvePaymentStatuses()` now resolves status from `financial_movements` in batch, not only from `orders.status`;
   - `mapInvoiceStatus()` now treats agenda statuses such as `confirmed` / `in_progress` / `no_show` as payment `none`;
-  - `@fayz/plugin-financial` now updates `orders.status` on payment instead of the legacy/non-portable `orders.stage`.
+  - `@fayz-ai/plugin-financial` now updates `orders.status` on payment instead of the legacy/non-portable `orders.stage`.
 - Verification:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/plugin-financial typecheck
-pnpm --filter @fayz/plugin-financial build
-pnpm --filter @fayz/plugin-agenda typecheck
-pnpm --filter @fayz/plugin-agenda build
+pnpm --filter @fayz-ai/plugin-financial typecheck
+pnpm --filter @fayz-ai/plugin-financial build
+pnpm --filter @fayz-ai/plugin-agenda typecheck
+pnpm --filter @fayz-ai/plugin-agenda build
 
 cd /Users/fayalabs/dev/fayz-app/beauty-saas
 ./node_modules/.bin/tsc --noEmit
@@ -3038,7 +3688,7 @@ Latest Beauty paid-cancel proof passed at 2026-06-13 10:41 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/plugin-agenda typecheck && pnpm --filter @fayz/plugin-agenda build
+pnpm --filter @fayz-ai/plugin-agenda typecheck && pnpm --filter @fayz-ai/plugin-agenda build
 
 cd /Users/fayalabs/dev/fayz-app/beauty-saas
 ./node_modules/.bin/tsc --noEmit
@@ -3093,14 +3743,14 @@ Latest Beauty edit proof passed at 2026-06-13 11:06 BRT:
   - `saas_core.order_items.duration_minutes=35`, `unit_price=155`, `total=155`;
   - `public.v_bookings.services[].assigneeId` is preserved as `76954279-9679-4ef4-a58a-1703503957f3`.
 - SDK fix found during proof:
-  - `@fayz/plugin-agenda` `updateBooking()` now preserves the existing booking assignee as fallback when recreating `booking_items` and `order_items`;
+  - `@fayz-ai/plugin-agenda` `updateBooking()` now preserves the existing booking assignee as fallback when recreating `booking_items` and `order_items`;
   - before this, changing only duration/price could make item-level `assignee_id` null.
 - Screenshot: `/Users/fayalabs/dev/fayz/beauty-agenda-edit-proof-2026-06-13-1109.png`.
 - Verification:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/plugin-agenda typecheck && pnpm --filter @fayz/plugin-agenda build
+pnpm --filter @fayz-ai/plugin-agenda typecheck && pnpm --filter @fayz-ai/plugin-agenda build
 
 cd /Users/fayalabs/dev/fayz-app/beauty-saas
 ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vite build
@@ -3148,7 +3798,7 @@ Latest Beauty working-hours proof passed at 2026-06-13 11:18 BRT:
 
 ```bash
 cd /Users/fayalabs/dev/fayz-sdk
-pnpm --filter @fayz/plugin-agenda typecheck && pnpm --filter @fayz/plugin-agenda build
+pnpm --filter @fayz-ai/plugin-agenda typecheck && pnpm --filter @fayz-ai/plugin-agenda build
 
 cd /Users/fayalabs/dev/fayz-app/beauty-saas
 ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vite build
@@ -3220,3 +3870,13 @@ Next automatic step is no longer research consolidation. It is browser verificat
 - no Medusa/Cal.diy implementation;
 - no simultaneous edits on generated app runtime before Panel/API + SDK gates are clean;
 - no Beauty app migration from the current dirty/behind worktree unless a failing proof shows the exact minimal edit needed.
+
+## Current focus — Fayz agent gate bridge
+
+- Latest slice bridges the SDK generated-app scope gate into Fayz post-generation:
+  - SDK gate now accepts explicit changed paths via `--paths`, so Fayz runtime does not need git diff for generated projects.
+  - Fayz wrapper forwards `--paths`.
+  - Fayz API post-generation runs the generated-app scope gate for local Fayz SDK apps after edits and before final verification.
+- Default mode is `warn` to avoid breaking normal generations while we observe real traffic/dogfood; set `FAYZ_SDK_AGENT_SCOPE_GATE=block` to enforce.
+- First generations are skipped because scaffolds legitimately create package/config/runtime entry files.
+- This is the first practical bridge toward Fayz agents operating generated apps with SDK boundaries, without broad public package sprawl.

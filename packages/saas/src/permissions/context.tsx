@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { FeatureDeclaration, PermissionsConfig, PermissionProfile } from '@fayz/core'
+import type { FeatureDeclaration, PermissionsConfig, PermissionProfile } from '@fayz-ai/core'
 import { usePermissionsStore } from './store'
 
 // ---------------------------------------------------------------------------
@@ -11,9 +11,9 @@ function profileHasPermission(
   feature: string,
   action?: string,
 ): boolean {
-  if (!profile) return false
+  if (!profile) return true
 
-  const actions = profile.features[feature]
+  const actions = profile.grants[feature]
   if (!actions) return false
 
   if (!action) return actions.length > 0

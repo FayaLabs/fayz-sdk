@@ -1,4 +1,4 @@
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Types

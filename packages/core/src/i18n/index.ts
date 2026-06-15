@@ -30,7 +30,7 @@ export function useTranslation(): (key: string, params?: Record<string, string |
       const fallback = config.translations[config.defaultLocale] ?? {}
       // Global fallback lets plugins register their locales independently of any
       // I18nProvider — needed when a de-bridged plugin runs under a host shell
-      // that doesn't mount @fayz/core's I18nProvider (incremental de-bridge), and
+      // that doesn't mount @fayz-ai/core's I18nProvider (incremental de-bridge), and
       // for manifest apps where plugins self-register translations.
       const gLocale = _globalTranslations[locale] ?? {}
       const gFallback = _globalTranslations[config.defaultLocale] ?? {}
@@ -239,6 +239,6 @@ export function mergeTranslations(
 // Seed the global fallback with core's own translations + the shared shell /
 // CRUD / framework translations (extracted from saas-core's central i18n), so
 // the native CRUD engine, framework UI and de-bridged plugins resolve their
-// keys even under a host shell that does not mount @fayz/core's I18nProvider.
+// keys even under a host shell that does not mount @fayz-ai/core's I18nProvider.
 registerTranslations(coreTranslations)
 registerTranslations(shellTranslations)

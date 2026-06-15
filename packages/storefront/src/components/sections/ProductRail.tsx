@@ -20,6 +20,7 @@ export function ProductRail({
   limit?: number
 }) {
   const config = useStorefrontConfig()
+  const ProductCardComponent = config.slots?.ProductCard ?? ProductCard
   const { products, loading } = useProducts(
     filter === 'new'
       ? { status: 'active', orderBy: 'created_at', order: 'desc' }
@@ -53,7 +54,7 @@ export function ProductRail({
         <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
           {visible.map((p, i) => (
             <Reveal key={p.id} delay={i * 90}>
-              <ProductCard product={p} />
+              <ProductCardComponent product={p} />
             </Reveal>
           ))}
         </div>

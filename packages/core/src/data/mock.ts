@@ -64,7 +64,7 @@ export function createMockProvider<T extends { id: string; [key: string]: unknow
 
     async update(id, data) {
       const idx = items.findIndex((i) => i.id === id)
-      if (idx === -1) throw new Error(`[@fayz/core] Mock provider: item not found: ${id}`)
+      if (idx === -1) throw new Error(`[@fayz-ai/core] Mock provider: item not found: ${id}`)
       items[idx] = { ...items[idx], ...data, updatedAt: new Date().toISOString() }
       return items[idx]!
     },

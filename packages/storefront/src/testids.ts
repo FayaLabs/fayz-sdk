@@ -6,6 +6,7 @@ export const TID = {
   cartButton: 'cart-button',
   cartCount: 'cart-count',
   accountLink: 'account-link',
+  accountDropdown: 'account-dropdown',
   announcementBar: 'announcement-bar',
   navLink: (label: string) => `nav-${label.toLowerCase().replace(/\s+/g, '-')}`,
   navCategory: (slug: string) => `nav-cat-${slug}`,
@@ -44,6 +45,8 @@ export const TID = {
   pdpPrice: 'pdp-price',
   pdpComparePrice: 'pdp-compare-price',
   pdpDescription: 'pdp-description',
+  productOptionGroup: (id: string) => `product-option-${id.toLowerCase().replace(/\s+/g, '-')}`,
+  productOptionValue: (id: string, value: string) => `product-option-${id.toLowerCase().replace(/\s+/g, '-')}-${value.toLowerCase().replace(/\s+/g, '-')}`,
   pdpQtyInput: 'pdp-qty-input',
   pdpAddToCart: 'pdp-add-to-cart',
   // cart
@@ -78,9 +81,14 @@ export const TID = {
   // confirmation
   orderNumber: 'order-number',
   orderStatus: 'order-status',
+  orderTracking: 'order-tracking',
+  orderTrackingStep: (step: string) => `order-tracking-step-${step}`,
   orderTotal: 'order-total',
   viewPurchases: 'view-purchases',
   // account
+  customerAccountShell: 'customer-account-shell',
+  customerAccountMenu: 'customer-account-menu',
+  orderDetail: 'order-detail',
   authTabSignin: 'auth-tab-signin',
   authTabSignup: 'auth-tab-signup',
   signinEmail: 'signin-email',

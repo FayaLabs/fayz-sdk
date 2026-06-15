@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { Pencil, Check, X } from 'lucide-react'
-import { Badge } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
-import type { EntityDef, FieldDef, FieldGroup } from '@fayz/core'
-import { formatCurrency } from '@fayz/core'
+import { Badge } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
+import type { EntityDef, FieldDef, FieldGroup } from '@fayz-ai/core'
+import { formatCurrency } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Shared formatValue — display a field value by type

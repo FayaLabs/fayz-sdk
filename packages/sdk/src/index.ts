@@ -1,10 +1,45 @@
 export { appParams, resolveAppParams } from './app-params'
 export { createFayzClient, fayz, FayzApiError } from './client'
-export type { FayzClientOptions, FayzRequestOptions } from './client'
+export type {
+  FayzClientOptions,
+  FayzRequestOptions,
+  FayzTableFilter,
+  FayzTableFilterOperator,
+  FayzTableListOptions,
+  FayzTableListResponse,
+  FayzTableMutationOptions,
+  FayzTableCreateOptions,
+  FayzTableUpdateOptions,
+  FayzTableDeleteOptions,
+  FayzTableDeleteResponse,
+} from './client'
+export {
+  fayzPackageVersionSets,
+  resolveFayzPackageDependencies,
+  resolveFayzPackageVersion,
+  resolveFayzPackageVersions,
+} from './release-channels'
+export type { FayzPackageChannel, FayzPackageVersionSet } from './release-channels'
 export {
   createFayzRuntimeClient,
   FayzRuntimeError,
 } from './runtime'
+export {
+  createFayzShopProvider,
+  FayzShopError,
+} from './shop'
+export type {
+  FayzShopProviderOptions,
+  FayzShopProductMetadataOverlay,
+  FayzShopListProductsOptions,
+  FayzShopListOrdersOptions,
+  FayzShopListCustomersOptions,
+  FayzShopListDiscountsOptions,
+  FayzShopProductStatus,
+  FayzShopOrderStatus,
+  FayzShopFinancialStatus,
+  FayzShopFulfillmentStatus,
+} from './shop'
 export type {
   FayzRuntimeClientOptions,
   FayzRuntimeEnvironment,

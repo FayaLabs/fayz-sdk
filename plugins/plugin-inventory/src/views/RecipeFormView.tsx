@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { Save, Plus, Trash2, X, GripVertical } from 'lucide-react'
 import { useInventoryStore, useInventoryProvider } from '../InventoryContext'
-import { toast } from '@fayz/ui'
-import { SubpageHeader } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
-import { SearchSelect } from '@fayz/ui'
+import { toast } from '@fayz-ai/ui'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SearchSelect } from '@fayz-ai/ui'
 import type { CreateRecipeIngredientInput } from '../types'
 
 interface FormIngredient {

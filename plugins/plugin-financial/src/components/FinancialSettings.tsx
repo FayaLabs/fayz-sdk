@@ -1,8 +1,8 @@
 import React from 'react'
 import { ChevronLeft } from 'lucide-react'
-import { PluginRegistryManager } from '@fayz/saas'
-import type { PluginRegistryDef } from '@fayz/core'
-import { useTranslation } from '@fayz/core'
+import { PluginRegistryManager } from '@fayz-ai/saas'
+import type { PluginRegistryDef } from '@fayz-ai/core'
+import { useTranslation } from '@fayz-ai/core'
 
 export function FinancialSettings({ registries, routeBase, onClose }: {
   registries: PluginRegistryDef[]

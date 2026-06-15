@@ -19,7 +19,7 @@
       "additionalProperties": false,
       "required": ["provider"],
       "properties": {
-        "provider": { "enum": ["supabase", "fayz-api", "mock", "custom"] },
+        "provider": { "enum": ["supabase", "fayz-api", "fayz-shop", "mock", "custom"] },
         "projectRef": { "type": "string", "minLength": 1 },
         "url": { "type": "string", "minLength": 1 },
         "adapterId": { "type": "string", "minLength": 1 },

@@ -1,8 +1,8 @@
 import React from 'react'
 import { User } from 'lucide-react'
-import { Card, CardContent } from '@fayz/ui'
+import { Card, CardContent } from '@fayz-ai/ui'
 import { ActiveToggle } from './ActiveToggle'
-import type { FieldDef, FieldGroup } from '@fayz/core'
+import type { FieldDef, FieldGroup } from '@fayz-ai/core'
 
 interface PersonFormLayoutProps {
   fields: FieldDef[]

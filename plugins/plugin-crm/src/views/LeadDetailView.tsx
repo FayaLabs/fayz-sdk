@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { UserPlus, FileText } from 'lucide-react'
 import { useCrmProvider, useCrmConfig, formatCurrency } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import { QuoteStatusDropdown } from '../components/QuoteStatusDropdown'
-import { Breadcrumb } from '@fayz/ui'
+import { Breadcrumb } from '@fayz-ai/ui'
 import type { Lead, Deal, Quote } from '../types'
 
 const STATUS_COLORS: Record<string, string> = {

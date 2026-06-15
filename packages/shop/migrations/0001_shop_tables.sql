@@ -1,5 +1,5 @@
 -- ============================================================================
--- @fayz/shop — ecommerce tables
+-- @fayz-ai/shop — ecommerce tables
 -- Products, categories, orders, customers, discounts. Tenant-scoped via RLS
 -- using public.user_tenant_ids() (defined in 20260201000004_plugin_rls.sql).
 -- ============================================================================

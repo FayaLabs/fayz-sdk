@@ -1,5 +1,5 @@
 {
-  "name": "@fayz/shop",
+  "name": "@fayz-ai/shop",
   "version": "0.1.0",
   "description": "Fayz SDK ecommerce layer — products, orders, customers, discounts, shipping",
   "type": "module",
@@ -24,6 +24,36 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./runtime": {
+      "source": "./src/runtime.ts",
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js",
+      "require": "./dist/runtime.cjs"
+    },
+    "./provider": {
+      "source": "./src/provider.ts",
+      "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.js",
+      "require": "./dist/provider.cjs"
+    },
+    "./types": {
+      "source": "./src/types.ts",
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "require": "./dist/types.cjs"
+    },
+    "./catalog": {
+      "source": "./src/catalog.ts",
+      "types": "./dist/catalog.d.ts",
+      "import": "./dist/catalog.js",
+      "require": "./dist/catalog.cjs"
+    },
+    "./mock": {
+      "source": "./src/mock.ts",
+      "types": "./dist/mock.d.ts",
+      "import": "./dist/mock.js",
+      "require": "./dist/mock.cjs"
     }
   },
   "files": [
@@ -37,15 +67,22 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fayz/core": "workspace:*",
-    "@supabase/supabase-js": "^2.45.0"
+    "@fayz-ai/auth": "workspace:^",
+    "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/ui": "workspace:^",
+    "lucide-react": "^0.400.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "zustand": "^4.5.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "tsup": "^8.2.0",
     "typescript": "^5.5.0"
   },
@@ -56,7 +93,5 @@
     "supabase"
   ],
   "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }

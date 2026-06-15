@@ -9,18 +9,18 @@ import listPlugin from '@fullcalendar/list'
 import ptBrLocale from '@fullcalendar/core/locales/pt-br'
 import type { EventInput, EventClickArg, DateSelectArg, EventDropArg } from '@fullcalendar/core'
 import { ChevronLeft, ChevronRight, Plus, ChevronDown, Settings } from 'lucide-react'
-import { usePluginPrefs } from '@fayz/saas'
-import { getCurrentLocale } from '@fayz/core'
-import { useTranslation } from '@fayz/core'
+import { usePluginPrefs } from '@fayz-ai/saas'
+import { getCurrentLocale } from '@fayz-ai/core'
+import { useTranslation } from '@fayz-ai/core'
 import { useAgendaConfig, useAgendaStore } from '../AgendaContext'
 import { useAgendaSettings } from '../hooks/useAgendaSettings'
 import { MiniCalendar } from '../components/MiniCalendar'
 import { AppointmentModal } from '../components/AppointmentModal'
 import { AppointmentPopover } from '../components/AppointmentPopover'
-import { PersonLink } from '@fayz/saas'
+import { PersonLink } from '@fayz-ai/saas'
 import { EventContextMenu } from '../components/EventContextMenu'
-import { ConfirmDialog } from '@fayz/ui'
-import { Button } from '@fayz/ui'
+import { ConfirmDialog } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
 import type { CalendarBooking, Schedule } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -550,7 +550,13 @@ export function CalendarView() {
       <div className="flex items-center gap-2 px-2 py-1.5">
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">{initials}</div>
         <div className="min-w-0">
-          <PersonLink personId={id} name={title} size="sm" tab="schedule" />
+          <PersonLink
+            personId={id}
+            name={title}
+            size="sm"
+            tab="schedule"
+            profileHref={`#/registry/staff/${id}/schedule`}
+          />
           {extendedProps?.locationName && <p className="text-[10px] text-muted-foreground truncate">{extendedProps.locationName}</p>}
         </div>
       </div>

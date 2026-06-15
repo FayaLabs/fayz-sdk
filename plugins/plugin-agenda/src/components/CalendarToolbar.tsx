@@ -1,7 +1,7 @@
 import React from 'react'
 import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react'
 import { useAgendaConfig } from '../AgendaContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 interface CalendarToolbarProps {
   title: string

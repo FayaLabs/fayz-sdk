@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { DataProvider, CrudQuery } from '@fayz/core'
+import type { DataProvider, CrudQuery } from '@fayz-ai/core'
 
 export interface CrudState<T> {
   items: T[] | null

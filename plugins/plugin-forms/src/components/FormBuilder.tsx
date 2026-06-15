@@ -12,18 +12,18 @@ import {
 import { arrayMove } from '@dnd-kit/sortable'
 import { snapCenterToCursor } from '@dnd-kit/modifiers'
 import { ArrowLeft, Save, Loader2, Eye } from 'lucide-react'
-import { Button } from '@fayz/ui'
-import { Input } from '@fayz/ui'
-import { Card, CardContent } from '@fayz/ui'
-import { Badge } from '@fayz/ui'
+import { Button } from '@fayz-ai/ui'
+import { Input } from '@fayz-ai/ui'
+import { Card, CardContent } from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+} from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { CustomFormsStore } from '../store'
 import type { CustomFormsDataProvider } from '../data/types'
 import type { CustomFormsConfig } from '../config'

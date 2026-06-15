@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Users, TrendingUp, Target, Clock, AlertTriangle, Trophy, BarChart3, FileText } from 'lucide-react'
 import { useCrmConfig, useCrmStore, formatCurrency } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Stat card

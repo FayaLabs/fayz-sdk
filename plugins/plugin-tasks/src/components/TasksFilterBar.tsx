@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTasksStore } from '../TasksContext'
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 import type { TaskStatus } from '../types'
 
 const FILTERS: Array<{ key: TaskStatus | 'all'; labelKey: string }> = [

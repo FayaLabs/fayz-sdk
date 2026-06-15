@@ -7,6 +7,8 @@ import { Link, navigateTo } from '../router'
 export function StorefrontFooter() {
   const config = useStorefrontConfig()
   const { categories } = useCategories()
+  const visibleCategories = categories.slice(0, 8)
+  const hiddenCategoryCount = Math.max(categories.length - visibleCategories.length, 0)
 
   const goCategory = (categoryId: string) => {
     useCatalogStore.getState().reset()
@@ -27,13 +29,24 @@ export function StorefrontFooter() {
         <div>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Departamentos</h3>
           <ul className="space-y-2 text-sm">
-            {categories.map((c) => (
+            {visibleCategories.map((c) => (
               <li key={c.id}>
-                <button type="button" onClick={() => goCategory(c.id)} className="transition-opacity hover:opacity-70">
+                <button
+                  type="button"
+                  onClick={() => goCategory(c.id)}
+                  className="max-w-full truncate text-left transition-opacity hover:opacity-70"
+                >
                   {c.name}
                 </button>
               </li>
             ))}
+            {hiddenCategoryCount > 0 && (
+              <li>
+                <Link to={config.catalogPath} className="font-medium underline-offset-2 transition-opacity hover:underline">
+                  Ver todos ({categories.length})
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
 

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { FileText, Calendar, User, Hash, Ban, Pencil, CircleCheckBig, ArrowRight, Send, Printer, Mail, MessageCircle, ChevronDown, Check, X } from 'lucide-react'
 import { useCrmConfig, useCrmStore, useCrmProvider, formatCurrency } from '../CrmContext'
-import { useTranslation } from '@fayz/core'
-import { SubpageHeader } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SubpageHeader } from '@fayz-ai/ui'
 import { QuoteStatusDropdown } from '../components/QuoteStatusDropdown'
-import { PersonLink } from '@fayz/saas'
-import { Button } from '@fayz/ui'
+import { PersonLink } from '@fayz-ai/saas'
+import { Button } from '@fayz-ai/ui'
 import type { Quote } from '../types'
 export function QuoteDetailView({ quoteId, onBack, onEdit, onInvoiceCreated }: {
   quoteId: string

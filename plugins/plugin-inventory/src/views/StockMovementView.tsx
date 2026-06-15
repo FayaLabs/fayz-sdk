@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Save, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, ArrowRightLeft, Trash2, Package, Check, Eye } from 'lucide-react'
 import { useInventoryConfig, useInventoryStore, useInventoryProvider, formatCurrency } from '../InventoryContext'
-import { cn } from '@fayz/ui'
-import { SubpageHeader } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
-import { SearchSelect, type SearchSelectOption } from '@fayz/ui'
-import { DatePicker } from '@fayz/ui'
+import { cn } from '@fayz-ai/ui'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { SearchSelect, type SearchSelectOption } from '@fayz-ai/ui'
+import { DatePicker } from '@fayz-ai/ui'
 import type { MovementType, StockMovement, StockPosition } from '../types'
 
 // ---------------------------------------------------------------------------

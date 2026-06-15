@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Plus, X } from 'lucide-react'
-import { cn } from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { ICON_MAP } from '@fayz/ui'
-import type { PluginQuickAction } from '@fayz/core'
+import { cn } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { ICON_MAP } from '@fayz-ai/ui'
+import type { PluginQuickAction } from '@fayz-ai/core'
 
 /**
  * Quick actions button for plugin modules.
@@ -40,7 +40,7 @@ export function QuickActionsButton({ actions, className }: {
       </Button>
 
       {open && (
-        <div className="absolute top-full right-0 z-50 mt-2 w-64 rounded-xl border bg-popover shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95 origin-top-right">
+        <div className="fayz-glass-surface absolute top-full right-0 z-50 mt-2 w-64 rounded-xl border bg-popover shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95 origin-top-right">
           <div className="p-1.5">
             {actions.map((action) => {
               const Icon = action.icon ? (ICON_MAP[action.icon] ?? Plus) : Plus

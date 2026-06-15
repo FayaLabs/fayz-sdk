@@ -167,7 +167,7 @@ function NavItem({
           <Tooltip.Content
             side="right"
             sideOffset={8}
-            className="z-50 rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md"
+            className="fayz-glass-surface z-50 rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md"
           >
             {item.label}
             {item.badge !== undefined && (
@@ -220,7 +220,7 @@ function NavGroup({
           </button>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content side="right" sideOffset={8} className="z-50 rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md">
+          <Tooltip.Content side="right" sideOffset={8} className="fayz-glass-surface z-50 rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md">
             {item.label}
             <Tooltip.Arrow className="fill-popover" />
           </Tooltip.Content>

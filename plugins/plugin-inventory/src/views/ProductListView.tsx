@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { Package } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ListView } from '@fayz/ui'
+import { ListView } from '@fayz-ai/ui'
 import { useInventoryConfig, useInventoryStore, formatCurrency } from '../InventoryContext'
-import { SubpageHeader } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { SubpageHeader } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { ProductType, Product } from '../types'
 
 const useColumns = (currency: { code: string; locale: string; symbol: string }, t: (key: string) => string): ColumnDef<Product, any>[] => [

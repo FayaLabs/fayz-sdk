@@ -87,3 +87,5 @@ export function createTheme(overrides: CreateThemeOptions): ThemeTokens {
 export type { CreateThemeOptions, ThemeTokens }
 export { lightTheme, darkTheme }
 export { fayzUiPreset } from './preset'
+export { createFayzTheme, fayzThemePresets } from './presets'
+export type { FayzThemePresetId } from './presets'

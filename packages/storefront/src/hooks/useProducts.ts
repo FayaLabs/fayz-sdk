@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getShopProvider } from '@fayz/shop'
-import type { Product, ListProductsOptions } from '@fayz/shop'
+import { getShopProvider } from '@fayz-ai/shop/runtime'
+import type { Product, ListProductsOptions } from '@fayz-ai/shop/types'
 
 export function useProducts(opts: ListProductsOptions): {
   products: Product[]

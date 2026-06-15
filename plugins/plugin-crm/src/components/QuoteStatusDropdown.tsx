@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Loader2, Send, CircleDashed, CircleCheckBig, CircleAlert, Ban } from 'lucide-react'
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparator } from '@fayz/ui'
-import { ConfirmDialog } from '@fayz/ui'
-import { Button } from '@fayz/ui'
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparator } from '@fayz-ai/ui'
+import { ConfirmDialog } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
 import { useCrmStore } from '../CrmContext'
 import type { Quote, QuoteStatus } from '../types'
 

@@ -7,10 +7,10 @@ import {
   SheetTitle,
   SheetBody,
   SheetFooter,
-} from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { Input } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+} from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { Input } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import type { FormFieldDef } from '../types'
 import { FIELD_TYPES } from './FieldPalette'
 

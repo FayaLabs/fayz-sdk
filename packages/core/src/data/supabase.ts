@@ -76,7 +76,7 @@ export function createSupabaseProvider<T extends { id: string }>(
       schema: (s: string) => unknown
       from: (t: string) => unknown
     } | null
-    if (!supabase) throw new Error(`[@fayz/core] Supabase client not available. Call createFayzApp with a provider first.`)
+    if (!supabase) throw new Error(`[@fayz-ai/core] Supabase client not available. Call createFayzApp with a provider first.`)
     return schema === 'public' ? (supabase as { from: (t: string) => unknown }) : (supabase.schema(schema) as { from: (t: string) => unknown })
   }
 
@@ -113,7 +113,7 @@ export function createSupabaseProvider<T extends { id: string }>(
       const from = (page - 1) * pageSize
       q = (q as { range: (f: number, t: number) => unknown }).range(from, from + pageSize - 1) as Record<string, unknown>
 
-      const { data, error, count } = q as { data: Record<string, unknown>[] | null; error: unknown; count: number | null }
+      const { data, error, count } = await q as { data: Record<string, unknown>[] | null; error: unknown; count: number | null }
       if (error) throw error
 
       return {

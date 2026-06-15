@@ -6,13 +6,13 @@
   "linked": [
     [
       "@fayz-ai/sdk",
-      "@fayz/core",
-      "@fayz/auth",
-      "@fayz/ui",
-      "@fayz/saas",
-      "@fayz/shop",
-      "@fayz/storefront",
-      "@fayz-ai/runtime"
+      "@fayz-ai/core",
+      "@fayz-ai/auth",
+      "@fayz-ai/ui",
+      "@fayz-ai/saas",
+      "@fayz-ai/shop",
+      "@fayz-ai/storefront",
+      "@fayz-ai/app-runtime"
     ]
   ],
   "access": "public",

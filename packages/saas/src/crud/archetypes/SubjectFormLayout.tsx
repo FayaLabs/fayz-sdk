@@ -1,9 +1,9 @@
 import React from 'react'
 import * as LucideIcons from 'lucide-react'
-import { Card, CardContent } from '@fayz/ui'
+import { Card, CardContent } from '@fayz-ai/ui'
 import { ActiveToggle } from './ActiveToggle'
 import { PersonPicker } from './PersonPicker'
-import type { FieldDef, FieldGroup } from '@fayz/core'
+import type { FieldDef, FieldGroup } from '@fayz-ai/core'
 
 interface SubjectFormLayoutProps {
   fields: FieldDef[]

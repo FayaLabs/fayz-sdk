@@ -1,6 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { getShopProvider } from '@fayz/shop'
-import type { Product, Order, ShopCustomer, Discount, ListProductsOptions } from '@fayz/shop'
+import { getShopProvider } from '@fayz-ai/shop'
+import type { Product, Order, ShopCustomer, Discount, ListProductsOptions, ShopProvider } from '@fayz-ai/shop'
+
+export type ShopProviderResolver = ShopProvider | (() => ShopProvider)
+
+export interface ShopPageProps {
+  provider?: ShopProviderResolver
+}
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -31,11 +37,15 @@ const statusColors: Record<string, string> = {
   'partially_fulfilled': 'bg-blue-100 text-blue-800',
 }
 
+function resolveShopProvider(provider?: ShopProviderResolver): ShopProvider {
+  return typeof provider === 'function' ? provider() : provider ?? getShopProvider()
+}
+
 // ---------------------------------------------------------------------------
 // Products tab
 // ---------------------------------------------------------------------------
 
-function ProductsTab() {
+function ProductsTab({ provider }: ShopPageProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -43,12 +53,12 @@ function ProductsTab() {
   const load = useCallback(async (opts?: ListProductsOptions) => {
     setLoading(true)
     try {
-      const data = await getShopProvider().listProducts(opts)
+      const data = await resolveShopProvider(provider).listProducts(opts)
       setProducts(data)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [provider])
 
   useEffect(() => { load() }, [load])
 
@@ -113,13 +123,13 @@ function ProductsTab() {
 // Orders tab
 // ---------------------------------------------------------------------------
 
-function OrdersTab() {
+function OrdersTab({ provider }: ShopPageProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getShopProvider().listOrders({ limit: 50 }).then(setOrders).finally(() => setLoading(false))
-  }, [])
+    resolveShopProvider(provider).listOrders({ limit: 50 }).then(setOrders).finally(() => setLoading(false))
+  }, [provider])
 
   return (
     <div>
@@ -165,13 +175,13 @@ function OrdersTab() {
 // Customers tab
 // ---------------------------------------------------------------------------
 
-function CustomersTab() {
+function CustomersTab({ provider }: ShopPageProps) {
   const [customers, setCustomers] = useState<ShopCustomer[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getShopProvider().listCustomers({ limit: 50 }).then(setCustomers).finally(() => setLoading(false))
-  }, [])
+    resolveShopProvider(provider).listCustomers({ limit: 50 }).then(setCustomers).finally(() => setLoading(false))
+  }, [provider])
 
   return (
     <div>
@@ -213,13 +223,13 @@ function CustomersTab() {
 // Discounts tab
 // ---------------------------------------------------------------------------
 
-function DiscountsTab() {
+function DiscountsTab({ provider }: ShopPageProps) {
   const [discounts, setDiscounts] = useState<Discount[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getShopProvider().listDiscounts({ limit: 50 }).then(setDiscounts).finally(() => setLoading(false))
-  }, [])
+    resolveShopProvider(provider).listDiscounts({ limit: 50 }).then(setDiscounts).finally(() => setLoading(false))
+  }, [provider])
 
   return (
     <div>
@@ -274,7 +284,7 @@ const TABS = [
 
 type TabId = typeof TABS[number]['id']
 
-export const ShopPage: React.FC = () => {
+export const ShopPage: React.FC<ShopPageProps> = ({ provider }) => {
   const [tab, setTab] = useState<TabId>('products')
 
   return (
@@ -303,10 +313,10 @@ export const ShopPage: React.FC = () => {
         </nav>
       </div>
 
-      {tab === 'products'  && <ProductsTab />}
-      {tab === 'orders'    && <OrdersTab />}
-      {tab === 'customers' && <CustomersTab />}
-      {tab === 'discounts' && <DiscountsTab />}
+      {tab === 'products'  && <ProductsTab provider={provider} />}
+      {tab === 'orders'    && <OrdersTab provider={provider} />}
+      {tab === 'customers' && <CustomersTab provider={provider} />}
+      {tab === 'discounts' && <DiscountsTab provider={provider} />}
     </div>
   )
 }

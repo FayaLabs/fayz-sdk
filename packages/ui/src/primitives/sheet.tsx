@@ -73,7 +73,7 @@ const SheetContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'saas-sheet-content fixed inset-y-0 right-0 z-50 flex flex-col border-l bg-card shadow-2xl outline-none',
+        'fayz-glass-surface saas-sheet-content fixed inset-y-0 right-0 z-50 flex flex-col border-l bg-card shadow-2xl outline-none',
         'w-full',
         width ?? 'max-w-md',
         className

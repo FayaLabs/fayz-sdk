@@ -5,7 +5,7 @@ import type {
   LeadQuery, DealQuery, ActivityQuery, QuoteQuery,
   PaginatedResult, CrmSummary, FunnelStage,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz/core'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
 import { getCrmTenantId } from '../lib/tenant'
 import { deriveLeadStatus, deriveQuoteStatus } from '../cascade'
 

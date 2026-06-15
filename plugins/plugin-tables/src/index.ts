@@ -1,10 +1,13 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz/core'
-import type { TablesDataProvider, TableSession } from './types'
+import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import type { TablesDataProvider } from './data/types'
+import type { TableSession } from './types'
+import { createMockTablesProvider } from './data/mock'
+import { createTablesStore } from './store'
 import { tablesRegistries } from './registries'
 import { tablesLocales } from './locales'
+import { PluginSettingsPanel } from '@fayz-ai/saas'
 
-// Lazy import page to avoid circular dependency issues
 const TablesPage = React.lazy(() => import('./TablesPage').then((m) => ({ default: m.TablesPage })))
 
 // ---------------------------------------------------------------------------
@@ -55,7 +58,7 @@ function resolveConfig(options?: TablesPluginOptions) {
       reservations: options?.modules?.reservations === true,
       sessionHistory: options?.modules?.sessionHistory !== false,
     },
-    labels: { ...DEFAULT_LABELS, ...options?.labels } as TablesPluginLabels,
+    labels: { ...DEFAULT_LABELS, ...options?.labels } as any,
     defaultZones: options?.defaultZones ?? [
       { name: 'Indoor', color: '#3b82f6' },
       { name: 'Outdoor', color: '#22c55e' },
@@ -72,10 +75,12 @@ function resolveConfig(options?: TablesPluginOptions) {
 
 export function createTablesPlugin(options?: TablesPluginOptions): PluginManifest {
   const config = resolveConfig(options)
+  const provider = options?.dataProvider ?? createMockTablesProvider()
+  const store = createTablesStore(provider)
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(React.Suspense, { fallback: null },
-      React.createElement(TablesPage as any)
+      React.createElement(TablesPage, { config, provider, store, registries: tablesRegistries })
     )
 
   return {
@@ -151,10 +156,12 @@ export function createTablesPlugin(options?: TablesPluginOptions): PluginManifes
         icon: 'MapPin',
         component: (() => {
           const TablesSettingsTab: React.ComponentType<unknown> = () =>
-            React.createElement('div', { className: 'p-4' },
-              React.createElement('h2', { className: 'text-lg font-semibold' }, 'Tables Settings'),
-              React.createElement('p', { className: 'text-sm text-muted-foreground' }, 'Zones and floor plan configuration')
-            )
+            React.createElement(PluginSettingsPanel, {
+              title: 'Tables Settings',
+              subtitle: 'Zones and floor plan configuration',
+              registries: tablesRegistries,
+              routeBase: '/settings/tables',
+            })
           TablesSettingsTab.displayName = 'TablesSettingsTab'
           return TablesSettingsTab
         })(),
@@ -166,5 +173,7 @@ export function createTablesPlugin(options?: TablesPluginOptions): PluginManifes
   }
 }
 
-export type { TablesDataProvider, TableSession } from './types'
-export type { TablesPluginOptions as TablesPluginConfig }
+export type { TablesDataProvider } from './data/types'
+export { createFayzTablesProvider } from './data/fayz'
+export type { FayzTablesProviderOptions } from './data/fayz'
+export type { ResolvedTablesConfig } from './TablesContext'

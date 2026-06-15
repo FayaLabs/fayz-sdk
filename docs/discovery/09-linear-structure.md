@@ -16,6 +16,8 @@ This is the proposed tracking structure before mutating Linear.
 
 Create the first integrated Fayz SDK foundation inside Fayz: tenant-specific manifest rendering in the editor Panel, provider abstraction for Supabase/Fayz API/custom providers, generated-project SDK scaffolding, agent instructions, retro-compat import of SDK apps, and validation through Beauty SaaS demo usability.
 
+**Route recalculation:** this epic is now proof-first. Public npm surface is intentionally limited to `@fayz-ai/sdk`. App runtime, UI, SaaS, shop, storefront, portal, courses, and plugin packages are internal/private until Beauty plus a second vertical prove stable seams. Linear children should be written as user stories for real app outcomes, not as package-publication work.
+
 **Historical origin:** FAY-924.
 
 ## Child issue 1 — Manifest/provider contract

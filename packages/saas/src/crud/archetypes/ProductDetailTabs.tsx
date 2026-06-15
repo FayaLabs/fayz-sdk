@@ -1,8 +1,8 @@
 import React from 'react'
 import { BarChart3, Truck, Tag, Clock } from 'lucide-react'
-import { Card, CardContent } from '@fayz/ui'
-import { Badge } from '@fayz/ui'
-import { useTranslation } from '@fayz/core'
+import { Card, CardContent } from '@fayz-ai/ui'
+import { Badge } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 
 function ComingSoon({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   const t = useTranslation()

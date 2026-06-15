@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react'
 import { Mail, Phone, ExternalLink, Cake, Calendar } from 'lucide-react'
-import { Popover, PopoverTrigger, PopoverContent } from '@fayz/ui'
+import { Popover, PopoverTrigger, PopoverContent } from '@fayz-ai/ui'
 import { createArchetypeLookup } from '../../archetype-lookup'
 import type { EntityLookupResult } from '../../archetype-lookup'
-import { cn } from '@fayz/ui'
+import { cn } from '@fayz-ai/ui'
 import { resolveEntityHref } from '../../lib/entity-routes'
 
 // Singleton person lookup — shared across all PersonLink instances

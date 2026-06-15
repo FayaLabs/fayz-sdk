@@ -5,7 +5,7 @@ Lead management, sales pipeline, deal tracking, quotes, and activity logging for
 ## Quick Start
 
 ```typescript
-import { createCrmPlugin } from '@fayz/saas-core/plugins/crm'
+import { createCrmPlugin } from '@fayz-ai/saas-core/plugins/crm'
 
 plugins: [
   createCrmPlugin({

@@ -1,14 +1,16 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import type {
   AuthAdapter,
+  AuthProvider,
   OrgAdapter,
   PluginManifest,
-  SaasTheme,
   ThemeMode,
   LocaleConfig,
   PermissionsConfig,
-  BillingConfig,
-} from '@fayz/core'
+} from '@fayz-ai/core'
+import type { SaasTheme } from '../shell/config/theme/tokens'
+import type { CreateThemeOptions } from '../shell/config/theme/utils'
+import type { PlanConfig } from '../shell/types/billing'
 
 // ---------------------------------------------------------------------------
 // Page registration
@@ -23,8 +25,12 @@ export interface CustomPage {
   label?: string
   /** Lucide icon name or any string identifier */
   icon?: string
-  component: ComponentType
+  component?: ComponentType
   section?: PageSection
+  position?: number
+  badge?: string | number
+  permission?: { feature: string; action: 'read' | 'create' | 'edit' | 'delete' }
+  children?: CustomPage[]
 }
 
 // ---------------------------------------------------------------------------
@@ -36,6 +42,12 @@ export interface AuthConfig {
   adapter?: 'supabase' | 'mock' | AuthAdapter
   /** Redirect to login when no session is found (default: true) */
   requireAuth?: boolean
+  loginLogo?: ReactNode
+  loginLayout?: 'split' | 'centered'
+  loginTagline?: string
+  loginDescription?: string
+  showOAuth?: boolean
+  oauthProviders?: Exclude<AuthProvider, 'email'>[]
 }
 
 export interface OrgConfig {
@@ -49,8 +61,15 @@ export interface OrgConfig {
 
 export interface ChatConfig {
   enabled?: boolean
+  title?: string
   systemPrompt?: string
   apiEndpoint?: string
+}
+
+export interface FayzBillingConfig {
+  plans: PlanConfig[]
+  stripePublishableKey?: string
+  portalUrl?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +79,7 @@ export interface ChatConfig {
 export interface FayzAppConfig {
   /** Application display name */
   name: string
+  logo?: string | ReactNode
 
   // -------------------------------------------------------------------------
   // Data connection
@@ -90,7 +110,7 @@ export interface FayzAppConfig {
   // -------------------------------------------------------------------------
   // Theme
   // -------------------------------------------------------------------------
-  theme?: SaasTheme
+  theme?: CreateThemeOptions | SaasTheme
   defaultThemeMode?: ThemeMode
   /** Shell layout variant (default: 'sidebar') */
   layout?: 'sidebar' | 'topbar' | 'minimal'
@@ -108,7 +128,7 @@ export interface FayzAppConfig {
   // -------------------------------------------------------------------------
   // Billing
   // -------------------------------------------------------------------------
-  billing?: BillingConfig
+  billing?: FayzBillingConfig
 
   // -------------------------------------------------------------------------
   // AI Chat

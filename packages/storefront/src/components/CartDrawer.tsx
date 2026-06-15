@@ -102,9 +102,10 @@ export function CartDrawer() {
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
               {cart.lines.map((line) => (
                 <div
-                  key={line.productId}
+                  key={line.lineId ?? line.productId}
                   data-testid={TID.cartLine}
                   data-product-id={line.productId}
+                  data-line-id={line.lineId ?? line.productId}
                   className="flex animate-fade-up gap-3 rounded-lg p-1.5 transition-colors hover:bg-muted/40"
                 >
                   {line.imageUrl && (
@@ -117,18 +118,21 @@ export function CartDrawer() {
                         type="button"
                         data-testid={TID.lineRemove}
                         aria-label={`Remover ${line.name}`}
-                        onClick={() => cart.removeItem(line.productId)}
+                        onClick={() => cart.removeItem(line.lineId ?? line.productId)}
                         className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                     <span className="text-xs text-muted-foreground">{line.sku}</span>
+                    {line.optionsLabel && (
+                      <span className="text-xs text-muted-foreground">{line.optionsLabel}</span>
+                    )}
                     <div className="mt-auto flex items-center justify-between pt-2">
                       <QuantityInput
                         value={line.quantity}
                         max={line.maxQuantity || undefined}
-                        onChange={(n) => cart.setQuantity(line.productId, n)}
+                        onChange={(n) => cart.setQuantity(line.lineId ?? line.productId, n)}
                         testId={TID.lineQty}
                         incTestId={TID.lineInc}
                         decTestId={TID.lineDec}

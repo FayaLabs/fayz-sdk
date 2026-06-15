@@ -3,7 +3,7 @@ import React, { useEffect } from 'react'
 // ---------------------------------------------------------------------------
 // StorefrontTheme — the storefront counterpart of SaasTheme.
 // Personalizes colors (HSL token triplets), typography (Google Fonts pairing),
-// radius and layout properties via CSS custom properties, so every @fayz/ui
+// radius and layout properties via CSS custom properties, so every @fayz-ai/ui
 // token class (bg-background, text-primary, ...) picks the brand up for free.
 //
 // Derived from the Nuvemshop template research (docs/storefront-templates-research.md):

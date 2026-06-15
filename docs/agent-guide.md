@@ -1,15 +1,242 @@
 # Fayz SDK — Agent Building Guide
 
-This document is the primary reference for AI agents generating new projects with `@fayz/saas-core` (current) or the `fayz-sdk` packages (future). Read it entirely before scaffolding or modifying any app.
+This document is the primary reference for AI agents generating or modifying
+Fayz apps on top of the public `@fayz-ai/sdk` package and private/internal SDK
+engines. Read it before scaffolding or changing any generated app.
 
-## Current Operating Status — 2026-06-14
+Operational source of truth:
+
+- `docs/discovery/30-sdk-app-operating-contract.md`
+
+## Current Operating Status — 2026-06-15
 
 Fayz-generated projects are moving to a manifest-first SDK contract.
+
+Current rollout state:
+
+- Four dogfood apps pass strict generated-app gates for constrained app-owned
+  edits: Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
+- Four real runtime projects have passed scoped MCP proofs:
+  `ce17885d-862c-4673-b4f2-514bfaee20eb` and
+  `bfb74227-0e3c-4226-bbc5-4f5a01ec8fae`, plus
+  `2a558057-7135-4229-8c9f-6cea559b8188` and
+  `2eedffdc-fc14-4685-8617-a0b45118d910`.
+- A fourth diagnostic runtime project,
+  `b0b9bbb6-e2e5-497d-b3df-cee8988e0957`, confirmed the route override seam
+  on a fresh scaffold and exposed the final `route`/`path` alias gap. The
+  scaffold runtime now treats `pages[].route` as the preferred route field and
+  keeps `pages[].path` as a compatibility alias.
+- The final clean route proof,
+  `2eedffdc-fc14-4685-8617-a0b45118d910`, passed without placeholder autofix:
+  the agent edited `app.manifest.json` and `src/registry.tsx`, `Index.tsx`
+  stayed at scaffold baseline, local gates passed, production build passed
+  after refreshing temp npm deps, and browser smoke rendered
+  `#/hash-proof-final`.
+- That proof edited only app-owned files, resolved a custom route through
+  `app.manifest.json` plus `src/registry.tsx`, reached
+  `finalStatus: "ready"`, created a `RELEASED` version, and passed deferred
+  build.
+- The second proof exposed and corrected a useful contract gap: the runtime
+  reads `surfaces.admin.pages`, not top-level `routes`, so manifest route
+  proofs must verify the page is wired through the surface the renderer uses.
+  The generated-app contract gate now fails unsupported top-level `routes` and
+  unresolved `surfaces.*.pages[].component` registry refs.
+- The third proof validated the full Fayz wrapper path after that change:
+  `check:fayz-sdk-agent-gates` ran `check:generated-app` before
+  `check:generated-agent-scope`, then MCP produced a `/quality` admin surface
+  page with only app-owned file changes.
+- The Fayz MCP server now exposes `get_fayz_sdk_agent_rollout_status` as a
+  read-only preflight. `send_message` also runs strict doctor preflight for
+  scoped projects and blocks before credits/codegen unless the project status is
+  `ready`. The status preflight returns `requestedProjectReady` for a requested
+  project id so agents do not need to infer readiness from a filtered list.
+- Commerce product-variation proof is now encoded as an app/SDK contract:
+  app-owned catalog metadata can feed a typed `productMetadata` overlay into
+  `createFayzShopProvider`, so provider-backed stores keep variants/custom
+  attributes without copying checkout/cart/order logic into the app. Backend
+  metadata remains the source of truth when it defines the same key.
+- This is approval for controlled scoped rollout, not broad autonomous agent
+  operation. Each new runtime project must be explicitly scoped by project id
+  before Fayz Agents edit it.
+
+## Operating Contract — 2026-06-15
+
+The current PoC goal is no longer "build more vertical apps." The goal is to
+prove that Fayz can generate, customize, and maintain real SaaS/commerce apps
+on top of reusable SDK engines while each client repo keeps its own business
+code and product personality.
+
+Use this order before making generated-app edits:
+
+1. **App-owned first:** business config, copy, theme, product data, route
+   overrides, workflow glue, and bespoke screens live in the app repo.
+2. **SDK primitives second:** auth, tenant context, API access, CRUD providers,
+   runtime broker helpers, checkout/order primitives, plugin runtime, toasts,
+   and shared contracts live in the SDK/platform.
+3. **Override, do not fork:** if a default screen is almost right, add a typed
+   route/slot override that calls SDK primitives. Do not copy the whole plugin
+   or storefront flow into the app.
+4. **Escalate seams:** if two apps need the same non-business logic, move the
+   primitive into SDK/internal packages and leave only configuration/custom UI
+   in app repos.
+5. **Gate every change:** run the generated-app contract check before treating
+   an app as agent-safe.
+
+Recommended gate:
+
+```bash
+pnpm check:generated-app /path/to/generated-app
+```
+
+This gate includes semantic manifest checks. For manifest-first apps, route or
+page overrides must live under `surfaces.<surface>.pages`; use `pages[].route`
+for new generated routes, keep `pages[].path` only for compatibility, and make
+sure every referenced component id is present in `src/registry.tsx`. Strict
+generated-app gates warn/fail path-only custom component routes so new agent
+work cannot silently depend on compatibility aliases.
+
+Current four-app dogfood gate:
+
+```bash
+pnpm check:generated-dogfood
+pnpm check:generated-dogfood:full
+```
+
+Strict pre-agent gate:
+
+```bash
+pnpm check:generated-dogfood:strict
+```
+
+Single-app readiness gate for Fayz Agent:
+
+```bash
+pnpm check:generated-agent-readiness /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --json
+```
+
+This wraps strict contract and scope gates so runtime agents do not need to
+remember the low-level command sequence.
+
+Edit-scope gate for a single generated app:
+
+```bash
+pnpm check:generated-agent-scope /path/to/generated-app --base HEAD~1 --strict
+```
+
+When Fayz already has the runtime list of changed files, use the same gate
+without git diff:
+
+```bash
+pnpm check:generated-agent-scope /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --strict
+```
+
+For agent/runtime consumers, use JSON output instead of parsing the human table:
+
+```bash
+pnpm check:generated-agent-scope /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --json --strict
+```
+
+In the Fayz repo, the operator wrapper is:
+
+```bash
+npm run check:fayz-sdk-agent-gates -- /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --scope-only
+```
+
+Before MCP/chat operation on a scoped runtime project, query rollout status:
+
+```text
+MCP tool: get_fayz_sdk_agent_rollout_status
+Input: { "projectId": "<project-id>" }
+Required result: requestedProjectReady === true
+```
+
+The MCP `send_message` tool enforces the same rule for projects in
+`FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS`: it runs strict doctor preflight and
+blocks before credits/codegen when the target project is `warn`, `blocked`,
+`misconfigured`, missing, or not reported.
+When `requestedProjectReady` is false, use `requestedProjectStatus.reason` as
+the operator-facing blocker instead of attempting generation.
+
+This catches the highest-risk drift:
+
+- generated apps depending publicly on internal `@fayz-ai/*` packages;
+- legacy `@fayz/*`, `saas-core`, or GitHub Packages registry wiring;
+- direct provider SDK imports such as `@supabase/supabase-js` in generated code;
+- unsafe optional backend URLs such as `url: supabaseUrl`, which can serialize
+  `backend.url: ""` and break mock/no-provider generated apps. Use
+  `url: supabaseUrl || undefined` or the equivalent guard;
+- provider-backed storefronts that define commerce attributes in app-owned
+  `Product.metadata` but omit the `productMetadata` overlay when creating the
+  SDK shop provider;
+- secret/refresh-token/client-secret references in browser/app files;
+- local copies of platform engines under `src/plugins`, `src/runtime`, or
+  `src/app-runtime`;
+- oversized entrypoints and missing app-owned config surfaces.
+
+Warnings are not automatic blockers during dogfood, but they must be reviewed.
+The strict gate treats warnings as blockers and is the recommended gate before
+letting Fayz Agents edit app-owned files autonomously. Failures mean the app is
+not ready for Fayz Agent autonomous operation.
+
+Use `check:generated-agent-scope` after a generated-app edit and before the
+strict dogfood gate. It classifies changed files as:
+
+- `app-owned`: safe default surface for Fayz Agents.
+- `review`: allowed only with explicit human/CTO review in strict mode.
+- `blocked`: SDK/internal work or explicit architecture approval required.
+
+### App-Owned Edit Surfaces
+
+Default Fayz Agent edits should stay in these app-owned surfaces:
+
+- `src/config/**`: business config, theme, pages, feature toggles, provider
+  selection, copy, module settings, dashboards, and reports.
+- `src/custom/**`: generated route overrides, slot overrides, and bespoke
+  workflows that still call SDK/storefront/plugin primitives.
+- `src/pages/**`: genuinely app-specific screens that do not belong in a shared
+  SDK engine yet.
+- `src/components/**`: brand/product UI components such as logos, hero blocks,
+  cards, and app-specific layout fragments.
+- `src/types/**`, `src/data/**`, `src/i18n/**`: app-owned model labels,
+  seed/mock data, translations, and vertical vocabulary.
+- `app.manifest.json` and `src/registry.tsx` when the app is manifest-first.
+
+Escalate instead of editing locally when the change touches these seams:
+
+- repeated CRUD/data/provider logic needed by more than one app;
+- checkout/order/cart/account primitives;
+- auth, tenant resolution, OAuth broker calls, secrets, or provider SDK clients;
+- app shell, plugin runtime, shared UI primitives, theme tokens, toasts, and
+  navigation behavior;
+- copied plugin engines under `src/plugins/**`.
+
+If an app needs a custom screen, generate a small app-owned override and call
+SDK/internal primitives. If the same logic appears in two apps, create or extend
+the SDK/internal primitive and leave only config/custom UI in the app.
+
+### Product Dogfood Rule
+
+Keep four app families under active dogfood before teaching Fayz Agents to
+operate SDK repos broadly:
+
+- **Beauty SaaS / BeautyPlace refactor:** salon SaaS depth. It should prove
+  agenda, client management, services, financial flow, and product-grade UX.
+- **Commerce shops:** commercial near-term storefronts. They should prove
+  high-conversion checkout, order tracking, product variations, account area,
+  and distinct brand personalities without forking storefront mechanics.
+- **Restaurant / The Chef:** restaurant/POS pressure. It should prove tables,
+  menu, orders, and workflow override seams.
+- **Marketplace/admin app:** merchant/admin pressure. It should prove provider
+  injection, dashboard metrics, and shop-admin data via SDK.
+
+Product depth is allowed when it answers a platform question. Avoid feature
+work that only makes one demo prettier and does not clarify SDK boundaries,
+agent edit surfaces, or reusable primitives.
 
 For new work in Fayz-generated projects:
 
 - Use public npm `@fayz-ai/sdk` as the default package for every generated project: app params, normalized API access, shared types, and runtime OAuth broker helpers.
-- Use public npm `@fayz-ai/runtime` only when the project renders a Fayz manifest app with `renderApp(manifest)` or needs registry/scaffold/plugin runtime helpers.
+- Use the platform-bundled app-runtime for manifest rendering. Do not install, publish, or document `@fayz-ai/app-runtime` as public product API until the Beauty manifest proof proves that package boundary.
 - Treat Fayz SDK as open-source client/runtime code. Do not add secrets, OAuth client secrets, provider refresh tokens, partner API keys, or tenant-authority decisions to SDK packages, generated repos, manifests, or browser code.
 - Plugin/integration authentication uses OAuth through Fayz/server-side infrastructure. Plugins may declare required providers/scopes and call SDK/Fayz OAuth helpers, but OAuth token storage, refresh, revocation, audit, and tenant grants belong to Fayz-controlled services.
 - Treat `app.manifest.json` as the first edit surface for pages, surfaces, plugins, entities, permissions, theme, and backend provider selection.
@@ -17,8 +244,8 @@ For new work in Fayz-generated projects:
 - Use `src/registry.tsx` for app-owned code referenced by manifest ids such as `custom:dashboard.Home`.
 - Use `src/plugins.generated.ts` only for Fayz-installed plugin registrations; Fayz owns that file.
 - New AppManifest writes must stay inside the strict v2 schema. Do not add ad hoc fields like top-level `title`, `surfaces.*.id`, `surfaces.*.name`, `surfaces.*.title`, page `id`, page `title`, plugin `pluginId`, plugin `title`, or plugin `label`.
-- Keep `manifestVersion` at `2` unless a real SDK/API manifest migration is registered and approved. SDK `validateManifest()` and Fayz API public writes reject any other version. Do not bump this field manually to signal feature work.
-- When changing `@fayz/core` AppManifest runtime/schema behavior, run `pnpm --filter @fayz/core typecheck` and then root `pnpm check:manifest`. The root manifest check is turbo-filtered to `@fayz/core`, builds/checks the package only, imports built `dist`, validates canonical v2, confirms schema `manifestVersion.const = 2`, and rejects v1/v3. Do not run unfiltered `turbo check:manifest`; it expands into unrelated package builds.
+- Keep `manifestVersion` at `2` unless a real SDK/API manifest migration is registered and approved. SDK `validateManifest()`, Fayz API public writes, and generated-app gates reject missing or unsupported versions. Do not bump this field manually to signal feature work.
+- When changing `@fayz-ai/core` AppManifest runtime/schema behavior, run `pnpm --filter @fayz-ai/core typecheck` and then root `pnpm check:manifest`. The root manifest check is turbo-filtered to `@fayz-ai/core`, builds/checks the package only, imports built `dist`, validates canonical v2, confirms schema `manifestVersion.const = 2`, and rejects v1/v3. Do not run unfiltered `turbo check:manifest`; it expands into unrelated package builds.
 - Put page display text in `pages[].label`, plugin display/config metadata in `plugins[].config` such as `config.label`, and surface-level display/config metadata in `surfaces.*.options`.
 - Plugin refs must use canonical `plugins[].id`. Do not write new `plugins[].pluginId` refs.
 - Generated scaffold currently declares both `surfaces.panel` and `surfaces.admin`.
@@ -28,7 +255,7 @@ For new work in Fayz-generated projects:
   - Default generated-project scope is `tenantKey="default"`, `environment="preview"`, and `surface="panel"`.
   - Trim scope strings before writes/reads; blank scope values resolve to defaults, while unsupported enum values must fail before persistence.
   - Use only supported environments `preview` or `production` and supported binding surfaces `panel`, `admin`, `storefront`, or `portal`.
-- Package source is locked to public npm under the `@fayz/*` scope. Do not reintroduce GitHub Packages `.npmrc` auth requirements into generated apps.
+- Package source is locked to public npm for `@fayz-ai/sdk` only. Do not reintroduce GitHub Packages `.npmrc` auth requirements into generated apps, and do not add internal runtime/plugin packages as public generated-app dependencies.
 - For `backend.provider = "fayz-api"`:
   - editor/admin tooling uses the authenticated Fayz route `/api/projects/:projectId/database/...`;
   - generated runtime apps must use `createFayzApiProvider({ runtimeToken })`, which calls `/api/v1/runtime/projects/:projectId/database/...`;
@@ -40,39 +267,25 @@ For new work in Fayz-generated projects:
   - exchange a runtime-data token through Fayz for a short-lived Plugin OAuth broker token;
   - call brokered helpers such as `fayz.googleCalendar(broker.token).createEvent(...)`;
   - do not create OAuth clients or direct provider API calls in browser/generated code.
-- Legacy `createSaasApp` / `@fayz/saas-core` examples below are migration reference for existing apps, not the default direction for new generated Fayz projects.
+- Legacy `createSaasApp` / `@fayz-ai/saas-core` examples below are migration reference for existing apps, not the default direction for new generated Fayz projects.
 
 ---
 
 ## Package source map
 
-Always import from the `@fayz/*` SDK package names. In dev these resolve to local
-source via vite aliases (see any consumer app's `vite.config.ts`); some are still
-bridges to `@fayz/saas-core` internally, but consumer code never imports
-`@fayz/saas-core/plugins/*` directly.
+Generated apps should install public npm `@fayz-ai/sdk` only. During dogfood,
+apps may import internal `@fayz-ai/*` runtime/plugin names through local Vite/TS
+aliases pointing at `/Users/fayalabs/dev/fayz-sdk`; those names are internal
+implementation seams, not public npm product API.
 
 | Plugin / utility | Import from |
 |---|---|
 | `fayz`, `createFayzClient`, `appParams`, `createFayzRuntimeClient` | `@fayz-ai/sdk` |
-| `renderApp`, `defineApp`, registry/scaffold helpers | `@fayz-ai/runtime` |
-| `createSaasApp`, `createCrudPage`, `createArchetypeLookup`, `createPlaceholder` | `@fayz/saas` |
-| `createDashboardPlugin` | `@fayz/plugin-dashboard` |
-| `createAgendaPlugin`, `createFinancialBridge` | `@fayz/plugin-agenda` |
-| `createFinancialPlugin`, `createSafeFinancialProvider` | `@fayz/plugin-financial` |
-| `createInventoryPlugin` | `@fayz/plugin-inventory` |
-| `createCrmPlugin` | `@fayz/plugin-crm` |
-| `createReportsPlugin` | `@fayz/plugin-reports` |
-| `createTasksPlugin` | `@fayz/plugin-tasks` |
-| `createCustomFormsPlugin` | `@fayz/plugin-forms` |
-| `createShopPlugin` | `@fayz/plugin-shop` |
-| `getShopProvider`, `setShopProvider`, `setShopTenantResolver` | `@fayz/shop` |
-| `createMenuPlugin` | `@fayz/plugin-menu` |
-| `createTablesPlugin` | `@fayz/plugin-tables` |
-| `Card`, `Badge`, `Button`, UI primitives | `@fayz/ui` |
+| App runtime, shell, plugin factories, UI primitives | platform-bundled/internal `fayz-sdk` source during dogfood |
 | `createFayzRuntimeClient`, `FayzRuntimeError` | `@fayz-ai/sdk` |
 
-Types (`EntityDef`, `FieldDef`, `PageConfig`, `SaasTheme`, etc.) come from `@fayz/saas`
-(or `@fayz/saas-core` — same types via the bridge). `PluginManifest` comes from `@fayz/core`.
+Types (`EntityDef`, `FieldDef`, `PageConfig`, `SaasTheme`, etc.) come from `@fayz-ai/saas`
+(or `@fayz-ai/saas-core` — same types via the bridge). `PluginManifest` comes from `@fayz-ai/core`.
 
 **Reference apps:** `../beauty-saas` (services vertical, agenda-centric) and
 `../marketplace-saas` (e-commerce, shop-centric) — copy their `vite.config.ts` and
@@ -86,11 +299,11 @@ Existing Beauty/resto apps may still call `createSaasApp(config)` while we extra
 
 ```tsx
 // src/App.tsx
-import { createSaasApp } from '@fayz/saas-core'
-import { createAgendaPlugin } from '@fayz/saas-core/plugins/agenda'
-import { createCrmPlugin } from '@fayz/saas-core/plugins/crm'
-import { createDashboardPlugin } from '@fayz/saas-core/plugins/dashboard'
-import { createCrudPage, createArchetypeLookup } from '@fayz/saas-core'
+import { createSaasApp } from '@fayz-ai/saas-core'
+import { createAgendaPlugin } from '@fayz-ai/saas-core/plugins/agenda'
+import { createCrmPlugin } from '@fayz-ai/saas-core/plugins/crm'
+import { createDashboardPlugin } from '@fayz-ai/saas-core/plugins/dashboard'
+import { createCrudPage, createArchetypeLookup } from '@fayz-ai/saas-core'
 import React from 'react'
 import { Logo } from './components/Logo'
 import { clientEntity } from './types/client'
@@ -389,7 +602,7 @@ Gating a page behind a permission:
 
 Gating a UI element:
 ```tsx
-import { PermissionGate } from '@fayz/saas-core'
+import { PermissionGate } from '@fayz-ai/saas-core'
 
 <PermissionGate feature="clients" action="delete">
   <DeleteButton />
@@ -485,7 +698,7 @@ interface FieldDef {
 
 ```typescript
 // src/types/service.ts
-import type { EntityDef } from '@fayz/saas-core'
+import type { EntityDef } from '@fayz-ai/saas-core'
 
 export interface Service {
   id: string
@@ -528,7 +741,7 @@ export const serviceEntity: EntityDef<Service> = {
 Use this when a plugin needs a search dropdown to pick entities from another table (e.g., pick a service in an appointment, or a product in an invoice).
 
 ```typescript
-import { createArchetypeLookup } from '@fayz/saas-core'
+import { createArchetypeLookup } from '@fayz-ai/saas-core'
 
 // Look up any person kind
 const clientLookup = createArchetypeLookup({ archetype: 'person', kind: 'customer' })
@@ -561,7 +774,7 @@ createAgendaPlugin({
 
 ## Plugin catalog
 
-Import from `@fayz/saas-core/plugins/<name>`. Each plugin returns a `PluginManifest` that you add to the `plugins` array in `createSaasApp`.
+Import from `@fayz-ai/saas-core/plugins/<name>`. Each plugin returns a `PluginManifest` that you add to the `plugins` array in `createSaasApp`.
 
 ---
 
@@ -570,7 +783,7 @@ Import from `@fayz/saas-core/plugins/<name>`. Each plugin returns a `PluginManif
 Adds a home page (`/`) with a KPI card grid and custom sections.
 
 ```typescript
-import { createDashboardPlugin } from '@fayz/plugin-dashboard'
+import { createDashboardPlugin } from '@fayz-ai/plugin-dashboard'
 
 createDashboardPlugin({
   navPosition: 0,
@@ -613,7 +826,7 @@ createDashboardPlugin({
 
 **Custom section component:**
 ```tsx
-import type { DashboardSectionProps } from '@fayz/saas-core/plugins/dashboard'
+import type { DashboardSectionProps } from '@fayz-ai/saas-core/plugins/dashboard'
 
 export function TodayScheduleSection({ onNavigate }: DashboardSectionProps) {
   // DashboardSectionProps: { onNavigate?: (route: string) => void }
@@ -628,7 +841,7 @@ export function TodayScheduleSection({ onNavigate }: DashboardSectionProps) {
 Full calendar and appointment management. Uses `v_bookings` view in the database.
 
 ```typescript
-import { createAgendaPlugin } from '@fayz/saas-core/plugins/agenda'
+import { createAgendaPlugin } from '@fayz-ai/saas-core/plugins/agenda'
 
 createAgendaPlugin({
   navPosition: 1,
@@ -679,7 +892,7 @@ createAgendaPlugin({
 
 **Financial bridge** — link agenda bookings to financial records:
 ```typescript
-import { createFinancialBridge } from '@fayz/saas-core/plugins/agenda'
+import { createFinancialBridge } from '@fayz-ai/saas-core/plugins/agenda'
 
 const financialBridge = createFinancialBridge()
 
@@ -694,7 +907,7 @@ createFinancialPlugin({ ..., onBookingClick: (orderId) => navigate(`/agenda?orde
 Accounts payable/receivable, cash registers, statements, commissions.
 
 ```typescript
-import { createFinancialPlugin } from '@fayz/saas-core/plugins/financial'
+import { createFinancialPlugin } from '@fayz-ai/saas-core/plugins/financial'
 
 createFinancialPlugin({
   navPosition: 4,
@@ -734,7 +947,7 @@ createFinancialPlugin({
 Product stock tracking and movement history.
 
 ```typescript
-import { createInventoryPlugin } from '@fayz/saas-core/plugins/inventory'
+import { createInventoryPlugin } from '@fayz-ai/saas-core/plugins/inventory'
 
 createInventoryPlugin({
   navPosition: 3,
@@ -753,7 +966,7 @@ createInventoryPlugin({
 Lead pipeline, deals, quotes, activity feed.
 
 ```typescript
-import { createCrmPlugin } from '@fayz/saas-core/plugins/crm'
+import { createCrmPlugin } from '@fayz-ai/saas-core/plugins/crm'
 
 createCrmPlugin({
   navPosition: 5,
@@ -807,7 +1020,7 @@ createCrmPlugin({
 Pre-built report catalog with filtering and drill-down.
 
 ```typescript
-import { createReportsPlugin } from '@fayz/saas-core/plugins/reports'
+import { createReportsPlugin } from '@fayz-ai/saas-core/plugins/reports'
 
 createReportsPlugin({
   navPosition: 9,
@@ -828,7 +1041,7 @@ Reports are auto-populated based on which other plugins are installed. Agenda �
 Widget-based task manager (no dedicated page). Adds a floating task panel and a task quick-add.
 
 ```typescript
-import { createTasksPlugin } from '@fayz/saas-core/plugins/tasks'
+import { createTasksPlugin } from '@fayz-ai/saas-core/plugins/tasks'
 
 createTasksPlugin({
   labels: {
@@ -846,7 +1059,7 @@ createTasksPlugin({
 Settings-based form builder. Adds a Forms section in Settings (no main nav page).
 
 ```typescript
-import { createCustomFormsPlugin } from '@fayz/saas-core/plugins/custom_forms'
+import { createCustomFormsPlugin } from '@fayz-ai/saas-core/plugins/custom_forms'
 
 createCustomFormsPlugin({
   labels: {
@@ -984,9 +1197,16 @@ export const App = createSaasApp({
 
 ---
 
-## @fayz/shop — Ecommerce package
+## @fayz-ai/shop — internal shop domain/provider package
 
-`@fayz/shop` is the ecommerce layer, a peer to `@fayz/saas`. It uses the **same Supabase project** as the rest of the app (same `VITE_SUPABASE_URL`). No separate database.
+`@fayz-ai/shop` is the internal ecommerce domain/provider layer: products, orders,
+customers, discounts, catalog mocks, tenant scoping, and backend adapters. It is not
+the customer-facing storefront UI package. Generated/customer apps should still treat
+`@fayz-ai/sdk` as the only public required package; shop internals are reached through
+local workspace aliases/templates until dogfood proves a stable public boundary.
+
+For real app data access, prefer the public SDK path (`@fayz-ai/sdk/shop` now,
+eventually `fayz.shop.*`) so the app repo does not own provider plumbing.
 
 ### Tables required (add to your Supabase migrations)
 
@@ -1008,7 +1228,7 @@ import {
   getShopProvider, setShopProvider,
   createSupabaseShopProvider, createMockShopProvider,
   setShopTenantResolver,
-} from '@fayz/shop'
+} from '@fayz-ai/shop'
 
 // Provider auto-selects: Supabase when initialized, mock in dev/demo.
 // The choice upgrades automatically once setGlobalSupabaseClient() runs.
@@ -1017,9 +1237,9 @@ const provider = getShopProvider()
 // Override explicitly (e.g. in tests)
 setShopProvider(createMockShopProvider())
 
-// Tenant scoping: @fayz/shop has no dependency on @fayz/saas, so the host
+// Tenant scoping: @fayz-ai/shop has no dependency on @fayz-ai/saas, so the host
 // registers a resolver. createShopPlugin() does this automatically using
-// useOrganizationStore — only call this yourself when using @fayz/shop
+// useOrganizationStore — only call this yourself when using @fayz-ai/shop
 // WITHOUT the plugin:
 setShopTenantResolver(() => myTenantId)
 
@@ -1057,27 +1277,45 @@ Discount { id, title, code, type, value, status, timesUsed, usageLimit }
 DiscountType: 'percentage' | 'fixed_amount' | 'free_shipping' | 'buy_x_get_y'
 ```
 
-`plugin-shop` installs `@fayz/shop` and exposes the full admin UI (Products, Orders, Customers, Discounts tabs). A consumer app only needs:
+`plugin-shop` installs `@fayz-ai/shop` and exposes the full admin UI (Products,
+Orders, Customers, Discounts tabs). New generated/admin apps should inject the
+SDK-backed provider explicitly:
 
 ```typescript
-import { createShopPlugin } from '@fayz/plugin-shop'
+import { createShopPlugin } from '@fayz-ai/plugin-shop'
+import { createFayzShopProvider } from '@fayz-ai/sdk/shop'
+
+const shopProvider = createFayzShopProvider({
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+  publishableKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+  storeId: import.meta.env.VITE_FAYZ_STORE_ID,
+})
 
 plugins: [
-  createShopPlugin({ navPosition: 1, currency: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' } }),
+  createShopPlugin({
+    navPosition: 1,
+    currency: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' },
+    provider: shopProvider,
+  }),
 ]
 ```
+
+`createShopPlugin()` still has a global provider fallback for compatibility. Do
+not use that fallback as the preferred generated-app path; explicit SDK provider
+injection keeps data access visible in app config and avoids hidden plugin
+runtime coupling.
 
 ---
 
 ### E-commerce app (with shop plugin)
 
-> Shop, Menu, and Tables plugins live in `@fayz/plugin-*` (fayz-sdk), not in saas-core.
+> Shop, Menu, and Tables plugins live in `@fayz-ai/plugin-*` (fayz-sdk), not in saas-core.
 
 ```tsx
-import { createShopPlugin } from '@fayz/plugin-shop'
-import { createInventoryPlugin } from '@fayz/saas-core/plugins/inventory'
-import { createCrmPlugin } from '@fayz/saas-core/plugins/crm'
-import { createReportsPlugin } from '@fayz/saas-core/plugins/reports'
+import { createShopPlugin } from '@fayz-ai/plugin-shop'
+import { createInventoryPlugin } from '@fayz-ai/saas-core/plugins/inventory'
+import { createCrmPlugin } from '@fayz-ai/saas-core/plugins/crm'
+import { createReportsPlugin } from '@fayz-ai/saas-core/plugins/reports'
 
 export const App = createSaasApp({
   name: 'My Store',
@@ -1115,10 +1353,10 @@ export const App = createSaasApp({
 ### Restaurant app (with menu + tables plugins)
 
 ```tsx
-import { createMenuPlugin }   from '@fayz/plugin-menu'
-import { createTablesPlugin } from '@fayz/plugin-tables'
-import { createFinancialPlugin } from '@fayz/saas-core/plugins/financial'
-import { createReportsPlugin } from '@fayz/saas-core/plugins/reports'
+import { createMenuPlugin }   from '@fayz-ai/plugin-menu'
+import { createTablesPlugin } from '@fayz-ai/plugin-tables'
+import { createFinancialPlugin } from '@fayz-ai/saas-core/plugins/financial'
+import { createReportsPlugin } from '@fayz-ai/saas-core/plugins/reports'
 
 export const App = createSaasApp({
   name: 'Resto',
@@ -1157,7 +1395,7 @@ export const App = createSaasApp({
 ## Utility functions
 
 ```typescript
-import { createCrudPage, createPlaceholder, createArchetypeLookup } from '@fayz/saas-core'
+import { createCrudPage, createPlaceholder, createArchetypeLookup } from '@fayz-ai/saas-core'
 
 // Auto-generates list + detail + create + edit pages from an EntityDef
 createCrudPage(entityDef)
@@ -1187,16 +1425,17 @@ RLS is applied via `tenant_id` on all tables. The auth user → tenant mapping i
 
 ---
 
-## @fayz/storefront — customer-facing ecommerce template
+## @fayz-ai/storefront — internal customer-facing ecommerce template
 
-The storefront counterpart of `createSaasApp`: a Shopify-style **public store**
+The storefront counterpart of the SaaS app shell: a Shopify-style **public store**
 (catalog, filters, cart, checkout, purchase history) — not an admin. Use it when
 the project is an online store the *customers* visit; use `createShopPlugin`
-inside `createSaasApp` for the merchant back office. They share `@fayz/shop`
-(same provider, same tables), so one Supabase project powers both.
+inside the merchant back office. `@fayz-ai/storefront` owns front-end store assembly;
+`@fayz-ai/shop` owns domain/provider primitives; `@fayz-ai/sdk/shop` owns Fayz-backed
+data access.
 
 ```typescript
-import { createStorefrontApp } from '@fayz/storefront'
+import { createStorefrontApp } from '@fayz-ai/storefront'
 
 export const App = createStorefrontApp({
   name: 'Aurora Goods',
@@ -1212,12 +1451,12 @@ export const App = createStorefrontApp({
 
 Routes (hash-based, built in): `/` home (when `home` configured, else catalog) ·
 `/catalog` · `/product/:slug` · `/checkout` · `/order/:id` confirmation ·
-`/account` my purchases (email sign-in via the shared @fayz/auth adapter).
+`/account` my purchases (email sign-in via the shared @fayz-ai/auth adapter).
 
 ### Templates (recreated from Nuvemshop patterns — see docs/storefront-templates-research.md)
 
 ```typescript
-import { createStorefrontApp, storefrontTemplates, sertaoTemplate } from '@fayz/storefront'
+import { createStorefrontApp, storefrontTemplates, sertaoTemplate } from '@fayz-ai/storefront'
 
 // Option A — use a template as-is:
 const t = storefrontTemplates.atelier   // 'mare' | 'sertao' | 'volt' | 'atelier'
@@ -1238,11 +1477,19 @@ Template personalities: `mare` (airy fashion, Rio), `sertao` (editorial serif, U
 ### Per-store catalog + auth
 
 ```typescript
-import { buildMockCatalog } from '@fayz/shop'
+import { buildMockCatalog } from '@fayz-ai/shop/catalog'
 
 const catalog = buildMockCatalog({
   categories: [{ name: 'Tintos' }],
-  products: [{ name: 'Tannat Reserva', description: '…', price: 129.9, inventory: 36, sku: 'TIN-001', category: 'Tintos' }],
+  products: [{
+    name: 'Tannat Reserva',
+    description: '…',
+    price: 129.9,
+    inventory: 36,
+    sku: 'TIN-001',
+    category: 'Tintos',
+    metadata: { vintage: '2021', region: 'Canelones', pairing: 'Carnes grelhadas' },
+  }],
   discounts: [{ code: 'TANNAT15', percent: 15 }],
 })
 createStorefrontApp({ name: 'Tannat', catalog })   // mock mode uses this store's own products
@@ -1251,6 +1498,37 @@ createStorefrontApp({ name: 'Tannat', catalog })   // mock mode uses this store'
 Customer auth uses the SAME `AuthAdapter` contract as `createSaasApp`
 (`auth: { adapter: 'mock' | 'supabase' | customAdapter }`, default mock). Checkout and the
 account page both go through `establishCustomerSession()` — buyer is signed in after purchase.
+
+Product-specific commerce attributes belong in app-owned catalog/config data
+under `Product.metadata` when they describe the client's domain: sizes,
+colorways, vintage, region, pairing, merchandising tags, or variant labels.
+SDK/shop primitives preserve metadata; app-owned cards/pages decide how to
+present it. If a provider backend is configured, it must carry equivalent
+product metadata or receive a typed `productMetadata` overlay from the
+app-owned catalog:
+
+```typescript
+const productMetadata = catalog.products.map((product) => ({
+  sku: product.sku,
+  slug: product.slug,
+  metadata: product.metadata,
+}))
+
+const shopProvider = createFayzShopProvider({
+  supabaseUrl,
+  publishableKey,
+  storeId,
+  productMetadata,
+})
+```
+
+Use this overlay to preserve generated-app product personality while the SDK
+provider owns product identity, price, stock, order, and customer operations.
+Backend metadata wins when it defines the same key; the overlay is a bridge
+until Fayz admin/broker persists those attributes server-side. If no provider is
+configured, the mock catalog must still render. Guard optional provider/backend
+URLs with `url: value || undefined`; do not pass possibly empty env strings
+into manifest/backend config.
 
 **Reference stores:** `../shopfront` (Aurora Goods, all 4 templates via `VITE_TEMPLATE`),
 `../tannat-store` (wine, personalized sertão), `../pulse-store` (sneakers, personalized volt).
@@ -1263,6 +1541,29 @@ What it includes out of the box:
   provider and marks it paid → confirmation page → "Minhas compras"
 - Every interactive element carries a `data-testid` (exported as `TID`) and every
   price a `data-price` attribute — Playwright suites assert against those
+
+When a client app overrides a storefront slot, keep the slot contract. For
+example, a custom product card can change all visual structure but must preserve
+the exported `productCardSlotContract` anchors:
+
+```tsx
+import { Price, productCardSlotContract, useCartStore } from '@fayz-ai/storefront'
+import type { ProductCardProps } from '@fayz-ai/storefront'
+
+export function CustomProductCard({ product }: ProductCardProps) {
+  const addItem = useCartStore((s) => s.addItem)
+
+  return (
+    <article {...productCardSlotContract.root}>
+      <h3 {...productCardSlotContract.name}>{product.name}</h3>
+      <Price value={product.price} testId={productCardSlotContract.priceTestId} />
+      <button {...productCardSlotContract.addButton} onClick={() => addItem(product)}>
+        Adicionar
+      </button>
+    </article>
+  )
+}
+```
 
 Composable exports for custom layouts: `StorefrontHeader`, `ProductGrid`,
 `ProductCard`, `FiltersPanel`, `CartDrawer`, `Price`, page components, the

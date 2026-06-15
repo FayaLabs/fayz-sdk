@@ -133,5 +133,11 @@ export {
   ThemeProvider,
   useTheme,
   createTheme,
+  createFayzTheme,
+  fayzThemePresets,
   type ThemeProviderProps,
+  type FayzThemePresetId,
 } from './theme'
+
+// Avatar (used by the admin shell: TeamTab, UserProfile)
+export { Avatar, AvatarImage, AvatarFallback } from './primitives/Avatar'

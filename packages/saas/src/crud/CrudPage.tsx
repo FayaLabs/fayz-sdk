@@ -2,11 +2,11 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Pencil, Trash2, MoreVertical, Upload, Download } from 'lucide-react'
 import type { ColumnDef as TanStackColumnDef } from '@tanstack/react-table'
 import { useOrganizationStore } from '../org'
-import { useTranslation } from '@fayz/core'
-import { Card } from '@fayz/ui'
-import { Button } from '@fayz/ui'
-import { DataTable } from '@fayz/ui'
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@fayz/ui'
+import { useTranslation } from '@fayz-ai/core'
+import { Card } from '@fayz-ai/ui'
+import { Button } from '@fayz-ai/ui'
+import { DataTable } from '@fayz-ai/ui'
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@fayz-ai/ui'
 import { CrudFormPage } from './CrudFormPage'
 import { CrudDetailPage } from './CrudDetailPage'
 import { CrudCardGrid } from './CrudCardGrid'
@@ -16,10 +16,10 @@ import { exportToCSV } from './csv-export'
 import { fieldToColumns } from './fieldToColumn'
 import { PermissionGate } from '../permissions/PermissionGate'
 import { useFieldRules } from '../hooks/useFieldRules'
-import { deriveEntityKey } from '@fayz/core'
-import { toast } from '@fayz/ui'
-import { getSupabaseClientOptional } from '@fayz/core'
-import type { EntityDef } from '@fayz/core'
+import { deriveEntityKey } from '@fayz-ai/core'
+import { toast } from '@fayz-ai/ui'
+import { getSupabaseClientOptional } from '@fayz-ai/core'
+import type { EntityDef } from '@fayz-ai/core'
 import type { CrudStore } from '../stores/createCrudStore'
 import type { ImportRowError } from './ImportWizard'
 
@@ -42,10 +42,25 @@ function getRouteDepth(sub: string): number {
   return 1                                        // detail
 }
 
+function normalizeCrudBasePath(basePath: string): string {
+  const normalized = `/${basePath}`.replace(/\/+/g, '/')
+  return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized
+}
+
+function crudPath(basePath: string, ...parts: Array<string | undefined>): string {
+  return normalizeCrudBasePath([basePath, ...parts.filter(Boolean)].join('/'))
+}
+
+function setCrudHash(basePath: string, ...parts: Array<string | undefined>): void {
+  window.location.hash = crudPath(basePath, ...parts)
+}
+
 function useSubRoute(basePath: string) {
+  const normalizedBasePath = normalizeCrudBasePath(basePath)
   const getSub = () => {
-    const hash = window.location.hash.slice(1) || '/'
-    return hash.startsWith(basePath) ? hash.slice(basePath.length) : ''
+    const hash = normalizeCrudBasePath(window.location.hash.slice(1) || '/')
+    if (hash === normalizedBasePath) return ''
+    return hash.startsWith(`${normalizedBasePath}/`) ? hash.slice(normalizedBasePath.length) : ''
   }
 
   const [sub, setSub] = useState(getSub)
@@ -62,7 +77,7 @@ function useSubRoute(basePath: string) {
     }
     window.addEventListener('hashchange', handler)
     return () => window.removeEventListener('hashchange', handler)
-  }, [basePath])
+  }, [normalizedBasePath])
 
   return { sub, direction }
 }
@@ -105,7 +120,7 @@ function useCrudColumns<T extends { id: string }>(
           const id = row.original.id
           const editBtn = (
             <Button variant="ghost" size="icon" className="h-8 w-8"
-              onClick={(e: React.MouseEvent) => { e.stopPropagation(); window.location.hash = `${options.basePath}/${id}/edit` }}>
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setCrudHash(options.basePath!, id, 'edit') }}>
               <Pencil className="h-4 w-4" />
             </Button>
           )
@@ -138,7 +153,8 @@ function useCrudColumns<T extends { id: string }>(
 export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, useStore, basePath, display, feature, readOnly }: CrudPageProps<T>) {
   const store = useStore()
   const t = useTranslation()
-  const { sub, direction } = useSubRoute(basePath)
+  const normalizedBasePath = normalizeCrudBasePath(basePath)
+  const { sub, direction } = useSubRoute(normalizedBasePath)
 
   // Apply tenant field-rule overrides (required / visibility) before passing down
   const entityKey = deriveEntityKey(rawEntityDef)
@@ -158,14 +174,14 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
   const handleInlineUpdate = useCallback(async (id: string, field: string, value: any) => {
     await store.update(id, { [field]: value } as any)
   }, [store])
-  const tanColumns = useCrudColumns(entityDef, { basePath, onDelete: readOnly ? undefined : (item) => setDeleteItem(item), onInlineUpdate: handleInlineUpdate, feature, readOnly })
+  const tanColumns = useCrudColumns(entityDef, { basePath: normalizedBasePath, onDelete: readOnly ? undefined : (item) => setDeleteItem(item), onInlineUpdate: handleInlineUpdate, feature, readOnly })
   const currentOrgId = useOrganizationStore((s) => s.currentOrg?.id)
 
   useEffect(() => {
     if (currentOrgId) store.fetch()
   }, [currentOrgId])
 
-  const navigateToList = () => { window.location.hash = basePath }
+  const navigateToList = () => { setCrudHash(normalizedBasePath) }
   const animClass = direction === 'forward' ? 'saas-nav-forward' : 'saas-nav-back'
 
   const handleImport = useCallback(async (
@@ -297,10 +313,10 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
           mode="edit"
           initialData={item as any}
           namePlural={namePlural}
-          onCancel={() => { window.location.hash = `${basePath}/${id}` }}
+          onCancel={() => { setCrudHash(normalizedBasePath, id) }}
           onSubmit={async (data) => {
             await store.update(id, data as Partial<T>)
-            window.location.hash = `${basePath}/${id}`
+            setCrudHash(normalizedBasePath, id)
           }}
         />
       )
@@ -308,7 +324,7 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
   } else if (sub.endsWith('/edit') && readOnly) {
     // readOnly — redirect to detail view
     const id = sub.slice(1, -5)
-    window.location.hash = `${basePath}/${id}`
+    setCrudHash(normalizedBasePath, id)
   } else if (sub.startsWith('/') && sub.length > 1) {
     // Parse /uuid or /uuid/tab-name
     const subParts = sub.slice(1).split('/')
@@ -379,10 +395,10 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
           entityDef={entityDef}
           item={item as any}
           namePlural={namePlural}
-          basePath={basePath}
+          basePath={normalizedBasePath}
           initialTab={initialTab}
           onBack={navigateToList}
-          onEdit={readOnly ? undefined : () => { window.location.hash = `${basePath}/${id}/edit` }}
+          onEdit={readOnly ? undefined : () => { setCrudHash(normalizedBasePath, id, 'edit') }}
           onDelete={readOnly ? undefined : () => setDeleteItem(item)}
           feature={feature}
         />
@@ -402,7 +418,7 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
     const isEmpty = store.items !== null && store.items.length === 0
 
     const hasSearch = entityDef.fields.some((f) => f.searchable)
-    const navigateToNew = () => { window.location.hash = `${basePath}/new` }
+    const navigateToNew = () => { setCrudHash(normalizedBasePath, 'new') }
 
     content = (
       <div className="space-y-6">
@@ -484,14 +500,14 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
           <CrudCardGrid
             items={store.items ?? []}
             entityDef={entityDef as EntityDef<any>}
-            onEdit={(item) => { window.location.hash = `${basePath}/${(item as any).id}` }}
+            onEdit={(item) => { setCrudHash(normalizedBasePath, (item as any).id) }}
             onDelete={(item) => setDeleteItem(item)}
           />
         ) : (
           <DataTable
             columns={tanColumns}
             data={store.items ?? []}
-            onRowClick={(row) => { window.location.hash = `${basePath}/${(row as any).id}` }}
+            onRowClick={(row) => { setCrudHash(normalizedBasePath, (row as any).id) }}
           />
         )}
       </div>
