@@ -8462,6 +8462,8 @@ npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-
 - Hardened proof credit handling in Fayz commit `9151ef9c`: temporary
   `OrganizationCredits` changes are restored after success or failure, and the
   local proof workspace was restored to `dailyLimit=0`.
+- Hardened post-send audit handling in Fayz commit `ccd543a7`: credit restore
+  now runs when DB snapshot/audit work after `send_message` fails.
 - Full run passed on `fayz-sdk-runtime-proof`:
   - runtime proof filesystem/database seed;
   - preflight/app-owned/blocked smoke;
@@ -8485,7 +8487,8 @@ npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-
   credits only for `fayz-sdk-runtime-proof` by default and supports
   `--skip-credit-seed` when validating real credit behavior.
 - Proof credit seed no longer leaks unlimited credits into the shared local
-  workspace after the canary exits.
+  workspace after the canary exits, including normal generation failures and
+  post-send audit failures.
 
 ### Risco
 

@@ -46,8 +46,8 @@ Latest route lock update:
   `fayz-sdk-runtime-proof` by default and supports `--skip-credit-seed`. It now
   also requires `get_fayz_sdk_agent_rollout_status` to report the requested
   project ready before any credit seed or generation. The proof credit seed is
-  restored after success or failure, so local `OrganizationCredits` state does
-  not leak across dogfood runs.
+  restored after success, generation failure, or post-send audit failure, so
+  local `OrganizationCredits` state does not leak across dogfood runs.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
