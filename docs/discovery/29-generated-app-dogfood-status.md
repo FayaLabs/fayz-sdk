@@ -1,12 +1,29 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 08:23 UTC / 05:23 BRT
+Snapshot: 2026-06-15 09:06 UTC / 06:06 BRT
 
 ## Executive Status
 
 Resultado:
 
-- Four dogfood apps pass the generated-app contract and typecheck gate:
+- Current gates:
+  - `pnpm check:generated-dogfood --summary --strict`:
+    `4/4 contract gates passed; 0 warning(s)`.
+  - `pnpm check:generated-dogfood --json --strict`: Beauty/BeautyPlace,
+    Shopfront/Aurora, Resto/The Chef, and Marketplace/admin all returned
+    `contract: "pass"` with empty warnings.
+  - `pnpm check:public-surface`: only `@fayz-ai/sdk` is publishable.
+- Route mechanics are closed for now. Clean runtime proof project
+  `2eedffdc-fc14-4685-8617-a0b45118d910` added `/hash-proof-final` through
+  app-owned `app.manifest.json` plus `src/registry.tsx`; `src/pages/Index.tsx`
+  stayed at scaffold baseline, verification passed on attempt `1/5`, local SDK
+  gates passed, local production build passed after refreshing temp npm optional
+  dependencies, and browser smoke confirmed the hash route rendered.
+- Fayz scaffold no longer ships the stale `Welcome to Your Blank App`
+  placeholder in `src/pages/Index.tsx`; the fallback page delegates to the same
+  manifest runtime as `src/main.tsx`, avoiding unnecessary verifier autofixes in
+  manifest-runtime proofs.
+- Four dogfood apps pass the generated-app contract gate:
   Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
 - The full gate currently reports zero warnings across the four apps.
 - Fayz MCP now exposes `get_fayz_sdk_agent_rollout_status` so agents can read
