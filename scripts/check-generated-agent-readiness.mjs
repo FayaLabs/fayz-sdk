@@ -38,6 +38,46 @@ function runGate(name, commandArgs) {
   }
 }
 
+function unique(items) {
+  return Array.from(new Set(items.filter(Boolean)))
+}
+
+function parseContractDiagnostics(stderr) {
+  const warnings = []
+  const problems = []
+  let section = null
+
+  for (const line of stderr.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+
+    if (trimmed.startsWith('Warning: ')) {
+      warnings.push(trimmed.replace(/^Warning:\s*/, ''))
+      continue
+    }
+    if (trimmed === 'Generated app contract check failed in strict mode:') {
+      section = 'warnings'
+      continue
+    }
+    if (trimmed === 'Generated app contract check failed:') {
+      section = 'problems'
+      continue
+    }
+    if (trimmed.startsWith('- ') && section === 'warnings') {
+      warnings.push(trimmed.replace(/^-\s*/, ''))
+      continue
+    }
+    if (trimmed.startsWith('- ') && section === 'problems') {
+      problems.push(trimmed.replace(/^-\s*/, ''))
+    }
+  }
+
+  return {
+    warnings: unique(warnings),
+    problems: unique(problems),
+  }
+}
+
 const passthroughArgs = args.filter((arg, index) => {
   if (arg === '--json') return false
   if (arg === appPathArg && index === args.indexOf(appPathArg)) return false
@@ -74,6 +114,7 @@ if (json) {
     gates: {
       contract: {
         status: contract.status,
+        diagnostics: parseContractDiagnostics(contract.stderr),
         stdout: contract.stdout,
         stderr: contract.stderr,
       },

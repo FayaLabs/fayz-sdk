@@ -109,5 +109,53 @@ describe('generated agent readiness gate', () => {
     assert.equal(payload.status, 'fail')
     assert.equal(payload.gates.contract.status, 'fail')
     assert.match(payload.gates.contract.stderr, /must use manifestVersion 2/)
+    assert.deepEqual(payload.gates.contract.diagnostics.problems, [
+      'app.manifest.json must use manifestVersion 2. Do not bump or omit this field without an approved SDK/API manifest migration.',
+    ])
+  })
+
+  it('returns structured contract diagnostics for missing commerce metadata overlays', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/catalog.ts'),
+      `
+import { buildMockCatalog } from '@fayz-ai/shop/catalog'
+
+export const catalog = buildMockCatalog({
+  categories: [{ name: 'Sneakers' }],
+  products: [{
+    name: 'Runner Vortex Neon',
+    price: 599.9,
+    sku: 'SNK-001',
+    category: 'Sneakers',
+    metadata: { sizes: ['38', '39', '40'] },
+  }],
+})
+`,
+    )
+    write(
+      join(appRoot, 'src/config/shop.ts'),
+      `
+import { createFayzShopProvider } from '@fayz-ai/sdk/shop'
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+const publishableKey = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY
+const storeId = import.meta.env.PUBLIC_FAYZ_STORE_ID
+
+export const shopProvider = supabaseUrl && publishableKey && storeId
+  ? createFayzShopProvider({ supabaseUrl, publishableKey, storeId })
+  : undefined
+`,
+    )
+
+    const result = runReadiness(appRoot, ['--paths', 'src/config/shop.ts,src/config/catalog.ts', '--json'])
+
+    assert.equal(result.status, 1)
+    const payload = JSON.parse(result.stdout)
+    assert.equal(payload.status, 'fail')
+    assert.equal(payload.gates.contract.status, 'fail')
+    assert.equal(payload.gates.contract.diagnostics.problems.length, 0)
+    assert.equal(payload.gates.contract.diagnostics.warnings.length, 1)
+    assert.match(payload.gates.contract.diagnostics.warnings[0], /createFayzShopProvider without productMetadata/)
   })
 })
