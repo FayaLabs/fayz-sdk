@@ -169,8 +169,11 @@ Recommended future files:
 app.manifest.json
 src/registry.tsx
 src/plugins.generated.ts
-AGENTS.md
 ```
+
+Generated apps should not require app-local `AGENTS.md` files by default. Agent
+instructions should come from Fayz/SDK internal docs, package metadata,
+capability registries, and gates that can be queried on demand.
 
 Do not rewrite Boris-owned AI prompts yet. Prompt vocabulary changes need Boris ownership/review.
 
@@ -284,7 +287,7 @@ The five required research outputs are present and still align with this lock:
 
 - SDK manifest/provider lane: keep `AppManifest` canonical, add `fayz-api` as a `DataProvider`, strengthen validation, avoid a god provider.
 - Fayz Panel/API lane: use `ProjectAppManifest`, resolve by `projectId + tenantKey + environment + surface`, render additively inside the current dashboard.
-- Generated scaffold lane: future generated projects should include `app.manifest.json`, `src/registry.tsx`, `src/plugins.generated.ts`, and `AGENTS.md`, but scaffold changes should follow runtime/package stability.
+- Generated scaffold lane: future generated projects should include `app.manifest.json`, `src/registry.tsx`, and `src/plugins.generated.ts`; app-local `AGENTS.md` is legacy/reference only, because agent instructions should come from internal SDK docs/capabilities and gates on demand.
 - Beauty proof lane: do Beauty after Panel slice; agenda booking is the narrow demo, with a known `saas_core.bookings` vs `saas_core.orders` read/write mismatch to resolve.
 - Package/design-system lane: `@fayz/ui` owns tokens/CSS, `@fayz/saas` owns admin-friendly adapters, and `@fayz/runtime/styles.css` must remain real for generated apps.
 

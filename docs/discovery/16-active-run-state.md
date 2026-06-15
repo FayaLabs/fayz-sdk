@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-15 10:37 BRT
+Last updated: 2026-06-15 11:29 BRT
 
 ## Mode
 
@@ -28,9 +28,11 @@ Latest route lock update:
 - `pnpm check:generated-agent-scope <app> --strict` is now the per-app edit
   scope gate. Run it before the strict dogfood gate when a Fayz Agent edits a
   generated app; it classifies changed files as app-owned, review, or blocked.
-- Fayz generated-app scaffold now includes the same app-owned edit boundaries
-  and SDK gate instructions in generated `AGENTS.md` plus Software Engineer
-  scaffold guidance. Test coverage is in Fayz API scaffold tests.
+- Fayz generated-app scaffold is being corrected toward a lean default: new
+  scaffolds should not require app-local `AGENTS.md`. Agent instructions belong
+  in internal SDK/Fayz docs, capability metadata, and executable gates queried
+  on demand. Fayz API scaffold tests now block `AGENTS.md` from being emitted
+  by default.
 - Fayz repo now exposes `npm run check:fayz-sdk-agent-gates` as the operator
   wrapper for app scope gate plus strict dogfood gate. It resolves
   `../fayz-sdk` by default and supports `FAYZ_SDK_REPO`.

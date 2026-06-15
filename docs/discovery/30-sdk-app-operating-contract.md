@@ -35,6 +35,23 @@ Proximo:
 
 - Use the rules below before every generated-app edit or Fayz Agent operation.
 
+## Lean Generated App Rule
+
+- Generated apps should be almost transparent product repos. They should not
+  depend on app-local agent instruction files such as `AGENTS.md` for normal
+  operation.
+- Agent knowledge belongs in Fayz/SDK internal documentation, package metadata,
+  capability registries, gates, and method-level contracts that an agent can
+  query on demand.
+- New generated apps should carry only executable product/app contract files by
+  default: manifest, registry, generated plugin wiring, runtime entrypoints,
+  config, pages, custom components, data, and package metadata.
+- App-local prose files are legacy/reference artifacts only. Do not use them as
+  the source of truth for imports, params, provider rules, or gate policy.
+- The agent should discover how to import and call SDK capabilities from
+  `@fayz-ai/sdk` docs/capability metadata when it needs a specific method,
+  rather than carrying a copied instruction manual inside every generated app.
+
 ## Edit Boundary
 
 App-owned by default:

@@ -59,8 +59,9 @@ Resultado:
   warnings as blockers for pre-agent operation.
 - `pnpm check:generated-agent-scope <app> --strict` now classifies an edited
   generated app's changed files before the dogfood gate.
-- Fayz generated-app scaffold now emits the app-owned edit boundary and SDK gate
-  instructions in each generated app's `AGENTS.md`.
+- Fayz generated-app scaffold now keeps generated apps lean by omitting
+  app-local `AGENTS.md` by default. App-owned edit boundaries and SDK gate
+  policy live in internal docs/capability metadata and executable gates.
 - Fayz repo now exposes `npm run check:fayz-sdk-agent-gates` as a wrapper for
   the scope gate plus strict dogfood gate.
 - The Fayz wrapper now has `--dry-run` and a focused Node test.

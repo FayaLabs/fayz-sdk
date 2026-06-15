@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-15 14:29 UTC / 11:29 BRT — Generated apps stop carrying local AGENTS.md by default
+
+Resultado:
+
+- Vini rejected the heavy app-local `AGENTS.md` direction for Fayz SDK apps.
+- Fayz scaffold generation now omits `AGENTS.md` by default while retaining the
+  executable SDK contract files: `app.manifest.json`, registry, generated plugin
+  wiring, runtime entrypoints, and package metadata.
+- Scaffold tests now assert that generated apps stay lean and that SDK app
+  recognition remains anchored by `@fayz-ai/sdk` in `package.json`.
+- Updated the SDK/app operating contract and architecture status docs: agent
+  knowledge must come from internal SDK/Fayz docs, capability metadata, package
+  contracts, and gates queried on demand, not copied prose in every app.
+
+Impacto:
+
+- Fayz SDK moves closer to the intended transparent product-app surface.
+- Generated apps no longer need to carry a duplicated instruction manual for
+  imports, params, provider rules, or gate policy.
+
+Risco:
+
+- Legacy runtime proof projects and older generated repos may still contain
+  `AGENTS.md` until their seed/scaffold artifacts are refreshed.
+
+Proximo:
+
+- Build the on-demand SDK capability/docs lookup so Fayz Agent can discover
+  methods, imports, packages, params, and safety rules only when needed.
+
 ## 2026-06-15 09:19 UTC / 06:19 BRT — Contract gate blocks stale scaffold placeholders
 
 Resultado:
