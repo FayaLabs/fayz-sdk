@@ -43,7 +43,8 @@ The goal is not to design the final SAP-scale platform now. The goal is to defin
 - `24-runtime-oauth-helper-contract.md` — agent-safe contract for `createFayzRuntimeClient()` and OAuth-backed provider calls.
 - `25-provider-onboarding-decision-brief.md` — product/permission decision brief for OAuth provider setup and disconnect.
 - `26-app-contract-and-integrations-decision.md` — CTO decision brief for manifest-first app contracts, plugin factories, bridge replacement, and SAP/Slack/Notion/AppFlowy integration lessons.
-- `27-npm-sdk-package-lock.md` — practical package/publication lock for public npm, lean `@fayz/sdk`, manifest runtime, and generated project usage.
+- `27-npm-sdk-package-lock.md` — practical package/publication lock for public npm, lean `@fayz-ai/sdk`, internal app runtime, and generated project usage.
+- `28-proof-first-route-lock.md` — Vini-approved recalculation: proof-first capability platform, one public SDK package, Beauty + second vertical before public runtime/plugin ecosystem.
 
 ## Working method
 

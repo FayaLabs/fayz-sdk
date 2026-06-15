@@ -152,7 +152,7 @@ export function CommandPalette({ commands = [], open, onOpenChange, onEntitySear
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="saas-overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="saas-cmd-palette fixed left-1/2 top-[15%] z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-border/50 bg-popover shadow-2xl">
+        <Dialog.Content className="fayz-glass-surface saas-cmd-palette fixed left-1/2 top-[15%] z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-border/50 bg-popover shadow-2xl">
           <Dialog.Title className="sr-only">{t('layout.commandPalette.title')}</Dialog.Title>
           <Dialog.Description className="sr-only">{t('layout.commandPalette.description')}</Dialog.Description>
 

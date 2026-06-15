@@ -159,3 +159,5 @@ export { dedup } from './shell/lib/dedup'
 // Full admin theme type (the shell's theme system, richer than @fayz-ai/core's).
 export type { SaasTheme } from './shell/config/theme/tokens'
 export type { CreateThemeOptions } from './shell/config/theme/utils'
+export { createFayzTheme, fayzThemePresets } from '@fayz-ai/ui'
+export type { FayzThemePresetId } from '@fayz-ai/ui'

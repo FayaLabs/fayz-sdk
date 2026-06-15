@@ -71,7 +71,7 @@ export function BlockSettingsPopover({
     <div
       ref={popoverRef}
       style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999 }}
-      className="w-[280px] rounded-xl border bg-popover shadow-xl"
+      className="fayz-glass-surface w-[280px] rounded-xl border bg-popover shadow-xl"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b">
@@ -218,7 +218,7 @@ function LocationSelect({
         <ChevronDown className="h-3 w-3 text-muted-foreground" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 z-10 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border bg-popover shadow-lg py-1">
+        <div className="fayz-glass-surface absolute top-full left-0 z-10 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border bg-popover shadow-lg py-1">
           <button
             type="button"
             onClick={() => { onChange(''); setOpen(false) }}
@@ -289,7 +289,7 @@ function ServiceSelect({
         <ChevronDown className="h-3 w-3 text-muted-foreground" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 z-10 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border bg-popover shadow-lg py-1">
+        <div className="fayz-glass-surface absolute top-full left-0 z-10 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border bg-popover shadow-lg py-1">
           <button
             type="button"
             onClick={() => onChange([])}

@@ -197,7 +197,7 @@ export function PersonPicker({
 
       {/* Dropdown */}
       {open && (query.trim().length > 0 || showCreate) && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg overflow-hidden">
+        <div className="fayz-glass-surface absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg overflow-hidden">
           {/* Results */}
           {results.length > 0 && (
             <div className="max-h-52 overflow-y-auto">

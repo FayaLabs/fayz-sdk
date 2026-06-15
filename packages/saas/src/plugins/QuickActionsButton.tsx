@@ -40,7 +40,7 @@ export function QuickActionsButton({ actions, className }: {
       </Button>
 
       {open && (
-        <div className="absolute top-full right-0 z-50 mt-2 w-64 rounded-xl border bg-popover shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95 origin-top-right">
+        <div className="fayz-glass-surface absolute top-full right-0 z-50 mt-2 w-64 rounded-xl border bg-popover shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95 origin-top-right">
           <div className="p-1.5">
             {actions.map((action) => {
               const Icon = action.icon ? (ICON_MAP[action.icon] ?? Plus) : Plus

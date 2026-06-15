@@ -146,7 +146,7 @@ function TopbarUserMenu({
         <Popover.Content
           align="end"
           sideOffset={8}
-          className="z-50 min-w-[220px] rounded-xl border border-border bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
+          className="fayz-glass-surface z-50 min-w-[220px] rounded-xl border border-border bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
         >
           <div className="border-b border-border px-3 py-2">
             <p className="truncate text-sm font-medium text-foreground">{user.fullName || user.email}</p>
@@ -216,7 +216,7 @@ function NavDropdown({ item, currentPath, onNavigate }: {
         <Popover.Content
           align="start"
           sideOffset={4}
-          className="z-50 min-w-[200px] rounded-xl border border-border bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
+          className="fayz-glass-surface z-50 min-w-[200px] rounded-xl border border-border bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
         >
           {item.children?.map((child) => {
             const ChildIcon = getIcon(child.icon)

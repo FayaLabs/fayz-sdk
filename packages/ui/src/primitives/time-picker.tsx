@@ -127,7 +127,7 @@ export function TimePicker({ value, onChange, interval = 15, min = '00:00', max 
       {open && !readOnly && createPortal(
         <div ref={listRef} data-modal-passthrough
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999, pointerEvents: 'auto' }}
-          className="min-w-[120px] max-h-48 overflow-y-auto rounded-xl border bg-popover shadow-xl py-1">
+          className="fayz-glass-surface min-w-[120px] max-h-48 overflow-y-auto rounded-xl border bg-popover shadow-xl py-1">
           {slots.map((slot) => {
             const selected = slot.value === value
             return (

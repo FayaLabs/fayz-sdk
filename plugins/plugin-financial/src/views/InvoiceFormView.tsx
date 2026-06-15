@@ -58,7 +58,7 @@ function LocationSelector({ locations, value, onChange }: {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg overflow-hidden min-w-[260px]">
+        <div className="fayz-glass-surface absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg overflow-hidden min-w-[260px]">
           <div className="flex items-center gap-2 px-3 py-2 border-b">
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-semibold">{t('financial.invoiceForm.selectUnitTitle')}</span>
@@ -620,7 +620,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
                   <MoreVertical className="h-4 w-4" />
                 </Button>
                 {menuOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border bg-popover shadow-md z-20 py-1" style={{ animation: 'field-slide-in 150ms ease-out' }}>
+                  <div className="fayz-glass-surface absolute right-0 top-full mt-1 w-44 rounded-lg border bg-popover shadow-md z-20 py-1" style={{ animation: 'field-slide-in 150ms ease-out' }}>
                     <button
                       onClick={() => { setConfirmCancel(true); setMenuOpen(false) }}
                       className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 transition-colors"

@@ -158,8 +158,12 @@ export function AdminScaffold({ manifest, surface }: { manifest: AppManifest; su
         requireAuth={config.auth?.requireAuth}
         loginTagline={config.auth?.loginTagline}
         loginDescription={config.auth?.loginDescription}
+        loginLogo={config.auth?.loginLogo}
+        loginLayout={config.auth?.loginLayout}
         showOAuth={config.auth?.showOAuth}
         oauthProviders={config.auth?.oauthProviders}
+        showSettings
+        showOrgSettings={Boolean(config.org)}
       />
     </AdminProviders>
   )

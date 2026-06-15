@@ -2,6 +2,8 @@
 
 This is the working execution order. It should stay lean and validation-oriented.
 
+Route recalculation, 2026-06-14: execute as a **proof-first capability platform**, not a public package ecosystem. `@fayz-ai/sdk` is the only default public npm package; app-runtime/core/ui/saas/domain/plugin packages stay private/internal until Beauty and a second vertical prove stable seams. See `28-proof-first-route-lock.md`.
+
 ## Phase 0 — Discovery + reference audit
 
 **Goal:** Capture Vini's inputs, inspect existing Fayz SDK/Fayz/Base44/fayz-app examples, and turn them into coherent architecture decisions.

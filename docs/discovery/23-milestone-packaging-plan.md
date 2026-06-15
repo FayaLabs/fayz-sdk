@@ -10,6 +10,17 @@ Current issue: `fayz-sdk`, `fayz`, and `beauty-saas` all have large dirty worktr
 
 Decision: package-source is now public npm. Commit the package lock as a coherent milestone before any broad Beauty refactor.
 
+## Route Recalculation — 2026-06-14
+
+Vini approved a proof-first scope correction after reviewing package sprawl risk:
+
+- only `@fayz-ai/sdk` is a public/default npm package now;
+- app-runtime, core/auth/ui/saas/domain packages, and plugins stay private/internal until real app proof graduates them;
+- Beauty is the first dogfood, The Chef/ecommerce/POS is the second pressure test;
+- generator/runtime/plugin APIs follow proven app patterns, not speculation.
+
+Detailed lock: `28-proof-first-route-lock.md`.
+
 ## Commit Policy
 
 - Commit only coherent milestone slices.

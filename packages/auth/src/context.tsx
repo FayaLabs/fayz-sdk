@@ -97,6 +97,7 @@ export function AuthProvider({ adapter, children }: AuthProviderProps) {
       try {
         await adapterRef.current.signOut()
         reset()
+        setLoading(false)
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err))
         setError(error)

@@ -1,5 +1,5 @@
 // @fayz-ai/portal — the authenticated member/learner surface (counterpart of
-// @fayz-ai/storefront). Importing this package registers the 'member' scaffold.
+// @fayz-ai/shop). Importing this package registers the 'member' scaffold.
 export type { MemberConfig, ResolvedMemberConfig } from './config'
 export { MemberConfigProvider, useMemberConfig, resolveConfig } from './config'
 
