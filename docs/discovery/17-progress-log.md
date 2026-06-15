@@ -1,5 +1,34 @@
 # 17 — Progress Log
 
+## 2026-06-15 08:13 UTC / 05:13 BRT — Requested-project readiness locked into MCP contract
+
+Resultado:
+
+- Fayz MCP rollout status now returns `requestedProjectStatus` and
+  `requestedProjectReady` when called with a `projectId`.
+- Accessible projects that are not reported by the doctor are surfaced as
+  `requestedProjectReady: false` with an explicit blocker reason instead of
+  forcing agents to infer from an empty filtered list.
+- The SDK agent guide now requires `requestedProjectReady === true` before
+  scoped MCP/chat operation.
+
+Impacto:
+
+- This reduces the chance of a Fayz Agent or external operator misreading
+  rollout readiness and calling `send_message` against a project that is not
+  actually scoped, reportable, and ready.
+
+Risco:
+
+- This is still controlled rollout. It makes the preflight clearer; it does not
+  authorize broad autonomous generated-app operation.
+
+Proximo:
+
+- Use the direct requested-project readiness field for the next runtime proof.
+  If the next app needs repeated workflow logic, move that logic into
+  SDK/internal primitives instead of expanding generated app code.
+
 ## 2026-06-15 08:02 UTC / 05:02 BRT — Full MCP rollout-status to send-message proof
 
 Resultado:

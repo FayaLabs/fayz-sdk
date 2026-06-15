@@ -32,7 +32,8 @@ Current rollout state:
 - The Fayz MCP server now exposes `get_fayz_sdk_agent_rollout_status` as a
   read-only preflight. `send_message` also runs strict doctor preflight for
   scoped projects and blocks before credits/codegen unless the project status is
-  `ready`.
+  `ready`. The status preflight returns `requestedProjectReady` for a requested
+  project id so agents do not need to infer readiness from a filtered list.
 - This is approval for controlled scoped rollout, not broad autonomous agent
   operation. Each new runtime project must be explicitly scoped by project id
   before Fayz Agents edit it.
@@ -112,13 +113,16 @@ Before MCP/chat operation on a scoped runtime project, query rollout status:
 
 ```text
 MCP tool: get_fayz_sdk_agent_rollout_status
-Required result: projectStatuses[].status === "ready" for the target project
+Input: { "projectId": "<project-id>" }
+Required result: requestedProjectReady === true
 ```
 
 The MCP `send_message` tool enforces the same rule for projects in
 `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS`: it runs strict doctor preflight and
 blocks before credits/codegen when the target project is `warn`, `blocked`,
 `misconfigured`, missing, or not reported.
+When `requestedProjectReady` is false, use `requestedProjectStatus.reason` as
+the operator-facing blocker instead of attempting generation.
 
 This catches the highest-risk drift:
 

@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 08:02 UTC / 05:02 BRT
+Snapshot: 2026-06-15 08:13 UTC / 05:13 BRT
 
 ## Executive Status
 
@@ -12,6 +12,9 @@ Resultado:
 - Fayz MCP now exposes `get_fayz_sdk_agent_rollout_status` so agents can read
   `ready/warn/blocked/misconfigured` rollout status before calling
   `send_message`.
+- When called with `projectId`, the status tool now exposes
+  `requestedProjectReady` and `requestedProjectStatus`; scoped MCP/chat must
+  require `requestedProjectReady === true`.
 - Fayz MCP `send_message` now runs strict doctor preflight for scoped block
   projects and blocks before credits/codegen unless the target project is
   `ready`.
