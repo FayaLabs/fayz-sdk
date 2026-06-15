@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 06:58 UTC / 03:58 BRT
+Snapshot: 2026-06-15 07:11 UTC / 04:11 BRT
 
 ## Executive Status
 
@@ -167,6 +167,19 @@ Resultado:
     build passed, local `npm run build` passed, and `generationError` is null.
   - Local package check remains empty for `lucide-react`; no dependency was
     silently installed by the scoped verifier path.
+- Third scoped runtime project
+  `2a558057-7135-4229-8c9f-6cea559b8188` passed the full Fayz wrapper path:
+  - The Fayz wrapper ran `check:generated-app` before
+    `check:generated-agent-scope`.
+  - MCP edited only `app.manifest.json`, `src/registry.tsx`, and
+    `src/pages/Index.tsx`.
+  - The manifest page is declared under `surfaces.admin.pages` at `/quality`
+    with component `custom:runtime.QualityGate`; no top-level `routes` are
+    present.
+  - Post-generation gate passed with all three files classified as
+    `app-owned`.
+  - Verification reached `READY`, deferred build passed, local `npm run build`
+    passed, and `generationError` is null.
 
 Impacto:
 
@@ -191,6 +204,8 @@ Impacto:
   missing semantic manifest/registry gate: file-scope safety alone was not
   enough to guarantee the generated route was wired through the renderer
   surface.
+- The third runtime project proves the integrated Fayz wrapper path now enforces
+  that semantic gate before scope acceptance.
 
 Risco:
 
@@ -221,7 +236,8 @@ Risco:
 
 Proximo:
 
-- Use the semantic manifest/registry gate before the next MCP/chat proof.
+- Use the Fayz wrapper gate before every MCP/chat proof; it now runs both
+  semantic app contract and changed-file scope classification.
 - Promote the next proof from generic runtime copy to a real generated-app
   workflow slice only if it exercises SDK/app boundaries, route overrides, or
   API access through `@fayz-ai/sdk`.

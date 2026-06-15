@@ -1,5 +1,58 @@
 # 17 — Progress Log
 
+## 2026-06-15 07:11 UTC / 04:11 BRT — Third runtime proof through full Fayz wrapper
+
+Resultado:
+
+- Created and synced a third runtime project under
+  `/tmp/fayalabs-projects/2a558057-7135-4229-8c9f-6cea559b8188` from the current
+  Fayz scaffold.
+- Ran the Fayz wrapper directly before MCP:
+  `npm run check:fayz-sdk-agent-gates -- <project> --paths app.manifest.json,src/registry.tsx --scope-only --scope-json`.
+  The output ran `check:generated-app` first, then
+  `check:generated-agent-scope`.
+- Baseline local `npm install` and `npm run build` passed.
+- Ran MCP with
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=2a558057-7135-4229-8c9f-6cea559b8188`.
+  The agent edited only `app.manifest.json`, `src/registry.tsx`, and
+  `src/pages/Index.tsx`.
+- The manifest uses `surfaces.admin.pages` for `/quality` with component
+  `custom:runtime.QualityGate`; no top-level `routes` are present.
+- Post-generation gate passed, verification reached `READY`, deferred build
+  passed, and DB reads `generationStatus: READY` with `generationError: null`.
+
+Impacto:
+
+- This closes the loop between the SDK semantic contract and the Fayz agent
+  runtime path. The acceptance sequence is no longer just documented: Fayz runs
+  the app contract gate before scope classification.
+- We now have three runtime UUID proofs: one repaired manifest project, one
+  second rollout that exposed/fixed semantic validation, and one fresh project
+  using the full wrapper path.
+
+Risco:
+
+- Version telemetry for manually seeded baseline projects still reports large
+  version-2 diffs because the baseline snapshot is proof-quality, not final
+  product-grade version history.
+- The first health check attempt can still be flaky while the preview container
+  starts; the verification loop recovered and deferred build passed.
+
+Proximo:
+
+- Move from proof mechanics to controlled Fayz Agent operating instructions:
+  require `check:fayz-sdk-agent-gates` in every scoped runtime edit, keep
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS` explicit, and only then broaden to
+  a real app/product workflow.
+
+Verification:
+
+```bash
+cd /Users/fayalabs/dev/fayz && npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2a558057-7135-4229-8c9f-6cea559b8188 --paths app.manifest.json,src/registry.tsx,src/pages/Index.tsx --scope-only --scope-json
+cd /tmp/fayalabs-projects/2a558057-7135-4229-8c9f-6cea559b8188 && npm run build
+cd /tmp/fayalabs-projects/2a558057-7135-4229-8c9f-6cea559b8188 && npm ls lucide-react --depth=0
+```
+
 ## 2026-06-15 06:58 UTC / 03:58 BRT — Second scoped runtime rollout proof
 
 Resultado:
