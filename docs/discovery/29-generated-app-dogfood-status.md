@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 08:13 UTC / 05:13 BRT
+Snapshot: 2026-06-15 08:18 UTC / 05:18 BRT
 
 ## Executive Status
 
@@ -15,6 +15,10 @@ Resultado:
 - When called with `projectId`, the status tool now exposes
   `requestedProjectReady` and `requestedProjectStatus`; scoped MCP/chat must
   require `requestedProjectReady === true`.
+- Runtime validation against project `2a558057-7135-4229-8c9f-6cea559b8188`
+  returned `requestedProjectReady: true` with
+  `requestedProjectStatus.status: "ready"` and project `generationStatus:
+  "READY"`.
 - Fayz MCP `send_message` now runs strict doctor preflight for scoped block
   projects and blocks before credits/codegen unless the target project is
   `ready`.

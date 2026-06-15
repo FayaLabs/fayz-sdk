@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-15 08:18 UTC / 05:18 BRT — Requested-project readiness validated on runtime proof
+
+Resultado:
+
+- Ran `get_fayz_sdk_agent_rollout_status` against runtime project
+  `2a558057-7135-4229-8c9f-6cea559b8188` with
+  `PROJECTS_DIR=/tmp/fayalabs-projects` and the project in
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS`.
+- The handler returned `success: true`, `rolloutReady: true`,
+  `requestedProjectReady: true`, `requestedProjectStatus.status: "ready"`, and
+  `total: 1`.
+- The requested status included the runtime project metadata and
+  `generationStatus: "READY"`.
+
+Impacto:
+
+- The new direct MCP readiness field is validated beyond unit tests. The next
+  scoped Fayz Agent run can use `requestedProjectReady === true` as the
+  pre-send condition.
+
+Risco:
+
+- This was a status-only proof. It did not run another generation, by design, to
+  avoid redundant app edits.
+
+Proximo:
+
+- Use this verified preflight before the next app-owned runtime edit. The next
+  runtime edit should prove a business customization seam, not another status
+  plumbing change.
+
 ## 2026-06-15 08:13 UTC / 05:13 BRT — Requested-project readiness locked into MCP contract
 
 Resultado:
