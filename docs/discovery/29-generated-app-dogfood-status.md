@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 08:18 UTC / 05:18 BRT
+Snapshot: 2026-06-15 08:23 UTC / 05:23 BRT
 
 ## Executive Status
 
@@ -19,6 +19,13 @@ Resultado:
   returned `requestedProjectReady: true` with
   `requestedProjectStatus.status: "ready"` and project `generationStatus:
   "READY"`.
+- Scoped MCP business customization proof created version 4
+  `Business review seam` as `RELEASED` with only app-owned files
+  `app.manifest.json` and `src/registry.tsx`.
+- Browser verification exposed a generated runtime hash-routing gap; the
+  strict scope gate classified `src/lib/fayz-runtime.ts` as `review`, so the
+  fix was applied to the Fayz scaffold template in commit `b130f9ca` instead of
+  through generated app code.
 - Fayz MCP `send_message` now runs strict doctor preflight for scoped block
   projects and blocks before credits/codegen unless the target project is
   `ready`.

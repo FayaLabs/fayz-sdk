@@ -1,5 +1,47 @@
 # 17 — Progress Log
 
+## 2026-06-15 08:23 UTC / 05:23 BRT — Business customization seam proof exposed scaffold route gap
+
+Resultado:
+
+- Ran scoped MCP `send_message` only after
+  `get_fayz_sdk_agent_rollout_status` returned `requestedProjectReady: true`
+  for runtime project `2a558057-7135-4229-8c9f-6cea559b8188`.
+- The generated app edit added an app-owned admin route
+  `/business-review` in `app.manifest.json` and registered
+  `custom:runtime.BusinessReview` in `src/registry.tsx`.
+- Post-generation scope gate passed with exactly two app-owned files:
+  `app.manifest.json` and `src/registry.tsx`.
+- Fayz created version 4 `Business review seam` as `RELEASED`
+  (`2 files, +38/-0`), project remained `READY`, and deferred build passed.
+- Local generated-app contract and scope gates passed.
+- Browser verification found the new route was not visible under
+  `#/business-review`; the generated runtime was still resolving
+  `window.location.pathname`, so it rendered the first manifest page.
+- The attempted fix location `src/lib/fayz-runtime.ts` is correctly classified
+  as `review` by the strict scope gate, so the fix was applied to the Fayz
+  scaffold template instead of asking the generated app agent to edit runtime
+  code.
+- Fayz commit `b130f9ca` fixes the scaffold template to resolve hash routes
+  before pathname routes and adds a scaffold test.
+
+Impacto:
+
+- This is the kind of proof we wanted: the app-owned customization seam works
+  at the manifest/registry boundary, and a repeated technical/runtime concern
+  was pushed back into the platform scaffold.
+
+Risco:
+
+- Existing runtime proof projects created before `b130f9ca` still carry the old
+  local runtime file until regenerated or explicitly upgraded.
+
+Proximo:
+
+- New runtime proofs should be created from the fixed scaffold before testing
+  more route overrides. Do not patch old generated runtime files through Fayz
+  Agent unless an explicit reviewed migration is the task.
+
 ## 2026-06-15 08:18 UTC / 05:18 BRT — Requested-project readiness validated on runtime proof
 
 Resultado:
