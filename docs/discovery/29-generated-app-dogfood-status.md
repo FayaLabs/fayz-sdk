@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:49 UTC / 02:49 BRT
+Snapshot: 2026-06-15 05:52 UTC / 02:52 BRT
 
 ## Executive Status
 
@@ -77,6 +77,9 @@ Resultado:
   when the SSE stream has no completed text block. This keeps refusals and other
   non-file responses visible to external agents instead of returning empty
   `textContent`.
+- The MCP fallback now has a direct `handleSendMessage` unit test with mocked
+  credits, DB, and generation pipeline. This proves the runtime-facing tool
+  returns persisted refusal text without requiring another LLM run.
 
 Impacto:
 
@@ -194,6 +197,7 @@ pnpm test:generated-agent-scope
 pnpm check:generated-agent-scope /Users/fayalabs/dev/fayz-app/shopfront --paths src/config/theme.ts --json --strict
 cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/modules/chat/__tests__/chat-message.service.test.ts
 cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/mcp-chat/tools/__tests__/send-message-summary.test.ts
+cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/mcp-chat/tools/__tests__/send-message.test.ts src/mcp-chat/tools/__tests__/send-message-summary.test.ts
 cd /Users/fayalabs/dev/fayz && npm run build -w @wowsome/api
 cd /Users/fayalabs/dev/fayz && npm run test:fayz-sdk-agent-gates
 cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run doctor:fayz-sdk-agent-gates:json:strict
