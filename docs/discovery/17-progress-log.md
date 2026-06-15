@@ -1,5 +1,35 @@
 # 17 — Progress Log
 
+## 2026-06-15 01:31 UTC / 22:31 BRT — Resto generated-app provider leak closed
+
+Resultado:
+
+- `resto-saas` no longer fails the generated-app contract gate for direct Supabase runtime usage.
+- Removed the orphan legacy `src/pages/Orders.tsx` page; `/orders` is already owned by `createRestoOrdersPlugin()`.
+- Removed the unused generated Supabase runtime client; only type metadata remains for now as a migration warning.
+
+Impacto:
+
+- The Chef now demonstrates the intended seam: app-owned config registers a reusable private Orders engine instead of copying order business logic into a generated app page.
+- This is a better proof than adding more restaurant screens because it validates the SDK/plugin boundary Fayz Agents must learn.
+
+Risco:
+
+- `resto-saas` still warns about the remaining `src/integrations/supabase` types folder. That is a cleanup signal, not a current gate blocker.
+
+Proximo:
+
+- Convert the remaining warning into an objective gate by deciding whether Supabase type metadata should move behind SDK-owned shared types.
+- Continue the 1-4 route: objective dogfood status, SDK/app contract, agent guide, and generated-app gates before broad Fayz Agent integration.
+
+Verification:
+
+```bash
+pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas
+cd /Users/fayalabs/dev/fayz-app/resto-saas && npm run typecheck
+cd /Users/fayalabs/dev/fayz-app/resto-saas && npm run build
+```
+
 ## 2026-06-15 01:22 UTC / 22:22 BRT — Agent-safe generated app contract gate
 
 Resultado:
@@ -35,7 +65,7 @@ Calibration:
 
 - `shopfront` passes the generated-app contract gate.
 - `beauty-saas` now only keeps Supabase as a type-level compatibility warning through a Fayz-managed client wrapper; it should pass after gate calibration.
-- `resto-saas` still fails because `src/integrations/supabase/client.ts` creates a Supabase client at runtime and `src/pages/Orders.tsx` uses it directly. This is the next SDK/broker cleanup seam, not a reason to weaken the gate.
+- `resto-saas` provider leak was closed in the 01:31 UTC slice; remaining warning is temporary Supabase type metadata.
 
 ## 2026-06-15 00:24 UTC / 21:24 BRT — Core high-conversion checkout baseline
 
