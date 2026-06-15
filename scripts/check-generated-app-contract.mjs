@@ -64,6 +64,178 @@ function collectSurfacePageComponents(manifest) {
   return refs
 }
 
+const commerceMetadataKeys = new Set([
+  'color',
+  'colorway',
+  'fit',
+  'material',
+  'pairing',
+  'region',
+  'size',
+  'sizes',
+  'variant',
+  'variants',
+  'vintage',
+])
+
+function extractBalanced(text, openIndex, openChar, closeChar) {
+  let depth = 0
+  let quote = null
+  let escaped = false
+  let lineComment = false
+  let blockComment = false
+
+  for (let index = openIndex; index < text.length; index += 1) {
+    const char = text[index]
+    const next = text[index + 1]
+
+    if (lineComment) {
+      if (char === '\n') lineComment = false
+      continue
+    }
+    if (blockComment) {
+      if (char === '*' && next === '/') {
+        blockComment = false
+        index += 1
+      }
+      continue
+    }
+    if (quote) {
+      if (escaped) {
+        escaped = false
+      } else if (char === '\\') {
+        escaped = true
+      } else if (char === quote) {
+        quote = null
+      }
+      continue
+    }
+    if (char === '/' && next === '/') {
+      lineComment = true
+      index += 1
+      continue
+    }
+    if (char === '/' && next === '*') {
+      blockComment = true
+      index += 1
+      continue
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+    if (char === openChar) {
+      depth += 1
+      continue
+    }
+    if (char === closeChar) {
+      depth -= 1
+      if (depth === 0) return text.slice(openIndex + 1, index)
+    }
+  }
+
+  return null
+}
+
+function extractTopLevelObjects(text) {
+  const objects = []
+  let depth = 0
+  let start = -1
+  let quote = null
+  let escaped = false
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index]
+    if (quote) {
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === quote) quote = null
+      continue
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+    if (char === '{') {
+      if (depth === 0) start = index
+      depth += 1
+      continue
+    }
+    if (char === '}') {
+      depth -= 1
+      if (depth === 0 && start >= 0) {
+        objects.push(text.slice(start + 1, index))
+        start = -1
+      }
+    }
+  }
+
+  return objects
+}
+
+function collectTopLevelPropertyNames(objectText) {
+  const properties = []
+  let segmentStart = 0
+  let curlyDepth = 0
+  let squareDepth = 0
+  let parenDepth = 0
+  let quote = null
+  let escaped = false
+
+  function pushSegment(end) {
+    const segment = objectText.slice(segmentStart, end)
+    const match = segment.match(/^\s*(?:['"]?)([A-Za-z_$][\w$-]*)['"]?\s*:/)
+    if (match) properties.push(match[1])
+  }
+
+  for (let index = 0; index < objectText.length; index += 1) {
+    const char = objectText[index]
+    if (quote) {
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === quote) quote = null
+      continue
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+    if (char === '{') curlyDepth += 1
+    else if (char === '}') curlyDepth -= 1
+    else if (char === '[') squareDepth += 1
+    else if (char === ']') squareDepth -= 1
+    else if (char === '(') parenDepth += 1
+    else if (char === ')') parenDepth -= 1
+    else if (char === ',' && curlyDepth === 0 && squareDepth === 0 && parenDepth === 0) {
+      pushSegment(index)
+      segmentStart = index + 1
+    }
+  }
+
+  pushSegment(objectText.length)
+  return properties
+}
+
+function collectTopLevelCommerceProductFields(text) {
+  const fields = new Set()
+  const productPropertyPattern = /\bproducts\s*:/g
+
+  for (const match of text.matchAll(productPropertyPattern)) {
+    const arrayStart = text.indexOf('[', match.index)
+    if (arrayStart === -1) continue
+    const arrayText = extractBalanced(text, arrayStart, '[', ']')
+    if (!arrayText) continue
+
+    for (const productObject of extractTopLevelObjects(arrayText)) {
+      for (const property of collectTopLevelPropertyNames(productObject)) {
+        if (commerceMetadataKeys.has(property)) fields.add(property)
+      }
+    }
+  }
+
+  return Array.from(fields).sort()
+}
+
 const packageJsonPath = join(root, 'package.json')
 if (!existsSync(packageJsonPath)) fail('package.json not found')
 
@@ -189,6 +361,11 @@ for (const path of sourceFiles) {
     /\burl\s*:\s*(?:import\.meta\.env\.[A-Z0-9_]+|(?:supabase|backend|api|fayz)[A-Za-z0-9_]*Url)\s*(?:[,}\n]|$)/i
   if (directBackendUrlPattern.test(text)) {
     warn(`${rel} assigns backend.url directly from an env/url variable. Use "url: value || undefined" so mock/no-provider apps do not emit an empty manifest backend URL.`)
+  }
+
+  const topLevelCommerceFields = collectTopLevelCommerceProductFields(text)
+  if (topLevelCommerceFields.length > 0) {
+    warn(`${rel} defines product-specific commerce fields at product top level (${topLevelCommerceFields.join(', ')}). Put client-domain attributes under Product.metadata so SDK/shop primitives preserve them across mock and provider-backed catalogs.`)
   }
 }
 

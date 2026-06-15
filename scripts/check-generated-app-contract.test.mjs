@@ -259,4 +259,68 @@ export const shopBackend = {
     assert.equal(result.status, 0)
     assert.match(result.stdout, /Generated app contract check passed/)
   })
+
+  it('warns when product-specific commerce fields are defined at product top level', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/catalog.ts'),
+      `
+import { buildMockCatalog } from '@fayz-ai/shop/catalog'
+
+export const catalog = buildMockCatalog({
+  categories: [{ name: 'Tintos' }],
+  products: [{
+    name: 'Tannat Reserva',
+    price: 129.9,
+    inventory: 12,
+    sku: 'TIN-001',
+    category: 'Tintos',
+    vintage: '2021',
+    region: 'Canelones',
+  }],
+})
+`,
+    )
+
+    const compatibleResult = runContract(appRoot)
+    const strictResult = runContract(appRoot, ['--strict'])
+
+    assert.equal(compatibleResult.status, 0)
+    assert.match(compatibleResult.stderr, /product-specific commerce fields/)
+    assert.match(compatibleResult.stderr, /Product\.metadata/)
+    assert.equal(strictResult.status, 1)
+    assert.match(strictResult.stderr, /vintage/)
+    assert.match(strictResult.stderr, /region/)
+  })
+
+  it('accepts product-specific commerce fields nested under Product.metadata', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/catalog.ts'),
+      `
+import { buildMockCatalog } from '@fayz-ai/shop/catalog'
+
+export const catalog = buildMockCatalog({
+  categories: [{ name: 'Tintos' }],
+  products: [{
+    name: 'Tannat Reserva',
+    price: 129.9,
+    inventory: 12,
+    sku: 'TIN-001',
+    category: 'Tintos',
+    metadata: {
+      vintage: '2021',
+      region: 'Canelones',
+      pairing: 'Carnes grelhadas',
+    },
+  }],
+})
+`,
+    )
+
+    const result = runContract(appRoot, ['--strict'])
+
+    assert.equal(result.status, 0)
+    assert.match(result.stdout, /Generated app contract check passed/)
+  })
 })
