@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 06:34 UTC / 03:34 BRT
+Snapshot: 2026-06-15 06:43 UTC / 03:43 BRT
 
 ## Executive Status
 
@@ -133,6 +133,19 @@ Resultado:
   `ce17885d-862c-4673-b4f2-514bfaee20eb` returned success without
   re-installing `lucide-react`; local package check remains empty for
   `lucide-react`.
+- Final MCP rerun on runtime project
+  `ce17885d-862c-4673-b4f2-514bfaee20eb` is green end-to-end:
+  - Agent edited only `src/pages/Index.tsx`.
+  - Scope gate passed with 1 app-owned file and no blocked/review files.
+  - Verification returned success, status transitioned to `READY`, and version
+    3 was created as `RELEASED` with title `Verifier proof copy`.
+  - Deferred build passed.
+  - MCP output returned `finalStatus: "ready"` and
+    `scopeGateBlocked: false`.
+  - Local runtime project still has no `lucide-react` dependency.
+- Fayz READY transitions now clear `generationError` in post-generation,
+  background post-verification, and runtime autofix paths. The proof project now
+  reads `generationStatus: READY` and `generationError: null`.
 
 Impacto:
 
@@ -175,10 +188,9 @@ Risco:
   boundary, but did not prove `scopeGateBlocked: true` end-to-end because no
   forbidden file was emitted. Keep the deterministic post-generation block tests
   as the hard enforcement proof.
-- The direct verifier rerun on the manifest proof passed through health check
-  after Vite baseline logs timed out (`compilationPassed: false`). This is
-  acceptable as a stale-log avoidance proof, but the next MCP rerun should still
-  reach `finalStatus: "ready"` end-to-end before broad agent operation.
+- The final MCP rerun reached `finalStatus: "ready"` end-to-end. Remaining risk
+  is broader rollout discipline: keep each new project under explicit scoped
+  gate until it has a similar app-owned proof.
 
 Proximo:
 
@@ -190,9 +202,9 @@ Proximo:
 - Next runtime MCP proof should ask the agent to wire a custom page through
   `app.manifest.json` + `src/registry.tsx` + `src/pages/**`, then verify the
   rendered page is actually selected by `renderApp(manifest)`.
-- Re-run the manifest-first runtime proof through MCP after the verifier
-  sync/autoinstall fix so the final MCP status reaches `READY` without manual
-  cleanup.
+- Move from proof repair to controlled rollout: create the next runtime project
+  or run one more distinct app-owned workflow under scoped gate, then only after
+  that wire broader Fayz Agent operating instructions.
 - Avoid trying to force the model to write forbidden files. The safer next proof
   is a deterministic harness/test around MCP summary + post-generation block, or
   another app-owned edit that exercises real runtime verification.
