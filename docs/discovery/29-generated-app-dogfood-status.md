@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 02:39 UTC / 23:39 BRT
+Snapshot: 2026-06-15 04:55 UTC / 01:55 BRT
 
 ## Executive Status
 
@@ -32,27 +32,42 @@ Resultado:
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
   private platform engines own repeated technical complexity.
+- Fayz repo doctor now discovers local generated/dogfood apps in
+  `/tmp/wowsome-projects` and `/Users/fayalabs/dev/fayz-app`, emits
+  `rolloutStatus`, `rolloutReady`, `invalidScopedBlockProjects`, and validates
+  scoped rollout ids before agent operation.
+- Three constrained app-owned runs are green with scoped block mode plus strict
+  dogfood:
+  - Beauty/BeautyPlace: `src/config/app.tsx` assistant prompt update.
+  - Shopfront/Aurora: `src/config/app.ts` and `src/config/catalog.ts` discount
+    offer copy update.
+  - Marketplace/admin: `src/config/app.tsx` operations assistant update.
 
 Impacto:
 
-- This is enough to continue toward Fayz Agent operation, but not enough to
-  skip the remaining contract hardening.
-- The next 12 hours should convert warnings into explicit gates and then let
-  agents operate within those gates.
+- This is enough to start constrained Fayz Agent operation for app-owned edits,
+  one scoped project at a time.
+- This is not approval for broad agent operation or SDK/internal edits by app
+  agents.
 
 Risco:
 
 - App quality work can still drift into vertical feature building. Only add
   product depth when it proves an SDK boundary, reusable primitive, override
   seam, or agent-safe edit surface.
+- `resto-saas` has pre-existing dirty changes in `src/config/app.tsx` and
+  `src/config/pages.tsx`; do not use it for the next clean scoped proof until
+  those changes are packaged or intentionally included.
 
 Proximo:
 
+- Start the next Fayz Agent proof in scoped mode on one project only:
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<project-id>`.
+- Use the Fayz wrapper for every run:
+  `npm run check:fayz-sdk-agent-gates -- <app-path> --paths <changed-files> --scope-json`.
 - Keep objective typecheck/build gates green as apps evolve.
-- Use `pnpm check:generated-dogfood:strict` before and after constrained Fayz
-  Agent generated-app edits.
-- Use `pnpm check:generated-agent-scope <app> --strict` before the strict
-  dogfood gate so autonomous edits stay in app-owned files.
+- Use the scope gate before strict dogfood so autonomous edits stay in
+  app-owned files.
 - Use `--json` for runtime/agent decisions; keep the default table for human
   inspection.
 - Keep Fayz scaffold prompt/guidance aligned with these gates as the contract
@@ -74,15 +89,15 @@ Proximo:
 
 | App | Contract + typecheck | Warnings | SDK value proven | Next objective gate |
 |---|---:|---|---|---|
-| Beauty / BeautyPlace | pass | none | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins | keep product UX work behind SDK primitives and the full dogfood gate |
-| shopfront / Aurora | pass | none | commerce app customizes brand/checkout behavior while checkout/order/cart primitives stay in storefront/shop SDK internals | keep checkout/account/order tracking tests focused on SDK primitives, not app-local copies |
-| Resto / The Chef | pass | none | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic or local engine copies | keep workflow depth behind private Orders/Menu/Tables providers |
-| Marketplace/admin | pass | none | marketplace dashboard/admin uses provider injection and SDK shop provider path | keep shop admin data behind injected provider |
+| Beauty / BeautyPlace | pass | none | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins; scoped app-owned edit passed | keep product UX work behind SDK primitives and the full dogfood gate |
+| shopfront / Aurora | pass | none | commerce app customizes brand/checkout behavior while checkout/order/cart primitives stay in storefront/shop SDK internals; scoped app-owned edit passed | keep checkout/account/order tracking tests focused on SDK primitives, not app-local copies |
+| Resto / The Chef | pass | none | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic or local engine copies | package existing config changes before using it as the next clean scoped proof |
+| Marketplace/admin | pass | none | marketplace dashboard/admin uses provider injection and SDK shop provider path; scoped app-owned edit passed | keep shop admin data behind injected provider |
 
 ## Operating Decision
 
-Do not start broad Fayz Agent SDK operation yet. Start with constrained agent
-operation after these hardening rules:
+Do not start broad Fayz Agent SDK operation yet. Start constrained agent
+operation only under scoped block mode after these hardening rules:
 
 1. Generated-app gate is mandatory for every app edit.
 2. Each dogfood app passes the full dogfood gate:
@@ -95,8 +110,7 @@ Once those are true, Fayz Agents can be asked to edit app-owned files first,
 then run this sequence:
 
 ```bash
-pnpm check:generated-agent-scope /path/to/generated-app --base <before-ref> --strict
-pnpm check:generated-dogfood:strict
+FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<project-id> npm run check:fayz-sdk-agent-gates -- /path/to/generated-app --paths <changed-files> --scope-json
 ```
 
 Any warning or failure must either be fixed in the app-owned surface or
