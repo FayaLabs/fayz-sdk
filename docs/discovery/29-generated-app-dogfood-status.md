@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 01:56 UTC / 22:56 BRT
+Snapshot: 2026-06-15 02:02 UTC / 23:02 BRT
 
 ## Executive Status
 
@@ -8,6 +8,7 @@ Resultado:
 
 - Four dogfood apps pass the generated-app contract and typecheck gate:
   Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
+- The full gate currently reports zero warnings across the four apps.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
   private platform engines own repeated technical complexity.
@@ -28,8 +29,8 @@ Risco:
 Proximo:
 
 - Keep objective typecheck/build gates green as apps evolve.
-- Move remaining provider/type metadata behind SDK-owned or explicit adapter
-  contracts.
+- Keep direct provider metadata out of generated apps unless an explicit
+  optional adapter is selected.
 - Keep app dogfood depth focused on SDK value: Beauty operations, commerce
   account/order/variation flows, Resto workflow seams, marketplace provider
   injection.
@@ -38,9 +39,9 @@ Proximo:
 
 | App | Contract + typecheck | Warnings | SDK value proven | Next objective gate |
 |---|---:|---|---|---|
-| Beauty / BeautyPlace | pass | Supabase type metadata remains | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins | move or delete remaining Supabase type metadata once SDK/shared types cover the need |
+| Beauty / BeautyPlace | pass | none | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins | keep product UX work behind SDK primitives and the full dogfood gate |
 | shopfront / Aurora | pass | none | commerce app customizes brand/checkout behavior while checkout/order/cart primitives stay in storefront/shop SDK internals | keep checkout/account/order tracking tests focused on SDK primitives, not app-local copies |
-| Resto / The Chef | pass | Supabase type metadata remains | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic | move or delete remaining Supabase type metadata once SDK/shared types cover the need |
+| Resto / The Chef | pass | none | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic | keep workflow depth behind private Orders/Menu/Tables providers |
 | Marketplace/admin | pass | none | marketplace dashboard/admin uses provider injection and SDK shop provider path | keep shop admin data behind injected provider |
 
 ## Operating Decision

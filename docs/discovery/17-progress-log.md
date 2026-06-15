@@ -1,5 +1,40 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:02 UTC / 23:02 BRT — Dogfood gate warnings cleared
+
+Resultado:
+
+- Removed direct Supabase generated metadata from Beauty and Resto.
+- Removed direct `@supabase/supabase-js` app dependencies from Beauty and Resto.
+- Re-ran `pnpm check:generated-dogfood:full`; all four apps pass with zero warnings.
+
+Impacto:
+
+- The dogfood baseline is now materially cleaner: generated apps are no longer
+  carrying direct provider clients or provider schema metadata by default.
+- This is the strongest current proof that app repos can keep custom business
+  code while platform/provider complexity stays in SDK/internal packages.
+
+Risco:
+
+- Beauty still has separate uncommitted DB/roadmap artifacts. They were not
+  part of this provider-metadata cleanup.
+
+Proximo:
+
+- Treat `pnpm check:generated-dogfood:full` as the readiness gate for constrained
+  Fayz Agent operation on generated app files.
+- Resume product dogfood depth only where it proves SDK primitives or app-owned
+  override seams.
+
+Verification:
+
+```bash
+pnpm check:generated-dogfood:full
+cd /Users/fayalabs/dev/fayz-app/beauty-saas && npm run build
+cd /Users/fayalabs/dev/fayz-app/resto-saas && npm run build
+```
+
 ## 2026-06-15 01:56 UTC / 22:56 BRT — Beauty SDK app-contract migration packaged
 
 Resultado:
