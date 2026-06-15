@@ -15,6 +15,7 @@
     "check:generated-app": "node ./scripts/check-generated-app-contract.mjs",
     "check:generated-dogfood": "node ./scripts/check-generated-dogfood.mjs",
     "check:generated-dogfood:full": "node ./scripts/check-generated-dogfood.mjs --typecheck",
+    "check:generated-dogfood:strict": "node ./scripts/check-generated-dogfood.mjs --strict --typecheck",
     "clean": "turbo clean",
     "changeset": "changeset",
     "version-packages": "changeset version",

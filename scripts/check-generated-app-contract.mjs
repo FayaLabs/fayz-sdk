@@ -2,9 +2,11 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve, relative } from 'node:path'
 
-const targetArg = process.argv[2]
+const args = process.argv.slice(2)
+const strictWarnings = args.includes('--strict')
+const targetArg = args.find((arg) => !arg.startsWith('--'))
 if (!targetArg) {
-  console.error('Usage: pnpm check:generated-app <path-to-generated-app>')
+  console.error('Usage: pnpm check:generated-app <path-to-generated-app> [--strict]')
   process.exit(2)
 }
 
@@ -136,6 +138,12 @@ for (const dir of localEngineDirs) {
 }
 
 for (const warning of warnings) console.warn(`Warning: ${warning}`)
+
+if (strictWarnings && warnings.length > 0) {
+  console.error('Generated app contract check failed in strict mode:')
+  for (const warning of warnings) console.error(`  - ${warning}`)
+  process.exit(1)
+}
 
 if (problems.length > 0) {
   console.error('Generated app contract check failed:')

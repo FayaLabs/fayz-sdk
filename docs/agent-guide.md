@@ -44,6 +44,12 @@ pnpm check:generated-dogfood
 pnpm check:generated-dogfood:full
 ```
 
+Strict pre-agent gate:
+
+```bash
+pnpm check:generated-dogfood:strict
+```
+
 This catches the highest-risk drift:
 
 - generated apps depending publicly on internal `@fayz-ai/*` packages;
@@ -55,7 +61,9 @@ This catches the highest-risk drift:
 - oversized entrypoints and missing app-owned config surfaces.
 
 Warnings are not automatic blockers during dogfood, but they must be reviewed.
-Failures mean the app is not ready for Fayz Agent autonomous operation.
+The strict gate treats warnings as blockers and is the recommended gate before
+letting Fayz Agents edit app-owned files autonomously. Failures mean the app is
+not ready for Fayz Agent autonomous operation.
 
 ### App-Owned Edit Surfaces
 

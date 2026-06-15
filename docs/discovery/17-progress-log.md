@@ -1,5 +1,42 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:09 UTC / 23:09 BRT — Strict pre-agent dogfood gate
+
+Resultado:
+
+- Added `--strict` support to generated-app and dogfood contract checks.
+- Added `pnpm check:generated-dogfood:strict`, which runs contract checks in
+  strict mode plus typecheck across the four dogfood apps.
+- Re-ran the strict gate; Beauty, shopfront, Resto, and Marketplace all pass
+  with zero warnings.
+
+Impacto:
+
+- Warnings can still guide manual dogfood, but pre-agent operation now has a
+  hard blocker mode.
+- This is the practical gate to use before allowing Fayz Agents to edit
+  app-owned generated-app files autonomously.
+
+Risco:
+
+- Strict mode should stay off for exploratory manual cleanup and on for
+  autonomous agent runs. Otherwise early legitimate custom work may be blocked
+  too soon.
+
+Proximo:
+
+- Wire constrained Fayz Agent operation to `pnpm check:generated-dogfood:strict`
+  after edits.
+- Keep any new product-depth work behind the same strict gate.
+
+Verification:
+
+```bash
+node --check scripts/check-generated-app-contract.mjs
+node --check scripts/check-generated-dogfood.mjs
+pnpm check:generated-dogfood:strict
+```
+
 ## 2026-06-15 02:05 UTC / 23:05 BRT — App-owned edit surface gate hardened
 
 Resultado:

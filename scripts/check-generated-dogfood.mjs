@@ -7,7 +7,8 @@ import { spawnSync } from 'node:child_process'
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const runTypecheck = args.includes('--typecheck')
-const appArgs = args.filter((arg) => arg !== '--typecheck')
+const strictWarnings = args.includes('--strict')
+const appArgs = args.filter((arg) => arg !== '--typecheck' && arg !== '--strict')
 
 const defaultApps = [
   { id: 'beauty', label: 'Beauty / BeautyPlace', path: '/Users/fayalabs/dev/fayz-app/beauty-saas' },
@@ -29,7 +30,10 @@ for (const app of apps) {
     continue
   }
 
-  const run = spawnSync('node', ['./scripts/check-generated-app-contract.mjs', appPath], {
+  const contractArgs = ['./scripts/check-generated-app-contract.mjs', appPath]
+  if (strictWarnings) contractArgs.push('--strict')
+
+  const run = spawnSync('node', contractArgs, {
     cwd: repoRoot,
     encoding: 'utf8',
   })

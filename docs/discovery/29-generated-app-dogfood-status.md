@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 02:05 UTC / 23:05 BRT
+Snapshot: 2026-06-15 02:09 UTC / 23:09 BRT
 
 ## Executive Status
 
@@ -11,6 +11,8 @@ Resultado:
 - The full gate currently reports zero warnings across the four apps.
 - The contract gate now warns when generated apps carry local platform-engine
   copies under `src/plugins`, `src/runtime`, or `src/app-runtime`.
+- `pnpm check:generated-dogfood:strict` passes across the four apps and treats
+  warnings as blockers for pre-agent operation.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
   private platform engines own repeated technical complexity.
@@ -31,6 +33,8 @@ Risco:
 Proximo:
 
 - Keep objective typecheck/build gates green as apps evolve.
+- Use `pnpm check:generated-dogfood:strict` before and after constrained Fayz
+  Agent generated-app edits.
 - Keep direct provider metadata out of generated apps unless an explicit
   optional adapter is selected.
 - Keep repeated plugin/runtime/storefront logic out of generated apps; use
@@ -60,14 +64,22 @@ operation after these hardening rules:
 pnpm check:generated-dogfood:full
 ```
 
-Once those are true, Fayz Agents can be asked to edit app-owned files first and
-escalate repeated platform needs into SDK tasks.
+Once those are true, Fayz Agents can be asked to edit app-owned files first,
+then run:
+
+```bash
+pnpm check:generated-dogfood:strict
+```
+
+Any warning or failure must either be fixed in the app-owned surface or
+escalated into an SDK/internal package task.
 
 ## Verification
 
 ```bash
 pnpm check:generated-dogfood
 pnpm check:generated-dogfood:full
+pnpm check:generated-dogfood:strict
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas
