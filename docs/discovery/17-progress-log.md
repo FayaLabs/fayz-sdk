@@ -1,5 +1,68 @@
 # 17 — Progress Log
 
+## 2026-06-15 06:58 UTC / 03:58 BRT — Second scoped runtime rollout proof
+
+Resultado:
+
+- Created and synced a second runtime project under
+  `/tmp/fayalabs-projects/bfb74227-0e3c-4226-bbc5-4f5a01ec8fae`.
+- Fixed its local access metadata so MCP `send_message` can operate through the
+  same `creatorId` guard as the first proof project.
+- Ran a scoped MCP edit with
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=bfb74227-0e3c-4226-bbc5-4f5a01ec8fae`.
+  The first pass edited only `app.manifest.json`, `src/registry.tsx`, and
+  `src/pages/Index.tsx`; the scope gate passed and the project reached
+  `finalStatus: "ready"`.
+- Inspection caught a real semantic gap: the agent added top-level `routes`,
+  while the current local runtime resolves pages from
+  `surfaces.admin.pages`.
+- Ran a correction through MCP that edited only `app.manifest.json`, adding
+  `/ops` to `surfaces.admin.pages` with component
+  `custom:runtime.OperationsRoom`.
+- Added semantic manifest validation to `pnpm check:generated-app`: unsupported
+  top-level `routes` fail, and `surfaces.*.pages[].component` refs must resolve
+  in `src/registry.tsx`.
+- Ran a final MCP cleanup that edited only `app.manifest.json`, removing the
+  unsupported top-level `routes` array and keeping `/ops` under
+  `surfaces.admin.pages`.
+- The final run reached `finalStatus: "ready"`, created version 4 as
+  `RELEASED` with a 1-file diff, passed deferred build, and the project now
+  reads `generationStatus: READY` with `generationError: null`.
+
+Impacto:
+
+- We now have repeated runtime proof across two project UUIDs, not just one
+  repaired project.
+- The second proof sharpened the contract and closed it with code:
+  generated-app gates now prove both edit safety and the minimum semantic
+  manifest/registry wiring needed by the renderer.
+- This supports controlled rollout one runtime project at a time; it still does
+  not justify broad Fayz Agent operation.
+
+Risco:
+
+- Version 2 in the second project shows 53 files because the manually created
+  baseline/version snapshot is still proof-quality telemetry, not product-grade
+  version history.
+- The renderer currently ignores top-level `routes`; the contract gate now
+  rejects them. If we want top-level route overrides as product API, that needs
+  an explicit SDK/runtime decision before generation instructions allow them.
+
+Proximo:
+
+- Continue the next runtime rollout with `pnpm check:generated-app` in the
+  acceptance sequence, then move toward Fayz Agent operating instructions with
+  the same scoped project-id guard.
+
+Verification:
+
+```bash
+cd /tmp/fayalabs-projects/bfb74227-0e3c-4226-bbc5-4f5a01ec8fae && npm run build
+cd /tmp/fayalabs-projects/bfb74227-0e3c-4226-bbc5-4f5a01ec8fae && npm ls lucide-react --depth=0
+cd /Users/fayalabs/dev/fayz-sdk && pnpm test:generated-app
+cd /Users/fayalabs/dev/fayz-sdk && pnpm check:generated-app /tmp/fayalabs-projects/bfb74227-0e3c-4226-bbc5-4f5a01ec8fae
+```
+
 ## 2026-06-15 06:45 UTC / 03:45 BRT — Manifest-first MCP proof ready
 
 Resultado:

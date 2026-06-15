@@ -13,6 +13,7 @@
     "check:public-surface": "node ./scripts/check-public-surface.mjs",
     "check:public-package-safety": "node ./scripts/check-public-package-safety.mjs packages/sdk",
     "check:generated-app": "node ./scripts/check-generated-app-contract.mjs",
+    "test:generated-app": "node --test ./scripts/check-generated-app-contract.test.mjs",
     "check:generated-agent-scope": "node ./scripts/check-generated-agent-scope.mjs",
     "test:generated-agent-scope": "node --test ./scripts/check-generated-agent-scope.test.mjs",
     "check:generated-dogfood": "node ./scripts/check-generated-dogfood.mjs",

@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 06:43 UTC / 03:43 BRT
+Snapshot: 2026-06-15 06:58 UTC / 03:58 BRT
 
 ## Executive Status
 
@@ -146,6 +146,27 @@ Resultado:
 - Fayz READY transitions now clear `generationError` in post-generation,
   background post-verification, and runtime autofix paths. The proof project now
   reads `generationStatus: READY` and `generationError: null`.
+- Second scoped runtime project
+  `bfb74227-0e3c-4226-bbc5-4f5a01ec8fae` passed controlled MCP rollout:
+  - Initial MCP run edited only `app.manifest.json`, `src/registry.tsx`, and
+    `src/pages/Index.tsx`; the strict post-generation scope gate classified all
+    three files as `app-owned`.
+  - The run reached `finalStatus: "ready"`, created version 2 as `RELEASED`,
+    and passed deferred build.
+  - Follow-up inspection found the app manifest used top-level `routes`, while
+    the runtime actually resolves `surfaces.admin.pages`.
+  - A second MCP correction edited only `app.manifest.json`, wiring `/ops` to
+    `custom:runtime.OperationsRoom` under `surfaces.admin.pages`.
+  - Version 3 was created as `RELEASED` with a 1-file diff (+7/-1), deferred
+    build passed, and local `npm run build` passed.
+  - The generated-app contract gate now rejects unsupported top-level `routes`
+    and unresolved surface page component refs.
+  - A final MCP cleanup edited only `app.manifest.json`, removed top-level
+    `routes`, and kept the `/ops` page under `surfaces.admin.pages`.
+  - Version 4 was created as `RELEASED` with a 1-file diff (+0/-7), deferred
+    build passed, local `npm run build` passed, and `generationError` is null.
+  - Local package check remains empty for `lucide-react`; no dependency was
+    silently installed by the scoped verifier path.
 
 Impacto:
 
@@ -166,6 +187,10 @@ Impacto:
 - The new runtime project proves the route override can be app-owned and
   manifest-first: custom generated page code is visible through the local
   runtime seam without public package sprawl.
+- The second runtime project proves repeated scoped operation and added the
+  missing semantic manifest/registry gate: file-scope safety alone was not
+  enough to guarantee the generated route was wired through the renderer
+  surface.
 
 Risco:
 
@@ -191,11 +216,12 @@ Risco:
 - The final MCP rerun reached `finalStatus: "ready"` end-to-end. Remaining risk
   is broader rollout discipline: keep each new project under explicit scoped
   gate until it has a similar app-owned proof.
+- Top-level `routes` are currently not consumed by the local scaffold runtime
+  and are now rejected by `pnpm check:generated-app`.
 
 Proximo:
 
-- Run the next MCP/chat proof with a controlled blocked edit request or another
-  app-owned business edit, still on one runtime project only.
+- Use the semantic manifest/registry gate before the next MCP/chat proof.
 - Promote the next proof from generic runtime copy to a real generated-app
   workflow slice only if it exercises SDK/app boundaries, route overrides, or
   API access through `@fayz-ai/sdk`.

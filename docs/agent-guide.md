@@ -12,12 +12,18 @@ Current rollout state:
 
 - Four dogfood apps pass strict generated-app gates for constrained app-owned
   edits: Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
-- One real runtime project has passed a manifest-first MCP proof end-to-end:
-  `ce17885d-862c-4673-b4f2-514bfaee20eb`.
+- Two real runtime projects have passed scoped MCP proofs:
+  `ce17885d-862c-4673-b4f2-514bfaee20eb` and
+  `bfb74227-0e3c-4226-bbc5-4f5a01ec8fae`.
 - That proof edited only app-owned files, resolved a custom route through
   `app.manifest.json` plus `src/registry.tsx`, reached
   `finalStatus: "ready"`, created a `RELEASED` version, and passed deferred
   build.
+- The second proof exposed and corrected a useful contract gap: the runtime
+  reads `surfaces.admin.pages`, not top-level `routes`, so manifest route
+  proofs must verify the page is wired through the surface the renderer uses.
+  The generated-app contract gate now fails unsupported top-level `routes` and
+  unresolved `surfaces.*.pages[].component` registry refs.
 - This is approval for controlled scoped rollout, not broad autonomous agent
   operation. Each new runtime project must be explicitly scoped by project id
   before Fayz Agents edit it.
@@ -50,6 +56,10 @@ Recommended gate:
 ```bash
 pnpm check:generated-app /path/to/generated-app
 ```
+
+This gate includes semantic manifest checks. For manifest-first apps, route or
+page overrides must live under `surfaces.<surface>.pages` and every referenced
+component id must be present in `src/registry.tsx`.
 
 Current four-app dogfood gate:
 

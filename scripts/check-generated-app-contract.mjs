@@ -42,6 +42,27 @@ function warn(message) {
   warnings.push(message)
 }
 
+function collectSurfacePageComponents(manifest) {
+  const refs = []
+  const surfaces = manifest?.surfaces && typeof manifest.surfaces === 'object' ? manifest.surfaces : {}
+
+  for (const [surfaceName, surface] of Object.entries(surfaces)) {
+    if (!surface || typeof surface !== 'object' || !Array.isArray(surface.pages)) continue
+
+    surface.pages.forEach((page, index) => {
+      if (!page || typeof page !== 'object' || typeof page.component !== 'string' || page.component.length === 0) return
+      refs.push({
+        component: page.component,
+        path: page.path,
+        surface: surfaceName,
+        index,
+      })
+    })
+  }
+
+  return refs
+}
+
 const packageJsonPath = join(root, 'package.json')
 if (!existsSync(packageJsonPath)) fail('package.json not found')
 
@@ -83,8 +104,40 @@ if (hasFile('src/App.tsx')) {
   }
 }
 
-if (!hasFile('src/config') && !hasFile('src/app.manifest.json')) {
+const rootManifestPath = join(root, 'app.manifest.json')
+const srcManifestPath = join(root, 'src/app.manifest.json')
+const manifestPath = existsSync(rootManifestPath) ? rootManifestPath : existsSync(srcManifestPath) ? srcManifestPath : null
+
+if (!hasFile('src/config') && !manifestPath) {
   warn('No src/config directory or src/app.manifest.json found. Generated apps should keep business config separate from entrypoints.')
+}
+
+if (manifestPath) {
+  try {
+    const manifest = readJson(manifestPath)
+    const manifestRel = relative(root, manifestPath)
+
+    if (Array.isArray(manifest.routes) && manifest.routes.length > 0) {
+      fail(`${manifestRel} uses top-level routes. Current generated runtime resolves pages from surfaces.<surface>.pages; route overrides must be declared there or the runtime must explicitly support routes.`)
+    }
+
+    const componentRefs = collectSurfacePageComponents(manifest)
+    if (componentRefs.length > 0) {
+      const registryPath = join(root, 'src/registry.tsx')
+      if (!existsSync(registryPath)) {
+        fail(`${manifestRel} references surface page components, but src/registry.tsx was not found.`)
+      } else {
+        const registryText = readFileSync(registryPath, 'utf8')
+        for (const ref of componentRefs) {
+          if (!registryText.includes(ref.component)) {
+            fail(`${manifestRel} surfaces.${ref.surface}.pages[${ref.index}].component "${ref.component}" is not registered in src/registry.tsx.`)
+          }
+        }
+      }
+    }
+  } catch (error) {
+    fail(`${relative(root, manifestPath)} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
+  }
 }
 
 const sourceFiles = walk(join(root, 'src')).filter((path) => /\.(ts|tsx|js|jsx)$/.test(path))
