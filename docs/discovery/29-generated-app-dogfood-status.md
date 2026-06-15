@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:25 UTC / 02:25 BRT
+Snapshot: 2026-06-15 05:35 UTC / 02:35 BRT
 
 ## Executive Status
 
@@ -50,11 +50,17 @@ Resultado:
 - Fayz MCP chat now exposes scoped SDK gate failures as machine-readable
   `scopeGateBlocked` plus `finalError`, so external agents do not need to parse
   raw SSE text to detect an app-boundary violation.
+- Fayz doctor now separates local dogfood apps from real runtime generated
+  projects. A scoped block on `beauty-saas` or another `/fayz-app` folder no
+  longer reports ready for MCP/chat operation unless a runtime project under
+  `PROJECTS_DIR` is also scoped.
 
 Impacto:
 
-- This is enough to start constrained Fayz Agent operation for app-owned edits,
-  one scoped project at a time.
+- This is enough to keep local dogfood and scoped app-owned validation moving.
+- It is not enough to start MCP/chat Fayz Agent operation until a real runtime
+  generated project using `@fayz-ai/sdk` exists under `PROJECTS_DIR` and that
+  runtime project id is in `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS`.
 - This is not approval for broad agent operation or SDK/internal edits by app
   agents.
 
@@ -63,14 +69,16 @@ Risco:
 - App quality work can still drift into vertical feature building. Only add
   product depth when it proves an SDK boundary, reusable primitive, override
   seam, or agent-safe edit surface.
-- Broad Fayz Agent operation remains gated even with four scoped green runs.
-  Keep enforcement project-scoped until a real Fayz Agent edit path proves the
-  same behavior without manual intervention.
+- Broad Fayz Agent operation remains gated even with four scoped green dogfood
+  runs. Keep enforcement project-scoped and runtime-project-scoped until a real
+  Fayz Agent edit path proves the same behavior without manual intervention.
 
 Proximo:
 
-- Start the next Fayz Agent proof in scoped mode on one project only:
-  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<project-id>`.
+- Create or sync one real runtime generated project under `PROJECTS_DIR` that
+  uses `@fayz-ai/sdk`, then start the next Fayz Agent proof in scoped mode on
+  that runtime project id only:
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<runtime-project-id>`.
 - Prefer the MCP chat path for the first real agent run so the same
   `processAgentMessage` and post-generation gate path is exercised end to end.
 - Use the Fayz wrapper for every run:
@@ -100,7 +108,7 @@ Proximo:
 
 | App | Contract + typecheck | Warnings | SDK value proven | Next objective gate |
 |---|---:|---|---|---|
-| Beauty / BeautyPlace | pass | none | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins; scoped app-owned edit passed | keep product UX work behind SDK primitives and the full dogfood gate |
+| Beauty / BeautyPlace | pass | none | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins; scoped app-owned edit passed locally | create/sync a runtime SDK project before MCP/chat operation |
 | shopfront / Aurora | pass | none | commerce app customizes brand/checkout behavior while checkout/order/cart primitives stay in storefront/shop SDK internals; scoped app-owned edit passed | keep checkout/account/order tracking tests focused on SDK primitives, not app-local copies |
 | Resto / The Chef | pass | none | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic or local engine copies; scoped app-owned contract alignment passed | keep workflow depth behind private Orders/Menu/Tables providers |
 | Marketplace/admin | pass | none | marketplace dashboard/admin uses provider injection and SDK shop provider path; scoped app-owned edit passed | keep shop admin data behind injected provider |
@@ -117,8 +125,8 @@ operation only under scoped block mode after these hardening rules:
 pnpm check:generated-dogfood:full
 ```
 
-Once those are true, Fayz Agents can be asked to edit app-owned files first,
-then run this sequence:
+Once those are true and a runtime generated project exists under `PROJECTS_DIR`,
+Fayz Agents can be asked to edit app-owned files first, then run this sequence:
 
 ```bash
 FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<project-id> npm run check:fayz-sdk-agent-gates -- /path/to/generated-app --paths <changed-files> --scope-json
