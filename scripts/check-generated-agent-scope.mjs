@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process'
 const args = process.argv.slice(2)
 const strict = args.includes('--strict')
 const staged = args.includes('--staged')
+const json = args.includes('--json')
 const baseIndex = args.indexOf('--base')
 const baseRef = baseIndex >= 0 ? args[baseIndex + 1] : undefined
 const pathsIndex = args.indexOf('--paths')
@@ -25,7 +26,7 @@ const appPathArg = args.find((arg, index) =>
 )
 
 if (!appPathArg || (baseIndex >= 0 && !baseRef) || (pathsIndex >= 0 && explicitPaths?.length === 0)) {
-  console.error('Usage: pnpm check:generated-agent-scope <path-to-generated-app> [--base <git-ref>] [--staged] [--paths <comma-separated-paths>] [--strict]')
+  console.error('Usage: pnpm check:generated-agent-scope <path-to-generated-app> [--base <git-ref>] [--staged] [--paths <comma-separated-paths>] [--json] [--strict]')
   process.exit(2)
 }
 
@@ -144,25 +145,40 @@ try {
   process.exit(2)
 }
 
-console.log('Generated app agent edit scope')
-console.log('')
-console.log('| Scope | File |')
-console.log('|---|---|')
-
-if (files.length === 0) {
-  console.log('| clean | - |')
-  process.exit(0)
-}
-
 const rows = files.map((file) => ({ file, scope: classify(file) }))
-for (const row of rows) {
-  console.log(`| ${row.scope} | ${row.file} |`)
-}
-
 const blocked = rows.filter((row) => row.scope === 'blocked')
 const review = rows.filter((row) => row.scope === 'review')
+const failed = blocked.length > 0 || (strict && review.length > 0)
 
-if (blocked.length > 0 || (strict && review.length > 0)) {
+if (json) {
+  console.log(JSON.stringify({
+    status: failed ? 'fail' : 'pass',
+    strict,
+    files: rows,
+    counts: {
+      appOwned: rows.filter((row) => row.scope === 'app-owned').length,
+      review: review.length,
+      blocked: blocked.length,
+    },
+    blocked: blocked.map((row) => row.file),
+    review: review.map((row) => row.file),
+  }, null, 2))
+} else {
+  console.log('Generated app agent edit scope')
+  console.log('')
+  console.log('| Scope | File |')
+  console.log('|---|---|')
+
+  if (files.length === 0) {
+    console.log('| clean | - |')
+  } else {
+    for (const row of rows) {
+      console.log(`| ${row.scope} | ${row.file} |`)
+    }
+  }
+}
+
+if (failed) {
   console.error('')
   console.error('Generated app agent edit scope failed:')
   if (blocked.length > 0) {

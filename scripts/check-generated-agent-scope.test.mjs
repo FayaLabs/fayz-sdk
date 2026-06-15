@@ -106,4 +106,27 @@ describe('generated agent scope gate', () => {
     assert.match(result.stdout, /\| app-owned \| src\/config\/theme\.ts \|/)
     assert.match(result.stdout, /\| blocked \| src\/plugins\/orders\/index\.ts \|/)
   })
+
+  it('emits machine-readable scope status as json', () => {
+    const appRoot = createGeneratedApp()
+
+    const result = runScope(appRoot, ['--paths', 'src/config/theme.ts,package.json', '--json', '--strict'])
+
+    assert.equal(result.status, 1)
+    const output = JSON.parse(result.stdout)
+    assert.equal(output.status, 'fail')
+    assert.equal(output.strict, true)
+    assert.deepEqual(output.counts, {
+      appOwned: 1,
+      review: 1,
+      blocked: 0,
+    })
+    assert.deepEqual(output.files, [
+      { file: 'package.json', scope: 'review' },
+      { file: 'src/config/theme.ts', scope: 'app-owned' },
+    ])
+    assert.deepEqual(output.review, ['package.json'])
+    assert.deepEqual(output.blocked, [])
+    assert.match(result.stderr, /review files require explicit approval in strict mode/)
+  })
 })

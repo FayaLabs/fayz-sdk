@@ -7921,3 +7921,26 @@ npm run build -w @wowsome/api
 ### Proximo
 
 - Use JSON output as the source for status summaries and future Linear automation.
+
+## 2026-06-15 — Scope gate JSON added
+
+### Resultado
+
+- Added `--json` to `scripts/check-generated-agent-scope.mjs`.
+- JSON status includes pass/fail, strict mode, changed files, counts, review
+  files, and blocked files.
+- Added test coverage for machine-readable app-owned/review/blocked output.
+
+### Impacto
+
+- Fayz/runtime agents can now decide app-owned, review, or blocked generated-app
+  edits without parsing Markdown tables.
+- This completes the current observability pair: dogfood status JSON plus
+  single-edit scope JSON.
+
+### Proximo
+
+- Use scope JSON in runtime/agent orchestration where a structured decision is
+  needed.
+- Keep broad Fayz Agent SDK operation gated behind strict dogfood and scope
+  checks.

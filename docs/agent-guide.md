@@ -63,6 +63,12 @@ without git diff:
 pnpm check:generated-agent-scope /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --strict
 ```
 
+For agent/runtime consumers, use JSON output instead of parsing the human table:
+
+```bash
+pnpm check:generated-agent-scope /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --json --strict
+```
+
 In the Fayz repo, the operator wrapper is:
 
 ```bash

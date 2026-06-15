@@ -27,6 +27,8 @@ Resultado:
 - `pnpm check:generated-dogfood --summary` emits the same status in executive
   `Resultado / Impacto / Risco / Proximo` format.
 - `pnpm test:generated-dogfood` covers the JSON status output.
+- `pnpm check:generated-agent-scope <app> --json --strict` now emits
+  machine-readable app-owned/review/blocked status for runtime/agent consumers.
 - The current proof is no longer "can we build individual apps?". The proof is:
   generated apps keep business/product code in the repo while reusable SDK or
   private platform engines own repeated technical complexity.
@@ -51,6 +53,8 @@ Proximo:
   Agent generated-app edits.
 - Use `pnpm check:generated-agent-scope <app> --strict` before the strict
   dogfood gate so autonomous edits stay in app-owned files.
+- Use `--json` for runtime/agent decisions; keep the default table for human
+  inspection.
 - Keep Fayz scaffold prompt/guidance aligned with these gates as the contract
   evolves.
 - Use the Fayz wrapper for operator/agent runs so the SDK gate sequence is not
@@ -113,6 +117,8 @@ pnpm check:generated-dogfood --summary
 pnpm check:generated-dogfood:full
 pnpm check:generated-dogfood:strict
 pnpm test:generated-dogfood
+pnpm test:generated-agent-scope
+pnpm check:generated-agent-scope /Users/fayalabs/dev/fayz-app/shopfront --paths src/config/theme.ts --json --strict
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas
