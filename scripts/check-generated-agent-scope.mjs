@@ -61,6 +61,7 @@ function changedFiles() {
 }
 
 const appOwnedFiles = new Set([
+  'app.manifest.json',
   'src/App.tsx',
   'src/main.tsx',
   'src/styles.css',

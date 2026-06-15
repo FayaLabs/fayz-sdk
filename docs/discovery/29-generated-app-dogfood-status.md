@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 06:11 UTC / 03:11 BRT
+Snapshot: 2026-06-15 06:28 UTC / 03:28 BRT
 
 ## Executive Status
 
@@ -101,6 +101,25 @@ Resultado:
   against `appRegistry.pages`/`appRegistry.components` and renders the matching
   app-owned custom page. Unregistered component ids now show an explicit runtime
   fallback message.
+- New manifest-first runtime proof project created under
+  `/tmp/fayalabs-projects/ce17885d-862c-4673-b4f2-514bfaee20eb` from the fixed
+  scaffold template.
+- The SDK scope gate now treats root `app.manifest.json` as app-owned because
+  manifest-first generated apps must be able to change route/component wiring
+  without SDK/internal edits.
+- Manifest-first MCP proof on project
+  `ce17885d-862c-4673-b4f2-514bfaee20eb` validated the intended seam:
+  - Agent edited `app.manifest.json`, `src/registry.tsx`, and
+    `src/pages/Index.tsx`.
+  - `app.manifest.json` points `/` at `custom:runtime.ControlRoom`.
+  - `src/registry.tsx` resolves `custom:runtime.ControlRoom`.
+  - `src/pages/Index.tsx` renders visible proof text:
+    `Manifest route override active`, `Registry component resolved`, and
+    `SDK boundary enforced`.
+  - `pnpm check:generated-agent-scope ... --strict --json` passed with all
+    three files classified as `app-owned`.
+  - Local project `npm run build` passes after removing the verifier-introduced
+    stray dependency.
 
 Impacto:
 
@@ -118,6 +137,9 @@ Impacto:
 - The scaffold runtime correction turns the next proof into a real
   manifest-to-registry-to-render validation instead of a file-only app-owned
   edit.
+- The new runtime project proves the route override can be app-owned and
+  manifest-first: custom generated page code is visible through the local
+  runtime seam without public package sprawl.
 
 Risco:
 
@@ -140,6 +162,12 @@ Risco:
   boundary, but did not prove `scopeGateBlocked: true` end-to-end because no
   forbidden file was emitted. Keep the deterministic post-generation block tests
   as the hard enforcement proof.
+- The second MCP correction pass removed `lucide-react` from `Index.tsx`, but
+  Fayz verification still reported the old missing import and attempted to
+  auto-install the dependency. Local filesystem inspection and `npm run build`
+  passed after cleanup, so this is a verifier/container sync/autoinstall risk,
+  not an SDK app-boundary failure. Do not promote broad agent operation until
+  this stale verification path is fixed or disabled for scoped SDK proofs.
 
 Proximo:
 
@@ -151,6 +179,11 @@ Proximo:
 - Next runtime MCP proof should ask the agent to wire a custom page through
   `app.manifest.json` + `src/registry.tsx` + `src/pages/**`, then verify the
   rendered page is actually selected by `renderApp(manifest)`.
+- Fix Fayz verification behavior before broad rollout: scoped SDK proofs should
+  fail on missing dependencies or ask the agent to correct app-owned code, not
+  silently auto-install new package dependencies.
+- Re-run the manifest-first runtime proof after the verifier sync/autoinstall
+  fix so the final MCP status reaches `READY` without manual cleanup.
 - Avoid trying to force the model to write forbidden files. The safer next proof
   is a deterministic harness/test around MCP summary + post-generation block, or
   another app-owned edit that exercises real runtime verification.

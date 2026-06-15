@@ -56,6 +56,16 @@ describe('generated agent scope gate', () => {
     assert.match(result.stdout, /\| app-owned \| src\/config\/theme\.ts \|/)
   })
 
+  it('passes root app manifest changes in strict mode', () => {
+    const appRoot = createGeneratedApp()
+    write(join(appRoot, 'app.manifest.json'), '{"manifestVersion":2,"id":"generated-app","name":"Generated App"}\n')
+
+    const result = runScope(appRoot, ['--strict'])
+
+    assert.equal(result.status, 0)
+    assert.match(result.stdout, /\| app-owned \| app\.manifest\.json \|/)
+  })
+
   it('fails blocked local engine changes', () => {
     const appRoot = createGeneratedApp()
     write(join(appRoot, 'src/plugins/orders/index.ts'), 'export {}\n')
