@@ -50,6 +50,11 @@ Current rollout state:
   scoped projects and blocks before credits/codegen unless the project status is
   `ready`. The status preflight returns `requestedProjectReady` for a requested
   project id so agents do not need to infer readiness from a filtered list.
+- Commerce product-variation proof is now encoded as an app/SDK contract:
+  app-owned catalog metadata can feed a typed `productMetadata` overlay into
+  `createFayzShopProvider`, so provider-backed stores keep variants/custom
+  attributes without copying checkout/cart/order logic into the app. Backend
+  metadata remains the source of truth when it defines the same key.
 - This is approval for controlled scoped rollout, not broad autonomous agent
   operation. Each new runtime project must be explicitly scoped by project id
   before Fayz Agents edit it.
@@ -160,6 +165,9 @@ This catches the highest-risk drift:
 - unsafe optional backend URLs such as `url: supabaseUrl`, which can serialize
   `backend.url: ""` and break mock/no-provider generated apps. Use
   `url: supabaseUrl || undefined` or the equivalent guard;
+- provider-backed storefronts that define commerce attributes in app-owned
+  `Product.metadata` but omit the `productMetadata` overlay when creating the
+  SDK shop provider;
 - secret/refresh-token/client-secret references in browser/app files;
 - local copies of platform engines under `src/plugins`, `src/runtime`, or
   `src/app-runtime`;
@@ -1496,10 +1504,31 @@ under `Product.metadata` when they describe the client's domain: sizes,
 colorways, vintage, region, pairing, merchandising tags, or variant labels.
 SDK/shop primitives preserve metadata; app-owned cards/pages decide how to
 present it. If a provider backend is configured, it must carry equivalent
-product metadata before the storefront can show those attributes. If no
-provider is configured, the mock catalog must still render. Guard optional
-provider/backend URLs with `url: value || undefined`; do not pass possibly
-empty env strings into manifest/backend config.
+product metadata or receive a typed `productMetadata` overlay from the
+app-owned catalog:
+
+```typescript
+const productMetadata = catalog.products.map((product) => ({
+  sku: product.sku,
+  slug: product.slug,
+  metadata: product.metadata,
+}))
+
+const shopProvider = createFayzShopProvider({
+  supabaseUrl,
+  publishableKey,
+  storeId,
+  productMetadata,
+})
+```
+
+Use this overlay to preserve generated-app product personality while the SDK
+provider owns product identity, price, stock, order, and customer operations.
+Backend metadata wins when it defines the same key; the overlay is a bridge
+until Fayz admin/broker persists those attributes server-side. If no provider is
+configured, the mock catalog must still render. Guard optional provider/backend
+URLs with `url: value || undefined`; do not pass possibly empty env strings
+into manifest/backend config.
 
 **Reference stores:** `../shopfront` (Aurora Goods, all 4 templates via `VITE_TEMPLATE`),
 `../tannat-store` (wine, personalized sertão), `../pulse-store` (sneakers, personalized volt).

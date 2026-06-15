@@ -107,9 +107,16 @@ Blocked by default:
 - The SDK/private shop engine owns product/order/cart/checkout primitives and
   preserves metadata; app-owned custom cards, pages, or route overrides decide
   how to present those attributes.
-- If a store uses a provider backend, the backend must carry equivalent product
-  metadata before the storefront can show it. If no provider is configured, the
-  app-owned mock catalog must stay valid and render through SDK mock primitives.
+- If a store uses a provider backend while app-owned catalog metadata still
+  carries product variants/custom attributes, pass a typed `productMetadata`
+  overlay into `createFayzShopProvider`. The overlay lets generated apps keep
+  product personality in app-owned files while the provider remains the source
+  for product identity, price, stock, order, and customer data.
+- Backend product metadata wins over overlay metadata when both define the same
+  key. Treat the overlay as a dogfood/generation bridge until Fayz admin/broker
+  persists those attributes server-side.
+- If no provider is configured, the app-owned mock catalog must stay valid and
+  render through SDK mock primitives.
 - Local SDK dogfood tooling may require Vite/package aliases for private
   subpaths, but those files are review-scope. Generated app agents should treat
   tooling/dependency changes as explicit-review work, not routine app-owned UI

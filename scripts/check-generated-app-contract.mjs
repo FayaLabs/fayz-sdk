@@ -236,6 +236,32 @@ function collectTopLevelCommerceProductFields(text) {
   return Array.from(fields).sort()
 }
 
+function collectCommerceProductMetadataFields(text) {
+  const fields = new Set()
+  const productPropertyPattern = /\bproducts\s*:/g
+
+  for (const match of text.matchAll(productPropertyPattern)) {
+    const arrayStart = text.indexOf('[', match.index)
+    if (arrayStart === -1) continue
+    const arrayText = extractBalanced(text, arrayStart, '[', ']')
+    if (!arrayText) continue
+
+    for (const productObject of extractTopLevelObjects(arrayText)) {
+      const metadataMatch = /\bmetadata\s*:/.exec(productObject)
+      if (!metadataMatch) continue
+      const metadataStart = productObject.indexOf('{', metadataMatch.index)
+      if (metadataStart === -1) continue
+      const metadataText = extractBalanced(productObject, metadataStart, '{', '}')
+      if (!metadataText) continue
+      for (const property of collectTopLevelPropertyNames(metadataText)) {
+        if (commerceMetadataKeys.has(property)) fields.add(property)
+      }
+    }
+  }
+
+  return Array.from(fields).sort()
+}
+
 const packageJsonPath = join(root, 'package.json')
 if (!existsSync(packageJsonPath)) fail('package.json not found')
 
@@ -331,6 +357,9 @@ if (manifestPath) {
 }
 
 const sourceFiles = walk(join(root, 'src')).filter((path) => /\.(ts|tsx|js|jsx)$/.test(path))
+const fayzShopProviderFiles = []
+let appOwnedCommerceMetadata = false
+
 for (const path of sourceFiles) {
   const rel = relative(root, path)
   const text = readFileSync(path, 'utf8')
@@ -366,6 +395,22 @@ for (const path of sourceFiles) {
   const topLevelCommerceFields = collectTopLevelCommerceProductFields(text)
   if (topLevelCommerceFields.length > 0) {
     warn(`${rel} defines product-specific commerce fields at product top level (${topLevelCommerceFields.join(', ')}). Put client-domain attributes under Product.metadata so SDK/shop primitives preserve them across mock and provider-backed catalogs.`)
+  }
+
+  if (collectCommerceProductMetadataFields(text).length > 0) {
+    appOwnedCommerceMetadata = true
+  }
+
+  if (text.includes('createFayzShopProvider(')) {
+    fayzShopProviderFiles.push({ rel, hasProductMetadata: /\bproductMetadata\b/.test(text) })
+  }
+}
+
+if (appOwnedCommerceMetadata) {
+  for (const file of fayzShopProviderFiles) {
+    if (!file.hasProductMetadata) {
+      warn(`${file.rel} configures createFayzShopProvider without productMetadata while the app owns commerce Product.metadata. Pass a typed productMetadata overlay from app-owned catalog products so provider-backed stores preserve variants/custom attributes; backend metadata remains source of truth when present.`)
+    }
   }
 }
 

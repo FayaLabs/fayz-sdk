@@ -323,4 +323,94 @@ export const catalog = buildMockCatalog({
     assert.equal(result.status, 0)
     assert.match(result.stdout, /Generated app contract check passed/)
   })
+
+  it('warns when a provider-backed shop omits the app-owned product metadata overlay', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/catalog.ts'),
+      `
+import { buildMockCatalog } from '@fayz-ai/shop/catalog'
+
+export const pulseCatalog = buildMockCatalog({
+  categories: [{ name: 'Sneakers' }],
+  products: [{
+    name: 'Runner Vortex Neon',
+    price: 599.9,
+    sku: 'SNK-001',
+    category: 'Sneakers',
+    metadata: { sizes: ['38', '39', '40'], colorway: 'Neon / Preto' },
+  }],
+})
+`,
+    )
+    write(
+      join(appRoot, 'src/config/shop.ts'),
+      `
+import { createFayzShopProvider } from '@fayz-ai/sdk/shop'
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+const publishableKey = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY
+const storeId = import.meta.env.PUBLIC_FAYZ_STORE_ID
+
+export const shopProvider = supabaseUrl && publishableKey && storeId
+  ? createFayzShopProvider({ supabaseUrl, publishableKey, storeId })
+  : undefined
+`,
+    )
+
+    const compatibleResult = runContract(appRoot)
+    const strictResult = runContract(appRoot, ['--strict'])
+
+    assert.equal(compatibleResult.status, 0)
+    assert.match(compatibleResult.stderr, /without productMetadata/)
+    assert.match(compatibleResult.stderr, /provider-backed stores preserve variants/)
+    assert.equal(strictResult.status, 1)
+    assert.match(strictResult.stderr, /createFayzShopProvider without productMetadata/)
+  })
+
+  it('accepts provider-backed shops that pass app-owned product metadata overlays', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/catalog.ts'),
+      `
+import { buildMockCatalog } from '@fayz-ai/shop/catalog'
+
+export const pulseCatalog = buildMockCatalog({
+  categories: [{ name: 'Sneakers' }],
+  products: [{
+    name: 'Runner Vortex Neon',
+    price: 599.9,
+    sku: 'SNK-001',
+    category: 'Sneakers',
+    metadata: { sizes: ['38', '39', '40'], colorway: 'Neon / Preto' },
+  }],
+})
+`,
+    )
+    write(
+      join(appRoot, 'src/config/shop.ts'),
+      `
+import { createFayzShopProvider } from '@fayz-ai/sdk/shop'
+import { pulseCatalog } from './catalog'
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+const publishableKey = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY
+const storeId = import.meta.env.PUBLIC_FAYZ_STORE_ID
+const productMetadata = pulseCatalog.products.map((product) => ({
+  sku: product.sku,
+  slug: product.slug,
+  metadata: product.metadata,
+}))
+
+export const shopProvider = supabaseUrl && publishableKey && storeId
+  ? createFayzShopProvider({ supabaseUrl, publishableKey, storeId, productMetadata })
+  : undefined
+`,
+    )
+
+    const result = runContract(appRoot, ['--strict'])
+
+    assert.equal(result.status, 0)
+    assert.match(result.stdout, /Generated app contract check passed/)
+  })
 })
