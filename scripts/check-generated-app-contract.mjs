@@ -184,6 +184,12 @@ for (const path of sourceFiles) {
   if (text.includes('npm.pkg.github.com') || text.includes('NODE_AUTH_TOKEN')) {
     fail(`${rel} references GitHub Packages auth. Generated apps should not require package registry credentials.`)
   }
+
+  const directBackendUrlPattern =
+    /\burl\s*:\s*(?:import\.meta\.env\.[A-Z0-9_]+|(?:supabase|backend|api|fayz)[A-Za-z0-9_]*Url)\s*(?:[,}\n]|$)/i
+  if (directBackendUrlPattern.test(text)) {
+    warn(`${rel} assigns backend.url directly from an env/url variable. Use "url: value || undefined" so mock/no-provider apps do not emit an empty manifest backend URL.`)
+  }
 }
 
 const integrationDirs = [

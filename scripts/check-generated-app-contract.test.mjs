@@ -216,4 +216,47 @@ export default Index
     assert.equal(result.status, 1)
     assert.match(result.stderr, /scaffold placeholder/)
   })
+
+  it('warns when backend url can become an empty env string and fails it in strict mode', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/shop.ts'),
+      `
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+
+export const shopBackend = {
+  provider: supabaseUrl ? 'fayz-shop' : 'mock',
+  url: supabaseUrl,
+}
+`,
+    )
+
+    const compatibleResult = runContract(appRoot)
+    const strictResult = runContract(appRoot, ['--strict'])
+
+    assert.equal(compatibleResult.status, 0)
+    assert.match(compatibleResult.stderr, /assigns backend\.url directly/)
+    assert.equal(strictResult.status, 1)
+    assert.match(strictResult.stderr, /mock\/no-provider apps/)
+  })
+
+  it('accepts backend url env values guarded to undefined', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/shop.ts'),
+      `
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+
+export const shopBackend = {
+  provider: supabaseUrl ? 'fayz-shop' : 'mock',
+  url: supabaseUrl || undefined,
+}
+`,
+    )
+
+    const result = runContract(appRoot, ['--strict'])
+
+    assert.equal(result.status, 0)
+    assert.match(result.stdout, /Generated app contract check passed/)
+  })
 })
