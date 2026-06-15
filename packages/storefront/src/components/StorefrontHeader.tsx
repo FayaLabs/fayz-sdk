@@ -1,5 +1,6 @@
-import React from 'react'
-import { Mail, Phone, Search, ShoppingBag, User } from 'lucide-react'
+import React, { useState } from 'react'
+import { CreditCard, LogOut, Mail, Package, Phone, Search, ShoppingBag, User, UserCircle } from 'lucide-react'
+import { signOutCustomer } from '../auth'
 import { useCartStore, selectCount } from '../stores/cart.store'
 import { useCatalogStore } from '../stores/catalog.store'
 import { useSessionStore } from '../stores/session.store'
@@ -104,24 +105,79 @@ function HeaderActions() {
   const count = useCartStore(selectCount)
   const openDrawer = useCartStore((s) => s.openDrawer)
   const session = useSessionStore()
+  const [accountOpen, setAccountOpen] = useState(false)
   const pop = usePopOnChange(count)
   const firstName = session.name?.split(/\s+/)[0]
+  const initial = (firstName ?? session.email ?? 'C').slice(0, 1).toUpperCase()
   return (
     <nav className="flex items-center gap-1">
       {config.features.accounts && (
-        <Link
-          to="/account"
-          data-testid={TID.accountLink}
-          aria-label="Minhas compras"
-          className="flex items-center gap-1.5 rounded-full p-2.5 transition-opacity hover:opacity-70"
-        >
-          <User className="h-5 w-5" />
-          {firstName && (
-            <span data-testid={TID.accountName} className="hidden max-w-24 truncate text-sm font-medium lg:inline">
-              {firstName}
-            </span>
+        <div className="relative">
+          {session.email ? (
+            <button
+              type="button"
+              data-testid={TID.accountLink}
+              aria-label="Abrir menu da conta"
+              aria-expanded={accountOpen}
+              onClick={() => setAccountOpen((open) => !open)}
+              className="flex items-center gap-1.5 rounded-full p-1.5 transition-opacity hover:opacity-80"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                {initial}
+              </span>
+              {firstName && (
+                <span data-testid={TID.accountName} className="hidden max-w-24 truncate text-sm font-medium lg:inline">
+                  {firstName}
+                </span>
+              )}
+            </button>
+          ) : (
+            <Link
+              to="/account"
+              data-testid={TID.accountLink}
+              aria-label="Minhas compras"
+              className="flex items-center gap-1.5 rounded-full p-2.5 transition-opacity hover:opacity-70"
+            >
+              <User className="h-5 w-5" />
+            </Link>
           )}
-        </Link>
+          {accountOpen && session.email && (
+            <div
+              data-testid={TID.accountDropdown}
+              className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-xl border bg-background text-foreground shadow-xl"
+            >
+              <div className="border-b p-4">
+                <p className="font-semibold">{session.name || firstName || 'Cliente'}</p>
+                <p className="truncate text-sm text-muted-foreground">{session.email}</p>
+              </div>
+              <div className="p-2">
+                <Link to="/account" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-muted">
+                  <UserCircle className="h-4 w-4" />
+                  Perfil
+                </Link>
+                <Link to="/account" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-muted">
+                  <Package className="h-4 w-4" />
+                  Meus pedidos
+                </Link>
+                <Link to="/account" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-muted">
+                  <CreditCard className="h-4 w-4" />
+                  Pagamentos
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen(false)
+                    void signOutCustomer()
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-muted"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
       <button
         type="button"

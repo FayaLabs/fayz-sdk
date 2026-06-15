@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { getShopProvider } from '@fayz-ai/shop/runtime'
+import { useStorefrontConfig } from '../config'
 
 export interface DiscountValidation {
   valid: boolean
@@ -8,9 +9,12 @@ export interface DiscountValidation {
 }
 
 export function useDiscountValidator(): (code: string) => Promise<DiscountValidation> {
+  const config = useStorefrontConfig()
   return useCallback(async (code: string) => {
     const normalized = code.trim().toUpperCase()
     if (!normalized) return { valid: false, percent: 0, message: 'Informe um cupom.' }
+    const configDiscount = config.discounts?.find((d) => d.code.trim().toUpperCase() === normalized)
+    if (configDiscount) return { valid: true, percent: configDiscount.percent }
     const discounts = await getShopProvider().listDiscounts({ status: 'active' })
     const match = discounts.find((d) => (d.code ?? '').toUpperCase() === normalized)
     if (!match) return { valid: false, percent: 0, message: 'Cupom inválido ou expirado.' }
@@ -18,5 +22,5 @@ export function useDiscountValidator(): (code: string) => Promise<DiscountValida
       return { valid: false, percent: 0, message: 'Este cupom não é suportado na loja.' }
     }
     return { valid: true, percent: match.value }
-  }, [])
+  }, [config.discounts])
 }

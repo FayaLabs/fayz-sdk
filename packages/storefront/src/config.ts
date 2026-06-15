@@ -64,6 +64,12 @@ export interface StorefrontSlots {
   ProductCard?: React.ComponentType<ProductCardSlotProps>
 }
 
+export interface StorefrontDiscountConfig {
+  code: string
+  percent: number
+  title?: string
+}
+
 export interface StorefrontConfig {
   /** Store display name (header, page title) */
   name: string
@@ -93,11 +99,13 @@ export interface StorefrontConfig {
   provider?: ShopProvider
   /** Per-store mock catalog (products/categories/discounts) for mock mode */
   catalog?: MockShopSeed
+  /** Store-level discount codes available regardless of provider backend. */
+  discounts?: StorefrontDiscountConfig[]
   /** Customer auth — same AuthAdapter contract as createSaasApp. Default: mock. */
   auth?: { adapter?: StorefrontAuthAdapter }
   /** Shipping pricing — default { flatRate: 0 } */
   shipping?: { flatRate?: number; freeAbove?: number }
-  /** Feature toggles — default both true */
+  /** Feature toggles — discounts default off; accounts default on */
   features?: { discounts?: boolean; accounts?: boolean }
   /** Code-level customization slots. Kept out of serialized manifests. */
   slots?: StorefrontSlots
@@ -123,7 +131,7 @@ export function resolveConfig(config: StorefrontConfig): ResolvedStorefrontConfi
     locale: config.locale ?? 'pt-BR',
     shipping: { flatRate: config.shipping?.flatRate ?? 0, freeAbove: config.shipping?.freeAbove },
     features: {
-      discounts: config.features?.discounts ?? true,
+      discounts: config.features?.discounts ?? false,
       accounts: config.features?.accounts ?? true,
     },
     catalogPath,

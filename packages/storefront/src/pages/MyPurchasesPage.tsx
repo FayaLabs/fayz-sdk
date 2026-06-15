@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { Package } from 'lucide-react'
 import { useSessionStore } from '../stores/session.store'
-import { establishCustomerSession, signUpCustomer, signOutCustomer } from '../auth'
+import { establishCustomerSession, signUpCustomer } from '../auth'
 import { useMyOrders } from '../hooks/useMyOrders'
 import { useStorefrontConfig } from '../config'
 import { Link } from '../router'
 import { formatMoney } from '../format'
 import { TID } from '../testids'
+import { CustomerAccountShell } from '../components/CustomerAccountShell'
 
 const FINANCIAL_LABEL: Record<string, string> = {
   paid: 'Pago',
@@ -134,22 +135,11 @@ export function MyPurchasesPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Minhas compras</h1>
-          <p className="text-sm text-muted-foreground">{session.email}</p>
-        </div>
-        <button
-          type="button"
-          data-testid={TID.signout}
-          onClick={() => void signOutCustomer()}
-          className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          Sair
-        </button>
-      </div>
-
+    <CustomerAccountShell
+      title="Minha conta"
+      subtitle="Acompanhe pedidos, dados de entrega e pagamentos."
+      active="orders"
+    >
       {loading ? (
         <div className="py-16 text-center text-muted-foreground">Carregando…</div>
       ) : orders.length === 0 ? (
@@ -192,6 +182,6 @@ export function MyPurchasesPage() {
           ))}
         </ul>
       )}
-    </main>
+    </CustomerAccountShell>
   )
 }

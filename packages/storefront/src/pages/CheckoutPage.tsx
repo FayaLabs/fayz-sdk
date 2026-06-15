@@ -14,6 +14,7 @@ import { Link, navigateTo } from '../router'
 import { formatMoney } from '../format'
 import { TID } from '../testids'
 import { placeStorefrontOrder } from '../workflows/checkout'
+import { useDiscountValidator } from '../hooks/useDiscountValidator'
 
 interface CheckoutForm {
   email: string
@@ -93,6 +94,7 @@ export function CheckoutPage() {
   const config = useStorefrontConfig()
   const cart = useCartStore()
   const session = useSessionStore()
+  const validateDiscount = useDiscountValidator()
 
   const [selectedAddressId, setSelectedAddressId] = useState(DEFAULT_ADDRESS.id)
   const [selectedPaymentId, setSelectedPaymentId] = useState(DEFAULT_PAYMENT.id)
@@ -111,6 +113,10 @@ export function CheckoutPage() {
     cvc: DEFAULT_PAYMENT.cvc,
   })
   const [error, setError] = useState<string | null>(null)
+  const [discountCode, setDiscountCode] = useState('')
+  const [discountError, setDiscountError] = useState<string | null>(null)
+  const [discountSuccess, setDiscountSuccess] = useState<string | null>(null)
+  const [applyingDiscount, setApplyingDiscount] = useState(false)
   const [placing, setPlacing] = useState(false)
   const [processingStep, setProcessingStep] = useState(0)
 
@@ -125,6 +131,32 @@ export function CheckoutPage() {
   }, [cart.lines.length, config.catalogPath, placing])
 
   const set = (key: keyof CheckoutForm) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
+
+  async function applyDiscountCode() {
+    setApplyingDiscount(true)
+    setDiscountError(null)
+    setDiscountSuccess(null)
+    try {
+      const appliedCode = discountCode.trim().toUpperCase()
+      const result = await validateDiscount(discountCode)
+      if (result.valid) {
+        cart.applyDiscount(appliedCode, result.percent)
+        setDiscountCode(appliedCode)
+        setDiscountSuccess(`${appliedCode} aplicado: ${result.percent}% de desconto.`)
+      } else {
+        setDiscountError(result.message ?? 'Cupom inválido.')
+      }
+    } finally {
+      setApplyingDiscount(false)
+    }
+  }
+
+  function clearDiscountCode() {
+    cart.clearDiscount()
+    setDiscountCode('')
+    setDiscountSuccess(null)
+    setDiscountError(null)
+  }
 
   function applySavedAddress(address: typeof SAVED_ADDRESSES[number]) {
     setAddressMode('saved')
@@ -426,14 +458,60 @@ export function CheckoutPage() {
               </li>
             ))}
           </ul>
+          {config.features.discounts && (
+            <div className="mt-5 space-y-2 border-t pt-5">
+              <div className="flex gap-2">
+                <input
+                  data-testid={TID.discountInput}
+                  type="text"
+                  placeholder="Cupom de desconto"
+                  value={discountCode}
+                  onChange={(event) => {
+                    setDiscountCode(event.target.value)
+                    setDiscountSuccess(null)
+                    setDiscountError(null)
+                  }}
+                  className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm uppercase"
+                />
+                <button
+                  type="button"
+                  data-testid={TID.discountApply}
+                  onClick={applyDiscountCode}
+                  disabled={applyingDiscount || !discountCode.trim()}
+                  className="rounded-lg border px-3 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+                >
+                  Aplicar
+                </button>
+              </div>
+              {discountError && (
+                <p data-testid={TID.discountError} className="text-xs text-destructive">
+                  {discountError}
+                </p>
+              )}
+              {discountSuccess && (
+                <p className="text-xs font-semibold text-emerald-700">
+                  {discountSuccess}
+                </p>
+              )}
+            </div>
+          )}
           <dl className="mt-8 space-y-3 border-t pt-6 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd data-price={subtotal.toFixed(2)}>{money(subtotal)}</dd>
             </div>
             {discountTotal > 0 && (
-              <div className="flex justify-between text-emerald-700">
-                <dt>Desconto ({cart.discountCode})</dt>
+              <div className="flex justify-between text-emerald-700" data-testid={TID.discountRow}>
+                <dt>
+                  Desconto{' '}
+                  <button
+                    type="button"
+                    onClick={clearDiscountCode}
+                    className="text-xs text-muted-foreground underline"
+                  >
+                    ({cart.discountCode} ×)
+                  </button>
+                </dt>
                 <dd data-price={discountTotal.toFixed(2)}>-{money(discountTotal)}</dd>
               </div>
             )}

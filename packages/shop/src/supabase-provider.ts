@@ -23,6 +23,13 @@ function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
+function asUuid(value: string | null | undefined): string | null {
+  if (!value) return null
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null
+}
+
 function rowToProduct(row: any): Product {
   return {
     id: row.id,
@@ -329,7 +336,7 @@ export class SupabaseShopProvider implements ShopProvider {
       .insert({ tenant_id: tenantId, customer_id: input.customerId ?? null, customer_name: input.customerName ?? null, customer_email: input.customerEmail ?? null, currency: input.currency ?? 'BRL', notes: input.notes ?? null, subtotal, discount_total: discountTotal, shipping_total: shippingTotal, discount_code: input.discountCode ?? null, total, status: 'open', financial_status: 'pending', fulfillment_status: 'unfulfilled' })
       .select().single()
     if (orderErr) throw orderErr
-    const items = input.items.map(i => ({ order_id: order.id, product_id: i.productId ?? null, name: i.name, sku: i.sku ?? null, quantity: i.quantity, unit_price: i.unitPrice, total: i.quantity * i.unitPrice, image_url: i.imageUrl ?? null }))
+    const items = input.items.map(i => ({ order_id: order.id, product_id: asUuid(i.productId), name: i.name, sku: i.sku ?? null, quantity: i.quantity, unit_price: i.unitPrice, total: i.quantity * i.unitPrice, image_url: i.imageUrl ?? null }))
     await db.from('shop_order_items').insert(items)
     return this.getOrder(order.id) as Promise<Order>
   }

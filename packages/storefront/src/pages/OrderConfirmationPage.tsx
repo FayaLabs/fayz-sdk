@@ -6,6 +6,7 @@ import { useStorefrontConfig } from '../config'
 import { Link } from '../router'
 import { formatMoney } from '../format'
 import { TID } from '../testids'
+import { CustomerAccountShell } from '../components/CustomerAccountShell'
 
 const FINANCIAL_LABEL: Record<string, string> = {
   paid: 'Pago',
@@ -85,26 +86,52 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-      <div className="animate-fade-up border bg-card p-8 text-center" style={{ borderRadius: 'var(--sf-radius-card)' }}>
-        <SuccessMark />
-        <h1 className="sf-heading mt-5 animate-fade-up text-3xl font-bold tracking-tight" style={{ animationDelay: '350ms' }}>
-          Pedido confirmado!
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Obrigado pela compra, {order.customerName ?? 'cliente'}. Enviamos a confirmação para {order.customerEmail}.
-        </p>
-        <p className="mt-4 text-lg">
-          Pedido <span data-testid={TID.orderNumber} className="font-semibold">#{order.orderNumber}</span>{' '}
-          <span
-            data-testid={TID.orderStatus}
-            className="ml-2 inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800"
-          >
-            {FINANCIAL_LABEL[order.financialStatus] ?? order.financialStatus}
-          </span>
-        </p>
+    <CustomerAccountShell
+      title="Detalhe do pedido"
+      subtitle="Compra confirmada e vinculada à sua conta."
+      active="orders"
+    >
+      <article data-testid={TID.orderDetail} className="animate-fade-up rounded-xl border bg-card p-6 sm:p-8">
+        <div className="grid gap-6 border-b pb-6 sm:grid-cols-[120px_minmax(0,1fr)]">
+          <SuccessMark />
+          <div className="text-center sm:text-left">
+            <h2 className="sf-heading text-3xl font-bold tracking-tight">
+              Pedido confirmado!
+            </h2>
+            <p className="mt-1 text-muted-foreground">
+              Obrigado pela compra, {order.customerName ?? 'cliente'}. Enviamos a confirmação para {order.customerEmail}.
+            </p>
+            <p className="mt-4 text-lg">
+              Pedido <span data-testid={TID.orderNumber} className="font-semibold">#{order.orderNumber}</span>{' '}
+              <span
+                data-testid={TID.orderStatus}
+                className="ml-2 inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800"
+              >
+                {FINANCIAL_LABEL[order.financialStatus] ?? order.financialStatus}
+              </span>
+            </p>
+          </div>
+        </div>
 
-        <ul className="mt-8 space-y-3 border-t pt-6 text-left">
+        <div className="mt-6 grid gap-4 rounded-xl border bg-muted/20 p-4 text-sm sm:grid-cols-3">
+          <div>
+            <p className="text-muted-foreground">Cliente</p>
+            <p className="mt-1 font-semibold">{order.customerName ?? 'Cliente'}</p>
+            <p className="text-muted-foreground">{order.customerEmail}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Entrega</p>
+            <p className="mt-1 font-semibold">{order.fulfillmentStatus === 'fulfilled' ? 'Enviado' : 'Preparando envio'}</p>
+            <p className="text-muted-foreground">{order.notes ?? 'Endereço salvo no pedido'}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Pagamento</p>
+            <p className="mt-1 font-semibold">{FINANCIAL_LABEL[order.financialStatus] ?? order.financialStatus}</p>
+            <p className="text-muted-foreground">Cartão salvo para próximas compras</p>
+          </div>
+        </div>
+
+        <ul className="mt-8 space-y-3 text-left">
           {order.items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 text-sm">
               {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="h-12 w-12 rounded-lg border object-cover" />}
@@ -139,7 +166,7 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
           </div>
         </dl>
 
-        <div className="mt-8 flex justify-center gap-3">
+        <div className="mt-8 flex flex-wrap gap-3">
           <Link
             to="/account"
             data-testid={TID.viewPurchases}
@@ -151,7 +178,7 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
             Continuar comprando
           </Link>
         </div>
-      </div>
-    </main>
+      </article>
+    </CustomerAccountShell>
   )
 }

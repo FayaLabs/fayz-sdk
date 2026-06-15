@@ -195,6 +195,13 @@ function present<T>(value: T | null | undefined, fallback: T): T {
   return value == null ? fallback : value
 }
 
+function asUuid(value: string | null | undefined): string | null {
+  if (!value) return null
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null
+}
+
 function rowToImage(row: ProductImageRow) {
   return {
     id: row.id,
@@ -530,7 +537,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
           method: 'POST',
           body: JSON.stringify(input.items.map((item) => ({
             order_id: order.id,
-            product_id: item.productId ?? null,
+            product_id: asUuid(item.productId),
             name: item.name,
             sku: item.sku ?? null,
             quantity: item.quantity,
