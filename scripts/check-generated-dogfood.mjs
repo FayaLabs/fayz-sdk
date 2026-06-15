@@ -38,7 +38,7 @@ for (const app of apps) {
     continue
   }
 
-  const contractArgs = ['./scripts/check-generated-app-contract.mjs', appPath]
+  const contractArgs = ['./scripts/check-generated-app-contract.mjs', appPath, '--allow-internal-imports']
   if (strictWarnings) contractArgs.push('--strict')
 
   const run = spawnSync('node', contractArgs, {

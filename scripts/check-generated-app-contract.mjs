@@ -4,9 +4,10 @@ import { join, resolve, relative } from 'node:path'
 
 const args = process.argv.slice(2)
 const strictWarnings = args.includes('--strict')
+const allowInternalImports = args.includes('--allow-internal-imports')
 const targetArg = args.find((arg) => !arg.startsWith('--'))
 if (!targetArg) {
-  console.error('Usage: pnpm check:generated-app <path-to-generated-app> [--strict]')
+  console.error('Usage: pnpm check:generated-app <path-to-generated-app> [--strict] [--allow-internal-imports]')
   process.exit(2)
 }
 
@@ -305,6 +306,7 @@ for (const file of walk(root)) {
     const specifier = match[1] ?? match[2]
     if (!specifier) continue
     if (specifier === '@fayz-ai/sdk' || specifier.startsWith('@fayz-ai/sdk/')) continue
+    if (allowInternalImports) continue
     fail(`${rel} imports internal Fayz package "${specifier}". Generated apps should import public SDK APIs from @fayz-ai/sdk or use platform-bundled adapters.`)
   }
 }

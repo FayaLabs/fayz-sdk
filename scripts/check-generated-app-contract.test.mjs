@@ -237,6 +237,23 @@ export const provider = createFayzShopProvider
     assert.doesNotMatch(result.stderr, /@fayz-ai\/sdk\/shop/)
   })
 
+  it('can explicitly allow internal imports for local SDK dogfood baselines', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/app.tsx'),
+      `
+import { createFayzApp } from '@fayz-ai/saas'
+
+export const app = createFayzApp({})
+`,
+    )
+
+    const result = runContract(appRoot, ['--strict', '--allow-internal-imports'])
+
+    assert.equal(result.status, 0)
+    assert.match(result.stdout, /Generated app contract check passed/)
+  })
+
   it('warns when backend url can become an empty env string and fails it in strict mode', () => {
     const appRoot = createGeneratedApp()
     write(

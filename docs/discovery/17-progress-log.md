@@ -36,6 +36,40 @@ Proximo:
   calls or explicit platform-bundled adapters, then rerun published/import
   build.
 
+## 2026-06-15 14:42 UTC / 11:42 BRT — Dogfood gate separates local SDK proof from editor readiness
+
+Resultado:
+
+- Added explicit `--allow-internal-imports` mode to the generated-app contract
+  gate for local SDK dogfood baselines.
+- `check:generated-dogfood:strict` now uses that local-dogfood mode, while the
+  default `check:generated-app` path continues to block internal source imports
+  for editor/import readiness.
+- Validation passed:
+  - `pnpm test:generated-app`
+  - `pnpm test:generated-dogfood`
+  - `pnpm check:generated-dogfood:strict`
+  - `pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas --strict`
+    still fails as expected with Beauty's internal-import blockers.
+
+Impacto:
+
+- We now have two honest statuses instead of one ambiguous one:
+  local SDK dogfood is green across Beauty, Shopfront, Resto, and Marketplace;
+  editor/import readiness is blocked until app source imports stop depending on
+  SDK internals.
+
+Risco:
+
+- Do not use local-dogfood green as proof that a GitHub-imported/editor app will
+  compile against public npm. The published/import lane still requires the
+  internal-import cleanup or platform-bundled adapter path.
+
+Proximo:
+
+- Start the Beauty importability cut by replacing internal package imports with
+  SDK facade APIs or platform-bundled adapter entrypoints.
+
 ## 2026-06-15 14:29 UTC / 11:29 BRT — Generated apps stop carrying local AGENTS.md by default
 
 Resultado:
