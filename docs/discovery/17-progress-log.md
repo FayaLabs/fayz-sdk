@@ -1,5 +1,44 @@
 # 17 — Progress Log
 
+## 2026-06-15 07:57 UTC / 04:57 BRT — Fayz Agent rollout exposed through MCP preflight
+
+Resultado:
+
+- Fayz repo added a read-only MCP tool:
+  `get_fayz_sdk_agent_rollout_status`.
+- The tool returns doctor-derived `projectStatuses` filtered to projects the
+  requesting user can access.
+- MCP `send_message` now runs strict doctor preflight for scoped block projects
+  before credits and before codegen.
+- Scoped MCP/chat operation now requires target project status `ready`; `warn`,
+  `blocked`, `misconfigured`, missing, or unreported projects fail before
+  generation starts.
+- Added `docs/playbooks/fayz-sdk-agent-rollout.md` in the Fayz repo to lock the
+  operational sequence for choosing projects and running scoped proofs.
+
+Impacto:
+
+- The rollout is no longer only a CLI/operator convention. External agents can
+  discover readiness through MCP and `send_message` enforces the same doctor
+  decision before spending generation work.
+- This closes the current items 1-4 loop: objective dogfood status, SDK/app
+  contract, agent guide, and generated-app gates/doctor checks are now connected
+  to the actual Fayz Agent entrypoint.
+
+Risco:
+
+- The status is local-environment based and depends on `PROJECTS_DIR`,
+  `FAYZ_SDK_REPO`, and scoped block env vars being set correctly.
+- It is intentionally scoped rollout only, not approval for broad autonomous
+  generated-app operation.
+
+Proximo:
+
+- Use `get_fayz_sdk_agent_rollout_status` before every scoped MCP proof.
+- Only after a project is `ready`, run constrained app-owned `send_message`
+  prompts. Escalate repeated technical logic to SDK/internal packages instead of
+  expanding generated app code.
+
 ## 2026-06-15 07:11 UTC / 04:11 BRT — Third runtime proof through full Fayz wrapper
 
 Resultado:

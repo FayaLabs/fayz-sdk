@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 07:11 UTC / 04:11 BRT
+Snapshot: 2026-06-15 07:57 UTC / 04:57 BRT
 
 ## Executive Status
 
@@ -9,6 +9,12 @@ Resultado:
 - Four dogfood apps pass the generated-app contract and typecheck gate:
   Beauty/BeautyPlace, shopfront, Resto/The Chef, and marketplace/admin.
 - The full gate currently reports zero warnings across the four apps.
+- Fayz MCP now exposes `get_fayz_sdk_agent_rollout_status` so agents can read
+  `ready/warn/blocked/misconfigured` rollout status before calling
+  `send_message`.
+- Fayz MCP `send_message` now runs strict doctor preflight for scoped block
+  projects and blocks before credits/codegen unless the target project is
+  `ready`.
 - The contract gate now warns when generated apps carry local platform-engine
   copies under `src/plugins`, `src/runtime`, or `src/app-runtime`.
 - `pnpm check:generated-dogfood:strict` passes across the four apps and treats

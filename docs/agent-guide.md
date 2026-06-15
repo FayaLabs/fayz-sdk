@@ -29,6 +29,10 @@ Current rollout state:
   `check:fayz-sdk-agent-gates` ran `check:generated-app` before
   `check:generated-agent-scope`, then MCP produced a `/quality` admin surface
   page with only app-owned file changes.
+- The Fayz MCP server now exposes `get_fayz_sdk_agent_rollout_status` as a
+  read-only preflight. `send_message` also runs strict doctor preflight for
+  scoped projects and blocks before credits/codegen unless the project status is
+  `ready`.
 - This is approval for controlled scoped rollout, not broad autonomous agent
   operation. Each new runtime project must be explicitly scoped by project id
   before Fayz Agents edit it.
@@ -103,6 +107,18 @@ In the Fayz repo, the operator wrapper is:
 ```bash
 npm run check:fayz-sdk-agent-gates -- /path/to/generated-app --paths src/config/theme.ts,src/custom/checkout.tsx --scope-only
 ```
+
+Before MCP/chat operation on a scoped runtime project, query rollout status:
+
+```text
+MCP tool: get_fayz_sdk_agent_rollout_status
+Required result: projectStatuses[].status === "ready" for the target project
+```
+
+The MCP `send_message` tool enforces the same rule for projects in
+`FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS`: it runs strict doctor preflight and
+blocks before credits/codegen when the target project is `warn`, `blocked`,
+`misconfigured`, missing, or not reported.
 
 This catches the highest-risk drift:
 
