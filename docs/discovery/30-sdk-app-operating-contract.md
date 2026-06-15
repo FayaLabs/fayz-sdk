@@ -94,6 +94,26 @@ Blocked by default:
 - Direct provider clients are allowed only through an explicit optional adapter
   decision, and that adapter must not contain secrets.
 - OAuth/provider token exchange stays server-side in Fayz.
+- Optional backend URLs must not serialize empty environment strings into the
+  manifest. Use `url: value || undefined`, so mock/no-provider generated apps
+  still render and SDK `validateManifest()` never receives `backend.url: ""`.
+
+## Commerce Config Pattern
+
+- Product-specific commerce attributes belong in app-owned catalog/config data,
+  usually under `Product.metadata`, when they describe the generated app's
+  business domain: sneaker sizes/colorways, wine vintage/region/pairing, variant
+  labels, delivery copy, merchandising tags, or similar.
+- The SDK/private shop engine owns product/order/cart/checkout primitives and
+  preserves metadata; app-owned custom cards, pages, or route overrides decide
+  how to present those attributes.
+- If a store uses a provider backend, the backend must carry equivalent product
+  metadata before the storefront can show it. If no provider is configured, the
+  app-owned mock catalog must stay valid and render through SDK mock primitives.
+- Local SDK dogfood tooling may require Vite/package aliases for private
+  subpaths, but those files are review-scope. Generated app agents should treat
+  tooling/dependency changes as explicit-review work, not routine app-owned UI
+  edits.
 
 ## Gate Sequence
 
