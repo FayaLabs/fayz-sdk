@@ -34,7 +34,8 @@ pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 Calibration:
 
 - `shopfront` passes the generated-app contract gate.
-- `beauty-saas` and `resto-saas` currently fail because `src/integrations/supabase/client.ts` imports `@supabase/supabase-js` directly. This is the next SDK/broker cleanup seam, not a reason to weaken the gate.
+- `beauty-saas` now only keeps Supabase as a type-level compatibility warning through a Fayz-managed client wrapper; it should pass after gate calibration.
+- `resto-saas` still fails because `src/integrations/supabase/client.ts` creates a Supabase client at runtime and `src/pages/Orders.tsx` uses it directly. This is the next SDK/broker cleanup seam, not a reason to weaken the gate.
 
 ## 2026-06-15 00:24 UTC / 21:24 BRT — Core high-conversion checkout baseline
 

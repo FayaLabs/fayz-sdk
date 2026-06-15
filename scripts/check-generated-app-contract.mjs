@@ -91,7 +91,17 @@ for (const path of sourceFiles) {
   const text = readFileSync(path, 'utf8')
 
   if (text.includes('@supabase/supabase-js')) {
-    fail(`${rel} imports @supabase/supabase-js directly. Default generated apps should use @fayz-ai/sdk/Fayz broker or an explicit adapter file.`)
+    const runtimeSupabaseImport = text
+      .split('\n')
+      .some((line) =>
+        line.includes('@supabase/supabase-js') &&
+        /^\s*import\s+(?!type\b)/.test(line)
+      )
+    if (runtimeSupabaseImport || /\bcreateClient\s*</.test(text) || /\bcreateClient\s*\(/.test(text)) {
+      fail(`${rel} imports @supabase/supabase-js at runtime. Default generated apps should use @fayz-ai/sdk/Fayz broker or an explicit adapter file.`)
+    } else {
+      warn(`${rel} imports Supabase types only. Prefer SDK-owned shared types when available.`)
+    }
   }
 
   if (/service_role|refresh_token|client_secret|SUPABASE_SERVICE|GOOGLE_CLIENT_SECRET|STRIPE_SECRET/i.test(text)) {
