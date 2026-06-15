@@ -157,6 +157,9 @@ This catches the highest-risk drift:
 - generated apps depending publicly on internal `@fayz-ai/*` packages;
 - legacy `@fayz/*`, `saas-core`, or GitHub Packages registry wiring;
 - direct provider SDK imports such as `@supabase/supabase-js` in generated code;
+- unsafe optional backend URLs such as `url: supabaseUrl`, which can serialize
+  `backend.url: ""` and break mock/no-provider generated apps. Use
+  `url: supabaseUrl || undefined` or the equivalent guard;
 - secret/refresh-token/client-secret references in browser/app files;
 - local copies of platform engines under `src/plugins`, `src/runtime`, or
   `src/app-runtime`;
@@ -1470,7 +1473,15 @@ import { buildMockCatalog } from '@fayz-ai/shop/catalog'
 
 const catalog = buildMockCatalog({
   categories: [{ name: 'Tintos' }],
-  products: [{ name: 'Tannat Reserva', description: '…', price: 129.9, inventory: 36, sku: 'TIN-001', category: 'Tintos' }],
+  products: [{
+    name: 'Tannat Reserva',
+    description: '…',
+    price: 129.9,
+    inventory: 36,
+    sku: 'TIN-001',
+    category: 'Tintos',
+    metadata: { vintage: '2021', region: 'Canelones', pairing: 'Carnes grelhadas' },
+  }],
   discounts: [{ code: 'TANNAT15', percent: 15 }],
 })
 createStorefrontApp({ name: 'Tannat', catalog })   // mock mode uses this store's own products
@@ -1479,6 +1490,16 @@ createStorefrontApp({ name: 'Tannat', catalog })   // mock mode uses this store'
 Customer auth uses the SAME `AuthAdapter` contract as `createSaasApp`
 (`auth: { adapter: 'mock' | 'supabase' | customAdapter }`, default mock). Checkout and the
 account page both go through `establishCustomerSession()` — buyer is signed in after purchase.
+
+Product-specific commerce attributes belong in app-owned catalog/config data
+under `Product.metadata` when they describe the client's domain: sizes,
+colorways, vintage, region, pairing, merchandising tags, or variant labels.
+SDK/shop primitives preserve metadata; app-owned cards/pages decide how to
+present it. If a provider backend is configured, it must carry equivalent
+product metadata before the storefront can show those attributes. If no
+provider is configured, the mock catalog must still render. Guard optional
+provider/backend URLs with `url: value || undefined`; do not pass possibly
+empty env strings into manifest/backend config.
 
 **Reference stores:** `../shopfront` (Aurora Goods, all 4 templates via `VITE_TEMPLATE`),
 `../tannat-store` (wine, personalized sertão), `../pulse-store` (sneakers, personalized volt).
