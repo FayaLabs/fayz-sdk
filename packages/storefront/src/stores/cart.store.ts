@@ -3,12 +3,21 @@ import { persist } from 'zustand/middleware'
 import type { Product } from '@fayz-ai/shop/types'
 import { roundCents } from '../format'
 import type { ResolvedStorefrontConfig } from '../config'
+import {
+  formatProductOptionSelection,
+  normalizeProductOptionSelection,
+  productOptionSelectionKey,
+  type ProductOptionSelection,
+} from '../product-options'
 
 export interface CartLine {
+  lineId: string
   productId: string
   slug: string
   name: string
   sku: string | null
+  options: ProductOptionSelection
+  optionsLabel: string
   unitPrice: number
   quantity: number
   imageUrl: string | null
@@ -21,9 +30,9 @@ export interface CartState {
   discountCode: string | null
   discountPercent: number
   isOpen: boolean
-  addItem(product: Product, qty?: number): void
-  setQuantity(productId: string, qty: number): void
-  removeItem(productId: string): void
+  addItem(product: Product, qty?: number, options?: ProductOptionSelection): void
+  setQuantity(lineId: string, qty: number): void
+  removeItem(lineId: string): void
   applyDiscount(code: string, percent: number): void
   clearDiscount(): void
   clear(): void
@@ -39,23 +48,29 @@ export const useCartStore = create<CartState>()(
       discountPercent: 0,
       isOpen: false,
 
-      addItem: (product, qty = 1) =>
+      addItem: (product, qty = 1, options) =>
         set((state) => {
-          const existing = state.lines.find((l) => l.productId === product.id)
+          const normalizedOptions = normalizeProductOptionSelection(options)
+          const optionKey = productOptionSelectionKey(normalizedOptions)
+          const lineId = optionKey ? `${product.id}:${optionKey}` : product.id
+          const existing = state.lines.find((l) => (l.lineId ?? l.productId) === lineId)
           if (existing) {
             const nextQty = Math.min(existing.quantity + qty, existing.maxQuantity || Infinity)
             return {
               lines: state.lines.map((l) =>
-                l.productId === product.id ? { ...l, quantity: nextQty } : l,
+                (l.lineId ?? l.productId) === lineId ? { ...l, lineId, quantity: nextQty } : l,
               ),
             }
           }
           const image = product.images.find((i) => i.isPrimary) ?? product.images[0]
           const line: CartLine = {
+            lineId,
             productId: product.id,
             slug: product.slug,
             name: product.name,
             sku: product.sku,
+            options: normalizedOptions,
+            optionsLabel: formatProductOptionSelection(normalizedOptions),
             unitPrice: product.price,
             quantity: Math.min(qty, product.inventoryCount || Infinity),
             imageUrl: image?.url ?? null,
@@ -64,20 +79,20 @@ export const useCartStore = create<CartState>()(
           return { lines: [...state.lines, line] }
         }),
 
-      setQuantity: (productId, qty) =>
+      setQuantity: (lineId, qty) =>
         set((state) => {
-          if (qty <= 0) return { lines: state.lines.filter((l) => l.productId !== productId) }
+          if (qty <= 0) return { lines: state.lines.filter((l) => (l.lineId ?? l.productId) !== lineId) }
           return {
             lines: state.lines.map((l) =>
-              l.productId === productId
+              (l.lineId ?? l.productId) === lineId
                 ? { ...l, quantity: Math.min(qty, l.maxQuantity || Infinity) }
                 : l,
             ),
           }
         }),
 
-      removeItem: (productId) =>
-        set((state) => ({ lines: state.lines.filter((l) => l.productId !== productId) })),
+      removeItem: (lineId) =>
+        set((state) => ({ lines: state.lines.filter((l) => (l.lineId ?? l.productId) !== lineId) })),
 
       applyDiscount: (code, percent) => set({ discountCode: code, discountPercent: percent }),
       clearDiscount: () => set({ discountCode: null, discountPercent: 0 }),

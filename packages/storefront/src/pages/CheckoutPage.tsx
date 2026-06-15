@@ -441,7 +441,7 @@ export function CheckoutPage() {
           <h2 className="sr-only">Resumo do pedido</h2>
           <ul className="space-y-4">
             {cart.lines.map((line) => (
-              <li key={line.productId} className="flex gap-3 text-sm">
+              <li key={line.lineId ?? line.productId} className="flex gap-3 text-sm">
                 <div className="relative h-16 w-16 flex-none overflow-hidden rounded-lg border bg-background">
                   {line.imageUrl && <img src={line.imageUrl} alt={line.name} className="h-full w-full object-cover" />}
                   <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-muted-foreground px-1.5 text-[10px] font-bold text-background">
@@ -451,6 +451,7 @@ export function CheckoutPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{line.name}</p>
                   {line.sku && <p className="text-xs text-muted-foreground">{line.sku}</p>}
+                  {line.optionsLabel && <p className="text-xs text-muted-foreground">{line.optionsLabel}</p>}
                 </div>
                 <span data-price={(line.unitPrice * line.quantity).toFixed(2)}>
                   {money(line.unitPrice * line.quantity)}

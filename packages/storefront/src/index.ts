@@ -58,6 +58,15 @@ export { FiltersPanel } from './components/FiltersPanel'
 export { CartDrawer } from './components/CartDrawer'
 export { Price } from './components/Price'
 export { QuantityInput } from './components/QuantityInput'
+export { ProductOptionSelector } from './components/ProductOptionSelector'
+export type { ProductOptionSelectorProps } from './components/ProductOptionSelector'
+export {
+  getProductOptionGroups,
+  normalizeProductOptionSelection,
+  formatProductOptionSelection,
+  productOptionSelectionKey,
+} from './product-options'
+export type { ProductOptionGroup, ProductOptionSelection } from './product-options'
 
 // Pages (for custom routing)
 export { CatalogPage } from './pages/CatalogPage'

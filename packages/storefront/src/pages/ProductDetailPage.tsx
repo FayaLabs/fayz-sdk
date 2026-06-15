@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { useProduct } from '../hooks/useProduct'
 import { useCartStore } from '../stores/cart.store'
 import { Link } from '../router'
 import { Price } from '../components/Price'
 import { QuantityInput } from '../components/QuantityInput'
+import { ProductOptionSelector } from '../components/ProductOptionSelector'
+import { getProductOptionGroups, type ProductOptionSelection } from '../product-options'
 import { TID } from '../testids'
 
 export function ProductDetailPage({ slug }: { slug: string }) {
@@ -12,6 +14,17 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   const addItem = useCartStore((s) => s.addItem)
   const openDrawer = useCartStore((s) => s.openDrawer)
   const [qty, setQty] = useState(1)
+  const [selectedOptions, setSelectedOptions] = useState<ProductOptionSelection>({})
+
+  const optionGroups = product ? getProductOptionGroups(product) : []
+
+  useEffect(() => {
+    if (!product) return
+    const defaults = Object.fromEntries(
+      getProductOptionGroups(product).map((group) => [group.label, group.values[0] ?? '']),
+    )
+    setSelectedOptions(defaults)
+  }, [product?.id])
 
   if (loading) {
     return (
@@ -78,6 +91,12 @@ export function ProductDetailPage({ slug }: { slug: string }) {
             <div>{soldOut ? 'Sem estoque' : `${product.inventoryCount} em estoque`}</div>
           </dl>
 
+          <ProductOptionSelector
+            groups={optionGroups}
+            value={selectedOptions}
+            onChange={setSelectedOptions}
+          />
+
           <div className="mt-8 flex items-center gap-4">
             <QuantityInput
               value={qty}
@@ -90,7 +109,7 @@ export function ProductDetailPage({ slug }: { slug: string }) {
               data-testid={TID.pdpAddToCart}
               disabled={soldOut}
               onClick={() => {
-                addItem(product, qty)
+                addItem(product, qty, selectedOptions)
                 openDrawer()
               }}
               className="sf-cta flex-1 bg-primary py-3.5 font-semibold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0"

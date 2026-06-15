@@ -45,6 +45,8 @@ export const TID = {
   pdpPrice: 'pdp-price',
   pdpComparePrice: 'pdp-compare-price',
   pdpDescription: 'pdp-description',
+  productOptionGroup: (id: string) => `product-option-${id.toLowerCase().replace(/\s+/g, '-')}`,
+  productOptionValue: (id: string, value: string) => `product-option-${id.toLowerCase().replace(/\s+/g, '-')}-${value.toLowerCase().replace(/\s+/g, '-')}`,
   pdpQtyInput: 'pdp-qty-input',
   pdpAddToCart: 'pdp-add-to-cart',
   // cart

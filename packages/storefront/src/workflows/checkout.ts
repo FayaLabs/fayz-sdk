@@ -80,7 +80,7 @@ export async function placeStorefrontOrder({
     shippingTotal: selectShipping(cart, config),
     items: cart.lines.map((line) => ({
       productId: line.productId,
-      name: line.name,
+      name: line.optionsLabel ? `${line.name} (${line.optionsLabel})` : line.name,
       sku: line.sku ?? undefined,
       quantity: line.quantity,
       unitPrice: line.unitPrice,
