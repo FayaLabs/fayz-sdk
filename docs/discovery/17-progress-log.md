@@ -1,5 +1,41 @@
 # 17 — Progress Log
 
+## 2026-06-15 14:37 UTC / 11:37 BRT — Generated-app gate blocks internal source imports
+
+Resultado:
+
+- Added generated-app contract enforcement for source imports from internal
+  `@fayz-ai/*` packages.
+- The gate still allows `@fayz-ai/sdk` and SDK subpaths such as
+  `@fayz-ai/sdk/shop`, but fails imports like `@fayz-ai/saas`,
+  `@fayz-ai/core`, `@fayz-ai/ui`, plugin packages, shop, storefront, or
+  app-runtime.
+- Updated generated-app contract tests so app-owned catalog fixtures no longer
+  import internal shop helpers.
+- Validation passed:
+  - `pnpm test:generated-app`
+  - `pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas --strict`
+    now fails early with the exact Beauty internal-import blockers.
+
+Impacto:
+
+- The low-friction editor/import test has a deterministic preflight now: a
+  generated app cannot look public-package clean while still compiling only
+  because local aliases point at SDK internals.
+
+Risco:
+
+- Beauty is currently local-SDK dogfood, not editor-import ready. It still uses
+  internal runtime/UI/plugin imports and must either move to platform-bundled
+  adapters or consume a larger public SDK facade before published/import builds
+  can pass.
+
+Proximo:
+
+- Replace Beauty/editor imports of internal packages with `@fayz-ai/sdk` facade
+  calls or explicit platform-bundled adapters, then rerun published/import
+  build.
+
 ## 2026-06-15 14:29 UTC / 11:29 BRT — Generated apps stop carrying local AGENTS.md by default
 
 Resultado:

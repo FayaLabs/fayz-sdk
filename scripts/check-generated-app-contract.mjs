@@ -296,6 +296,19 @@ if (existsSync(npmrcPath)) {
   }
 }
 
+const sourceImportPattern = /\b(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"](@fayz-ai\/[^'"]+)['"]|import\s*\(\s*['"](@fayz-ai\/[^'"]+)['"]\s*\)/g
+for (const file of walk(root)) {
+  if (!/\.(?:cjs|mjs|js|jsx|ts|tsx)$/.test(file)) continue
+  const rel = relative(root, file)
+  const text = readFileSync(file, 'utf8')
+  for (const match of text.matchAll(sourceImportPattern)) {
+    const specifier = match[1] ?? match[2]
+    if (!specifier) continue
+    if (specifier === '@fayz-ai/sdk' || specifier.startsWith('@fayz-ai/sdk/')) continue
+    fail(`${rel} imports internal Fayz package "${specifier}". Generated apps should import public SDK APIs from @fayz-ai/sdk or use platform-bundled adapters.`)
+  }
+}
+
 if (hasFile('src/App.tsx')) {
   const appLines = readFileSync(join(root, 'src/App.tsx'), 'utf8').split('\n').length
   if (appLines > 80) {

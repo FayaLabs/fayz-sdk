@@ -217,6 +217,26 @@ export default Index
     assert.match(result.stderr, /scaffold placeholder/)
   })
 
+  it('fails source imports from internal Fayz packages even when package.json stays public-only', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/config/app.tsx'),
+      `
+import { createFayzApp } from '@fayz-ai/saas'
+import { createFayzShopProvider } from '@fayz-ai/sdk/shop'
+
+export const app = createFayzApp({})
+export const provider = createFayzShopProvider
+`,
+    )
+
+    const result = runContract(appRoot)
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /src\/config\/app\.tsx imports internal Fayz package "@fayz-ai\/saas"/)
+    assert.doesNotMatch(result.stderr, /@fayz-ai\/sdk\/shop/)
+  })
+
   it('warns when backend url can become an empty env string and fails it in strict mode', () => {
     const appRoot = createGeneratedApp()
     write(
@@ -265,9 +285,7 @@ export const shopBackend = {
     write(
       join(appRoot, 'src/config/catalog.ts'),
       `
-import { buildMockCatalog } from '@fayz-ai/shop/catalog'
-
-export const catalog = buildMockCatalog({
+export const catalog = {
   categories: [{ name: 'Tintos' }],
   products: [{
     name: 'Tannat Reserva',
@@ -278,7 +296,7 @@ export const catalog = buildMockCatalog({
     vintage: '2021',
     region: 'Canelones',
   }],
-})
+}
 `,
     )
 
@@ -298,9 +316,7 @@ export const catalog = buildMockCatalog({
     write(
       join(appRoot, 'src/config/catalog.ts'),
       `
-import { buildMockCatalog } from '@fayz-ai/shop/catalog'
-
-export const catalog = buildMockCatalog({
+export const catalog = {
   categories: [{ name: 'Tintos' }],
   products: [{
     name: 'Tannat Reserva',
@@ -314,7 +330,7 @@ export const catalog = buildMockCatalog({
       pairing: 'Carnes grelhadas',
     },
   }],
-})
+}
 `,
     )
 
@@ -329,9 +345,7 @@ export const catalog = buildMockCatalog({
     write(
       join(appRoot, 'src/config/catalog.ts'),
       `
-import { buildMockCatalog } from '@fayz-ai/shop/catalog'
-
-export const pulseCatalog = buildMockCatalog({
+export const pulseCatalog = {
   categories: [{ name: 'Sneakers' }],
   products: [{
     name: 'Runner Vortex Neon',
@@ -340,7 +354,7 @@ export const pulseCatalog = buildMockCatalog({
     category: 'Sneakers',
     metadata: { sizes: ['38', '39', '40'], colorway: 'Neon / Preto' },
   }],
-})
+}
 `,
     )
     write(
@@ -373,9 +387,7 @@ export const shopProvider = supabaseUrl && publishableKey && storeId
     write(
       join(appRoot, 'src/config/catalog.ts'),
       `
-import { buildMockCatalog } from '@fayz-ai/shop/catalog'
-
-export const pulseCatalog = buildMockCatalog({
+export const pulseCatalog = {
   categories: [{ name: 'Sneakers' }],
   products: [{
     name: 'Runner Vortex Neon',
@@ -384,7 +396,7 @@ export const pulseCatalog = buildMockCatalog({
     category: 'Sneakers',
     metadata: { sizes: ['38', '39', '40'], colorway: 'Neon / Preto' },
   }],
-})
+}
 `,
     )
     write(

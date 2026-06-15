@@ -51,6 +51,9 @@ Proximo:
 - The agent should discover how to import and call SDK capabilities from
   `@fayz-ai/sdk` docs/capability metadata when it needs a specific method,
   rather than carrying a copied instruction manual inside every generated app.
+- Generated-app source code should not import internal `@fayz-ai/*` packages
+  directly. Use `@fayz-ai/sdk` public APIs, app-owned config/data, or explicit
+  platform-bundled adapters.
 
 ## Edit Boundary
 
