@@ -4,6 +4,10 @@ This document is the primary reference for AI agents generating or modifying
 Fayz apps on top of the public `@fayz-ai/sdk` package and private/internal SDK
 engines. Read it before scaffolding or changing any generated app.
 
+Operational source of truth:
+
+- `docs/discovery/30-sdk-app-operating-contract.md`
+
 ## Current Operating Status — 2026-06-15
 
 Fayz-generated projects are moving to a manifest-first SDK contract.
