@@ -13,7 +13,9 @@ import { createFayzSupabaseClient, getFayzSupabaseClientOptional } from '../supa
 import { OrgProvider } from '../org/context'
 import { createSupabaseOrgAdapter } from '../org/adapters/supabase'
 import { createMockOrgAdapter } from '../org/adapters/mock'
+import { useOrganizationStore } from '../org/store'
 import { PermissionsProvider } from '../permissions/context'
+import { ToastProvider } from '../shell/components/notifications/ToastProvider'
 import { useBillingStore } from '../billing/store'
 import type { Plan } from '@fayz-ai/core'
 import type { PlanConfig } from '../shell/types/billing'
@@ -140,6 +142,8 @@ function ThemeInitializer({ config }: { config: FayzAppConfig }) {
 // ---------------------------------------------------------------------------
 
 export function AdminProviders({ config, children }: { config: FayzAppConfig; children: React.ReactNode }) {
+  const currentOrg = useOrganizationStore((s) => s.currentOrg)
+
   // Resolve adapters / i18n once per config identity.
   const resolved = React.useMemo(() => {
     if (config.supabaseUrl && config.supabaseAnonKey) {
@@ -156,22 +160,29 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config])
 
-  // Recompute the plugin runtime when the hash path changes (route-scoped
-  // visibility). Tenant/user are filled in by the providers downstream.
+  // Recompute the plugin runtime when the hash path or tenant changes
+  // (route-scoped visibility + tenant-scoped plugin data providers).
   const path = useAdminPath()
   const runtime = React.useMemo(
     () =>
       resolvePluginRuntime({
         plugins: resolved.plugins,
         context: {
-          tenant: null,
+          tenant: currentOrg
+            ? {
+                id: currentOrg.id,
+                slug: currentOrg.slug,
+                verticalId: currentOrg.verticalId,
+                plan: currentOrg.plan,
+              }
+            : null,
           user: null,
           currentPath: path,
           matchedPath: path,
           layout: config.layout ?? 'sidebar',
         },
       }),
-    [resolved.plugins, path, config.layout],
+    [resolved.plugins, path, config.layout, currentOrg],
   )
 
   return (
@@ -182,6 +193,7 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
             <I18nProvider value={resolved.i18n}>
               <ThemeInitializer config={config} />
               <BillingInitializer config={config} />
+              <ToastProvider />
               {children}
             </I18nProvider>
           </PermissionsProvider>
