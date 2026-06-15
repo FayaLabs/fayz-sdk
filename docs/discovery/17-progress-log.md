@@ -8456,6 +8456,9 @@ npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-
 
 - Added the repeatable Fayz repo command:
   `npm run proof:fayz-sdk-agent-send-message -- --project-id=fayz-sdk-runtime-proof`.
+- Hardened the command in Fayz commit `ae0f08cb` so it first requires
+  `get_fayz_sdk_agent_rollout_status` to report both rollout and requested
+  project readiness before credit seed or generation.
 - Full run passed on `fayz-sdk-runtime-proof`:
   - runtime proof filesystem/database seed;
   - preflight/app-owned/blocked smoke;
@@ -8472,6 +8475,9 @@ npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-
   operation: the agent can edit a scoped generated app through the real
   `send_message` path while contract, scope, readiness, and app-owned-only
   boundaries stay enforced.
+- The objective order is now explicit in the canary: rollout status ->
+  preflight/smoke -> real `send_message` -> single-file DB diff -> final
+  readiness gate.
 - The proof command is self-contained for local dogfood: it seeds local proof
   credits only for `fayz-sdk-runtime-proof` by default and supports
   `--skip-credit-seed` when validating real credit behavior.

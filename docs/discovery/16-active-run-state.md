@@ -43,7 +43,9 @@ Latest route lock update:
   Full run is green with seed, smoke, real `send_message`, single app-owned DB
   diff, final readiness gate, healthcheck, deferred build pass, and released
   runtime version 3. The command seeds local proof credits only for
-  `fayz-sdk-runtime-proof` by default and supports `--skip-credit-seed`.
+  `fayz-sdk-runtime-proof` by default and supports `--skip-credit-seed`. It now
+  also requires `get_fayz_sdk_agent_rollout_status` to report the requested
+  project ready before any credit seed or generation.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
