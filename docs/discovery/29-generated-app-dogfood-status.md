@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 04:55 UTC / 01:55 BRT
+Snapshot: 2026-06-15 05:00 UTC / 02:00 BRT
 
 ## Executive Status
 
@@ -36,11 +36,13 @@ Resultado:
   `/tmp/wowsome-projects` and `/Users/fayalabs/dev/fayz-app`, emits
   `rolloutStatus`, `rolloutReady`, `invalidScopedBlockProjects`, and validates
   scoped rollout ids before agent operation.
-- Three constrained app-owned runs are green with scoped block mode plus strict
+- Four constrained app-owned runs are green with scoped block mode plus strict
   dogfood:
   - Beauty/BeautyPlace: `src/config/app.tsx` assistant prompt update.
   - Shopfront/Aurora: `src/config/app.ts` and `src/config/catalog.ts` discount
     offer copy update.
+  - Resto/The Chef: `src/config/app.tsx` and `src/config/pages.tsx` app contract
+    alignment to `FayzAppConfig` and `org`.
   - Marketplace/admin: `src/config/app.tsx` operations assistant update.
 
 Impacto:
@@ -55,9 +57,9 @@ Risco:
 - App quality work can still drift into vertical feature building. Only add
   product depth when it proves an SDK boundary, reusable primitive, override
   seam, or agent-safe edit surface.
-- `resto-saas` has pre-existing dirty changes in `src/config/app.tsx` and
-  `src/config/pages.tsx`; do not use it for the next clean scoped proof until
-  those changes are packaged or intentionally included.
+- Broad Fayz Agent operation remains gated even with four scoped green runs.
+  Keep enforcement project-scoped until a real Fayz Agent edit path proves the
+  same behavior without manual intervention.
 
 Proximo:
 
@@ -91,7 +93,7 @@ Proximo:
 |---|---:|---|---|---|
 | Beauty / BeautyPlace | pass | none | salon app owns business config and vertical UX while agenda/CRM/financial shell uses SDK/private plugins; scoped app-owned edit passed | keep product UX work behind SDK primitives and the full dogfood gate |
 | shopfront / Aurora | pass | none | commerce app customizes brand/checkout behavior while checkout/order/cart primitives stay in storefront/shop SDK internals; scoped app-owned edit passed | keep checkout/account/order tracking tests focused on SDK primitives, not app-local copies |
-| Resto / The Chef | pass | none | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic or local engine copies | package existing config changes before using it as the next clean scoped proof |
+| Resto / The Chef | pass | none | app config registers private Orders/Menu/Tables engines instead of owning copied provider logic or local engine copies; scoped app-owned contract alignment passed | keep workflow depth behind private Orders/Menu/Tables providers |
 | Marketplace/admin | pass | none | marketplace dashboard/admin uses provider injection and SDK shop provider path; scoped app-owned edit passed | keep shop admin data behind injected provider |
 
 ## Operating Decision
