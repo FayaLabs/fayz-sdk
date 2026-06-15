@@ -8449,3 +8449,45 @@ npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/2eedffdc-fc14-4685-
   runtime project to validate the full MCP path.
 - Do not expand public package surface or vertical implementation scope while
   doing that validation.
+
+## 2026-06-15 — Real scoped `send_message` proof green
+
+### Resultado
+
+- Added the repeatable Fayz repo command:
+  `npm run proof:fayz-sdk-agent-send-message -- --project-id=fayz-sdk-runtime-proof`.
+- Full run passed on `fayz-sdk-runtime-proof`:
+  - runtime proof filesystem/database seed;
+  - preflight/app-owned/blocked smoke;
+  - real `handleSendMessage` through the MCP tool path;
+  - one DB `ProjectFile` changed: `src/config/agent-proof.ts`;
+  - final `check:generated-agent-readiness` gate passed;
+  - healthcheck passed, deferred build passed;
+  - runtime version `3` was `RELEASED` with commit
+    `ddbeb553e6a9a1ae0049b6ed4ec4c6be81c1b058`.
+
+### Impacto
+
+- This closes the constrained end-to-end threshold before broad Fayz Agent SDK
+  operation: the agent can edit a scoped generated app through the real
+  `send_message` path while contract, scope, readiness, and app-owned-only
+  boundaries stay enforced.
+- The proof command is self-contained for local dogfood: it seeds local proof
+  credits only for `fayz-sdk-runtime-proof` by default and supports
+  `--skip-credit-seed` when validating real credit behavior.
+
+### Risco
+
+- LangSmith local tracing still returns 403 and should be fixed separately; it
+  did not block the agent edit, gates, verification, release, or build.
+- This proof authorizes constrained scoped projects only. It does not authorize
+  broad Fayz Agent edits across SDK internals or vertical app code.
+
+### Proximo
+
+- Keep `fayz-sdk-runtime-proof` as the objective canary for generated-app agent
+  operation.
+- Move next to a controlled real-app dogfood pass only after the same
+  rollout/preflight/scope gates are active.
+- Continue preserving the public package surface decision: only
+  `@fayz-ai/sdk` is public by default.

@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 23:39 BRT
+Last updated: 2026-06-15 10:37 BRT
 
 ## Mode
 
@@ -38,6 +38,12 @@ Latest route lock update:
   `npm run test:fayz-sdk-agent-gates`.
 - The SDK scope gate itself now has `pnpm test:generated-agent-scope`; this test
   caught and fixed a parser bug for app paths when `--base` is omitted.
+- Fayz repo now has a repeatable real MCP proof command:
+  `npm run proof:fayz-sdk-agent-send-message -- --project-id=fayz-sdk-runtime-proof`.
+  Full run is green with seed, smoke, real `send_message`, single app-owned DB
+  diff, final readiness gate, healthcheck, deferred build pass, and released
+  runtime version 3. The command seeds local proof credits only for
+  `fayz-sdk-runtime-proof` by default and supports `--skip-credit-seed`.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
