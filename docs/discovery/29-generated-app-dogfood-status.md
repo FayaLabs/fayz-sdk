@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:57 UTC / 02:57 BRT
+Snapshot: 2026-06-15 06:07 UTC / 03:07 BRT
 
 ## Executive Status
 
@@ -83,6 +83,16 @@ Resultado:
 - Post-fix strict doctor remains green with
   `rolloutStatus: "ready_for_scoped_agent_operation"` and
   `rolloutReady: true`.
+- Second positive runtime MCP/chat proof passed on project
+  `4d467cfc-367f-408f-b92a-31098e8c2fab`:
+  - Prompt requested a constrained app-owned UI update only.
+  - AI edited only `src/pages/Index.tsx`.
+  - Post-generation scope gate classified it as `app-owned` and passed.
+  - Verification reached `READY`; deferred build passed.
+  - Version 3 was created as `RELEASED` with title
+    `Runtime SDK control room` and a 1-file diff (+50/-5).
+  - MCP output returned text content, `finalStatus: "ready"`, and
+    `scopeGateBlocked: false`.
 
 Impacto:
 
@@ -95,6 +105,8 @@ Impacto:
   agents.
 - The immediate operational path is now ready for the next constrained
   app-owned Fayz Agent run on the runtime UUID, not more local app-theme churn.
+- The second positive runtime run proves the corrected MCP text path and the
+  scoped app-owned operation can run repeatedly on the same runtime project.
 
 Risco:
 
@@ -122,6 +134,9 @@ Proximo:
 
 - Run the next MCP/chat proof with a controlled blocked edit request or another
   app-owned business edit, still on one runtime project only.
+- Promote the next proof from generic runtime copy to a real generated-app
+  workflow slice only if it exercises SDK/app boundaries, route overrides, or
+  API access through `@fayz-ai/sdk`.
 - Avoid trying to force the model to write forbidden files. The safer next proof
   is a deterministic harness/test around MCP summary + post-generation block, or
   another app-owned edit that exercises real runtime verification.
