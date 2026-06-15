@@ -12,7 +12,7 @@ describe('release channels', () => {
     expect(resolveFayzPackageVersions()).toEqual({
       channel: 'stable',
       packages: {
-        '@fayz-ai/sdk': '^0.1.3',
+        '@fayz-ai/sdk': '^0.1.4',
       },
     })
   })
@@ -21,7 +21,7 @@ describe('release channels', () => {
     const dependencies = resolveFayzPackageDependencies()
     dependencies['@fayz-ai/sdk'] = 'tampered'
 
-    expect(resolveFayzPackageDependencies()['@fayz-ai/sdk']).toBe('^0.1.3')
+    expect(resolveFayzPackageDependencies()['@fayz-ai/sdk']).toBe('^0.1.4')
   })
 
   it('throws when a package is not mapped for a channel', () => {
