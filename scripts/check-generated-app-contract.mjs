@@ -124,6 +124,17 @@ for (const dir of integrationDirs) {
   }
 }
 
+const localEngineDirs = [
+  'src/plugins',
+  'src/runtime',
+  'src/app-runtime',
+]
+for (const dir of localEngineDirs) {
+  if (hasFile(dir)) {
+    warn(`${dir} exists. Generated apps should prefer app-owned config/pages/custom routes and reusable SDK/internal engines; local engine copies require explicit review.`)
+  }
+}
+
 for (const warning of warnings) console.warn(`Warning: ${warning}`)
 
 if (problems.length > 0) {

@@ -1,6 +1,8 @@
 # Fayz SDK — Agent Building Guide
 
-This document is the primary reference for AI agents generating new projects with `@fayz-ai/saas-core` (current) or the `fayz-sdk` packages (future). Read it entirely before scaffolding or modifying any app.
+This document is the primary reference for AI agents generating or modifying
+Fayz apps on top of the public `@fayz-ai/sdk` package and private/internal SDK
+engines. Read it before scaffolding or changing any generated app.
 
 ## Current Operating Status — 2026-06-14
 
@@ -48,10 +50,41 @@ This catches the highest-risk drift:
 - legacy `@fayz/*`, `saas-core`, or GitHub Packages registry wiring;
 - direct provider SDK imports such as `@supabase/supabase-js` in generated code;
 - secret/refresh-token/client-secret references in browser/app files;
+- local copies of platform engines under `src/plugins`, `src/runtime`, or
+  `src/app-runtime`;
 - oversized entrypoints and missing app-owned config surfaces.
 
 Warnings are not automatic blockers during dogfood, but they must be reviewed.
 Failures mean the app is not ready for Fayz Agent autonomous operation.
+
+### App-Owned Edit Surfaces
+
+Default Fayz Agent edits should stay in these app-owned surfaces:
+
+- `src/config/**`: business config, theme, pages, feature toggles, provider
+  selection, copy, module settings, dashboards, and reports.
+- `src/custom/**`: generated route overrides, slot overrides, and bespoke
+  workflows that still call SDK/storefront/plugin primitives.
+- `src/pages/**`: genuinely app-specific screens that do not belong in a shared
+  SDK engine yet.
+- `src/components/**`: brand/product UI components such as logos, hero blocks,
+  cards, and app-specific layout fragments.
+- `src/types/**`, `src/data/**`, `src/i18n/**`: app-owned model labels,
+  seed/mock data, translations, and vertical vocabulary.
+- `src/app.manifest.json` and `src/registry.tsx` when the app is manifest-first.
+
+Escalate instead of editing locally when the change touches these seams:
+
+- repeated CRUD/data/provider logic needed by more than one app;
+- checkout/order/cart/account primitives;
+- auth, tenant resolution, OAuth broker calls, secrets, or provider SDK clients;
+- app shell, plugin runtime, shared UI primitives, theme tokens, toasts, and
+  navigation behavior;
+- copied plugin engines under `src/plugins/**`.
+
+If an app needs a custom screen, generate a small app-owned override and call
+SDK/internal primitives. If the same logic appears in two apps, create or extend
+the SDK/internal primitive and leave only config/custom UI in the app.
 
 ### Product Dogfood Rule
 

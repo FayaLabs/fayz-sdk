@@ -1,5 +1,46 @@
 # 17 — Progress Log
 
+## 2026-06-15 02:05 UTC / 23:05 BRT — App-owned edit surface gate hardened
+
+Resultado:
+
+- Removed the stale local Menu/Tables plugin-engine copies from Resto.
+- Added generated-app contract warnings for local platform-engine copies under
+  `src/plugins`, `src/runtime`, or `src/app-runtime`.
+- Updated the Fayz SDK agent guide with explicit app-owned edit surfaces and
+  escalation seams.
+- Re-ran `pnpm check:generated-dogfood:full`; all four dogfood apps still pass
+  with zero warnings.
+
+Impacto:
+
+- This turns the strategic rule into an executable guardrail: generated apps can
+  own config, pages, custom routes, data labels, and brand UI, but repeated
+  engine logic must live in SDK/internal packages.
+- Resto is now a cleaner proof of the intended seam: app config registers
+  private SDK Menu/Tables/Orders engines instead of carrying local copies.
+
+Risco:
+
+- The warning remains intentionally review-based, not a hard failure, because a
+  future app may have a legitimate app-owned custom plugin during early proof.
+
+Proximo:
+
+- Keep using `pnpm check:generated-dogfood:full` as the readiness gate.
+- Move from dogfood cleanup into constrained Fayz Agent operation only after the
+  agent edits are scoped to the documented app-owned surfaces.
+
+Verification:
+
+```bash
+node --check scripts/check-generated-app-contract.mjs
+node --check scripts/check-generated-dogfood.mjs
+pnpm check:generated-dogfood:full
+cd /Users/fayalabs/dev/fayz-app/resto-saas && npm run typecheck
+cd /Users/fayalabs/dev/fayz-app/resto-saas && npm run build
+```
+
 ## 2026-06-15 02:02 UTC / 23:02 BRT — Dogfood gate warnings cleared
 
 Resultado:

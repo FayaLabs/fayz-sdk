@@ -1,6 +1,6 @@
 # 16 — Active Run State
 
-Last updated: 2026-06-14 21:03 BRT
+Last updated: 2026-06-14 23:05 BRT
 
 ## Mode
 
@@ -17,6 +17,11 @@ Latest route lock update:
 - `@fayz-ai/storefront` now has first-match custom route definitions and `placeStorefrontOrder()` as a reusable checkout primitive.
 - `shopfront` proves `/checkout` override through `src/custom/AuroraCheckoutRoute.tsx`, while totals/session/order creation stay in SDK/storefront primitives.
 - Keep `shop` and `storefront` split internally: `shop` is domain/API/provider; `storefront` is customer-facing UI/routes/slots. Do not collapse them.
+- Generated apps now have a stricter app-owned edit surface rule: config, pages,
+  custom routes, components, types, i18n, and data may live in the app; repeated
+  plugin/runtime/storefront engines should live in SDK/internal packages. The
+  contract gate warns on local engine copies under `src/plugins`, `src/runtime`,
+  or `src/app-runtime`.
 - Next work should harden this seam and document generator guidance before adding more vertical screens.
 
 - SDK branch: `weekend-fayz-sdk-architecture-lock`
