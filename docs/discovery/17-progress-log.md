@@ -1,5 +1,39 @@
 # 17 — Progress Log
 
+## 2026-06-15 01:39 UTC / 22:39 BRT — Dogfood matrix doctor command
+
+Resultado:
+
+- Added `pnpm check:generated-dogfood`.
+- The command runs the generated-app contract check across Beauty, shopfront,
+  Resto, and Marketplace and prints a compact matrix of pass/warnings.
+- Updated the agent guide and dogfood status snapshot to use this as the
+  default four-app readiness gate.
+
+Impacto:
+
+- Fayz Agents and status agents no longer need to remember four separate
+  commands or manually merge warnings.
+- This completes the first practical version of the generated-app doctor gate
+  for the current PoC set.
+
+Risco:
+
+- The app list is intentionally fixed to the current dogfood anchors. Add
+  another app only when it becomes part of the 4+ app readiness program.
+
+Proximo:
+
+- Use this doctor before broad Fayz Agent SDK operation.
+- Convert remaining warnings into specific SDK/type-adapter cleanup tasks.
+
+Verification:
+
+```bash
+node --check scripts/check-generated-dogfood.mjs
+pnpm check:generated-dogfood
+```
+
 ## 2026-06-15 01:34 UTC / 22:34 BRT — Four-app dogfood gate snapshot
 
 Resultado:
@@ -28,6 +62,7 @@ Proximo:
 Verification:
 
 ```bash
+pnpm check:generated-dogfood
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas

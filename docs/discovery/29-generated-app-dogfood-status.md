@@ -58,6 +58,7 @@ escalate repeated platform needs into SDK tasks.
 ## Verification
 
 ```bash
+pnpm check:generated-dogfood
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas

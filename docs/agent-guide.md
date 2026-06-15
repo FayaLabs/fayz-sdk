@@ -35,6 +35,12 @@ Recommended gate:
 pnpm check:generated-app /path/to/generated-app
 ```
 
+Current four-app dogfood gate:
+
+```bash
+pnpm check:generated-dogfood
+```
+
 This catches the highest-risk drift:
 
 - generated apps depending publicly on internal `@fayz-ai/*` packages;
