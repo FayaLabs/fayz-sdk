@@ -104,6 +104,13 @@ if (hasFile('src/App.tsx')) {
   }
 }
 
+if (hasFile('src/pages/Index.tsx')) {
+  const indexText = readFileSync(join(root, 'src/pages/Index.tsx'), 'utf8')
+  if (indexText.includes('Welcome to Your Blank App') || indexText.includes('Start building your amazing project here')) {
+    fail('src/pages/Index.tsx still contains the scaffold placeholder. Generated apps must render app content or delegate to the manifest runtime.')
+  }
+}
+
 const rootManifestPath = join(root, 'app.manifest.json')
 const srcManifestPath = join(root, 'src/app.manifest.json')
 const manifestPath = existsSync(rootManifestPath) ? rootManifestPath : existsSync(srcManifestPath) ? srcManifestPath : null

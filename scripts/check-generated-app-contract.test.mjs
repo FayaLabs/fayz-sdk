@@ -118,4 +118,26 @@ describe('generated app contract gate', () => {
     assert.equal(result.status, 1)
     assert.match(result.stderr, /custom:runtime\.Missing/)
   })
+
+  it('fails the stale scaffold placeholder index page', () => {
+    const appRoot = createGeneratedApp()
+    write(
+      join(appRoot, 'src/pages/Index.tsx'),
+      `
+const Index = () => (
+  <main>
+    <h1>Welcome to Your Blank App</h1>
+    <p>Start building your amazing project here!</p>
+  </main>
+)
+
+export default Index
+`,
+    )
+
+    const result = runContract(appRoot)
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /scaffold placeholder/)
+  })
 })

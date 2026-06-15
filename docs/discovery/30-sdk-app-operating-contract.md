@@ -77,6 +77,8 @@ Blocked by default:
 - Route components use `custom:*` ids and are registered in `src/registry.tsx`.
 - The generated app owns the custom screen. The scaffold/runtime owns hash/path
   matching and component resolution.
+- `src/pages/Index.tsx` must render real app content or delegate to the
+  manifest runtime; stale scaffold placeholder text is a contract failure.
 - Standard workflows such as checkout should use SDK/storefront/shop primitives.
   Override the screen or step composition; do not copy order/cart/payment
   business logic into the app.

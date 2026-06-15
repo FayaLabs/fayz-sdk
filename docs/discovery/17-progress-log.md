@@ -1,5 +1,36 @@
 # 17 — Progress Log
 
+## 2026-06-15 09:19 UTC / 06:19 BRT — Contract gate blocks stale scaffold placeholders
+
+Resultado:
+
+- Added generated-app contract enforcement for stale scaffold placeholder text
+  in `src/pages/Index.tsx`.
+- The gate now fails if a generated app still contains
+  `Welcome to Your Blank App` or `Start building your amazing project here`.
+- Added focused `test:generated-app` coverage for that failure mode.
+- Validation passed:
+  - `node --check scripts/check-generated-app-contract.mjs`
+  - `pnpm test:generated-app`
+  - `pnpm check:generated-dogfood --summary --strict`
+
+Impacto:
+
+- The clean route proof no longer depends only on runtime verifier behavior.
+  The SDK contract gate itself now prevents generated apps from carrying the
+  stale placeholder that previously caused unnecessary autofix into
+  `src/pages/Index.tsx`.
+
+Risco:
+
+- Existing older generated projects with the placeholder will now fail the
+  contract gate and must either delegate `Index.tsx` to the manifest runtime or
+  render real app content.
+
+Proximo:
+
+- Keep this gate in the pre-agent sequence before any scoped MCP `send_message`.
+
 ## 2026-06-15 09:09 UTC / 06:09 BRT — Clean route proof closed without autofix
 
 Resultado:
