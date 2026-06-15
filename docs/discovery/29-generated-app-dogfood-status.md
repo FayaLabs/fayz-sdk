@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 06:28 UTC / 03:28 BRT
+Snapshot: 2026-06-15 06:34 UTC / 03:34 BRT
 
 ## Executive Status
 
@@ -120,6 +120,19 @@ Resultado:
     three files classified as `app-owned`.
   - Local project `npm run build` passes after removing the verifier-introduced
     stray dependency.
+- Fayz verifier now treats scoped SDK agent projects differently:
+  - initial Vite compilation checks use a baseline log snapshot when files were
+    changed, so stale pre-sync Vite errors do not falsely fail a corrected app.
+  - missing package auto-install is skipped for projects under
+    `FAYZ_SDK_AGENT_SCOPE_GATE=block` or
+    `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS`.
+  - missing dependencies in scoped SDK proofs must be corrected through
+    app-owned code or reviewed platform dependency policy, not silent
+    `npm install`.
+- Direct verifier rerun on runtime project
+  `ce17885d-862c-4673-b4f2-514bfaee20eb` returned success without
+  re-installing `lucide-react`; local package check remains empty for
+  `lucide-react`.
 
 Impacto:
 
@@ -162,12 +175,10 @@ Risco:
   boundary, but did not prove `scopeGateBlocked: true` end-to-end because no
   forbidden file was emitted. Keep the deterministic post-generation block tests
   as the hard enforcement proof.
-- The second MCP correction pass removed `lucide-react` from `Index.tsx`, but
-  Fayz verification still reported the old missing import and attempted to
-  auto-install the dependency. Local filesystem inspection and `npm run build`
-  passed after cleanup, so this is a verifier/container sync/autoinstall risk,
-  not an SDK app-boundary failure. Do not promote broad agent operation until
-  this stale verification path is fixed or disabled for scoped SDK proofs.
+- The direct verifier rerun on the manifest proof passed through health check
+  after Vite baseline logs timed out (`compilationPassed: false`). This is
+  acceptable as a stale-log avoidance proof, but the next MCP rerun should still
+  reach `finalStatus: "ready"` end-to-end before broad agent operation.
 
 Proximo:
 
@@ -179,11 +190,9 @@ Proximo:
 - Next runtime MCP proof should ask the agent to wire a custom page through
   `app.manifest.json` + `src/registry.tsx` + `src/pages/**`, then verify the
   rendered page is actually selected by `renderApp(manifest)`.
-- Fix Fayz verification behavior before broad rollout: scoped SDK proofs should
-  fail on missing dependencies or ask the agent to correct app-owned code, not
-  silently auto-install new package dependencies.
-- Re-run the manifest-first runtime proof after the verifier sync/autoinstall
-  fix so the final MCP status reaches `READY` without manual cleanup.
+- Re-run the manifest-first runtime proof through MCP after the verifier
+  sync/autoinstall fix so the final MCP status reaches `READY` without manual
+  cleanup.
 - Avoid trying to force the model to write forbidden files. The safer next proof
   is a deterministic harness/test around MCP summary + post-generation block, or
   another app-owned edit that exercises real runtime verification.
