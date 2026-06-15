@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 05:35 UTC / 02:35 BRT
+Snapshot: 2026-06-15 05:45 UTC / 02:45 BRT
 
 ## Executive Status
 
@@ -54,13 +54,19 @@ Resultado:
   projects. A scoped block on `beauty-saas` or another `/fayz-app` folder no
   longer reports ready for MCP/chat operation unless a runtime project under
   `PROJECTS_DIR` is also scoped.
+- Runtime proof project created and synced under
+  `/tmp/fayalabs-projects/4d467cfc-367f-408f-b92a-31098e8c2fab` using the
+  generated scaffold with `@fayz-ai/sdk`.
+- With `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab`,
+  strict doctor now reports `ready_for_scoped_agent_operation`.
+- Runtime UUID gate proof:
+  - `src/App.tsx` => `app-owned` pass.
+  - `src/plugins/orders/index.ts` => `blocked` fail.
 
 Impacto:
 
-- This is enough to keep local dogfood and scoped app-owned validation moving.
-- It is not enough to start MCP/chat Fayz Agent operation until a real runtime
-  generated project using `@fayz-ai/sdk` exists under `PROJECTS_DIR` and that
-  runtime project id is in `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS`.
+- This is enough to start one constrained MCP/chat Fayz Agent proof on the
+  runtime project UUID above.
 - This is not approval for broad agent operation or SDK/internal edits by app
   agents.
 
@@ -75,10 +81,11 @@ Risco:
 
 Proximo:
 
-- Create or sync one real runtime generated project under `PROJECTS_DIR` that
-  uses `@fayz-ai/sdk`, then start the next Fayz Agent proof in scoped mode on
-  that runtime project id only:
-  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=<runtime-project-id>`.
+- Start the next Fayz Agent proof through MCP/chat on runtime project
+  `4d467cfc-367f-408f-b92a-31098e8c2fab`, with:
+  `PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app`
+  and
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab`.
 - Prefer the MCP chat path for the first real agent run so the same
   `processAgentMessage` and post-generation gate path is exercised end to end.
 - Use the Fayz wrapper for every run:
@@ -156,6 +163,9 @@ cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/modules/chat/
 cd /Users/fayalabs/dev/fayz && npm run test -w @wowsome/api -- src/mcp-chat/tools/__tests__/send-message-summary.test.ts
 cd /Users/fayalabs/dev/fayz && npm run build -w @wowsome/api
 cd /Users/fayalabs/dev/fayz && npm run test:fayz-sdk-agent-gates
+cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run doctor:fayz-sdk-agent-gates:json:strict
+cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/4d467cfc-367f-408f-b92a-31098e8c2fab --paths src/App.tsx --scope-only --scope-json
+cd /Users/fayalabs/dev/fayz && PROJECTS_DIR=/tmp/fayalabs-projects,/Users/fayalabs/dev/fayz-app FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=4d467cfc-367f-408f-b92a-31098e8c2fab npm run check:fayz-sdk-agent-gates -- /tmp/fayalabs-projects/4d467cfc-367f-408f-b92a-31098e8c2fab --paths src/plugins/orders/index.ts --scope-only --scope-json
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/beauty-saas
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/shopfront
 pnpm check:generated-app /Users/fayalabs/dev/fayz-app/resto-saas
