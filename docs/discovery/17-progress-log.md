@@ -7902,3 +7902,19 @@ npm run build -w @wowsome/api
 ### Proximo
 
 - Keep the next code slice focused on enforcement/observability, not vertical feature expansion.
+
+## 2026-06-15 — Dogfood status JSON added
+
+### Resultado
+
+- Added `--json` to `scripts/check-generated-dogfood.mjs`.
+- Added `pnpm test:generated-dogfood` to cover machine-readable pass/warning output.
+
+### Impacto
+
+- Agents and executive status tooling can consume dogfood status without parsing Markdown tables.
+- This supports the "freeze micro dogfood into objective status" milestone before broad Fayz Agent integration.
+
+### Proximo
+
+- Use JSON output as the source for status summaries and future Linear automation.

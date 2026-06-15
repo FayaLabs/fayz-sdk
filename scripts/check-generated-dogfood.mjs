@@ -8,7 +8,8 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const runTypecheck = args.includes('--typecheck')
 const strictWarnings = args.includes('--strict')
-const appArgs = args.filter((arg) => arg !== '--typecheck' && arg !== '--strict')
+const jsonOutput = args.includes('--json')
+const appArgs = args.filter((arg) => arg !== '--' && arg !== '--typecheck' && arg !== '--strict' && arg !== '--json')
 
 const defaultApps = [
   { id: 'beauty', label: 'Beauty / BeautyPlace', path: '/Users/fayalabs/dev/fayz-app/beauty-saas' },
@@ -64,16 +65,33 @@ for (const app of apps) {
   })
 }
 
-console.log('Generated dogfood gate matrix')
-console.log('')
-console.log(runTypecheck ? '| App | Contract | Typecheck | Warnings |' : '| App | Contract | Warnings |')
-console.log(runTypecheck ? '|---|---:|---:|---|' : '|---|---:|---|')
-for (const result of results) {
-  const warnings = result.warnings.length > 0 ? result.warnings.join('<br>') : '-'
-  if (runTypecheck) {
-    console.log(`| ${result.app.label} | ${result.status} | ${result.typecheck} | ${warnings} |`)
-  } else {
-    console.log(`| ${result.app.label} | ${result.status} | ${warnings} |`)
+if (jsonOutput) {
+  console.log(JSON.stringify({
+    status: results.every((result) => result.status === 'pass' && (!runTypecheck || result.typecheck === 'pass')) ? 'pass' : 'fail',
+    strict: strictWarnings,
+    typecheck: runTypecheck,
+    apps: results.map((result) => ({
+      id: result.app.id,
+      label: result.app.label,
+      path: resolve(result.app.path),
+      contract: result.status,
+      typecheck: result.typecheck,
+      warnings: result.warnings,
+      missing: result.status === 'missing',
+    })),
+  }, null, 2))
+} else {
+  console.log('Generated dogfood gate matrix')
+  console.log('')
+  console.log(runTypecheck ? '| App | Contract | Typecheck | Warnings |' : '| App | Contract | Warnings |')
+  console.log(runTypecheck ? '|---|---:|---:|---|' : '|---|---:|---|')
+  for (const result of results) {
+    const warnings = result.warnings.length > 0 ? result.warnings.join('<br>') : '-'
+    if (runTypecheck) {
+      console.log(`| ${result.app.label} | ${result.status} | ${result.typecheck} | ${warnings} |`)
+    } else {
+      console.log(`| ${result.app.label} | ${result.status} | ${warnings} |`)
+    }
   }
 }
 

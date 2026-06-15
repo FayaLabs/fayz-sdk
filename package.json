@@ -16,6 +16,7 @@
     "check:generated-agent-scope": "node ./scripts/check-generated-agent-scope.mjs",
     "test:generated-agent-scope": "node --test ./scripts/check-generated-agent-scope.test.mjs",
     "check:generated-dogfood": "node ./scripts/check-generated-dogfood.mjs",
+    "test:generated-dogfood": "node --test ./scripts/check-generated-dogfood.test.mjs",
     "check:generated-dogfood:full": "node ./scripts/check-generated-dogfood.mjs --typecheck",
     "check:generated-dogfood:strict": "node ./scripts/check-generated-dogfood.mjs --strict --typecheck",
     "clean": "turbo clean",
