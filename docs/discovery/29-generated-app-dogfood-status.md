@@ -1,6 +1,6 @@
 # 29 — Generated App Dogfood Status
 
-Snapshot: 2026-06-15 07:57 UTC / 04:57 BRT
+Snapshot: 2026-06-15 08:02 UTC / 05:02 BRT
 
 ## Executive Status
 
@@ -15,6 +15,13 @@ Resultado:
 - Fayz MCP `send_message` now runs strict doctor preflight for scoped block
   projects and blocks before credits/codegen unless the target project is
   `ready`.
+- Full operational MCP proof passed on runtime project
+  `2a558057-7135-4229-8c9f-6cea559b8188`:
+  - `get_fayz_sdk_agent_rollout_status` returned `ready` for the target.
+  - `send_message` then edited only `src/pages/Index.tsx`.
+  - Post-generation scope gate passed with the file classified as `app-owned`.
+  - `finalStatus: "ready"`, `scopeGateBlocked: false`, deferred build passed.
+  - Version 3 `Add rollout proof text` was created as `RELEASED`.
 - The contract gate now warns when generated apps carry local platform-engine
   copies under `src/plugins`, `src/runtime`, or `src/app-runtime`.
 - `pnpm check:generated-dogfood:strict` passes across the four apps and treats

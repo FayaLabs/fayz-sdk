@@ -1,5 +1,48 @@
 # 17 — Progress Log
 
+## 2026-06-15 08:02 UTC / 05:02 BRT — Full MCP rollout-status to send-message proof
+
+Resultado:
+
+- Ran the new MCP rollout status handler first with
+  `PROJECTS_DIR=/tmp/fayalabs-projects` and
+  `FAYZ_SDK_AGENT_SCOPE_GATE_BLOCK_PROJECTS=2a558057-7135-4229-8c9f-6cea559b8188`.
+- `get_fayz_sdk_agent_rollout_status` returned one accessible runtime project
+  with `status: "ready"`, `rolloutStatus: "ready_for_scoped_agent_operation"`,
+  and `rolloutReady: true`.
+- Only after that, ran MCP `send_message` against the same scoped runtime
+  project.
+- The prompt constrained the edit to `src/pages/Index.tsx`; the agent edited
+  only that file and added visible text: `MCP rollout preflight passed`.
+- Post-generation scope gate classified `src/pages/Index.tsx` as `app-owned`
+  and passed.
+- Verification reached `finalStatus: "ready"`, `scopeGateBlocked: false`,
+  deferred build passed, and the project remained `generationStatus: READY`
+  with `generationError: null`.
+- Version 3 was created as `RELEASED` with title `Add rollout proof text` and a
+  1-file diff (`+6/-1`).
+
+Impacto:
+
+- This proves the intended operating sequence end to end:
+  MCP status preflight -> scoped `send_message` -> app-owned edit -> scope gate
+  -> verification -> released version.
+- The Fayz Agent entrypoint now has an observable preflight and an enforced
+  preflight, not only post-generation safety.
+
+Risco:
+
+- The proof still depends on local env wiring (`PROJECTS_DIR`, scoped block
+  project id, Fayz SDK repo path).
+- The one-off Node proof script kept a process handle open after printing the
+  result; it was killed manually after deferred build passed.
+
+Proximo:
+
+- Use this flow for the next real generated project. If repeated product logic
+  appears during the next proof, move it to SDK/internal packages rather than
+  growing generated app code.
+
 ## 2026-06-15 07:57 UTC / 04:57 BRT — Fayz Agent rollout exposed through MCP preflight
 
 Resultado:
