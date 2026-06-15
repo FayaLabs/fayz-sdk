@@ -162,6 +162,7 @@ export interface CatalogProductInput {
   hues?: [number, number]
   weight?: number
   image?: string
+  metadata?: Record<string, unknown>
 }
 
 export interface CatalogInput {
@@ -213,7 +214,7 @@ export function buildMockCatalog(input: CatalogInput): { products: Product[]; ca
       inventoryCount: p.inventory,
       sku: p.sku,
       sortOrder: i,
-      metadata: {},
+      metadata: p.metadata ?? {},
       images: [
         {
           id: `img-${id}-0`,
