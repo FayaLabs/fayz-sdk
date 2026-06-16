@@ -37,6 +37,12 @@
       "import": "./dist/theme/index.js",
       "require": "./dist/theme/index.cjs"
     },
+    "./dashboard": {
+      "source": "./src/dashboard/index.ts",
+      "types": "./dist/dashboard/index.d.ts",
+      "import": "./dist/dashboard/index.js",
+      "require": "./dist/dashboard/index.cjs"
+    },
     "./styles.css": "./src/styles.css"
   },
   "files": [
@@ -73,6 +79,7 @@
     "clsx": "^2.1.0",
     "cmdk": "^1.0.0",
     "lucide-react": "^0.400.0",
+    "recharts": "^2.15.0",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.4.0",
     "zustand": "^4.5.0"

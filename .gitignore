@@ -6,3 +6,6 @@ dist
 .env.*
 !.env.example
 .DS_Store
+
+# Playwright MCP browser-automation artifacts
+.playwright-mcp/

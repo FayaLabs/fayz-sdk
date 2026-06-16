@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { FileText, Calendar, User, Hash, Ban, Pencil, CircleCheckBig, ArrowRight, Send, Printer, Mail, MessageCircle, ChevronDown, Check, X } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useCrmConfig, useCrmStore, useCrmProvider, formatCurrency } from '../CrmContext'
 import { useTranslation } from '@fayz-ai/core'
-import { SubpageHeader } from '@fayz-ai/ui'
+import { SubpageHeader, DataTable } from '@fayz-ai/ui'
 import { QuoteStatusDropdown } from '../components/QuoteStatusDropdown'
 import { PersonLink } from '@fayz-ai/saas'
 import { Button } from '@fayz-ai/ui'
-import type { Quote } from '../types'
+import type { Quote, QuoteItem } from '../types'
 export function QuoteDetailView({ quoteId, onBack, onEdit, onInvoiceCreated }: {
   quoteId: string
   onBack: () => void
@@ -131,6 +132,34 @@ export function QuoteDetailView({ quoteId, onBack, onEdit, onInvoiceCreated }: {
 
   const subtotal = quote.items.reduce((sum, it) => sum + it.quantity * it.unitPrice, 0)
   const totalDiscount = quote.items.reduce((sum, it) => sum + it.discount, 0)
+
+  const itemColumns: ColumnDef<QuoteItem, any>[] = [
+    {
+      id: 'index', header: '#',
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.index + 1}</span>,
+    },
+    {
+      accessorKey: 'description', header: t('crm.quoteDetail.description'),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-medium bg-muted text-muted-foreground capitalize">{row.original.itemKind}</span>
+          <span className="truncate">{row.original.description || '—'}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'quantity', header: () => <span className="block text-right">{t('crm.quoteDetail.qty')}</span>,
+      cell: ({ getValue }) => <span className="block text-right text-xs tabular-nums">{getValue() as number}</span>,
+    },
+    {
+      accessorKey: 'unitPrice', header: () => <span className="block text-right">{t('crm.quoteDetail.unitPrice')}</span>,
+      cell: ({ getValue }) => <span className="block text-right text-xs tabular-nums">{formatCurrency(getValue() as number, currency)}</span>,
+    },
+    {
+      accessorKey: 'totalAmount', header: () => <span className="block text-right">{t('crm.quoteDetail.total')}</span>,
+      cell: ({ getValue }) => <span className="block text-right font-medium tabular-nums">{formatCurrency(getValue() as number, currency)}</span>,
+    },
+  ]
 
   return (
     <div className="space-y-5">
@@ -267,33 +296,7 @@ export function QuoteDetailView({ quoteId, onBack, onEdit, onInvoiceCreated }: {
               <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('crm.quoteDetail.items')}</h3>
             </div>
             <div className="px-5">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-[10px] text-muted-foreground uppercase tracking-wider">
-                    <th className="text-left py-2 font-medium">#</th>
-                    <th className="text-left py-2 font-medium">{t('crm.quoteDetail.description')}</th>
-                    <th className="text-right py-2 font-medium">{t('crm.quoteDetail.qty')}</th>
-                    <th className="text-right py-2 font-medium">{t('crm.quoteDetail.unitPrice')}</th>
-                    <th className="text-right py-2 font-medium">{t('crm.quoteDetail.total')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {quote.items.map((item, i) => (
-                    <tr key={item.id}>
-                      <td className="py-2.5 text-xs text-muted-foreground w-8">{i + 1}</td>
-                      <td className="py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-medium bg-muted text-muted-foreground capitalize">{item.itemKind}</span>
-                          <span className="truncate">{item.description || '—'}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-right text-xs tabular-nums">{item.quantity}</td>
-                      <td className="py-2.5 text-right text-xs tabular-nums">{formatCurrency(item.unitPrice, currency)}</td>
-                      <td className="py-2.5 text-right font-medium tabular-nums">{formatCurrency(item.totalAmount, currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable columns={itemColumns} data={quote.items} variant="flat" compact />
             </div>
 
             {/* Totals */}

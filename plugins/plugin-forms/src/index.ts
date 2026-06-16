@@ -3,7 +3,7 @@ import type { PluginManifest } from '@fayz-ai/core'
 import type { CustomFormsDataProvider } from './data/types'
 import { createMockFormsProvider } from './data/mock'
 import { createSupabaseFormsProvider } from './data/supabase'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { createCustomFormsStore } from './store'
 import { customFormsLocales } from './locales'
 import { resolveConfig } from './config'
@@ -12,21 +12,6 @@ import { CustomFormsSettingsTab } from './views/CustomFormsSettingsTab'
 import { PersonDocumentsWidget as PersonDocumentsWidgetImpl } from './components/PersonDocumentsWidget'
 import { registerDocumentTypeProvider } from './document-types'
 import { FileText as FileTextIcon, Image as ImageIcon, Paperclip } from 'lucide-react'
-
-function createSafeFormsProvider(): CustomFormsDataProvider {
-  let resolved: CustomFormsDataProvider | null = null
-  function get(): CustomFormsDataProvider {
-    if (!resolved) {
-      resolved = getSupabaseClientOptional()
-        ? createSupabaseFormsProvider()
-        : createMockFormsProvider()
-    }
-    return resolved
-  }
-  return new Proxy({} as CustomFormsDataProvider, {
-    get: (_, prop) => (...args: any[]) => (get() as any)[prop](...args),
-  })
-}
 
 function registerBuiltInProviders(formsProvider: CustomFormsDataProvider) {
   // Templates from custom_forms
@@ -69,7 +54,10 @@ export { registerDocumentTypeProvider, type DocumentTypeOption, type DocumentTyp
 export function createCustomFormsPlugin(options?: CustomFormsPluginOptions): PluginManifest {
   registerTranslations(customFormsLocales)
   const config = resolveConfig(options)
-  const provider = options?.dataProvider ?? createSafeFormsProvider()
+  const provider = options?.dataProvider ?? createSafeDataProvider(
+    () => createSupabaseFormsProvider(),
+    () => createMockFormsProvider(),
+  )
   const store = createCustomFormsStore(provider)
 
   // Register built-in document type providers

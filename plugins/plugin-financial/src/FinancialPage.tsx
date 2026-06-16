@@ -1,15 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
-import { Settings } from 'lucide-react'
 import { useTranslation } from '@fayz-ai/core'
-import { ModulePage, type ModuleNavItem } from '@fayz-ai/ui'
+import { ModulePage, PageTransition, type ModuleNavItem } from '@fayz-ai/ui'
 import { FinancialContextProvider, type ResolvedFinancialConfig } from './FinancialContext'
 import type { FinancialDataProvider } from './data/types'
 import type { FinancialUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
-import { useModuleNavigation } from '@fayz-ai/saas'
-import { Button } from '@fayz-ai/ui'
-import { QuickActionsButton } from '@fayz-ai/saas'
+import { useModuleNavigation, ModuleActionBar, parseViewId } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
 import { PayablesView } from './views/PayablesView'
 import { ReceivablesView } from './views/ReceivablesView'
@@ -31,14 +28,10 @@ export interface ViewIntent {
 }
 
 function parseIntent(activeView: string): ViewIntent {
-  if (activeView === 'payables-new') return { view: 'payables', mode: 'new' }
-  if (activeView === 'payables-list') return { view: 'payables', mode: 'list' }
-  if (activeView.startsWith('payables-detail:')) return { view: 'payables', mode: 'detail', editId: activeView.split(':')[1] }
-  if (activeView.startsWith('payables-edit:')) return { view: 'payables', mode: 'edit', editId: activeView.split(':')[1] }
-  if (activeView === 'receivables-new') return { view: 'receivables', mode: 'new' }
-  if (activeView === 'receivables-list') return { view: 'receivables', mode: 'list' }
-  if (activeView.startsWith('receivables-detail:')) return { view: 'receivables', mode: 'detail', editId: activeView.split(':')[1] }
-  if (activeView.startsWith('receivables-edit:')) return { view: 'receivables', mode: 'edit', editId: activeView.split(':')[1] }
+  // `base` collapses 'payables-detail' / 'payables-edit' etc; `id` is the canonical :id param.
+  const { base, id } = parseViewId(activeView)
+  const m = base.match(/^(payables|receivables)-(new|list|detail|edit)$/)
+  if (m) return { view: m[1], mode: m[2] as ViewIntent['mode'], editId: id }
   return { view: activeView }
 }
 
@@ -146,7 +139,7 @@ export function FinancialPage({ config, provider, store, registries }: {
   store: StoreApi<FinancialUIState>
   registries?: PluginRegistryDef[]
 }) {
-  const { view, animationClass, navigate } = useModuleNavigation('/financial', {
+  const { view, direction, navigate } = useModuleNavigation('/financial', {
     summary: 0,
     'payables-list': 0, 'payables-new': 1, 'receivables-list': 0, 'receivables-new': 1,
     'cash-registers': 0, statements: 0, commissions: 0, cards: 0,
@@ -212,7 +205,7 @@ export function FinancialPage({ config, provider, store, registries }: {
   if (isSettings && registries && registries.length > 0) {
     return (
       <FinancialContextProvider config={config} provider={provider} store={store}>
-        <div key="settings" className={animationClass}>
+        <PageTransition transitionKey="settings" direction={direction}>
           <div style={{ padding: '24px' }}>
             <div style={{ marginBottom: '16px' }}>
               <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{t('financial.settingsPage.title')}</h1>
@@ -220,7 +213,7 @@ export function FinancialPage({ config, provider, store, registries }: {
             </div>
             <FinancialGeneralSettings />
           </div>
-        </div>
+        </PageTransition>
       </FinancialContextProvider>
     )
   }
@@ -251,25 +244,17 @@ export function FinancialPage({ config, provider, store, registries }: {
         subtitle={config.labels.pageSubtitle}
         nav={nav}
         showHeader={intent.view === 'summary' || view === 'summary'}
+        viewKey={view}
+        direction={direction}
         headerAction={
-          <div className="flex items-center gap-2">
-            {quickActions.length > 0 && <QuickActionsButton actions={quickActions} />}
-            {registries && registries.length > 0 && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => { window.location.hash = '/settings/financial' }}
-                title={t('financial.settingsPage.title')}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <ModuleActionBar
+            quickActions={quickActions}
+            settingsPath={registries && registries.length > 0 ? '/settings/financial' : undefined}
+            settingsLabel={t('financial.settingsPage.title')}
+          />
         }
       >
-        <div key={view} className={animationClass}>
-          {renderView()}
-        </div>
+        {renderView()}
       </ModulePage>
     </FinancialContextProvider>
   )

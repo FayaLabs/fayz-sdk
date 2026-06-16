@@ -1,7 +1,24 @@
 import * as React from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
+import { useTranslation } from '@fayz-ai/core'
 import { cn } from '../utils/cn'
 import { ICON_MAP } from './Topbar'
+import { useModuleHeaderSlot, useModuleHeaderActionsSlot } from './AppShell'
+import { PageTransition } from './PageTransition'
+
+// ---------------------------------------------------------------------------
+// PageHeaderActions — portals a page's primary action button(s) into the shell
+// top-bar's right-aligned actions slot. Falls back to a right-aligned inline row
+// when there's no slot (e.g. topbar layout). Any page can use it:
+//   <PageHeaderActions><Button>New campaign</Button></PageHeaderActions>
+// ---------------------------------------------------------------------------
+
+export function PageHeaderActions({ children }: { children: React.ReactNode }) {
+  const slot = useModuleHeaderActionsSlot()
+  if (slot) return createPortal(children, slot)
+  return <div className="mb-4 flex items-center justify-end gap-2">{children}</div>
+}
 
 export interface ModuleNavItem {
   id: string
@@ -24,6 +41,32 @@ export interface ModulePageProps {
   showHeader?: boolean
   /** Optional content pinned to the bottom of the sidebar (e.g. "Powered by X") */
   sidebarFooter?: React.ReactNode
+  /** How the module-internal nav renders. Falls back to the ModuleLayout context
+   *  (set by the app shell from its layout), then 'rail'. */
+  navVariant?: ModuleNavVariant
+  /** Active sub-view id — drives the SDK page transition when it changes.
+   *  Plugins pass their `useModuleNavigation().view`; they no longer animate themselves. */
+  viewKey?: string
+  /** Navigation direction for the transition (from `useModuleNavigation`). */
+  direction?: 'forward' | 'back'
+}
+
+// ---------------------------------------------------------------------------
+// ModuleLayout context — lets the app shell decide how every module's internal
+// navigation renders ('rail' for topbar products, 'tabs' for sidebar/GHL-style
+// products), so plugins stay agnostic and products feel distinct.
+// ---------------------------------------------------------------------------
+
+export type ModuleNavVariant = 'rail' | 'tabs'
+
+const ModuleLayoutContext = React.createContext<ModuleNavVariant>('rail')
+
+export function ModuleLayoutProvider({ variant, children }: { variant: ModuleNavVariant; children: React.ReactNode }) {
+  return <ModuleLayoutContext.Provider value={variant}>{children}</ModuleLayoutContext.Provider>
+}
+
+export function useModuleLayout(): ModuleNavVariant {
+  return React.useContext(ModuleLayoutContext)
 }
 
 function NavItem({ item }: { item: ModuleNavItem }) {
@@ -161,6 +204,29 @@ function MobileTabs({ nav }: { nav: ModuleNavItem[] }) {
 // SubpageHeader
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Back-button style — the SINGLE, app-wide affordance for returning from a
+// detail/subpage. Set once by the product via <BackStyleProvider>, NOT chosen
+// per-plugin (mirrors NavTransitionProvider for page transitions). Plugins just
+// pass `onBack` + `parentLabel` to SubpageHeader and inherit whatever style the
+// app picked:
+//   'link'       → subtle "← Back to {parent}" above the title (default)
+//   'breadcrumb' → "{parent} › Title"
+//   'icon'       → square chevron button beside the title
+// ---------------------------------------------------------------------------
+
+export type BackButtonStyle = 'link' | 'breadcrumb' | 'icon'
+
+const BackStyleContext = React.createContext<BackButtonStyle>('link')
+
+export function BackStyleProvider({ style, children }: { style: BackButtonStyle; children: React.ReactNode }) {
+  return <BackStyleContext.Provider value={style}>{children}</BackStyleContext.Provider>
+}
+
+export function useBackStyle(): BackButtonStyle {
+  return React.useContext(BackStyleContext)
+}
+
 export interface SubpageHeaderProps {
   /** Page title */
   title: string
@@ -170,65 +236,158 @@ export interface SubpageHeaderProps {
   icon?: string
   /** Back button handler */
   onBack?: () => void
-  /** Parent label for breadcrumb (e.g. "Invoices"). When set, renders ← Parent / Title breadcrumb instead of bare chevron */
+  /** Parent label (e.g. "Invoices") — used by every back style ("Back to Invoices", breadcrumb root, etc.) */
   parentLabel?: string
   /** Actions rendered on the right */
   actions?: React.ReactNode
+  /** Override the app-wide back style for this one header. Rarely needed. */
+  backStyle?: BackButtonStyle
 }
 
-export function SubpageHeader({ title, subtitle, icon, onBack, parentLabel, actions }: SubpageHeaderProps) {
+export function SubpageHeader({ title, subtitle, icon, onBack, parentLabel, actions, backStyle }: SubpageHeaderProps) {
+  const t = useTranslation()
+  const appStyle = useBackStyle()
   const Icon = icon ? (ICON_MAP[icon] ?? null) : null
-  return (
-    <div className="space-y-4 mb-6">
-      {onBack && parentLabel ? (
-        /* Breadcrumb mode */
-        <>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <button onClick={onBack} className="hover:text-foreground transition-colors">
-                {parentLabel}
-              </button>
-              <ChevronRight className="h-3.5 w-3.5" />
-              <span className="text-foreground font-medium">{title}</span>
-            </div>
-            {actions && <div className="no-print">{actions}</div>}
+  // Breadcrumb/link need a parent label; without one we fall back to the icon button.
+  const style: BackButtonStyle = !onBack ? 'icon' : (backStyle ?? appStyle)
+  const effectiveStyle: BackButtonStyle = style !== 'icon' && !parentLabel ? 'icon' : style
+
+  const titleBlock = (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        {effectiveStyle === 'icon' && onBack && (
+          <button
+            onClick={onBack}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
+        {Icon && (
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+            <Icon className="h-5 w-5 text-muted-foreground" />
           </div>
-          {subtitle && <p className="text-sm text-muted-foreground -mt-2">{subtitle}</p>}
-        </>
-      ) : (
-        /* Standard mode */
+        )}
+        <div>
+          <h2 className="text-xl font-bold">{title}</h2>
+          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+      </div>
+      {actions && <div className="no-print">{actions}</div>}
+    </div>
+  )
+
+  if (effectiveStyle === 'breadcrumb') {
+    return (
+      <div className="space-y-4 mb-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors"
-              >
-                <ChevronRight className="h-4 w-4 rotate-180" />
-              </button>
-            )}
-            {Icon && (
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
-                <Icon className="h-5 w-5 text-muted-foreground" />
-              </div>
-            )}
-            <div>
-              <h2 className="text-xl font-bold">{title}</h2>
-              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
-            </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <button onClick={onBack} className="hover:text-foreground transition-colors">{parentLabel}</button>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="text-foreground font-medium">{title}</span>
           </div>
           {actions && <div className="no-print">{actions}</div>}
         </div>
-      )}
+        {subtitle && <p className="text-sm text-muted-foreground -mt-2">{subtitle}</p>}
+      </div>
+    )
+  }
+
+  if (effectiveStyle === 'link') {
+    return (
+      <div className="space-y-3 mb-6">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          {t('crud.detail.backTo', { entities: parentLabel as string })}
+        </button>
+        {titleBlock}
+      </div>
+    )
+  }
+
+  // icon (default fallback)
+  return <div className="space-y-4 mb-6">{titleBlock}</div>
+}
+
+// ---------------------------------------------------------------------------
+// ModuleHeader — GoHighLevel-style module header (title + horizontal sub-nav),
+// portalled into the shell's top-of-page header slot. Active tab's children
+// render as a secondary pill row. Falls back to inline if no slot is present.
+// ---------------------------------------------------------------------------
+
+function ModuleHeader({ nav }: { nav: ModuleNavItem[] }) {
+  const slot = useModuleHeaderSlot()
+
+  // Tabs are flat: a parent with children navigates straight to its default
+  // "list" view (sub-actions like "New" live as a button inside that list).
+  function defaultChild(item: ModuleNavItem) {
+    const kids = item.children ?? []
+    return kids.find((c) => /list/i.test(c.id) || /^list$/i.test(c.label)) ?? kids[kids.length - 1]
+  }
+
+  const content = (
+    <div className="flex w-full min-w-0 items-center gap-4">
+      <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-hide">
+        {nav.map((item) => {
+          const Icon = item.icon ? (ICON_MAP[item.icon] ?? null) : null
+          const hasChildren = item.children && item.children.length > 0
+          const isActive = item.active || item.children?.some((c) => c.active)
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => (hasChildren ? defaultChild(item)?.onClick?.() : item.onClick?.())}
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 py-1.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {Icon && <Icon className="h-4 w-4" />}
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
+
+  if (slot) return createPortal(content, slot)
+  // Fallback: render inline above content when no shell header slot exists.
+  return <div className="mb-5 border-b border-border pb-2">{content}</div>
 }
 
 // ---------------------------------------------------------------------------
 // ModulePage
 // ---------------------------------------------------------------------------
 
-export function ModulePage({ title, subtitle, nav, children, className, headerAction, showHeader = true, sidebarFooter }: ModulePageProps) {
+export function ModulePage({ title, subtitle, nav, children, className, headerAction, showHeader = true, sidebarFooter, navVariant, viewKey, direction }: ModulePageProps) {
+  const ctxVariant = useModuleLayout()
+  const variant = navVariant ?? ctxVariant
+  const transitionKey = viewKey ?? 'view'
+
+  // Tabs variant — the module sub-nav renders in the shell's top-of-page header
+  // container and actions in its right slot (GoHighLevel style); the content
+  // area holds only the view (the shell owns the page title).
+  if (variant === 'tabs') {
+    return (
+      <>
+        <ModuleHeader nav={nav} />
+        {/* Header actions belong to the module overview only; internal sub-views
+            (showHeader=false) carry their own actions. */}
+        {showHeader && headerAction && <PageHeaderActions>{headerAction}</PageHeaderActions>}
+        <PageTransition transitionKey={transitionKey} direction={direction} className={cn('min-w-0', className)}>
+          {children}
+        </PageTransition>
+      </>
+    )
+  }
+
+  // Rail variant (default) — left sub-nav column.
   return (
     <div className={cn('flex gap-6 -mt-2', className)}>
       {/* Side navigation — hidden on mobile + print */}
@@ -259,7 +418,9 @@ export function ModulePage({ title, subtitle, nav, children, className, headerAc
         )}
         {/* Mobile tabs */}
         <MobileTabs nav={nav} />
-        {children}
+        <PageTransition transitionKey={transitionKey} direction={direction}>
+          {children}
+        </PageTransition>
       </div>
     </div>
   )

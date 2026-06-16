@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CreditCard, LogOut, Mail, Package, Phone, Search, ShoppingBag, User, UserCircle } from 'lucide-react'
+import { CreditCard, LogOut, Mail, Package, Phone, Search, ShoppingBag, User, UserCircle, X } from 'lucide-react'
 import { signOutCustomer } from '../auth'
 import { useCartStore, selectCount } from '../stores/cart.store'
 import { useCatalogStore } from '../stores/catalog.store'
@@ -24,19 +24,46 @@ const headerDivider: React.CSSProperties = {
   borderColor: 'hsl(var(--sf-header-fg, var(--foreground)) / 0.14)',
 }
 
+const ANNOUNCEMENT_KEY = 'fayz.storefront.announcement.dismissed'
+
 function AnnouncementBar() {
   const config = useStorefrontConfig()
-  if (!config.announcement) return null
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(ANNOUNCEMENT_KEY) === config.announcement
+    } catch {
+      return false
+    }
+  })
+  if (!config.announcement || dismissed) return null
+
+  const dismiss = () => {
+    setDismissed(true)
+    try {
+      localStorage.setItem(ANNOUNCEMENT_KEY, config.announcement ?? '')
+    } catch {
+      /* storage unavailable — dismiss for this session only */
+    }
+  }
+
   return (
     <div
       data-testid={TID.announcementBar}
-      className="px-4 py-2 text-center text-xs font-semibold tracking-wide"
+      className="relative px-4 py-2 text-center text-xs font-semibold tracking-wide"
       style={{
         backgroundColor: 'hsl(var(--sf-announcement-bg, var(--primary)))',
         color: 'hsl(var(--sf-announcement-fg, var(--primary-foreground)))',
       }}
     >
       {config.announcement}
+      <button
+        type="button"
+        aria-label="Fechar aviso"
+        onClick={dismiss}
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 opacity-70 transition-opacity hover:opacity-100"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   )
 }

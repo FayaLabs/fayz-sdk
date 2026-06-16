@@ -9,6 +9,7 @@ import {
   setCurrentLocale,
 } from '@fayz-ai/core'
 import { AuthProvider, createSupabaseAuthAdapter, createMockAuthAdapter } from '@fayz-ai/auth'
+import { NavTransitionProvider } from '@fayz-ai/ui'
 import { createFayzSupabaseClient, getFayzSupabaseClientOptional } from '../supabase/client'
 import { OrgProvider } from '../org/context'
 import { createSupabaseOrgAdapter } from '../org/adapters/supabase'
@@ -16,6 +17,7 @@ import { createMockOrgAdapter } from '../org/adapters/mock'
 import { useOrganizationStore } from '../org/store'
 import { PermissionsProvider } from '../permissions/context'
 import { ToastProvider } from '../shell/components/notifications/ToastProvider'
+import { ChatFab, ChatPanel } from '../shell/components/chat'
 import { useBillingStore } from '../billing/store'
 import type { Plan } from '@fayz-ai/core'
 import type { PlanConfig } from '../shell/types/billing'
@@ -194,7 +196,15 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
               <ThemeInitializer config={config} />
               <BillingInitializer config={config} />
               <ToastProvider />
-              {children}
+              <NavTransitionProvider value={config.navTransition ?? 'slide'}>
+                {children}
+              </NavTransitionProvider>
+              {config.chat?.enabled !== false && config.chat ? (
+                <>
+                  <ChatFab apiEndpoint={config.chat.apiEndpoint} systemPrompt={config.chat.systemPrompt} />
+                  <ChatPanel title={config.chat.title} apiEndpoint={config.chat.apiEndpoint} systemPrompt={config.chat.systemPrompt} />
+                </>
+              ) : null}
             </I18nProvider>
           </PermissionsProvider>
         </PluginRuntimeProvider>
@@ -222,6 +232,8 @@ export function createFayzApp(config: FayzAppConfig): React.ComponentType {
             appName={config.name}
             logo={config.logo}
             layout={config.layout}
+            contentFrame={config.contentFrame}
+            moduleNav={config.moduleNav}
             pages={config.pages}
             requireAuth={config.auth?.requireAuth}
             loginTagline={config.auth?.loginTagline}

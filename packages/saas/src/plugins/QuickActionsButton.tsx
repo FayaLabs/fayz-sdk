@@ -3,6 +3,7 @@ import { Plus, X } from 'lucide-react'
 import { cn } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import { ICON_MAP } from '@fayz-ai/ui'
+import { useModuleLayout } from '@fayz-ai/ui'
 import type { PluginQuickAction } from '@fayz-ai/core'
 
 /**
@@ -16,6 +17,8 @@ export function QuickActionsButton({ actions, className }: {
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  // Solid primary in sidebar/tabs products (GHL-style), outline in topbar products.
+  const variant = useModuleLayout() === 'tabs' ? 'default' : 'outline'
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -30,10 +33,10 @@ export function QuickActionsButton({ actions, className }: {
   return (
     <div ref={ref} className={cn('relative', className)}>
       <Button
-        variant="outline"
+        variant={variant}
         size="sm"
         onClick={() => setOpen(!open)}
-        className={cn(open && 'bg-muted')}
+        className={cn(open && variant === 'outline' && 'bg-muted')}
       >
         <Plus className={cn('h-3.5 w-3.5 transition-transform duration-200', open && 'rotate-45')} />
         <span>New</span>

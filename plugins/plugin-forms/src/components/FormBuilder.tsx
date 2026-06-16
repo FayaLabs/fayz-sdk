@@ -11,8 +11,8 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { snapCenterToCursor } from '@dnd-kit/modifiers'
-import { ArrowLeft, Save, Loader2, Eye } from 'lucide-react'
-import { Button } from '@fayz-ai/ui'
+import { ArrowLeft, Eye } from 'lucide-react'
+import { Button, useSaveBar, toast } from '@fayz-ai/ui'
 import { Input } from '@fayz-ai/ui'
 import { Card, CardContent } from '@fayz-ai/ui'
 import { Badge } from '@fayz-ai/ui'
@@ -145,7 +145,7 @@ export function FormBuilder({ templateId, store, provider, config, onBack }: For
   }, [handleFieldUpdate])
 
   const handleSave = useCallback(async () => {
-    if (!name.trim()) return
+    if (!name.trim()) { toast.error(t('common.formIncomplete')); return }
     setSaving(true)
     try {
       const schema: FormSchema = { fields, layout: { columns: 12 } }
@@ -160,6 +160,23 @@ export function FormBuilder({ templateId, store, provider, config, onBack }: For
       setSaving(false)
     }
   }, [templateId, name, description, category, fields, store, onBack])
+
+  // Dirty detection — snapshot editable fields once async load settles
+  const currentFields = { name, description, category, fields }
+  const snapshot = React.useRef<string | null>(null)
+  const loaded = !templateId || templateName !== null
+  useEffect(() => {
+    if (loaded && snapshot.current === null) snapshot.current = JSON.stringify(currentFields)
+  }, [loaded])
+  const dirty = snapshot.current !== null && JSON.stringify(currentFields) !== snapshot.current
+
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: () => { void handleSave() },
+    onDiscard: () => onBack(),
+    saveLabel: t('customForms.builder.save'),
+  })
 
   const selectedField = selectedFieldId
     ? fields.find((f) => f.id === selectedFieldId) ?? null
@@ -238,14 +255,6 @@ export function FormBuilder({ templateId, store, provider, config, onBack }: For
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSave} disabled={saving || !name.trim()} size="sm" className="h-9">
-            {saving ? (
-              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-            ) : (
-              <Save className="h-3.5 w-3.5 mr-1.5" />
-            )}
-            {saving ? t('customForms.builder.saving') : t('customForms.builder.save')}
-          </Button>
           <Button
             variant="outline"
             size="sm"

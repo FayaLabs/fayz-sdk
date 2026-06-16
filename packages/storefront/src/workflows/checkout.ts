@@ -3,10 +3,7 @@ import type { Order } from '@fayz-ai/shop/types'
 import { establishCustomerSession } from '../auth'
 import type { ResolvedStorefrontConfig } from '../config'
 import type { CartState } from '../stores/cart.store'
-import {
-  selectDiscountTotal,
-  selectShipping,
-} from '../stores/cart.store'
+import { selectShipping } from '../stores/cart.store'
 import type { SessionState } from '../stores/session.store'
 
 export interface StorefrontCheckoutCustomer {
@@ -69,22 +66,20 @@ export async function placeStorefrontOrder({
     customerId = established.customerId
   }
 
-  const order = await provider.createOrder({
-    customerId,
-    customerName: name,
-    customerEmail: email,
+  // Trusted placement: send only product ids + quantities. The provider
+  // (shop_place_order RPC on Supabase, in-memory parity in mock) re-reads
+  // prices, validates the discount, and decrements inventory server-side.
+  const order = await provider.placeOrder({
+    customerId: customerId ?? undefined,
+    customer: { name, email },
     currency: config.currency,
     notes: formatDeliveryNotes(address),
     discountCode: cart.discountCode ?? undefined,
-    discountTotal: selectDiscountTotal(cart),
     shippingTotal: selectShipping(cart, config),
     items: cart.lines.map((line) => ({
       productId: line.productId,
-      name: line.optionsLabel ? `${line.name} (${line.optionsLabel})` : line.name,
-      sku: line.sku ?? undefined,
       quantity: line.quantity,
-      unitPrice: line.unitPrice,
-      imageUrl: line.imageUrl ?? undefined,
+      optionsLabel: line.optionsLabel || undefined,
     })),
   })
 
@@ -92,5 +87,5 @@ export async function placeStorefrontOrder({
     await provider.updateOrder(order.id, { financialStatus: 'paid' })
   }
 
-  return { order, customerId }
+  return { order, customerId: customerId ?? order.customerId ?? '' }
 }

@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Pencil, DollarSign, FileText, Calendar, Hash, User, X, MoreVertical, Ban, ChevronDown, CreditCard, Banknote, Building2, CircleDashed, CircleEllipsis, CircleCheckBig, CircleAlert, CalendarDays, ExternalLink } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { PersonLink } from '@fayz-ai/saas'
 import { useFinancialConfig, useFinancialStore, useFinancialProvider, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
-import { SubpageHeader } from '@fayz-ai/ui'
+import { SubpageHeader, DataTable } from '@fayz-ai/ui'
 import { PaymentModal } from '../components/PaymentModal'
 import { useTranslation } from '@fayz-ai/core'
 import { Button } from '@fayz-ai/ui'
@@ -200,6 +201,34 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
   const totalDiscount = items.reduce((sum, it) => sum + it.discount, 0)
   const totalSurcharge = items.reduce((sum, it) => sum + it.surcharge, 0)
 
+  const itemColumns: ColumnDef<InvoiceItem, any>[] = [
+    {
+      id: 'index', header: t('financial.invoice.columnNumber'),
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.index + 1}</span>,
+    },
+    {
+      accessorKey: 'description', header: t('financial.invoice.columnDescription'),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-medium bg-muted text-muted-foreground capitalize">{row.original.itemKind}</span>
+          <span className="truncate">{row.original.description}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'quantity', header: () => <span className="block text-right">{t('financial.invoice.columnQty')}</span>,
+      cell: ({ getValue }) => <span className="block text-right text-xs tabular-nums">{getValue() as number}</span>,
+    },
+    {
+      accessorKey: 'unitPrice', header: () => <span className="block text-right">{t('financial.invoice.columnUnitPrice')}</span>,
+      cell: ({ getValue }) => <span className="block text-right text-xs tabular-nums">{formatCurrency(getValue() as number, currency)}</span>,
+    },
+    {
+      accessorKey: 'totalAmount', header: () => <span className="block text-right">{t('financial.invoice.columnTotal')}</span>,
+      cell: ({ getValue }) => <span className="block text-right font-medium tabular-nums">{formatCurrency(getValue() as number, currency)}</span>,
+    },
+  ]
+
   return (
     <div className="space-y-5">
       <SubpageHeader
@@ -322,33 +351,7 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
               <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('financial.invoice.items')}</h3>
             </div>
             <div className="px-5">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-[10px] text-muted-foreground uppercase tracking-wider">
-                    <th className="text-left py-2 font-medium">{t('financial.invoice.columnNumber')}</th>
-                    <th className="text-left py-2 font-medium">{t('financial.invoice.columnDescription')}</th>
-                    <th className="text-right py-2 font-medium">{t('financial.invoice.columnQty')}</th>
-                    <th className="text-right py-2 font-medium">{t('financial.invoice.columnUnitPrice')}</th>
-                    <th className="text-right py-2 font-medium">{t('financial.invoice.columnTotal')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {items.map((item, i) => (
-                    <tr key={item.id}>
-                      <td className="py-2.5 text-xs text-muted-foreground w-8">{i + 1}</td>
-                      <td className="py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-medium bg-muted text-muted-foreground capitalize">{item.itemKind}</span>
-                          <span className="truncate">{item.description}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-right text-xs tabular-nums">{item.quantity}</td>
-                      <td className="py-2.5 text-right text-xs tabular-nums">{formatCurrency(item.unitPrice, currency)}</td>
-                      <td className="py-2.5 text-right font-medium tabular-nums">{formatCurrency(item.totalAmount, currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable columns={itemColumns} data={items} variant="flat" compact />
             </div>
 
             {/* Totals */}

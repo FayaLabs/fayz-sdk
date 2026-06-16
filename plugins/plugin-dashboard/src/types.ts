@@ -69,6 +69,8 @@ export interface DashboardSection {
   icon?: string
   /** Zone placement on the dashboard */
   zone: DashboardZone
+  /** Column span on the 4-col grid (1–4). Default: 2 (half width). */
+  span?: 1 | 2 | 3 | 4
   /** Sort order within zone (lower = first) */
   order: number
   /** React component to render */

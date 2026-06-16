@@ -15,6 +15,9 @@ import { formatMoney } from '../format'
 import { TID } from '../testids'
 import { placeStorefrontOrder } from '../workflows/checkout'
 import { useDiscountValidator } from '../hooks/useDiscountValidator'
+import { toast } from '../stores/toast.store'
+import { useStorefrontHead } from '../hooks/useStorefrontHead'
+import { SignInModal } from '../components/SignInModal'
 
 interface CheckoutForm {
   email: string
@@ -95,6 +98,7 @@ export function CheckoutPage() {
   const cart = useCartStore()
   const session = useSessionStore()
   const validateDiscount = useDiscountValidator()
+  useStorefrontHead({ title: `Checkout — ${config.name}` })
 
   const [selectedAddressId, setSelectedAddressId] = useState(DEFAULT_ADDRESS.id)
   const [selectedPaymentId, setSelectedPaymentId] = useState(DEFAULT_PAYMENT.id)
@@ -119,6 +123,7 @@ export function CheckoutPage() {
   const [applyingDiscount, setApplyingDiscount] = useState(false)
   const [placing, setPlacing] = useState(false)
   const [processingStep, setProcessingStep] = useState(0)
+  const [showSignin, setShowSignin] = useState(false)
 
   const subtotal = selectSubtotal(cart)
   const discountTotal = selectDiscountTotal(cart)
@@ -143,8 +148,10 @@ export function CheckoutPage() {
         cart.applyDiscount(appliedCode, result.percent)
         setDiscountCode(appliedCode)
         setDiscountSuccess(`${appliedCode} aplicado: ${result.percent}% de desconto.`)
+        toast.success('Cupom aplicado!', `${appliedCode} • ${result.percent}% de desconto`)
       } else {
         setDiscountError(result.message ?? 'Cupom inválido.')
+        toast.error('Cupom inválido', result.message ?? 'Verifique o código e tente novamente.')
       }
     } finally {
       setApplyingDiscount(false)
@@ -249,7 +256,9 @@ export function CheckoutPage() {
         session,
         customer: { email: form.email, name: form.name },
         address: { street: form.street, city: form.city, zip: form.zip },
-        markPaid: true,
+        // Demo only: mock mode instantly approves. Real Pix/Mercado Pago (M4)
+        // leaves the order pending until the payment webhook confirms.
+        markPaid: config.payments.mode === 'mock',
       })
 
       await minDuration
@@ -268,6 +277,15 @@ export function CheckoutPage() {
   return (
     <main className="min-h-screen bg-background">
       {placing && <ProcessingOverlay step={processingStep} />}
+      {showSignin && !session.email && (
+        <SignInModal
+          defaultEmail={form.email}
+          onClose={() => setShowSignin(false)}
+          onSignedIn={(signed) =>
+            setForm((current) => ({ ...current, email: signed.email ?? current.email, name: signed.name || current.name }))
+          }
+        />
+      )}
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-6">
           <Link to={config.catalogPath} className="text-sm text-muted-foreground hover:text-foreground">
@@ -300,7 +318,17 @@ export function CheckoutPage() {
             <section>
               <div className="mb-3 flex items-center justify-between gap-4">
                 <h1 className="text-xl font-semibold tracking-tight">Informações de contato</h1>
-                <span className="text-sm text-muted-foreground">Já tem conta? Entrar</span>
+                {session.email ? (
+                  <span className="text-sm text-muted-foreground">Conectado como {session.email}</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowSignin((value) => !value)}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Já tem conta? Entrar
+                  </button>
+                )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {field('E-mail', TID.checkoutEmail, form.email, set('email'), {

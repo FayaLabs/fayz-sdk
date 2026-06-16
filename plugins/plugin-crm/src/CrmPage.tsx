@@ -1,15 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
-import { Settings } from 'lucide-react'
 import { useTranslation } from '@fayz-ai/core'
-import { ModulePage, type ModuleNavItem } from '@fayz-ai/ui'
+import { ModulePage, PageTransition, type ModuleNavItem } from '@fayz-ai/ui'
 import { CrmContextProvider, type ResolvedCrmConfig } from './CrmContext'
 import type { CrmDataProvider } from './data/types'
 import type { CrmUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
-import { useModuleNavigation } from '@fayz-ai/saas'
-import { QuickActionsButton } from '@fayz-ai/saas'
-import { Button } from '@fayz-ai/ui'
+import { useModuleNavigation, ModuleActionBar, createViewRouter } from '@fayz-ai/saas'
 import { CrmGeneralSettings } from './components/CrmGeneralSettings'
 import { PipelineSettings } from './components/PipelineSettings'
 import { CrmOnboarding } from './components/CrmOnboarding'
@@ -63,7 +60,7 @@ export function CrmPage({ config, provider, store, registries }: {
   store: StoreApi<CrmUIState>
   registries?: PluginRegistryDef[]
 }) {
-  const { view, animationClass, navigate } = useModuleNavigation('/sales', {
+  const { view, direction, navigate } = useModuleNavigation('/sales', {
     dashboard: 0, pipeline: 0,
     'leads-list': 0, 'leads-new': 1, 'leads-detail': 1,
     'quotes-list': 0, 'quotes-new': 1, 'quotes-detail': 1, 'quotes-edit': 2,
@@ -98,7 +95,7 @@ export function CrmPage({ config, provider, store, registries }: {
   if (isSettings && registries && registries.length > 0) {
     return (
       <CrmContextProvider config={config} provider={provider} store={store}>
-        <div key="settings" className={animationClass}>
+        <PageTransition transitionKey="settings" direction={direction}>
           <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
               <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{t('crm.settingsPage.title')}</h1>
@@ -109,45 +106,27 @@ export function CrmPage({ config, provider, store, registries }: {
             <CrmGeneralSettings />
             <PipelineSettings />
           </div>
-        </div>
+        </PageTransition>
       </CrmContextProvider>
     )
   }
 
-  function renderView() {
-    switch (view) {
-      case 'pipeline': return <PipelineView onViewLead={(id) => navigate(`leads-detail:${id}`)} onViewQuote={(id) => navigate(`quotes-detail:${id}`)} onAddLead={() => navigate('leads-new')} />
-      case 'leads-list': return <LeadListView onNew={() => navigate('leads-new')} onEdit={(id) => navigate(`leads-detail:${id}`)} />
-      case 'leads-new': return <LeadFormView onSaved={(id) => id ? navigate(`leads-detail:${id}`) : navigate('leads-list')} />
-      case 'quotes-new': {
-        const hashParams = new URLSearchParams(window.location.hash.split('?')[1] ?? '')
-        const lid = hashParams.get('leadId') ?? undefined
-        return <QuoteFormView leadId={lid} onSaved={(id) => id ? navigate(`quotes-detail:${id}`) : navigate('quotes-list')} />
-      }
-      case 'quotes-list': return <QuoteListView onNew={() => navigate('quotes-new')} onEdit={(id) => navigate(`quotes-detail:${id}`)} onEditQuote={(id) => navigate(`quotes-edit:${id}`)} />
-      case 'activities': return <ActivityListView />
-      default: {
-        if (view.startsWith('leads-detail:')) {
-          const id = view.slice('leads-detail:'.length)
-          return <LeadDetailView leadId={id} onBack={() => navigate('leads-list')} onCreateQuote={(lid) => navigate('quotes-new', `/sales/quotes/new?leadId=${lid}`)} onViewQuote={(qid) => navigate(`quotes-detail:${qid}`)} />
-        }
-        if (view.startsWith('quotes-detail:')) {
-          const id = view.slice('quotes-detail:'.length)
-          return <QuoteDetailView
-            quoteId={id}
-            onBack={() => navigate('quotes-list')}
-            onEdit={() => navigate(`quotes-edit:${id}`)}
-            onInvoiceCreated={(invoiceId) => { window.location.hash = `/financial/receivables/detail/${invoiceId}` }}
-          />
-        }
-        if (view.startsWith('quotes-edit:')) {
-          const id = view.slice('quotes-edit:'.length)
-          return <QuoteFormView quoteId={id} onSaved={() => navigate(`quotes-detail:${id}`)} />
-        }
-        return <DashboardView />
-      }
-    }
-  }
+  const renderView = createViewRouter([
+    { id: 'pipeline', render: () => <PipelineView onViewLead={(id) => navigate(`leads-detail:${id}`)} onViewQuote={(id) => navigate(`quotes-detail:${id}`)} onAddLead={() => navigate('leads-new')} /> },
+    { id: 'leads-list', render: () => <LeadListView onNew={() => navigate('leads-new')} onEdit={(id) => navigate(`leads-detail:${id}`)} /> },
+    { id: 'leads-new', render: () => <LeadFormView onSaved={(id) => id ? navigate(`leads-detail:${id}`) : navigate('leads-list')} /> },
+    { id: 'quotes-new', render: () => {
+      const hashParams = new URLSearchParams(window.location.hash.split('?')[1] ?? '')
+      const lid = hashParams.get('leadId') ?? undefined
+      return <QuoteFormView leadId={lid} onSaved={(id) => id ? navigate(`quotes-detail:${id}`) : navigate('quotes-list')} />
+    } },
+    { id: 'quotes-list', render: () => <QuoteListView onNew={() => navigate('quotes-new')} onEdit={(id) => navigate(`quotes-detail:${id}`)} onEditQuote={(id) => navigate(`quotes-edit:${id}`)} /> },
+    { id: 'activities', render: () => <ActivityListView /> },
+    { id: 'leads-detail', render: ({ id }) => <LeadDetailView leadId={id!} onBack={() => navigate('leads-list')} onCreateQuote={(lid) => navigate('quotes-new', `/sales/quotes/new?leadId=${lid}`)} onViewQuote={(qid) => navigate(`quotes-detail:${qid}`)} /> },
+    { id: 'quotes-detail', render: ({ id }) => <QuoteDetailView quoteId={id!} onBack={() => navigate('quotes-list')} onEdit={() => navigate(`quotes-edit:${id}`)} onInvoiceCreated={(invoiceId) => { window.location.hash = `/financial/receivables/detail/${invoiceId}` }} /> },
+    { id: 'quotes-edit', render: ({ id }) => <QuoteFormView quoteId={id!} onSaved={() => navigate(`quotes-detail:${id}`)} /> },
+    { id: 'dashboard', render: () => <DashboardView /> },
+  ], 'dashboard')
 
   return (
     <CrmContextProvider config={config} provider={provider} store={store}>
@@ -156,25 +135,17 @@ export function CrmPage({ config, provider, store, registries }: {
         subtitle={config.labels.pageSubtitle}
         nav={nav}
         showHeader={isSummary}
+        viewKey={view}
+        direction={direction}
         headerAction={
-          <div className="flex items-center gap-2">
-            {quickActions.length > 0 && <QuickActionsButton actions={quickActions} />}
-            {registries && registries.length > 0 && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => { window.location.hash = '/settings/crm' }}
-                title="CRM Settings"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <ModuleActionBar
+            quickActions={quickActions}
+            settingsPath={registries && registries.length > 0 ? '/settings/crm' : undefined}
+            settingsLabel="CRM Settings"
+          />
         }
       >
-        <div key={view} className={animationClass}>
-          {renderView()}
-        </div>
+        {renderView(view)}
       </ModulePage>
     </CrmContextProvider>
   )

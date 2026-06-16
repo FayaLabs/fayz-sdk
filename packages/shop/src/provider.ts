@@ -3,8 +3,8 @@ import type {
   Order, ShopCustomer, Discount,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
   CreateCategoryInput, UpdateCategoryInput,
-  CreateOrderInput, UpdateOrderInput, ListOrdersOptions,
-  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions,
+  CreateOrderInput, UpdateOrderInput, ListOrdersOptions, PlaceOrderInput,
+  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
   CreateDiscountInput, UpdateDiscountInput, ListDiscountsOptions,
 } from './types'
 
@@ -29,6 +29,13 @@ export interface ShopProvider {
   getOrder(id: string): Promise<Order | null>
   createOrder(input: CreateOrderInput): Promise<Order>
   updateOrder(id: string, input: UpdateOrderInput): Promise<Order>
+  /**
+   * Trusted order placement: the server re-reads product prices + stock,
+   * validates the discount, computes totals, and decrements inventory
+   * atomically. Storefront checkout MUST use this instead of createOrder so the
+   * browser cannot tamper with prices. createOrder remains for trusted admin entry.
+   */
+  placeOrder(input: PlaceOrderInput): Promise<Order>
 
   // Customers
   listCustomers(options?: ListCustomersOptions): Promise<ShopCustomer[]>
@@ -36,6 +43,12 @@ export interface ShopProvider {
   createCustomer(input: CreateCustomerInput): Promise<ShopCustomer>
   updateCustomer(id: string, input: UpdateCustomerInput): Promise<ShopCustomer>
   deleteCustomer(id: string): Promise<void>
+  /**
+   * Find-or-create the customer for a storefront shopper and (on Supabase) link
+   * it to auth.uid server-side, so order reads can be scoped to the owner by RLS.
+   * Optional: providers without it fall back to listCustomers+createCustomer.
+   */
+  resolveCustomer?(input: ResolveCustomerInput): Promise<ShopCustomer>
 
   // Discounts
   listDiscounts(options?: ListDiscountsOptions): Promise<Discount[]>

@@ -6,11 +6,16 @@ export type {
   CreateProductInput, UpdateProductInput, ListProductsOptions,
   CreateCategoryInput, UpdateCategoryInput,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions,
-  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions,
+  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
   CreateDiscountInput, UpdateDiscountInput, ListDiscountsOptions,
+  PlaceOrderInput, PlaceOrderLine,
+  DiscountValidation, InventoryLine, InventoryIssue, InventoryCheck, CartTotalLine, CartTotals,
 } from './types'
 
 export type { ShopProvider } from './provider'
+export {
+  validateDiscount, applyDiscount, checkInventory, computeCartTotals, getCustomerOrders,
+} from './commerce'
 export { SupabaseShopProvider, createSupabaseShopProvider } from './supabase-provider'
 export { MockShopProvider, createMockShopProvider } from './mock-provider'
 export type { MockShopSeed } from './mock-provider'

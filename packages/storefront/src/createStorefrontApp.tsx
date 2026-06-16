@@ -1,9 +1,11 @@
 import React from 'react'
 import { setShopProvider } from '@fayz-ai/shop/runtime'
 import { createMockShopProvider } from '@fayz-ai/shop/mock'
+import type { MockShopSeed } from '@fayz-ai/shop/mock'
+import type { Discount } from '@fayz-ai/shop/types'
 import { initCustomerAuth, resolveAuthAdapter } from './auth'
 import { StorefrontConfigProvider, resolveConfig, useStorefrontConfig } from './config'
-import type { StorefrontConfig } from './config'
+import type { StorefrontConfig, StorefrontDiscountConfig } from './config'
 import { useHashPath, matchPath } from './router'
 import { StorefrontThemeStyle } from './theme'
 import { StorefrontHeader } from './components/StorefrontHeader'
@@ -15,6 +17,10 @@ import { ProductDetailPage } from './pages/ProductDetailPage'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage'
 import { MyPurchasesPage } from './pages/MyPurchasesPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { PolicyPage } from './pages/PolicyPage'
+import { StorefrontErrorBoundary } from './components/StorefrontErrorBoundary'
+import { Toaster } from './components/Toaster'
 
 function getCustomRouteMatch(config: ReturnType<typeof useStorefrontConfig>, path: string) {
   for (const route of config.routes ?? []) {
@@ -48,9 +54,16 @@ function RouteSwitch({ path }: { path: string }) {
   if (matchPath('/checkout', path)) return <CheckoutPage />
   if (matchPath('/account', path)) return <MyPurchasesPage />
   if (matchPath('/catalog', path)) return <CatalogPage />
+  if (matchPath('/privacy', path)) return <PolicyPage kind="privacy" />
+  if (matchPath('/terms', path)) return <PolicyPage kind="terms" />
+  if (matchPath('/refunds', path)) return <PolicyPage kind="returns" />
 
-  if (config.home) return <HomePage sections={config.home.sections} />
-  return <CatalogPage />
+  // Root renders home (or catalog when there's no home). Any other unmatched
+  // path is a genuine 404 — don't silently fall back to the storefront.
+  if (path === '/' || path === '') {
+    return config.home ? <HomePage sections={config.home.sections} /> : <CatalogPage />
+  }
+  return <NotFoundPage />
 }
 
 /**
@@ -58,15 +71,53 @@ function RouteSwitch({ path }: { path: string }) {
  * wires customer auth and the shop provider. Idempotent and safe to call once
  * before first render. Provider resolution: explicit > catalog mock > empty mock.
  */
+/**
+ * config.discounts are simple {code, percent} entries the UI validator trusts
+ * (useDiscountValidator). They must ALSO be seeded into the provider, or
+ * placeOrder won't find the code server-side and will charge full price — the
+ * shopper sees a discounted total but is billed the undiscounted one.
+ */
+function storefrontDiscountToSeed(discount: StorefrontDiscountConfig): Discount {
+  const ts = new Date().toISOString()
+  return {
+    id: `cfg-discount-${discount.code.trim().toLowerCase()}`,
+    tenantId: 'mock',
+    title: discount.title ?? `${discount.percent}% off`,
+    code: discount.code.trim().toUpperCase(),
+    type: 'percentage',
+    method: 'code',
+    value: discount.percent,
+    usageLimit: null,
+    oncePerCustomer: false,
+    startsAt: ts,
+    endsAt: null,
+    status: 'active',
+    timesUsed: 0,
+    createdAt: ts,
+    updatedAt: ts,
+  }
+}
+
+function buildMockSeed(config: StorefrontConfig): MockShopSeed | undefined {
+  const configDiscounts = (config.discounts ?? []).map(storefrontDiscountToSeed)
+  if (!config.catalog && configDiscounts.length === 0) return undefined
+  // Config-level codes win over catalog seeds sharing the same code.
+  const catalogDiscounts = (config.catalog?.discounts ?? []).filter(
+    (cd) => !configDiscounts.some((cfg) => (cd.code ?? '').toUpperCase() === cfg.code),
+  )
+  return {
+    ...config.catalog,
+    discounts: [...catalogDiscounts, ...configDiscounts],
+  }
+}
+
 export function initStorefrontRuntime(config: StorefrontConfig): void {
   initCustomerAuth(resolveAuthAdapter(config.auth?.adapter))
 
   if (config.provider) {
     setShopProvider(config.provider)
-  } else if (config.catalog) {
-    setShopProvider(createMockShopProvider(config.catalog))
   } else {
-    setShopProvider(createMockShopProvider())
+    setShopProvider(createMockShopProvider(buildMockSeed(config)))
   }
 
   if (config.supabaseUrl || config.supabaseAnonKey) {
@@ -86,9 +137,12 @@ export function StorefrontShell() {
     <div className="min-h-screen bg-background text-foreground">
       {config.theme && <StorefrontThemeStyle theme={config.theme} />}
       {!focused && <StorefrontHeader />}
-      <RouteSwitch path={path} />
+      <StorefrontErrorBoundary key={path}>
+        <RouteSwitch path={path} />
+      </StorefrontErrorBoundary>
       {!focused && <CartDrawer />}
       {!focused && <StorefrontFooter />}
+      <Toaster />
     </div>
   )
 }

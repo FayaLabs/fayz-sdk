@@ -2,23 +2,25 @@ import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { EntityLookupMap } from '@fayz-ai/saas'
 import { FinancialPage } from './FinancialPage'
+import { createFinancialDashboardWidgets } from './views/dashboardWidgets'
 import type { ResolvedFinancialConfig } from './FinancialContext'
 import type { FinancialDataProvider } from './data/types'
 import { createMockFinancialProvider } from './data/mock'
 import { createSupabaseFinancialProvider } from './data/supabase'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
-
-function createSafeFinancialProvider(): FinancialDataProvider {
-  let resolved: FinancialDataProvider | null = null
-  function get(): FinancialDataProvider {
-    if (!resolved) resolved = getSupabaseClientOptional() ? createSupabaseFinancialProvider() : createMockFinancialProvider()
-    return resolved
-  }
-  return new Proxy({} as FinancialDataProvider, {
-    get: (_, prop) => (...args: any[]) => (get() as any)[prop](...args),
-  })
-}
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { createFinancialStore } from './store'
+
+/**
+ * Public: a lazy supabase-or-mock financial provider. Apps use this to share one
+ * provider between the plugin and a cross-plugin bridge (e.g. agenda's financial
+ * bridge in beauty-saas). Thin wrapper over the shared createSafeDataProvider.
+ */
+export function createSafeFinancialProvider(): FinancialDataProvider {
+  return createSafeDataProvider(
+    () => createSupabaseFinancialProvider(),
+    () => createMockFinancialProvider(),
+  )
+}
 import { financialRegistries } from './registries'
 import { financialLocales } from './locales'
 import { FinancialGeneralSettings } from './components/FinancialGeneralSettings'
@@ -179,6 +181,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
 
   const provider = options?.dataProvider ?? createSafeFinancialProvider()
   const store = createFinancialStore(provider)
+  const dashboardWidgets = createFinancialDashboardWidgets({ config, provider, store })
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(FinancialPage, { config, provider, store, registries: financialRegistries })
@@ -216,6 +219,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
       },
     ],
     widgets: [],
+    dashboardWidgets,
     aiTools: [
       {
         id: 'financial.get-revenue',
@@ -301,4 +305,3 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
 // Re-export types and factories for consumers
 export type { FinancialDataProvider } from './data/types'
 export type { ResolvedFinancialConfig } from './FinancialContext'
-export { createSafeFinancialProvider }

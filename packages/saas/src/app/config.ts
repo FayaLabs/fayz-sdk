@@ -114,6 +114,15 @@ export interface FayzAppConfig {
   defaultThemeMode?: ThemeMode
   /** Shell layout variant (default: 'sidebar') */
   layout?: 'sidebar' | 'topbar' | 'minimal'
+  /** Wrap the main content in an inset "framed" card (default: true). The
+   *  sidebar itself is always flush/full-height. */
+  contentFrame?: boolean
+  /** How module-internal navigation renders. Defaults to 'tabs' for the
+   *  'sidebar' layout and 'rail' for 'topbar'. */
+  moduleNav?: 'rail' | 'tabs'
+  /** Page navigation animation applied to all nested navigations (route + module
+   *  view changes). Default: 'slide'. Set per repo/app for a different feel. */
+  navTransition?: 'slide' | 'fade' | 'none'
 
   // -------------------------------------------------------------------------
   // i18n

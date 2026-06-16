@@ -2,23 +2,11 @@ import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { EntityLookupMap } from '@fayz-ai/saas'
 import { CrmPage } from './CrmPage'
+import { createCrmDashboardWidgets } from './views/dashboardWidgets'
 import { CrmContextProvider, type ResolvedCrmConfig } from './CrmContext'
 import type { CrmDataProvider } from './data/types'
 import { createMockCrmProvider } from './data/mock'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
-
-function createSafeCrmProvider(providerOptions?: {
-  clientConversion?: { archetypeKind: string; extensionTable: string; fkColumn: string }
-}): CrmDataProvider {
-  let resolved: CrmDataProvider | null = null
-  function get(): CrmDataProvider {
-    if (!resolved) resolved = getSupabaseClientOptional() ? createSupabaseCrmProvider(providerOptions) : createMockCrmProvider()
-    return resolved
-  }
-  return new Proxy({} as CrmDataProvider, {
-    get: (_, prop) => (...args: any[]) => (get() as any)[prop](...args),
-  })
-}
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { createSupabaseCrmProvider } from './data/supabase'
 import { createCrmStore } from './store'
 import { crmRegistries } from './registries'
@@ -132,11 +120,16 @@ function resolveConfig(options?: CrmPluginOptions): ResolvedCrmConfig {
 export function createCrmPlugin(options?: CrmPluginOptions): PluginManifest {
   const config = resolveConfig(options)
   registerTranslations(crmLocales)
-  const provider = options?.dataProvider ?? createSafeCrmProvider({ clientConversion: options?.clientConversion })
+  const provider = options?.dataProvider ?? createSafeDataProvider(
+    () => createSupabaseCrmProvider({ clientConversion: options?.clientConversion }),
+    () => createMockCrmProvider(),
+  )
   const store = createCrmStore(provider)
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(CrmPage, { config, provider, store, registries: crmRegistries })
+
+  const dashboardWidgets = createCrmDashboardWidgets({ config, provider, store })
 
   return {
     id: 'crm',
@@ -171,6 +164,7 @@ export function createCrmPlugin(options?: CrmPluginOptions): PluginManifest {
       },
     ],
     widgets: [],
+    dashboardWidgets,
     aiTools: [
       {
         id: 'crm.count-customers',

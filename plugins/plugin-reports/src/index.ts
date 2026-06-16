@@ -1,27 +1,11 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
-import { registerTranslations } from '@fayz-ai/core'
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { ReportsPage } from './ReportsPage'
 import type { ReportDataProvider } from './data/types'
 import { createSupabaseReportProvider } from './data/supabase'
 import { createMockReportProvider } from './data/mock'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
 import { getReportsTenantId } from './lib/tenant'
-
-function createSafeReportProvider(): ReportDataProvider {
-  let resolved: ReportDataProvider | null = null
-  function get(): ReportDataProvider {
-    if (!resolved) {
-      resolved = getSupabaseClientOptional()
-        ? createSupabaseReportProvider({ tenantId: () => getReportsTenantId() })
-        : createMockReportProvider()
-    }
-    return resolved
-  }
-  return new Proxy({} as ReportDataProvider, {
-    get: (_, prop) => (...args: any[]) => (get() as any)[prop](...args),
-  })
-}
 import { reportsLocales } from './locales'
 import type {
   ReportsPluginOptions,
@@ -78,6 +62,7 @@ function resolveConfig(options: ReportsPluginOptions): ResolvedReportsConfig {
     currency: { ...DEFAULT_CURRENCY, ...options.currency },
     reports: options.reports,
     defaultPageSize: options.defaultPageSize ?? 50,
+    showHeader: options.showHeader !== false,
   }
 }
 
@@ -88,7 +73,10 @@ function resolveConfig(options: ReportsPluginOptions): ResolvedReportsConfig {
 export function createReportsPlugin(options: ReportsPluginOptions): PluginManifest {
   const config = resolveConfig(options)
   registerTranslations(reportsLocales)
-  const provider: ReportDataProvider = options.dataProvider ?? createSafeReportProvider()
+  const provider: ReportDataProvider = options.dataProvider ?? createSafeDataProvider(
+    () => createSupabaseReportProvider({ tenantId: () => getReportsTenantId() }),
+    () => createMockReportProvider(),
+  )
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(ReportsPage, { config, provider })

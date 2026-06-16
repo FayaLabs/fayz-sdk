@@ -1,9 +1,10 @@
 import React from 'react'
-import { Check, Clock, PackageCheck, Truck } from 'lucide-react'
+import { Check, Clock, PackageCheck, RotateCcw, Truck, XCircle } from 'lucide-react'
 import type { Order } from '@fayz-ai/shop/types'
+import { isPaid, isRefunded } from '../order-status'
 import { TID } from '../testids'
 
-type TrackingState = 'complete' | 'current' | 'pending'
+type TrackingState = 'complete' | 'current' | 'pending' | 'cancelled'
 
 interface TrackingStep {
   id: string
@@ -13,45 +14,70 @@ interface TrackingStep {
   icon: React.ComponentType<{ className?: string }>
 }
 
-function isPaymentApproved(order: Order) {
-  return ['paid', 'partially_paid', 'partially_refunded', 'refunded'].includes(order.financialStatus)
-}
-
 function orderTrackingSteps(order: Order): TrackingStep[] {
-  const paymentApproved = isPaymentApproved(order)
+  const received: TrackingStep = {
+    id: 'received',
+    label: 'Pedido recebido',
+    description: `#${order.orderNumber}`,
+    state: 'complete',
+    icon: Check,
+  }
+
+  // Terminal states short-circuit the happy path.
+  if (order.status === 'cancelled' || order.financialStatus === 'voided') {
+    return [
+      received,
+      { id: 'payment', label: 'Pedido cancelado', description: 'Este pedido foi cancelado', state: 'cancelled', icon: XCircle },
+    ]
+  }
+  if (isRefunded(order.financialStatus)) {
+    return [
+      received,
+      { id: 'payment', label: 'Pagamento aprovado', description: 'Compra confirmada', state: 'complete', icon: Check },
+      {
+        id: 'refund',
+        label: order.financialStatus === 'refunded' ? 'Reembolsado' : 'Reembolso parcial',
+        description: 'Valor devolvido ao cliente',
+        state: 'cancelled',
+        icon: RotateCcw,
+      },
+    ]
+  }
+
+  const paid = isPaid(order.financialStatus)
   const partiallyFulfilled = order.fulfillmentStatus === 'partially_fulfilled'
   const fulfilled = order.fulfillmentStatus === 'fulfilled'
 
   return [
-    {
-      id: 'received',
-      label: 'Pedido recebido',
-      description: `#${order.orderNumber}`,
-      state: 'complete',
-      icon: Check,
-    },
+    received,
     {
       id: 'payment',
-      label: paymentApproved ? 'Pagamento aprovado' : 'Aguardando pagamento',
-      description: paymentApproved ? 'Compra confirmada' : 'Processando',
-      state: paymentApproved ? 'complete' : 'current',
+      label: paid ? 'Pagamento aprovado' : 'Aguardando pagamento',
+      description: paid ? 'Compra confirmada' : 'Processando',
+      state: paid ? 'complete' : 'current',
       icon: Check,
     },
     {
       id: 'preparing',
       label: 'Preparando envio',
-      description: paymentApproved ? 'Separando produtos' : 'Comeca apos pagamento',
-      state: fulfilled || partiallyFulfilled ? 'complete' : paymentApproved ? 'current' : 'pending',
+      description: paid ? 'Separando produtos' : 'Começa após o pagamento',
+      state: fulfilled || partiallyFulfilled ? 'complete' : paid ? 'current' : 'pending',
       icon: PackageCheck,
     },
     {
       id: 'delivery',
       label: fulfilled ? 'Pedido enviado' : partiallyFulfilled ? 'Envio parcial' : 'Entrega',
-      description: fulfilled ? 'A caminho do cliente' : partiallyFulfilled ? 'Parte do pedido saiu' : 'Proxima etapa',
+      description: fulfilled ? 'A caminho do cliente' : partiallyFulfilled ? 'Parte do pedido saiu' : 'Próxima etapa',
       state: fulfilled ? 'complete' : partiallyFulfilled ? 'current' : 'pending',
       icon: fulfilled || partiallyFulfilled ? Truck : Clock,
     },
   ]
+}
+
+const GRID_COLS: Record<number, string> = {
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-4',
 }
 
 export function OrderTrackingTimeline({ order, compact = false }: { order: Order; compact?: boolean }) {
@@ -60,11 +86,12 @@ export function OrderTrackingTimeline({ order, compact = false }: { order: Order
   return (
     <ol
       data-testid={TID.orderTracking}
-      className={compact ? 'grid gap-2 sm:grid-cols-4' : 'grid gap-3 sm:grid-cols-4'}
+      className={`grid ${compact ? 'gap-2' : 'gap-3'} ${GRID_COLS[steps.length] ?? 'sm:grid-cols-4'}`}
       aria-label="Acompanhamento do pedido"
     >
       {steps.map((step) => {
         const Icon = step.icon
+        const cancelled = step.state === 'cancelled'
         const active = step.state !== 'pending'
         return (
           <li
@@ -73,7 +100,11 @@ export function OrderTrackingTimeline({ order, compact = false }: { order: Order
             data-state={step.state}
             className={[
               'relative min-w-0 rounded-xl border p-3',
-              active ? 'border-primary/35 bg-primary/5' : 'bg-muted/20 text-muted-foreground',
+              cancelled
+                ? 'border-rose-200 bg-rose-50 text-rose-700'
+                : active
+                  ? 'border-primary/35 bg-primary/5'
+                  : 'bg-muted/20 text-muted-foreground',
               compact ? 'text-xs' : 'text-sm',
             ].join(' ')}
           >
@@ -81,7 +112,11 @@ export function OrderTrackingTimeline({ order, compact = false }: { order: Order
               <span
                 className={[
                   'grid h-7 w-7 shrink-0 place-items-center rounded-full border',
-                  active ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/30 bg-background',
+                  cancelled
+                    ? 'border-rose-300 bg-rose-500 text-white'
+                    : active
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted-foreground/30 bg-background',
                 ].join(' ')}
                 aria-hidden
               >

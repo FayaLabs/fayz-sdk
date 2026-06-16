@@ -514,6 +514,57 @@ export function CalendarView() {
   // Alternating resource backgrounds — apply via DOM after render
   const wrapperRef = useRef<HTMLDivElement>(null)
 
+  // Responsive day headers — collapse weekday names to a single initial (S M T
+  // W T F S, Google-Calendar style) when day columns get too narrow. Measured
+  // from the actual rendered column width so it adapts to resource count + view.
+  const [dayHeaderCompact, setDayHeaderCompact] = useState(false)
+  useEffect(() => {
+    const container = wrapperRef.current
+    if (!container) return
+    let frame = 0
+    const measure = () => {
+      // Measure an actual DAY column ([data-date]) — in resource views the first
+      // .fc-col-header-cell is the wide resource header, not a day column.
+      const cell = container.querySelector('.fc-col-header-cell[data-date]') as HTMLElement | null
+      if (!cell) return
+      const colWidth = cell.getBoundingClientRect().width
+      // Collapse to single-letter ONLY when the full weekday label can't fit.
+      // Measure the widest full line ("WED" / "12/14") in the header's font so
+      // the breakpoint adapts to font + locale instead of a magic number.
+      const cushion = (cell.querySelector('.fc-col-header-cell-cushion') as HTMLElement | null) ?? cell
+      const cs = getComputedStyle(cushion)
+      const probe = document.createElement('span')
+      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;top:-9999px'
+      probe.style.fontSize = cs.fontSize
+      probe.style.fontWeight = cs.fontWeight
+      probe.style.fontFamily = cs.fontFamily
+      probe.style.letterSpacing = cs.letterSpacing
+      probe.style.textTransform = cs.textTransform
+      document.body.appendChild(probe)
+      probe.textContent = 'Wed'
+      const weekdayWidth = probe.getBoundingClientRect().width
+      probe.textContent = '12/14'
+      const dateWidth = probe.getBoundingClientRect().width
+      probe.remove()
+      const needed = Math.max(weekdayWidth, dateWidth) + 12 // text + cushion padding
+      setDayHeaderCompact(colWidth < needed)
+    }
+    // FullCalendar reflows its inner day columns on a later tick than the
+    // container resize, so re-measure across a few frames to read settled widths.
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+      timers.forEach(clearTimeout)
+      timers.length = 0
+      timers.push(setTimeout(measure, 130), setTimeout(measure, 330))
+    }
+    schedule()
+    const ro = new ResizeObserver(schedule)
+    ro.observe(container)
+    return () => { cancelAnimationFrame(frame); timers.forEach(clearTimeout); ro.disconnect() }
+  }, [resources, currentView, visibleRange])
+
   const applyResourceStriping = useCallback(() => {
     const container = wrapperRef.current
     if (!container) return
@@ -542,6 +593,35 @@ export function CalendarView() {
     window.addEventListener('agenda:open-booking', handleOpenBooking)
     return () => window.removeEventListener('agenda:open-booking', handleOpenBooking)
   }, [openModal])
+
+  // Custom day header: weekday + date stacked. When columns get narrow it
+  // collapses the weekday to a single initial (S / 16, Google-Calendar style).
+  // Always returns explicit content — returning undefined renders an EMPTY
+  // header in the React adapter rather than falling back to the default.
+  const dayHeaderContent = useCallback((arg: any) => {
+    const date: Date = arg.date
+    const dateLocale = currentLocale === 'pt-BR' ? 'pt-BR' : 'en'
+    // Inline styles (not CSS classes) so stacking is guaranteed regardless of
+    // the runtime style-injection state.
+    const wrapStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }
+    const dateStyle: React.CSSProperties = { fontSize: '0.65rem', opacity: 0.75 }
+    if (dayHeaderCompact) {
+      const letter = date.toLocaleDateString(dateLocale, { weekday: 'narrow' })
+      return (
+        <div style={wrapStyle}>
+          <span style={{ fontWeight: 600 }}>{letter}</span>
+          <span style={dateStyle}>{date.getDate()}</span>
+        </div>
+      )
+    }
+    const weekday = date.toLocaleDateString(dateLocale, { weekday: 'short' })
+    return (
+      <div style={wrapStyle}>
+        <span>{weekday}</span>
+        <span style={dateStyle}>{`${date.getMonth() + 1}/${date.getDate()}`}</span>
+      </div>
+    )
+  }, [dayHeaderCompact, currentLocale])
 
   const resourceLabelContent = useCallback((arg: any) => {
     const { id, title, extendedProps } = arg.resource
@@ -741,6 +821,7 @@ export function CalendarView() {
             select={handleSelect}
             eventDrop={handleEventDrop}
             resourceLabelContent={resourceLabelContent}
+            dayHeaderContent={dayHeaderContent}
             eventContent={eventContent}
             resourceOrder="title"
             stickyHeaderDates={true}

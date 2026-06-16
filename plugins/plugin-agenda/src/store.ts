@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
-import { dedup } from './lib/dedup'
+import { dedup } from '@fayz-ai/saas'
 import { toast } from '@fayz-ai/ui'
 import { getScheduleBlockConfig, setScheduleBlockConfig } from '@fayz-ai/saas'
 import type { AgendaDataProvider } from './data/types'

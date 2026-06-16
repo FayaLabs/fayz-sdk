@@ -1,9 +1,7 @@
-import React from 'react'
-import { useStore, type StoreApi } from 'zustand'
+import { createPluginContext, formatCurrency, type CurrencyConfig, type EntityLookup } from '@fayz-ai/saas'
 import type { OrdersDataProvider } from './data/types'
 import type { OrdersUIState } from './store'
 import type { RestaurantOrder } from './types'
-import type { EntityLookup } from '@fayz-ai/saas'
 
 // ---------------------------------------------------------------------------
 // Resolved config — fully merged, no optionals
@@ -14,11 +12,7 @@ export interface OrdersModules {
   takeout: boolean
 }
 
-export interface OrdersCurrency {
-  code: string
-  locale: string
-  symbol: string
-}
+export type OrdersCurrency = CurrencyConfig
 
 export interface OrderSourceOption {
   value: string
@@ -43,65 +37,11 @@ export interface ResolvedOrdersConfig {
   onOrderCompleted?: (order: RestaurantOrder) => Promise<void>
 }
 
-// ---------------------------------------------------------------------------
-// Contexts
-// ---------------------------------------------------------------------------
+const ctx = createPluginContext<ResolvedOrdersConfig, OrdersDataProvider, OrdersUIState>('OrdersPage')
 
-const OrdersConfigContext = React.createContext<ResolvedOrdersConfig | null>(null)
-const OrdersProviderContext = React.createContext<OrdersDataProvider | null>(null)
-const OrdersStoreContext = React.createContext<StoreApi<OrdersUIState> | null>(null)
+export const OrdersContextProvider = ctx.ContextProvider
+export const useOrdersConfig = ctx.useConfig
+export const useOrdersProvider = ctx.useProvider
+export const useOrdersStore = ctx.useStore
 
-// ---------------------------------------------------------------------------
-// Combined provider component
-// ---------------------------------------------------------------------------
-
-export function OrdersContextProvider({ config, provider, store, children }: {
-  config: ResolvedOrdersConfig
-  provider: OrdersDataProvider
-  store: StoreApi<OrdersUIState>
-  children: React.ReactNode
-}) {
-  return (
-    <OrdersConfigContext.Provider value={config}>
-      <OrdersProviderContext.Provider value={provider}>
-        <OrdersStoreContext.Provider value={store}>
-          {children}
-        </OrdersStoreContext.Provider>
-      </OrdersProviderContext.Provider>
-    </OrdersConfigContext.Provider>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
-
-export function useOrdersConfig(): ResolvedOrdersConfig {
-  const ctx = React.useContext(OrdersConfigContext)
-  if (!ctx) throw new Error('useOrdersConfig must be used within OrdersPage')
-  return ctx
-}
-
-export function useOrdersProvider(): OrdersDataProvider {
-  const ctx = React.useContext(OrdersProviderContext)
-  if (!ctx) throw new Error('useOrdersProvider must be used within OrdersPage')
-  return ctx
-}
-
-export function useOrdersStore<T>(selector: (state: OrdersUIState) => T): T {
-  const store = React.useContext(OrdersStoreContext)
-  if (!store) throw new Error('useOrdersStore must be used within OrdersPage')
-  return useStore(store, selector)
-}
-
-// ---------------------------------------------------------------------------
-// Currency formatter
-// ---------------------------------------------------------------------------
-
-export function formatCurrency(value: number, currency: OrdersCurrency): string {
-  return new Intl.NumberFormat(currency.locale, {
-    style: 'currency',
-    currency: currency.code,
-    minimumFractionDigits: 2,
-  }).format(value)
-}
+export { formatCurrency }

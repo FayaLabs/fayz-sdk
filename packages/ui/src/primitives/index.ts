@@ -80,3 +80,4 @@ export { SearchSelect, type SearchSelectOption, type SearchSelectProps } from '.
 export { CurrencyInput } from './currency-input'
 export { ConfirmDialog } from './confirm-dialog'
 export { Popover, PopoverTrigger, PopoverContent } from './popover'
+export { SegmentedControl, type SegmentedControlProps, type SegmentedOption } from './segmented-control'

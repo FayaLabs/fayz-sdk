@@ -47,11 +47,13 @@ export function ReportHub({ onSelect }: ReportHubProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{t('reports.pageTitle')}</h1>
-        <p className="text-muted-foreground mt-1">{t('reports.pageSubtitle')}</p>
-      </div>
+      {/* Header (omitted when the app shell owns the page title) */}
+      {config.showHeader && (
+        <div>
+          <h1 className="text-2xl font-bold">{t('reports.pageTitle')}</h1>
+          <p className="text-muted-foreground mt-1">{t('reports.pageSubtitle')}</p>
+        </div>
+      )}
 
       {/* Search */}
       {totalReports > 6 && (

@@ -1,22 +1,30 @@
 import React, { useEffect, useState } from 'react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, RefreshCcw, ShieldCheck, Truck } from 'lucide-react'
 import { useProduct } from '../hooks/useProduct'
 import { useCartStore } from '../stores/cart.store'
+import { useStorefrontConfig } from '../config'
+import { useStorefrontHead } from '../hooks/useStorefrontHead'
 import { Link } from '../router'
 import { Price } from '../components/Price'
 import { QuantityInput } from '../components/QuantityInput'
 import { ProductOptionSelector } from '../components/ProductOptionSelector'
+import { ProductSpecs } from '../components/ProductSpecs'
+import { RelatedProducts } from '../components/RelatedProducts'
 import { getProductOptionGroups, type ProductOptionSelection } from '../product-options'
 import { TID } from '../testids'
 
 export function ProductDetailPage({ slug }: { slug: string }) {
+  const config = useStorefrontConfig()
   const { product, loading } = useProduct(slug)
   const addItem = useCartStore((s) => s.addItem)
-  const openDrawer = useCartStore((s) => s.openDrawer)
   const [qty, setQty] = useState(1)
   const [selectedOptions, setSelectedOptions] = useState<ProductOptionSelection>({})
 
   const optionGroups = product ? getProductOptionGroups(product) : []
+  useStorefrontHead({
+    title: product ? `${product.name} — ${config.name}` : config.name,
+    description: product?.description,
+  })
 
   useEffect(() => {
     if (!product) return
@@ -51,7 +59,12 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   }
 
   const soldOut = product.inventoryCount <= 0
+  const lowStock = !soldOut && product.inventoryCount <= 5
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0]
+  const discountPct =
+    product.compareAtPrice && product.compareAtPrice > product.price
+      ? Math.round((1 - product.price / product.compareAtPrice) * 100)
+      : 0
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -71,25 +84,59 @@ export function ProductDetailPage({ slug }: { slug: string }) {
         </div>
 
         <div className="flex flex-col py-2 lg:sticky lg:top-24 lg:self-start">
-          <span className="text-sm text-muted-foreground">{product.categoryName}</span>
-          <h1 data-testid={TID.pdpName} className="mt-1 text-3xl font-bold tracking-tight">
+          <nav className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <Link to="/" className="transition-colors hover:text-foreground">Início</Link>
+            {product.categoryName && (
+              <>
+                <span aria-hidden>/</span>
+                <span>{product.categoryName}</span>
+              </>
+            )}
+            <span aria-hidden>/</span>
+            <span className="text-foreground">{product.name}</span>
+          </nav>
+
+          <h1 data-testid={TID.pdpName} className="sf-heading text-3xl font-bold tracking-tight">
             {product.name}
           </h1>
-          <div className="mt-3 text-xl">
-            <Price
-              value={product.price}
-              compareAt={product.compareAtPrice}
-              testId={TID.pdpPrice}
-              compareTestId={TID.pdpComparePrice}
-            />
+
+          <div className="mt-3 flex items-center gap-3">
+            <div className="text-xl">
+              <Price
+                value={product.price}
+                compareAt={product.compareAtPrice}
+                testId={TID.pdpPrice}
+                compareTestId={TID.pdpComparePrice}
+              />
+            </div>
+            {discountPct > 0 && (
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+                −{discountPct}%
+              </span>
+            )}
           </div>
+
           <p data-testid={TID.pdpDescription} className="mt-5 leading-relaxed text-muted-foreground">
             {product.description}
           </p>
-          <dl className="mt-5 space-y-1 text-sm text-muted-foreground">
-            {product.sku && <div>SKU: {product.sku}</div>}
-            <div>{soldOut ? 'Sem estoque' : `${product.inventoryCount} em estoque`}</div>
-          </dl>
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            {soldOut ? (
+              <span className="inline-flex items-center gap-2 font-medium text-muted-foreground">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground" /> Sem estoque
+              </span>
+            ) : lowStock ? (
+              <span className="inline-flex items-center gap-2 font-semibold text-amber-600">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                Últimas unidades — só {product.inventoryCount} restantes
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2 font-medium text-emerald-600">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Em estoque
+              </span>
+            )}
+            {product.sku && <span className="text-muted-foreground">SKU: {product.sku}</span>}
+          </div>
 
           <ProductOptionSelector
             groups={optionGroups}
@@ -108,18 +155,30 @@ export function ProductDetailPage({ slug }: { slug: string }) {
               type="button"
               data-testid={TID.pdpAddToCart}
               disabled={soldOut}
-              onClick={() => {
-                addItem(product, qty, selectedOptions)
-                openDrawer()
-              }}
+              onClick={() => addItem(product, qty, selectedOptions)}
               className="sf-cta flex-1 bg-primary py-3.5 font-semibold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0"
               style={{ borderRadius: 'var(--sf-radius-button)' }}
             >
               {soldOut ? 'Esgotado' : 'Adicionar ao carrinho'}
             </button>
           </div>
+
+          <div className="mt-6 grid grid-cols-3 gap-3 border-t pt-6 text-center">
+            <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+              <Truck className="h-5 w-5 text-primary" /> Envio rápido
+            </div>
+            <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+              <RefreshCcw className="h-5 w-5 text-primary" /> Troca fácil
+            </div>
+            <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+              <ShieldCheck className="h-5 w-5 text-primary" /> Pagamento seguro
+            </div>
+          </div>
         </div>
       </div>
+
+      <ProductSpecs product={product} />
+      <RelatedProducts product={product} />
     </main>
   )
 }

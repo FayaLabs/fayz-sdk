@@ -5,3 +5,4 @@ packages:
   - "examples/*"
   - "../../fayz-app/resto-saas"
   - "../../fayz-app/beauty-saas"
+  - "../../fayz-app/agency-os"

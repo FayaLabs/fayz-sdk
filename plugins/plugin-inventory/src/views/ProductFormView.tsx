@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Save, ImagePlus, X } from 'lucide-react'
+import { ImagePlus } from 'lucide-react'
 import { useInventoryConfig, useInventoryStore, useInventoryProvider, formatCurrency } from '../InventoryContext'
-import { SubpageHeader } from '@fayz-ai/ui'
+import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 import { CurrencyInput } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import type { ProductType } from '../types'
@@ -81,8 +81,23 @@ export function ProductFormView({ editId, onSaved }: { editId?: string; onSaved?
     })()
   }, [editId])
 
+  const fields = { name, sku, barcode, brand, productType, costPrice, salePrice, minQuantity, maxQuantity, description }
+  const ready = !editId || loaded
+  const snapshot = React.useRef<string | null>(null)
+  useEffect(() => {
+    if (ready && snapshot.current === null) snapshot.current = JSON.stringify(fields)
+  }, [ready])
+  const dirty = snapshot.current !== null && JSON.stringify(fields) !== snapshot.current
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: () => { void handleSave() },
+    onDiscard: () => onSaved?.(),
+    saveLabel: t('inventory.productForm.save'),
+  })
+
   async function handleSave() {
-    if (!name.trim()) return
+    if (!name.trim()) { toast.error(t('common.formIncomplete')); return }
     setSaving(true)
     try {
       if (isEdit && editId) {
@@ -115,22 +130,6 @@ export function ProductFormView({ editId, onSaved }: { editId?: string; onSaved?
         subtitle={subtitle}
         onBack={onSaved}
         parentLabel={t('inventory.nav.products')}
-        actions={
-          <div className="flex items-center gap-2">
-            {onSaved && (
-              <button onClick={onSaved} className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors">
-                {t('inventory.productForm.cancel')}
-              </button>
-            )}
-            <button
-              onClick={handleSave}
-              disabled={!name.trim() || saving}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset transition-colors disabled:opacity-50"
-            >
-              <Save className="h-3 w-3" /> {saving ? t('inventory.productForm.saving') : t('inventory.productForm.save')}
-            </button>
-          </div>
-        }
       />
 
       {/* Section 1: General Info */}

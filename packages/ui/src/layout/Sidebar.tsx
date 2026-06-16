@@ -57,6 +57,12 @@ import {
   Disc3,
   UsersRound,
   Mic,
+  Zap,
+  Award,
+  LayoutDashboard,
+  MessageSquare,
+  Star,
+  Workflow,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '../utils/cn'
@@ -112,6 +118,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Percent, Tag, Camera, UtensilsCrossed, MapPin, Handshake, Contact,
   Building2, Filter, Plus, List, Search, Dog, Cat, PawPrint, Heart, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
   PartyPopper, Radio, CalendarDays, Banknote, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
+  Zap, Award, LayoutDashboard, MessageSquare, Star, Workflow,
 }
 
 export { ICON_MAP }

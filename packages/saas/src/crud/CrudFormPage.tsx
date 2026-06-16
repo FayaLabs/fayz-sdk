@@ -5,6 +5,7 @@ import { Button } from '@fayz-ai/ui'
 import { Input } from '@fayz-ai/ui'
 import { Checkbox } from '@fayz-ai/ui'
 import { toast } from '@fayz-ai/ui'
+import { useSaveBar } from '@fayz-ai/ui'
 import { PersonFormLayout } from './archetypes/PersonFormLayout'
 import { ProductFormLayout } from './archetypes/ProductFormLayout'
 import { ServiceFormLayout } from './archetypes/ServiceFormLayout'
@@ -197,19 +198,19 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
   const t = useTranslation()
   const formFields = entityDef.fields.filter((f) => f.showInForm !== false)
   const displayField = entityDef.displayField ?? entityDef.fields[0]?.key ?? 'id'
-  const [values, setValues] = useState<Record<string, any>>(() =>
-    mode === 'edit' && initialData ? { ...getDefaultValues(formFields), ...initialData } : getDefaultValues(formFields),
-  )
+  const computeInit = () =>
+    mode === 'edit' && initialData ? { ...getDefaultValues(formFields), ...initialData } : getDefaultValues(formFields)
+  const [values, setValues] = useState<Record<string, any>>(computeInit)
   const [saving, setSaving] = useState(false)
+  const initialRef = React.useRef<string>(JSON.stringify(values))
 
   useEffect(() => {
-    setValues(
-      mode === 'edit' && initialData ? { ...getDefaultValues(formFields), ...initialData } : getDefaultValues(formFields),
-    )
+    const init = computeInit()
+    setValues(init)
+    initialRef.current = JSON.stringify(init)
   }, [mode, initialData])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const submit = async () => {
     setSaving(true)
     try {
       // Sanitize: convert empty strings to null so the DB doesn't choke on e.g. empty date fields
@@ -225,6 +226,23 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
       setSaving(false)
     }
   }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    void submit()
+  }
+
+  const dirty = JSON.stringify(values) !== initialRef.current
+
+  // Full-page CRUD forms surface Save/Discard via the app-wide floating SaveBar.
+  // Embedded forms (rendered inside other widgets) keep their inline buttons.
+  useSaveBar({
+    dirty: !embedded && dirty,
+    saving,
+    onSave: () => { void submit() },
+    onDiscard: onCancel,
+    saveLabel: mode === 'create' ? t('crud.form.addTitle', { entity: entityDef.name }) : t('crud.form.saveChanges'),
+  })
 
   const handleChange = (key: string, val: any) => {
     setValues((prev) => ({ ...prev, [key]: val }))
@@ -332,14 +350,16 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
         <form onSubmit={handleSubmit} className={embedded ? 'space-y-3' : 'space-y-5'}>
           {renderFormBody(entityDef.layout)}
 
-          {/* Submit */}
-          <div className={`flex items-center justify-end gap-2 ${embedded ? 'pt-1' : 'pt-2 gap-3'}`}>
-            <Button type="button" variant="outline" size={embedded ? 'sm' : 'default'} onClick={onCancel} disabled={saving}>{t('common.cancel')}</Button>
-            <Button type="submit" size={embedded ? 'sm' : 'default'} disabled={saving}>
-              {saving && <Loader2 className={`animate-spin ${embedded ? 'mr-1.5 h-3 w-3' : 'mr-2 h-4 w-4'}`} />}
-              {saving ? t('common.saving') : mode === 'create' ? t('crud.form.addTitle', { entity: entityDef.name }) : t('crud.form.saveChanges')}
-            </Button>
-          </div>
+          {/* Submit — embedded forms keep inline buttons; full-page forms use the floating SaveBar */}
+          {embedded && (
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={saving}>{t('common.cancel')}</Button>
+              <Button type="submit" size="sm" disabled={saving}>
+                {saving && <Loader2 className="animate-spin mr-1.5 h-3 w-3" />}
+                {saving ? t('common.saving') : mode === 'create' ? t('crud.form.addTitle', { entity: entityDef.name }) : t('crud.form.saveChanges')}
+              </Button>
+            </div>
+          )}
         </form>
       </div>
     </div>

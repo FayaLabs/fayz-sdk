@@ -201,6 +201,43 @@ export interface ListOrdersOptions {
 }
 
 // ---------------------------------------------------------------------------
+// Order placement (server-trust primitive)
+// ---------------------------------------------------------------------------
+
+/**
+ * A single line in a trusted order-placement request. Carries NO price — the
+ * server re-reads the product price from the catalog so the browser can never
+ * set what it pays.
+ */
+export interface PlaceOrderLine {
+  productId: string
+  quantity: number
+  /** Variant/options label appended to the stored item name (display only). */
+  optionsLabel?: string
+}
+
+/**
+ * Input for {@link ShopProvider.placeOrder} — the only trusted path to create a
+ * storefront order. Prices, discount math, and inventory are resolved
+ * server-side; the client supplies product ids, quantities, and intent only.
+ */
+export interface PlaceOrderInput {
+  /** Tenant/store id. The Supabase provider falls back to the resolved shop tenant. */
+  tenantId?: string
+  /** Existing customer id (preferred when the session already resolved one). */
+  customerId?: string
+  /** Customer identity for find-or-create when {@link PlaceOrderInput.customerId} is absent. */
+  customer?: { name?: string; email?: string }
+  currency?: string
+  notes?: string
+  /** Discount code to validate + apply server-side (never trust a client total). */
+  discountCode?: string
+  /** Shipping cost from the store's shipping policy. Clamped to >= 0 server-side. */
+  shippingTotal?: number
+  items: PlaceOrderLine[]
+}
+
+// ---------------------------------------------------------------------------
 // Customer
 // ---------------------------------------------------------------------------
 
@@ -238,6 +275,19 @@ export interface ListCustomersOptions {
   search?: string
   limit?: number
   offset?: number
+}
+
+/**
+ * Input for {@link ShopProvider.resolveCustomer} — find-or-create a customer by
+ * email and (on Supabase) link it to the authenticated user (auth.uid) so
+ * "my orders" can be enforced by RLS. Runs server-side; the browser never
+ * supplies the auth id.
+ */
+export interface ResolveCustomerInput {
+  email: string
+  name?: string
+  /** Tenant/store id. The Supabase provider falls back to the resolved shop tenant. */
+  tenantId?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -298,4 +348,54 @@ export interface ListDiscountsOptions {
   search?: string
   limit?: number
   offset?: number
+}
+
+// ---------------------------------------------------------------------------
+// Commerce primitives (FAY-1193) — provider-agnostic helpers for custom workflows
+// ---------------------------------------------------------------------------
+
+export interface DiscountValidation {
+  valid: boolean
+  code: string | null
+  type: DiscountType | null
+  /** Percentage points for 'percentage'; absolute amount for 'fixed_amount'. */
+  value: number
+  /** Machine-readable reason when invalid: not_found | expired | not_started | usage_limit | unsupported | empty */
+  reason?: string
+}
+
+export interface InventoryLine {
+  productId: string
+  quantity: number
+}
+
+export interface InventoryIssue {
+  productId: string
+  name: string
+  requested: number
+  available: number
+}
+
+export interface InventoryCheck {
+  ok: boolean
+  issues: InventoryIssue[]
+}
+
+export interface CartTotalLine {
+  productId: string
+  name: string
+  sku: string | null
+  unitPrice: number
+  quantity: number
+  lineTotal: number
+}
+
+export interface CartTotals {
+  lines: CartTotalLine[]
+  subtotal: number
+  discountTotal: number
+  discountCode: string | null
+  taxTotal: number
+  shippingTotal: number
+  total: number
 }

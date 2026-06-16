@@ -51,6 +51,8 @@ export interface PluginRouteDefinition {
   guard?: 'authenticated' | 'role' | 'public' | 'share-token'
   roles?: string[]
   permission?: PluginPermissionRequirement
+  /** Render edge-to-edge with no page padding/animation wrapper (chat, kanban, canvas). */
+  fullBleed?: boolean
 }
 
 export type PluginWidgetZone =
@@ -119,6 +121,55 @@ export interface PluginWidgetDefinition<TConfig extends Record<string, unknown> 
   permission?: PluginPermissionRequirement
   visibility?: PluginWidgetVisibility
   props?: TConfig
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard widgets — first-class units a plugin contributes to the dashboard
+// registry. Rendered both on the plugin's own home and on the global app home.
+// ---------------------------------------------------------------------------
+
+export type DashboardWidgetKind = 'kpi' | 'chart' | 'table' | 'onboarding' | 'custom'
+
+/** Surfaces a widget can appear on. 'home' = global app home; 'plugin-home' =
+ *  the owning plugin's own overview page. */
+export type DashboardSurface = 'home' | 'plugin-home'
+
+export interface DashboardWidgetDef<TProps extends Record<string, unknown> = Record<string, unknown>> {
+  /** Globally unique id, e.g. 'crm.kpi.total-leads'. */
+  id: string
+  /** i18n key or plain label. */
+  title: string
+  description?: string
+  icon?: string
+  /** Owning domain used to scope plugin-home vs global home. Defaults to plugin.id. */
+  domain?: string
+  kind: DashboardWidgetKind
+  /** Column span on the 4-col grid. Defaults by kind (kpi→1, chart→2, table→4). */
+  span?: 1 | 2 | 3 | 4
+  /** Visible before any app/user customization. Default: true. */
+  defaultVisible?: boolean
+  /** Default order within the surface (lower = first). */
+  defaultOrder?: number
+  /** Surfaces this widget appears on. Default: both. */
+  surfaces?: DashboardSurface[]
+  verticalId?: VerticalId
+  permission?: PluginPermissionRequirement
+  /** Component or a registered component id — exactly one is required. */
+  component?: React.ComponentType<unknown>
+  componentId?: string
+  props?: TProps
+}
+
+/** App- or user-level overrides applied on top of the registered defaults. */
+export interface DashboardLayoutConfig {
+  widgets?: Array<{ id: string; visible?: boolean; order?: number; span?: number }>
+}
+
+export interface ResolvedDashboardWidget extends DashboardWidgetDef {
+  /** Resolved owning domain (plugin.id when not explicitly set). */
+  domain: string
+  order: number
+  plugin: ResolvedPluginManifest
 }
 
 /** An event a plugin emits onto the event bus — declared for platform
@@ -232,6 +283,8 @@ export interface PluginManifest {
   settings?: PluginSettingsTab[]
   routes: PluginRouteDefinition[]
   widgets?: PluginWidgetDefinition[]
+  /** Dashboard widgets this plugin contributes to the dashboard registry. */
+  dashboardWidgets?: DashboardWidgetDef[]
   capabilities?: PluginCapability[]
   aiTools?: PluginAITool[]
   entities?: string[]
@@ -301,6 +354,7 @@ export interface PluginRuntime {
   navigation: PluginNavigationEntry[]
   settingsTabs: PluginSettingsTab[]
   widgets: ResolvedPluginWidget[]
+  dashboardWidgets: ResolvedDashboardWidget[]
   capabilities: PluginCapability[]
   aiTools: PluginAITool[]
   issues: PluginRuntimeIssue[]

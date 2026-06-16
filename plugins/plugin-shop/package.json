@@ -33,6 +33,7 @@
     "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/shop": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
+    "@tanstack/react-table": "^8.20.0",
     "lucide-react": "^0.400.0",
     "zustand": "^4.5.0"
   },

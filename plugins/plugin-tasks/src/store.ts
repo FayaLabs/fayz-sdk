@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
-import { dedup } from './lib/dedup'
+import { dedup } from '@fayz-ai/saas'
 import type { TasksDataProvider } from './data/types'
 import type {
   Task, TaskLabel, TasksSummary, TaskQuery,

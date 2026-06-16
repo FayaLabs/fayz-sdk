@@ -15,6 +15,10 @@ export * from '@fayz-ai/storefront'
 // `AuthProvider`: @fayz-ai/core exports an adapter type, @fayz-ai/auth the runtime
 // component — the umbrella surfaces the runtime component.
 export { AuthProvider } from '@fayz-ai/auth'
+// `formatCurrency`: @fayz-ai/core exports the general locale formatter
+// `(value, currencyCode?)`; @fayz-ai/saas adds a module-level `(value, {code,locale,symbol})`
+// helper that plugins import directly. The umbrella surfaces core's established one.
+export { formatCurrency } from '@fayz-ai/core'
 export type {
   AuthAdapter,
   AuthSession,
