@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** beauty-saas
-- **Next task:** B3 (replace onboarding `check: async () => false` with real existence queries)
+- **Next task:** B4 (author idempotent migrations for the views/columns B2/B5 need)
 - **Milestone in progress:** M-BEAUTY
 
 ## Order
@@ -14,7 +14,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 
 ### beauty-saas  [M-BEAUTY]
 - [x] B2 dashboard real queries — 7/10 metrics wired (v_bookings/v_clients/v_staff); avg-rating, occupancy, product-sales left hardcoded w/ TODO(B4) — typecheck pass
-- [ ] B3 onboarding real checks
+- [x] B3 onboarding real checks — 4/4 wired via tableHasRows() existence helper (clients→v_clients; services→saas_core.services; schedule→saas_core.schedules; payments→public.payment_methods). countRows `schema` param used for cross-schema; try/catch → false on missing source. No new view needed. typecheck pass
 - [ ] B4 migrations for B2/B3 views
 - [ ] B5 commission compute
 - [ ] B6 public booking flow
@@ -49,6 +49,10 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
   - `product-sales` → goods-vs-service split on order lines or an `inv_` sales rollup.
 - B2 revenue uses `v_bookings.order_total` summed client-side via `listRows` (no
   server aggregate in `fayz.data`). If volume grows, B4 can add `v_revenue_week`.
+- B3 needs **no new view**: `fayz.data.countRows` accepts a `schema` param, so
+  services/schedules are counted directly against `saas_core.*` (same access path
+  the archetype-lookup uses). The v_* views are only for cross-schema JOINs.
+- B5 (commission) needs `staff_members.commission_rate` — confirm/add the column.
 
 ## FOR THE HUMAN  (checkpoint queue — do these when you stop in)
 - Nothing staged yet. The first checkpoint will be **B-CHECK** once beauty-saas code tasks land.
