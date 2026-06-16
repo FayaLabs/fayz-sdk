@@ -243,8 +243,8 @@ export function LoginPage({
           </div>
         </div>
       </div>
-      <div className="flex flex-1 flex-col p-3 pl-0 lg:pl-3">
-        <div className="flex flex-1 flex-col justify-center rounded-[1.25rem] bg-background px-6 py-12 lg:px-16">
+      <div className="flex flex-1 flex-col lg:p-3 lg:pl-3">
+        <div className="flex flex-1 flex-col justify-center bg-background px-6 py-12 lg:rounded-[1.25rem] lg:px-16">
           <div className="mx-auto w-full max-w-sm">
             {brandLogo && <div className="mb-8">{brandLogo}</div>}
             <div className="mb-8">

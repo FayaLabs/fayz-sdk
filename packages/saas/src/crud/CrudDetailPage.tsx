@@ -322,7 +322,7 @@ export function CrudDetailPage({
 
       {/* Tabs */}
       <Tabs defaultValue={activeTab} onValueChange={handleTabChange}>
-        <TabsList className={embedded ? 'h-8' : undefined}>
+        <TabsList className={`max-w-full justify-start overflow-x-auto scrollbar-none${embedded ? ' h-8' : ''}`}>
           <TabsTrigger value="overview" className={`gap-1.5 ${embedded ? 'text-xs px-2 py-1' : ''}`}>
             <Eye className={embedded ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
             {t('common.overview')}

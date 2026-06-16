@@ -252,6 +252,8 @@ function TopbarLayout({
   topbarStart?: React.ReactNode
   topbarEnd?: React.ReactNode
 }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+
   // Topbar is full-bleed (edge to edge); only the content area gets the frame.
   return (
     <SaveBarProvider>
@@ -269,17 +271,54 @@ function TopbarLayout({
         userMenuExtras={userMenuExtras}
         leftContent={topbarStart}
         rightContent={topbarEnd}
+        onMenuClick={() => setMobileMenuOpen(true)}
       />
-      <main className={cn('flex-1 overflow-y-auto', frame && 'p-2')}>
-        <div className={cn('min-h-full', frame && 'rounded-xl border border-border bg-card')}>
+      {/* Frame inset/border only from md up, so mobile stays edge-to-edge. */}
+      <main className={cn('flex-1 overflow-y-auto', frame && 'md:p-2')}>
+        <div className={cn('min-h-full', frame && 'md:rounded-xl md:border md:border-border md:bg-card')}>
           {children}
         </div>
       </main>
 
       {/* App-wide floating SaveBar */}
       <SaveBar />
+
+      {/* Mobile drawer — topbar has no persistent sidebar, so the burger opens
+          the same animated nav drawer used by the sidebar layout. */}
+      {mobileMenuOpen && (
+        <MobileOverlay
+          navigation={navigation}
+          logo={logo}
+          user={user}
+          currentPath={currentPath}
+          onNavigate={onNavigate}
+          onSignOut={onSignOut}
+          onProfile={onProfile}
+          onSettings={onSettings}
+          onBilling={onBilling}
+          userMenuSlot={user ? <DrawerUserRow user={user} /> : undefined}
+          onClose={() => setMobileMenuOpen(false)}
+        />
+      )}
     </div>
     </SaveBarProvider>
+  )
+}
+
+// Compact user identity for the mobile drawer's bottom row.
+function DrawerUserRow({ user }: { user: AppShellUser }) {
+  const label = user.fullName || user.email
+  return (
+    <div className="flex min-w-0 items-center gap-2 px-1">
+      {user.avatarUrl ? (
+        <img src={user.avatarUrl} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+      ) : (
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+          {(label || '?').charAt(0).toUpperCase()}
+        </span>
+      )}
+      <span className="truncate text-sm font-medium text-sidebar-foreground">{label}</span>
+    </div>
   )
 }
 
@@ -355,7 +394,7 @@ function MobileOverlay({ onClose, onNavigate, ...sidebarProps }: MobileOverlayPr
   }, [close])
 
   return (
-    <div className="fixed inset-0 z-40 md:hidden">
+    <div className="fixed inset-0 z-[60] md:hidden">
       {/* Backdrop — fades in/out */}
       <div
         className={cn(
