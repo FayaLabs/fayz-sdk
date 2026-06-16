@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** beauty-saas
-- **Next task:** B6 (public booking flow ported from beautyplace — slot pick + create booking on real data)
+- **Next task:** B7 (confirm used plugins run on real data, tenant-scoped; `setActiveTenantId` wired on org switch)
 - **Milestone in progress:** M-BEAUTY
 
 ## Order
@@ -17,7 +17,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 - [x] B3 onboarding real checks — 4/4 wired via tableHasRows() existence helper (clients→v_clients; services→saas_core.services; schedule→saas_core.schedules; payments→public.payment_methods). countRows `schema` param used for cross-schema; try/catch → false on missing source. No new view needed. typecheck pass
 - [x] B4 migrations for B2/B3 views — verified B2/B3 *wired* metrics already backed (v_bookings.order_total, v_clients last_visit/visits/created_at, v_staff, saas_core.services/schedules, public.payment_methods all exist). Only missing piece: staff_members.commission_rate (absent from all 34 migrations) → authored idempotent `20260616000001_staff_commission_rate.sql` (ADD COLUMN IF NOT EXISTS numeric(5,2) DEFAULT 0 + surfaced in v_staff w/ security_invoker). typecheck pass (no TS touched), staged not applied. Source views for the 3 hardcoded metrics (avg-rating/occupancy/product-sales) deferred — not yet wired.
 - [x] B5 commission compute — added `createCommissionMovement(orderId)` to AgendaFinancialBridge (SDK plugin-agenda) + pure `computeCommissionAmount(total, rate%)` helper. Resolves the professional via `orders.assignee_id`, reads `v_staff.commission_rate`, inserts a `financial_movements` row (direction='debit', movement_kind='commission', metadata{professionalId,commissionRate,baseAmount}); idempotent per order (reuses existing commission movement). No `fin_commission_rules` table in this schema — rate lives on staff_members.commission_rate (B4). typecheck pass EXIT=0, capability gate EXIT=0
-- [ ] B6 public booking flow
+- [x] B6 public booking flow — added `src/lib/booking.ts` (booking engine on fayz.data): listBookableServices (saas_core.services), listProfessionals (v_staff), pure `generateDaySlots`/`filterAvailableSlots` + `getAvailableSlots` (reads v_bookings for the pro+day, filters conflicts + minAdvanceHours), and `createBooking` writing order→booking→booking_items+order_items into saas_core (mirrors agenda provider insert shape; tenant_id from BookingDraft). Multi-step `PublicBooking.tsx` page (service→pro→date→time→client→success) registered at `/book`. Tenant resolved from `?tenant=` URL param / VITE_DEFAULT_TENANT_ID. typecheck pass EXIT=0, build pass (vite ✓). NOTE: page is registered behind app auth (permission clients.create) — true anon hosting + person lookup/create-by-phone deferred to B-CHECK/follow-up.
 - [ ] B7 plugins on real data + tenant wiring
 - [~] B-CHECK human: apply migrations + login smoke test
 
