@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ===========================================================================
+  launchd alternative to loop.sh — survives terminal close / logout.
+
+  INSTALL:  cp docs/dogfood-sprint/com.faya.dogfood-sprint.plist ~/Library/LaunchAgents/
+            launchctl load ~/Library/LaunchAgents/com.faya.dogfood-sprint.plist
+  STOP:     launchctl unload ~/Library/LaunchAgents/com.faya.dogfood-sprint.plist
+  WATCH:    tail -f docs/dogfood-sprint/runs/launchd.out.log
+
+  Fires run-once.sh every 900s (15 min). Unlike loop.sh it does NOT self-stop
+  after 12h — unload it when the sprint is done. Use loop.sh if you prefer a
+  single visible foreground process that stops itself.
+============================================================================ -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.faya.dogfood-sprint</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/fayalabs/dev/fayz-sdk/docs/dogfood-sprint/run-once.sh</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>900</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/fayalabs/dev/fayz-sdk/docs/dogfood-sprint/runs/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/fayalabs/dev/fayz-sdk/docs/dogfood-sprint/runs/launchd.err.log</string>
+</dict>
+</plist>

@@ -9,3 +9,7 @@ dist
 
 # Playwright MCP browser-automation artifacts
 .playwright-mcp/
+
+# dogfood-sprint runtime artifacts
+docs/dogfood-sprint/runs/
+docs/dogfood-sprint/.loop.lock

@@ -1,0 +1,11 @@
+Dogfood-sprint iteration. Do ONE small task, then stop. Follow the protocol exactly:
+
+1. Read docs/dogfood-sprint/CADENCE.md (the protocol) and docs/dogfood-sprint/STATE.md (the live ledger — FOCUS app, next task, FEEDBACK, BLOCKER, FOR THE HUMAN). Honor any FEEDBACK first. Need test creds / Supabase ids? They're in docs/dogfood-sprint/credentials.local (gitignored).
+2. Take the single next unchecked, unblocked task for the FOCUS app from STATE.md/PLAN.md. If it's a HUMAN-CHECKPOINT (live DB apply, visual login, real keys), do NOT attempt it — refresh its "FOR THE HUMAN" block in STATE, mark it staged, and pick the next code task.
+3. App code is in /Users/fayalabs/dev/fayz-app/<app> (each its OWN git repo). Before editing, put that repo on branch fay/dogfood-sprint (create from main; NEVER edit main). SDK code is in /Users/fayalabs/dev/fayz-sdk on the current branch. Follow docs/dogfood-sprint/DATA-MODEL.md and the plugin-tasks / fayz.data patterns.
+4. Verify what you can: typecheck the touched app/package (and capability gate / vitest if relevant). Record the EXACT result. If it fails and you can't fix it this iteration, leave it uncommitted, record a BLOCKER, stop.
+5. Commit only the files this task touched (no `git add .` of the whole tree) on fay/dogfood-sprint in the app repo; commit STATE.md/LOG.md separately in fayz-sdk. Message: `sprint(<app>): <what> — <verify result>` followed by a trailer line `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. NEVER push. NEVER commit to main/dev.
+6. Tick the task in STATE.md, set the next task, append one line to LOG.md (use iteration #N from the last LOG line). If an app's queue is done, mark its milestone, write its FOR THE HUMAN checkpoint, and move FOCUS to the next app.
+7. Stop. One task per fire. Keep output brief — a few lines on what you did + verify result.
+
+Hard rules: never push; never main/dev; never destructive git; never hunt for secrets or run SQL against a live DB; every committed code change passed typecheck.
