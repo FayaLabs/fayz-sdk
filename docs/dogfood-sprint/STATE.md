@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** beauty-saas
-- **Next task:** B4 (author idempotent migrations for the views/columns B2/B5 need)
+- **Next task:** B5 (commission compute: fin_commission_rules × person(kind=staff) × booking → financial movement)
 - **Milestone in progress:** M-BEAUTY
 
 ## Order
@@ -15,7 +15,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 ### beauty-saas  [M-BEAUTY]
 - [x] B2 dashboard real queries — 7/10 metrics wired (v_bookings/v_clients/v_staff); avg-rating, occupancy, product-sales left hardcoded w/ TODO(B4) — typecheck pass
 - [x] B3 onboarding real checks — 4/4 wired via tableHasRows() existence helper (clients→v_clients; services→saas_core.services; schedule→saas_core.schedules; payments→public.payment_methods). countRows `schema` param used for cross-schema; try/catch → false on missing source. No new view needed. typecheck pass
-- [ ] B4 migrations for B2/B3 views
+- [x] B4 migrations for B2/B3 views — verified B2/B3 *wired* metrics already backed (v_bookings.order_total, v_clients last_visit/visits/created_at, v_staff, saas_core.services/schedules, public.payment_methods all exist). Only missing piece: staff_members.commission_rate (absent from all 34 migrations) → authored idempotent `20260616000001_staff_commission_rate.sql` (ADD COLUMN IF NOT EXISTS numeric(5,2) DEFAULT 0 + surfaced in v_staff w/ security_invoker). typecheck pass (no TS touched), staged not applied. Source views for the 3 hardcoded metrics (avg-rating/occupancy/product-sales) deferred — not yet wired.
 - [ ] B5 commission compute
 - [ ] B6 public booking flow
 - [ ] B7 plugins on real data + tenant wiring
@@ -52,7 +52,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 - B3 needs **no new view**: `fayz.data.countRows` accepts a `schema` param, so
   services/schedules are counted directly against `saas_core.*` (same access path
   the archetype-lookup uses). The v_* views are only for cross-schema JOINs.
-- B5 (commission) needs `staff_members.commission_rate` — confirm/add the column.
+- B5 (commission) needs `staff_members.commission_rate` — DONE in B4: confirmed absent across all 34 migrations, added via `20260616000001_staff_commission_rate.sql` (numeric(5,2) DEFAULT 0) and surfaced in `v_staff`. B5 can read the per-professional default rate from `v_staff.commission_rate`. Migration is staged (human-apply in B-CHECK), so until applied the column reads as missing against the live DB — B5 code should tolerate that.
 
 ## FOR THE HUMAN  (checkpoint queue — do these when you stop in)
 - Nothing staged yet. The first checkpoint will be **B-CHECK** once beauty-saas code tasks land.
