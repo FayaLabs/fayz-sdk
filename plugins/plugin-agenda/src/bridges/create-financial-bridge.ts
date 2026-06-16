@@ -7,6 +7,18 @@ import type { FinancialDataProvider } from '@fayz-ai/plugin-financial'
 import type { AgendaFinancialBridge, BookingPaymentSummary, BookingPaymentDetail, BookingPaymentStatus } from '../financial-bridge'
 import { getSupabaseClientOptional } from '@fayz-ai/core'
 
+/**
+ * Pure commission math: percentage of a realized order total, rounded to cents.
+ * Exported for unit-testing and reuse; the bridge method below wraps the I/O.
+ * Returns 0 for a non-positive base or rate so callers can skip empty accruals.
+ */
+export function computeCommissionAmount(total: number, ratePercent: number): number {
+  const base = Number(total) || 0
+  const rate = Number(ratePercent) || 0
+  if (base <= 0 || rate <= 0) return 0
+  return Math.round(base * (rate / 100) * 100) / 100
+}
+
 function computeStatus(movements: Array<{ status: string }>): BookingPaymentStatus {
   if (movements.length === 0) return 'none'
   const allPaid = movements.every((m) => m.status === 'paid')
@@ -234,6 +246,67 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
         cardBrand: input.cardBrand,
         cardInstallments: input.cardInstallments,
       })
+    },
+
+    async createCommissionMovement(orderId, options) {
+      const supabase = getSupabaseClientOptional() as any
+      if (!supabase) return null
+
+      // Order carries the assigned professional (assignee_id) and realized total.
+      const { data: order } = await supabase
+        .schema('saas_core')
+        .from('orders')
+        .select('id, tenant_id, assignee_id, total')
+        .eq('id', orderId)
+        .single()
+      if (!order || !order.assignee_id) return null // no professional → no commission
+
+      // Per-professional rate lives on staff_members, surfaced via v_staff (id = person id).
+      const { data: staff } = await supabase
+        .from('v_staff')
+        .select('commission_rate')
+        .eq('id', order.assignee_id)
+        .single()
+
+      const rate = Number(staff?.commission_rate) || 0
+      const base = Number(order.total) || 0
+      const amount = computeCommissionAmount(base, rate)
+      if (amount <= 0) return null // nothing configured/realized to accrue
+
+      // Idempotent: one commission accrual per order. Reuse if already present.
+      const { data: existing } = await supabase
+        .from('financial_movements')
+        .select('id')
+        .eq('invoice_id', orderId)
+        .eq('movement_kind', 'commission')
+        .limit(1)
+      if (existing && existing.length > 0) return existing[0].id as string
+
+      const dueDate = options?.dueDate ?? new Date().toISOString().slice(0, 10)
+
+      const { data: inserted } = await supabase
+        .from('financial_movements')
+        .insert({
+          tenant_id: order.tenant_id,
+          invoice_id: orderId,
+          direction: 'debit', // payable to the professional
+          movement_kind: 'commission',
+          amount,
+          paid_amount: 0,
+          status: 'pending',
+          due_date: dueDate,
+          metadata: {
+            source: 'agenda',
+            kind: 'commission',
+            professionalId: order.assignee_id,
+            commissionRate: rate,
+            baseAmount: base,
+          },
+        })
+        .select('id')
+        .single()
+
+      return (inserted?.id as string | undefined) ?? null
     },
 
     async checkout(orderId, input) {

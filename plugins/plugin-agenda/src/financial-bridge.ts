@@ -50,6 +50,20 @@ export interface AgendaFinancialBridge {
     paymentMethodTypeId?: string
   }): Promise<string>
 
+  /**
+   * Accrue the assigned professional's commission for a booking's order as a
+   * payable `financial_movements` row (direction='debit', movement_kind='commission').
+   * Commission = order.total × professional commission_rate%. Resolves the rate
+   * from the `v_staff` bridge view via the order's `assignee_id`.
+   *
+   * Idempotent per order: returns the existing commission movement id if one was
+   * already accrued. Returns null when there is no professional, no configured
+   * rate, a zero base, or Supabase is unavailable (nothing to accrue).
+   */
+  createCommissionMovement?(orderId: string, options?: {
+    dueDate?: string
+  }): Promise<string | null>
+
   /** Record a payment against a movement (installment) */
   payMovement(input: {
     movementId: string
