@@ -1,22 +1,12 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import { InventoryPage } from './InventoryPage'
+import { createInventoryDashboardWidgets } from './views/dashboardWidgets'
 import type { ResolvedInventoryConfig } from './InventoryContext'
 import type { InventoryDataProvider } from './data/types'
 import { createMockInventoryProvider } from './data/mock'
 import { createSupabaseInventoryProvider } from './data/supabase'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
-
-function createSafeInventoryProvider(): InventoryDataProvider {
-  let resolved: InventoryDataProvider | null = null
-  function get(): InventoryDataProvider {
-    if (!resolved) resolved = getSupabaseClientOptional() ? createSupabaseInventoryProvider() : createMockInventoryProvider()
-    return resolved
-  }
-  return new Proxy({} as InventoryDataProvider, {
-    get: (_, prop) => (...args: any[]) => (get() as any)[prop](...args),
-  })
-}
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { createInventoryStore } from './store'
 import { inventoryRegistries } from './registries'
 import { inventoryLocales } from './locales'
@@ -113,8 +103,12 @@ function resolveConfig(options?: InventoryPluginOptions): ResolvedInventoryConfi
 export function createInventoryPlugin(options?: InventoryPluginOptions): PluginManifest {
   const config = resolveConfig(options)
   registerTranslations(inventoryLocales)
-  const provider = options?.dataProvider ?? createSafeInventoryProvider()
+  const provider = options?.dataProvider ?? createSafeDataProvider(
+    () => createSupabaseInventoryProvider(),
+    () => createMockInventoryProvider(),
+  )
   const store = createInventoryStore(provider)
+  const dashboardWidgets = createInventoryDashboardWidgets({ config, provider, store })
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(InventoryPage, { config, provider, store, registries: inventoryRegistries })
@@ -150,6 +144,7 @@ export function createInventoryPlugin(options?: InventoryPluginOptions): PluginM
       },
     ],
     widgets: [],
+    dashboardWidgets,
     aiTools: [
       {
         id: 'inventory.low-stock',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, Save, Loader2, Check } from 'lucide-react'
-import { Button } from '@fayz-ai/ui'
+import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { Button, useSaveBar } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import type { CustomFormsDataProvider } from '../data/types'
 import type { CustomFormsStore } from '../store'
@@ -71,6 +71,21 @@ export function DocumentFormDialog({
     [template, existingDocument, data, personId, personName, store, onSaved],
   )
 
+  // Dirty detection — snapshot editable field values once template is ready
+  const snapshot = React.useRef<string | null>(null)
+  useEffect(() => {
+    if (template && snapshot.current === null) snapshot.current = JSON.stringify(data)
+  }, [template])
+  const dirty = snapshot.current !== null && JSON.stringify(data) !== snapshot.current
+
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: () => { void handleSave('completed') },
+    onDiscard: () => onBack(),
+    saveLabel: t('customForms.saveAndComplete'),
+  })
+
   if (!template) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -107,15 +122,11 @@ export function DocumentFormDialog({
         />
       </div>
 
-      {/* Actions */}
+      {/* Secondary action — primary "Save & Complete" lives in the floating SaveBar */}
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => handleSave('draft')} disabled={saving}>
           {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
           {t('customForms.saveAsDraft')}
-        </Button>
-        <Button size="sm" onClick={() => handleSave('completed')} disabled={saving}>
-          {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
-          {t('customForms.saveAndComplete')}
         </Button>
       </div>
     </div>

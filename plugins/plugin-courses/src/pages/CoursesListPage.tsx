@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Badge } from '@fayz-ai/ui'
+import { Button, Badge, PageHeaderActions, useModuleLayout } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { getCoursesProvider, type Course } from '@fayz-ai/courses'
 import { navigateTo } from '../nav'
@@ -12,6 +12,9 @@ function statusVariant(status: Course['status']): 'success' | 'secondary' | 'out
 
 export function CoursesListPage() {
   const t = useTranslation()
+  // When the app shell owns the page header (sidebar/GHL-style layouts), don't
+  // render our own title — and project the action button into the top bar.
+  const shellOwnsHeader = useModuleLayout() === 'tabs'
   const [courses, setCourses] = React.useState<Course[] | null>(null)
   const [creating, setCreating] = React.useState(false)
 
@@ -38,19 +41,27 @@ export function CoursesListPage() {
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('courses.title') || 'Courses'}</h1>
-          {courses && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {(t('courses.count') || '{count} courses').replace('{count}', String(courses.length))}
-            </p>
-          )}
+      {shellOwnsHeader ? (
+        <PageHeaderActions>
+          <Button onClick={onCreate} disabled={creating}>
+            {t('courses.new') || 'New course'}
+          </Button>
+        </PageHeaderActions>
+      ) : (
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{t('courses.title') || 'Courses'}</h1>
+            {courses && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {(t('courses.count') || '{count} courses').replace('{count}', String(courses.length))}
+              </p>
+            )}
+          </div>
+          <Button onClick={onCreate} disabled={creating}>
+            {t('courses.new') || 'New course'}
+          </Button>
         </div>
-        <Button onClick={onCreate} disabled={creating}>
-          {t('courses.new') || 'New course'}
-        </Button>
-      </div>
+      )}
 
       {courses && courses.length === 0 && (
         <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">

@@ -6,8 +6,8 @@ import type {
   Order, ShopCustomer, Discount,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
   CreateCategoryInput, UpdateCategoryInput,
-  CreateOrderInput, UpdateOrderInput, ListOrdersOptions,
-  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions,
+  CreateOrderInput, UpdateOrderInput, ListOrdersOptions, PlaceOrderInput,
+  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
   CreateDiscountInput, UpdateDiscountInput, ListDiscountsOptions,
 } from './types'
 
@@ -352,6 +352,30 @@ export class SupabaseShopProvider implements ShopProvider {
     return this.getOrder(id) as Promise<Order>
   }
 
+  // Trusted placement — delegates all price/discount/inventory authority to the
+  // shop_place_order RPC (SECURITY DEFINER). The browser never sets a price.
+  async placeOrder(input: PlaceOrderInput): Promise<Order> {
+    const db = getDb()
+    const tenantId = input.tenantId ?? getTenantId()
+    if (!tenantId) throw new Error('@fayz-ai/shop: placeOrder requires a tenant id (configure the shop tenant resolver).')
+    const { data, error } = await db.rpc('shop_place_order', {
+      p_tenant_id: tenantId,
+      p_items: input.items.map(i => ({ product_id: i.productId, quantity: i.quantity, options_label: i.optionsLabel ?? null })),
+      p_customer_id: asUuid(input.customerId),
+      p_customer_name: input.customer?.name ?? null,
+      p_customer_email: input.customer?.email ?? null,
+      p_currency: input.currency ?? 'BRL',
+      p_discount_code: input.discountCode ?? null,
+      p_shipping_total: input.shippingTotal ?? 0,
+      p_notes: input.notes ?? null,
+    })
+    if (error) throw error
+    const orderId = typeof data === 'string' ? data : (data?.id ?? data?.order_id ?? data)
+    const order = await this.getOrder(orderId)
+    if (!order) throw new Error('@fayz-ai/shop: placeOrder did not return a persisted order.')
+    return order
+  }
+
   // ---------------------------------------------------------------------------
   // Customers
   // ---------------------------------------------------------------------------
@@ -398,6 +422,23 @@ export class SupabaseShopProvider implements ShopProvider {
   async deleteCustomer(id: string): Promise<void> {
     const { error } = await getDb().from('shop_customers').delete().eq('id', id)
     if (error) throw error
+  }
+
+  // Find-or-create + link to auth.uid server-side (SECURITY DEFINER RPC), so the
+  // browser never supplies the auth id and "my orders" is RLS-scoped to the owner.
+  async resolveCustomer(input: ResolveCustomerInput): Promise<ShopCustomer> {
+    const db = getDb()
+    const tenantId = input.tenantId ?? getTenantId()
+    if (!tenantId) throw new Error('@fayz-ai/shop: resolveCustomer requires a tenant id.')
+    const { data, error } = await db.rpc('shop_resolve_customer', {
+      p_tenant_id: tenantId,
+      p_email: input.email,
+      p_name: input.name ?? null,
+    })
+    if (error) throw error
+    const row = Array.isArray(data) ? data[0] : data
+    if (!row) throw new Error('@fayz-ai/shop: resolveCustomer returned no row.')
+    return rowToCustomer(row)
   }
 
   // ---------------------------------------------------------------------------

@@ -168,6 +168,7 @@ export const en: Record<string, string> = {
   "crm.quoteForm.newTitle": "New Quote",
   "crm.quoteForm.noDescription": "No description",
   "crm.quoteForm.noItems": "No items added",
+  "crm.quoteForm.errNoItems": "Add at least one item before saving.",
   "crm.quoteForm.notes": "Notes",
   "crm.quoteForm.notesPlaceholder": "Internal observations...",
   "crm.quoteForm.paymentConditions": "Payment Conditions",

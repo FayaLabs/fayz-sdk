@@ -143,6 +143,9 @@ export interface ReportsPluginOptions {
   verticalId?: import('@fayz-ai/core').VerticalId
   /** Default page size. Default: 50 */
   defaultPageSize?: number
+  /** Render the in-content title/subtitle. Set false when the app shell owns the
+   *  page title (sidebar/GHL-style layouts). Default: true. */
+  showHeader?: boolean
 }
 
 export interface ResolvedReportsConfig {
@@ -150,4 +153,5 @@ export interface ResolvedReportsConfig {
   currency: { code: string; locale: string; symbol: string }
   reports: ReportDef[]
   defaultPageSize: number
+  showHeader: boolean
 }

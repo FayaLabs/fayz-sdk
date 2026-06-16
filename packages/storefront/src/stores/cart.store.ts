@@ -30,6 +30,8 @@ export interface CartState {
   discountCode: string | null
   discountPercent: number
   isOpen: boolean
+  /** Line most recently added — lets the drawer briefly highlight it. */
+  justAddedLineId: string | null
   addItem(product: Product, qty?: number, options?: ProductOptionSelection): void
   setQuantity(lineId: string, qty: number): void
   removeItem(lineId: string): void
@@ -47,6 +49,7 @@ export const useCartStore = create<CartState>()(
       discountCode: null,
       discountPercent: 0,
       isOpen: false,
+      justAddedLineId: null,
 
       addItem: (product, qty = 1, options) =>
         set((state) => {
@@ -57,6 +60,10 @@ export const useCartStore = create<CartState>()(
           if (existing) {
             const nextQty = Math.min(existing.quantity + qty, existing.maxQuantity || Infinity)
             return {
+              // Auto-open the cart on add — the standard premium "slide-in cart"
+              // signal — and flag the line so the drawer can highlight it.
+              isOpen: true,
+              justAddedLineId: lineId,
               lines: state.lines.map((l) =>
                 (l.lineId ?? l.productId) === lineId ? { ...l, lineId, quantity: nextQty } : l,
               ),
@@ -76,7 +83,7 @@ export const useCartStore = create<CartState>()(
             imageUrl: image?.url ?? null,
             maxQuantity: product.inventoryCount,
           }
-          return { lines: [...state.lines, line] }
+          return { isOpen: true, justAddedLineId: lineId, lines: [...state.lines, line] }
         }),
 
       setQuantity: (lineId, qty) =>
@@ -98,7 +105,7 @@ export const useCartStore = create<CartState>()(
       clearDiscount: () => set({ discountCode: null, discountPercent: 0 }),
       clear: () => set({ lines: [], discountCode: null, discountPercent: 0 }),
       openDrawer: () => set({ isOpen: true }),
-      closeDrawer: () => set({ isOpen: false }),
+      closeDrawer: () => set({ isOpen: false, justAddedLineId: null }),
     }),
     {
       name: 'fayz.storefront.cart.v1',

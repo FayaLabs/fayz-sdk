@@ -101,10 +101,22 @@ export interface StorefrontConfig {
   catalog?: MockShopSeed
   /** Store-level discount codes available regardless of provider backend. */
   discounts?: StorefrontDiscountConfig[]
+  /**
+   * Institutional/legal page content (privacy, terms, returns). Plain text —
+   * blank lines separate paragraphs. Unset pages render a placeholder so the
+   * routes (and footer links) exist even before the store writes its policy.
+   */
+  legal?: { privacy?: string; terms?: string; returns?: string }
   /** Customer auth — same AuthAdapter contract as createSaasApp. Default: mock. */
   auth?: { adapter?: StorefrontAuthAdapter }
   /** Shipping pricing — default { flatRate: 0 } */
   shipping?: { flatRate?: number; freeAbove?: number }
+  /**
+   * Payment behavior. v1 default 'mock' instantly marks orders paid with NO
+   * real charge (demo). M4 sets 'pix-mercadopago' so orders stay pending until
+   * a real payment webhook confirms settlement.
+   */
+  payments?: { mode?: 'mock' | 'pix-mercadopago' }
   /** Feature toggles — discounts default off; accounts default on */
   features?: { discounts?: boolean; accounts?: boolean }
   /** Code-level customization slots. Kept out of serialized manifests. */
@@ -117,6 +129,7 @@ export interface ResolvedStorefrontConfig extends StorefrontConfig {
   currency: string
   locale: string
   shipping: { flatRate: number; freeAbove?: number }
+  payments: { mode: 'mock' | 'pix-mercadopago' }
   features: { discounts: boolean; accounts: boolean }
   /** Where the full product list lives ('/' without a home page, '/catalog' with one) */
   catalogPath: string
@@ -130,8 +143,14 @@ export function resolveConfig(config: StorefrontConfig): ResolvedStorefrontConfi
     currency: config.currency ?? 'BRL',
     locale: config.locale ?? 'pt-BR',
     shipping: { flatRate: config.shipping?.flatRate ?? 0, freeAbove: config.shipping?.freeAbove },
+    payments: { mode: config.payments?.mode ?? 'mock' },
     features: {
-      discounts: config.features?.discounts ?? false,
+      // Auto-enable the coupon UI when the store actually ships discount codes
+      // (via config.discounts or a seeded catalog), unless explicitly overridden —
+      // otherwise a store can advertise a coupon with no field to enter it.
+      discounts:
+        config.features?.discounts ??
+        Boolean(config.discounts?.length || config.catalog?.discounts?.length),
       accounts: config.features?.accounts ?? true,
     },
     catalogPath,

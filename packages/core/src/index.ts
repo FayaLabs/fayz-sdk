@@ -1,7 +1,7 @@
 // Types
 export type { EntityArchetype, BaseEntity, PersonEntity, ProductEntity, ServiceEntity, OrderEntity, TransactionEntity, LocationEntity, ScheduleEntity, CategoryEntity } from './types/entities'
 export type { EntityDef, FieldDef, FieldType, FieldGroup, DetailTab, FormLayout } from './types/crud'
-export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, PluginRegistryDef, PluginMigration, VerticalId, ScaffoldType, TenantPluginBinding } from './types/plugins'
+export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, PluginRegistryDef, PluginMigration, VerticalId, ScaffoldType, TenantPluginBinding, DashboardWidgetDef, DashboardWidgetKind, DashboardSurface, DashboardLayoutConfig, ResolvedDashboardWidget } from './types/plugins'
 export { WidgetZone } from './types/plugins'
 export type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from './types/auth'
 export type { OrgAdapter, Organization, OrgMember, OrgMembership, Location, Invite, CreateOrgOptions } from './types/org'
@@ -17,6 +17,7 @@ export { createMockProvider } from './data/mock'
 export { createArchetypeProvider } from './data/archetype'
 export { withCache } from './data/cached'
 export { resolveDataProvider } from './data/resolve'
+export { createSafeDataProvider } from './plugin/createSafeDataProvider'
 export type { DataProvider, CrudQuery, CrudResult, SupabaseProviderConfig, FayzApiProviderConfig } from './data/index'
 
 // Tenant context (runtime DI for the data layer)
@@ -44,7 +45,7 @@ export { globalCache, createCacheStore, stableKey, clearGlobalCache } from './li
 export type { CacheStore } from './lib/cache'
 
 // Plugin system
-export { definePlugin, resolvePluginRuntime, getWidgetsForZone, PluginRuntimeProvider, usePluginRuntime, usePluginRuntimeOptional, PLUGIN_API_VERSION, resolvePluginComponent } from './plugin/runtime'
+export { definePlugin, resolvePluginRuntime, getWidgetsForZone, getDashboardWidgets, PluginRuntimeProvider, usePluginRuntime, usePluginRuntimeOptional, PLUGIN_API_VERSION, resolvePluginComponent } from './plugin/runtime'
 export type { PluginEventDefinition, PluginQuickAction } from './types/plugins'
 
 // Event bus

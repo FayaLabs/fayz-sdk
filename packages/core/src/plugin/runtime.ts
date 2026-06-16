@@ -16,6 +16,8 @@ import type {
   PluginNavigationEntry,
   PluginCapability,
   PluginWidgetVisibility,
+  ResolvedDashboardWidget,
+  DashboardSurface,
 } from '../types/plugins'
 import type { FeatureDeclaration } from '../types/permissions'
 import { getComponent } from '../registry'
@@ -101,6 +103,7 @@ function createEmptyRuntime(context: PluginRuntimeContext = EMPTY_CONTEXT): Plug
     navigation: [],
     settingsTabs: [],
     widgets: [],
+    dashboardWidgets: [],
     capabilities: [],
     aiTools: [],
     registries: new Map(),
@@ -231,6 +234,7 @@ export function resolvePluginRuntime({
   const navigation: PluginNavigationEntry[] = []
   const settingsTabs: PluginSettingsTab[] = []
   const widgets: ResolvedPluginWidget[] = []
+  const dashboardWidgets: ResolvedDashboardWidget[] = []
   const capabilities: PluginCapability[] = []
   const aiTools: PluginAITool[] = []
   const registries = new Map<string, PluginRegistryDef[]>()
@@ -254,6 +258,12 @@ export function resolvePluginRuntime({
       config: { ...plugin.config, ...(w.props ?? {}) },
       plugin,
     })))
+    dashboardWidgets.push(...(plugin.dashboardWidgets ?? []).map((w, i) => ({
+      ...w,
+      domain: w.domain ?? plugin.id,
+      order: w.defaultOrder ?? i,
+      plugin,
+    })))
   }
 
   navigation.sort((a, b) => {
@@ -262,8 +272,9 @@ export function resolvePluginRuntime({
   })
   settingsTabs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   widgets.sort((a, b) => a.zone !== b.zone ? a.zone.localeCompare(b.zone) : a.order - b.order)
+  dashboardWidgets.sort((a, b) => a.order - b.order)
 
-  return { context, plugins: resolvedPlugins, activePlugins, routes, navigation, settingsTabs, widgets, capabilities, aiTools, issues, registries, pluginFeatures }
+  return { context, plugins: resolvedPlugins, activePlugins, routes, navigation, settingsTabs, widgets, dashboardWidgets, capabilities, aiTools, issues, registries, pluginFeatures }
 }
 
 export function getWidgetsForZone(
@@ -273,6 +284,21 @@ export function getWidgetsForZone(
 ): ResolvedPluginWidget[] {
   const ctx = { ...runtime.context, ...contextOverrides }
   return runtime.widgets.filter((w) => w.zone === zone && isWidgetVisible(w, ctx))
+}
+
+export function getDashboardWidgets(
+  runtime: PluginRuntime,
+  options: { surface: DashboardSurface; domain?: string; contextOverrides?: Partial<PluginRuntimeContext> },
+): ResolvedDashboardWidget[] {
+  const ctx = { ...runtime.context, ...options.contextOverrides }
+  return runtime.dashboardWidgets.filter((w) => {
+    const surfaces = w.surfaces ?? ['home', 'plugin-home']
+    if (!surfaces.includes(options.surface)) return false
+    if (options.domain && w.domain !== options.domain) return false
+    if (w.verticalId && ctx.tenant?.verticalId && w.verticalId !== ctx.tenant.verticalId) return false
+    if (w.permission && ctx.hasPermission && !ctx.hasPermission(w.permission)) return false
+    return true
+  })
 }
 
 const PluginRuntimeContext = React.createContext<PluginRuntime | null>(null)

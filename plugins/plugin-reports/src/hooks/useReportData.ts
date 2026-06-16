@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import type { ReportDef, ReportQueryState, ReportDateRange } from '../types'
 import type { ReportDataProvider, ReportResult } from '../data/types'
-import { dedup } from '../lib/dedup'
+import { dedup } from '@fayz-ai/saas'
 
 function defaultDateRange(): ReportDateRange {
   const now = new Date()

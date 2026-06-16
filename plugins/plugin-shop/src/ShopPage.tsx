@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import { DataTable } from '@fayz-ai/ui'
 import { getShopProvider } from '@fayz-ai/shop'
 import type { Product, Order, ShopCustomer, Discount, ListProductsOptions, ShopProvider } from '@fayz-ai/shop'
 
@@ -68,6 +70,29 @@ function ProductsTab({ provider }: ShopPageProps) {
     load(q ? { search: q } : undefined)
   }
 
+  const columns = useMemo<ColumnDef<Product, any>[]>(() => [
+    { accessorKey: 'name', header: 'Produto', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
+    { accessorKey: 'sku', header: 'SKU', cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string | undefined) ?? '—'}</span> },
+    {
+      accessorKey: 'price', header: () => <span className="block text-right">Preço</span>,
+      cell: ({ getValue, row }) => <div className="text-right">{currency(getValue() as number, row.original.currency)}</div>,
+    },
+    {
+      accessorKey: 'inventoryCount', header: () => <span className="block text-right">Estoque</span>,
+      cell: ({ getValue }) => {
+        const count = getValue() as number
+        return <div className="text-right"><span className={count === 0 ? 'text-red-600 font-medium' : ''}>{count}</span></div>
+      },
+    },
+    {
+      accessorKey: 'status', header: 'Status',
+      cell: ({ getValue }) => {
+        const status = getValue() as string
+        return badge(status, statusColors[status] ?? 'bg-gray-100 text-gray-700')
+      },
+    },
+  ], [])
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -81,39 +106,13 @@ function ProductsTab({ provider }: ShopPageProps) {
 
       {loading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
-      ) : products.length === 0 ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Produto</th>
-                <th className="text-left px-4 py-3 font-medium">SKU</th>
-                <th className="text-right px-4 py-3 font-medium">Preço</th>
-                <th className="text-right px-4 py-3 font-medium">Estoque</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {products.map(p => (
-                <tr key={p.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{p.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.sku ?? '—'}</td>
-                  <td className="px-4 py-3 text-right">{currency(p.price, p.currency)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={p.inventoryCount === 0 ? 'text-red-600 font-medium' : ''}>
-                      {p.inventoryCount}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {badge(p.status, statusColors[p.status] ?? 'bg-gray-100 text-gray-700')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={products}
+          variant="card"
+          emptyMessage="Nenhum produto encontrado."
+        />
       )}
     </div>
   )
@@ -131,41 +130,47 @@ function OrdersTab({ provider }: ShopPageProps) {
     resolveShopProvider(provider).listOrders({ limit: 50 }).then(setOrders).finally(() => setLoading(false))
   }, [provider])
 
+  const columns = useMemo<ColumnDef<Order, any>[]>(() => [
+    { accessorKey: 'orderNumber', header: 'Pedido', cell: ({ getValue }) => <span className="font-medium">#{getValue() as string}</span> },
+    {
+      id: 'customer', accessorFn: (o) => o.customerName ?? o.customerEmail ?? '—', header: 'Cliente',
+      cell: ({ getValue }) => <span>{getValue() as string}</span>,
+    },
+    {
+      accessorKey: 'total', header: () => <span className="block text-right">Total</span>,
+      cell: ({ getValue, row }) => <div className="text-right font-medium">{currency(getValue() as number, row.original.currency)}</div>,
+    },
+    {
+      accessorKey: 'financialStatus', header: 'Pagamento',
+      cell: ({ getValue }) => {
+        const status = getValue() as string
+        return badge(status, statusColors[status] ?? 'bg-gray-100 text-gray-700')
+      },
+    },
+    {
+      accessorKey: 'fulfillmentStatus', header: 'Entrega',
+      cell: ({ getValue }) => {
+        const status = getValue() as string
+        return badge(status, statusColors[status] ?? 'bg-gray-100 text-gray-700')
+      },
+    },
+    {
+      accessorKey: 'createdAt', header: 'Data',
+      cell: ({ getValue }) => <span className="text-muted-foreground">{new Date(getValue() as string).toLocaleDateString('pt-BR')}</span>,
+    },
+  ], [])
+
   return (
     <div>
       {loading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
-      ) : orders.length === 0 ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Nenhum pedido ainda.</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Pedido</th>
-                <th className="text-left px-4 py-3 font-medium">Cliente</th>
-                <th className="text-right px-4 py-3 font-medium">Total</th>
-                <th className="text-left px-4 py-3 font-medium">Pagamento</th>
-                <th className="text-left px-4 py-3 font-medium">Entrega</th>
-                <th className="text-left px-4 py-3 font-medium">Data</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {orders.map(o => (
-                <tr key={o.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">#{o.orderNumber}</td>
-                  <td className="px-4 py-3">{o.customerName ?? o.customerEmail ?? '—'}</td>
-                  <td className="px-4 py-3 text-right font-medium">{currency(o.total, o.currency)}</td>
-                  <td className="px-4 py-3">{badge(o.financialStatus, statusColors[o.financialStatus] ?? 'bg-gray-100 text-gray-700')}</td>
-                  <td className="px-4 py-3">{badge(o.fulfillmentStatus, statusColors[o.fulfillmentStatus] ?? 'bg-gray-100 text-gray-700')}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(o.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={orders}
+          variant="card"
+          emptyMessage="Nenhum pedido ainda."
+        />
       )}
     </div>
   )
@@ -183,37 +188,34 @@ function CustomersTab({ provider }: ShopPageProps) {
     resolveShopProvider(provider).listCustomers({ limit: 50 }).then(setCustomers).finally(() => setLoading(false))
   }, [provider])
 
+  const columns = useMemo<ColumnDef<ShopCustomer, any>[]>(() => [
+    {
+      id: 'name', accessorFn: (c) => `${c.firstName} ${c.lastName}`, header: 'Nome',
+      cell: ({ row }) => <span className="font-medium">{row.original.firstName} {row.original.lastName}</span>,
+    },
+    { accessorKey: 'email', header: 'Email', cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string | undefined) ?? '—'}</span> },
+    { accessorKey: 'phone', header: 'Telefone', cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string | undefined) ?? '—'}</span> },
+    {
+      accessorKey: 'ordersCount', header: () => <span className="block text-right">Pedidos</span>,
+      cell: ({ getValue }) => <div className="text-right">{getValue() as number}</div>,
+    },
+    {
+      accessorKey: 'totalSpent', header: () => <span className="block text-right">Total Gasto</span>,
+      cell: ({ getValue }) => <div className="text-right">{currency(getValue() as number)}</div>,
+    },
+  ], [])
+
   return (
     <div>
       {loading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
-      ) : customers.length === 0 ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Nenhum cliente ainda.</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Nome</th>
-                <th className="text-left px-4 py-3 font-medium">Email</th>
-                <th className="text-left px-4 py-3 font-medium">Telefone</th>
-                <th className="text-right px-4 py-3 font-medium">Pedidos</th>
-                <th className="text-right px-4 py-3 font-medium">Total Gasto</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {customers.map(c => (
-                <tr key={c.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{c.firstName} {c.lastName}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.email ?? '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.phone ?? '—'}</td>
-                  <td className="px-4 py-3 text-right">{c.ordersCount}</td>
-                  <td className="px-4 py-3 text-right">{currency(c.totalSpent)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={customers}
+          variant="card"
+          emptyMessage="Nenhum cliente ainda."
+        />
       )}
     </div>
   )
@@ -231,41 +233,38 @@ function DiscountsTab({ provider }: ShopPageProps) {
     resolveShopProvider(provider).listDiscounts({ limit: 50 }).then(setDiscounts).finally(() => setLoading(false))
   }, [provider])
 
+  const columns = useMemo<ColumnDef<Discount, any>[]>(() => [
+    { accessorKey: 'title', header: 'Título', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
+    { accessorKey: 'code', header: 'Código', cell: ({ getValue }) => <span className="font-mono text-sm">{(getValue() as string | undefined) ?? '—'}</span> },
+    { accessorKey: 'type', header: 'Tipo', cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as string}</span> },
+    {
+      accessorKey: 'value', header: () => <span className="block text-right">Valor</span>,
+      cell: ({ row }) => <div className="text-right">{row.original.type === 'percentage' ? `${row.original.value}%` : currency(row.original.value)}</div>,
+    },
+    {
+      id: 'usos', accessorKey: 'timesUsed', header: () => <span className="block text-right">Usos</span>,
+      cell: ({ row }) => <div className="text-right">{row.original.timesUsed}{row.original.usageLimit ? ` / ${row.original.usageLimit}` : ''}</div>,
+    },
+    {
+      accessorKey: 'status', header: 'Status',
+      cell: ({ getValue }) => {
+        const status = getValue() as string
+        return badge(status, statusColors[status] ?? 'bg-gray-100 text-gray-700')
+      },
+    },
+  ], [])
+
   return (
     <div>
       {loading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
-      ) : discounts.length === 0 ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Nenhum desconto cadastrado.</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Título</th>
-                <th className="text-left px-4 py-3 font-medium">Código</th>
-                <th className="text-left px-4 py-3 font-medium">Tipo</th>
-                <th className="text-right px-4 py-3 font-medium">Valor</th>
-                <th className="text-right px-4 py-3 font-medium">Usos</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {discounts.map(d => (
-                <tr key={d.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{d.title}</td>
-                  <td className="px-4 py-3 font-mono text-sm">{d.code ?? '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{d.type}</td>
-                  <td className="px-4 py-3 text-right">
-                    {d.type === 'percentage' ? `${d.value}%` : currency(d.value)}
-                  </td>
-                  <td className="px-4 py-3 text-right">{d.timesUsed}{d.usageLimit ? ` / ${d.usageLimit}` : ''}</td>
-                  <td className="px-4 py-3">{badge(d.status, statusColors[d.status] ?? 'bg-gray-100 text-gray-700')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={discounts}
+          variant="card"
+          emptyMessage="Nenhum desconto cadastrado."
+        />
       )}
     </div>
   )

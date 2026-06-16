@@ -147,10 +147,10 @@ export function ChatFab({ className, apiEndpoint, systemPrompt }: ChatFabProps) 
       {(showPill || phase === 'collapsing') && !isOpen && (
         <button
           onClick={handleSuggestionClick}
-          className="absolute right-0 bottom-0 flex flex-col items-start justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-95 cursor-pointer pl-5 py-2 overflow-hidden"
+          className="absolute right-0 bottom-0 flex flex-col items-start justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-95 cursor-pointer pl-5 overflow-hidden"
           style={{
             paddingRight: '3.25rem',
-            minHeight: '2.75rem',
+            height: '2.75rem',
             animation: showPill
               ? 'fabPillGrow 650ms cubic-bezier(0.22, 1, 0.36, 1) forwards'
               : 'fabPillShrink 400ms cubic-bezier(0.55, 0, 1, 0.45) forwards',

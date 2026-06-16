@@ -168,6 +168,7 @@ export const ptBR: Record<string, string> = {
   "crm.quoteForm.newTitle": "Novo Orçamento",
   "crm.quoteForm.noDescription": "Sem descrição",
   "crm.quoteForm.noItems": "Nenhum item adicionado",
+  "crm.quoteForm.errNoItems": "Adicione pelo menos um item antes de salvar.",
   "crm.quoteForm.notes": "Observações",
   "crm.quoteForm.notesPlaceholder": "Observações internas...",
   "crm.quoteForm.paymentConditions": "Condições de Pagamento",

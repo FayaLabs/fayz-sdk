@@ -51,21 +51,28 @@ export function getCustomerAuthAdapter(): AuthAdapter {
   return _adapter
 }
 
+/** Resolve (find-or-create + server-side auth link) the ShopCustomer for an email. */
+async function resolveShopCustomer(email: string, name: string) {
+  const provider = getShopProvider()
+  // Preferred: provider.resolveCustomer find-or-creates AND links auth.uid
+  // server-side (RLS-safe). Falls back to generic CRUD for legacy providers.
+  if (provider.resolveCustomer) return provider.resolveCustomer({ email, name })
+  const matches = await provider.listCustomers({ search: email, limit: 10 })
+  const existing = matches.find((c) => (c.email ?? '').toLowerCase() === email)
+  if (existing) return existing
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return provider.createCustomer({
+    firstName: parts[0] ?? email.split('@')[0] ?? 'Cliente',
+    lastName: parts.slice(1).join(' '),
+    email,
+  })
+}
+
 /** Find-or-create the ShopCustomer for an auth identity and persist the session. */
 async function linkCustomer(user: AuthUser, fullName?: string): Promise<{ customerId: string }> {
-  const provider = getShopProvider()
   const email = (user.email ?? '').trim().toLowerCase()
   const name = fullName ?? user.fullName ?? ''
-  const matches = await provider.listCustomers({ search: email, limit: 10 })
-  let customer = matches.find((c) => (c.email ?? '').toLowerCase() === email) ?? null
-  if (!customer) {
-    const parts = name.trim().split(/\s+/).filter(Boolean)
-    customer = await provider.createCustomer({
-      firstName: parts[0] ?? email.split('@')[0] ?? 'Cliente',
-      lastName: parts.slice(1).join(' '),
-      email,
-    })
-  }
+  const customer = await resolveShopCustomer(email, name)
   useSessionStore.getState().setSession({
     customerId: customer.id,
     email,
@@ -89,12 +96,16 @@ export async function establishCustomerSession(
   email: string,
   opts?: EstablishSessionOptions,
 ): Promise<{ customerId: string }> {
-  const adapter = getCustomerAuthAdapter()
   const normalized = email.trim().toLowerCase()
-  const session = opts?.password
-    ? await adapter.signIn(normalized, opts.password)
-    : await adapter.signUp(normalized, `sf-${normalized}`, opts?.name ?? '')
-  return linkCustomer(session.user.email ? session.user : { ...session.user, email: normalized }, opts?.name)
+  if (opts?.password) {
+    const adapter = getCustomerAuthAdapter()
+    const session = await adapter.signIn(normalized, opts.password)
+    return linkCustomer(session.user.email ? session.user : { ...session.user, email: normalized }, opts.name)
+  }
+  // Guest / passwordless checkout: do NOT create an auth account (that made
+  // returning guests fail with "user already registered" on Supabase). Just
+  // resolve the ShopCustomer and persist the local session for order history.
+  return linkCustomer({ id: '', email: normalized } as AuthUser, opts?.name)
 }
 
 /** Convenience wrapper — passwordless email sign-in (guest checkout path). */

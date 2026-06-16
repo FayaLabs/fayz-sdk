@@ -191,6 +191,7 @@ type RouteEntry = {
   component: React.ComponentType<any>
   permission?: PluginPermissionRequirement
   plugin?: ResolvedPluginManifest
+  fullBleed?: boolean
 }
 
 function sortNavigation(
@@ -629,6 +630,7 @@ export function createSaasApp(config: SaasAppConfig): React.FC {
         component: pluginRoute.component as any,
         permission: pluginRoute.permission,
         plugin: pluginRoute.plugin as any,
+        fullBleed: pluginRoute.fullBleed,
       })
     }
 
@@ -699,20 +701,25 @@ export function createSaasApp(config: SaasAppConfig): React.FC {
           config: routeEntry.plugin.config,
         } : undefined)
 
-    // Build page element — wrap in PermissionGate if page has permission config
-    const pageContent = React.createElement('div', { key: matchedPath, className: 'saas-page-enter space-y-6 p-6' },
-      React.createElement(WidgetSlot, {
-        zone: 'page.before',
-        className: 'space-y-4',
-        contextOverrides: { matchedPath },
-      }),
-      renderedPage,
-      React.createElement(WidgetSlot, {
-        zone: 'page.after',
-        className: 'space-y-4',
-        contextOverrides: { matchedPath },
-      }),
-    )
+    // Build page element — wrap in PermissionGate if page has permission config.
+    // Full-bleed routes (chat, kanban, canvas) opt out of the p-6 padding +
+    // animation wrapper and fill the content region edge-to-edge.
+    const fullBleed = Boolean(routeEntry?.fullBleed)
+    const pageContent = fullBleed
+      ? React.createElement('div', { key: matchedPath, className: 'h-full min-h-0 overflow-hidden' }, renderedPage)
+      : React.createElement('div', { key: matchedPath, className: 'saas-page-enter space-y-6 p-6' },
+          React.createElement(WidgetSlot, {
+            zone: 'page.before',
+            className: 'space-y-4',
+            contextOverrides: { matchedPath },
+          }),
+          renderedPage,
+          React.createElement(WidgetSlot, {
+            zone: 'page.after',
+            className: 'space-y-4',
+            contextOverrides: { matchedPath },
+          }),
+        )
     const pageElement: React.ReactNode = pagePermission
       ? React.createElement(
           PermissionGate,
@@ -747,7 +754,7 @@ export function createSaasApp(config: SaasAppConfig): React.FC {
           AppShell,
           {
             variant: layout,
-            sidebarFrame: config.sidebarFrame !== false,
+            contentFrame: config.sidebarFrame !== false,
             navigation: navigation as unknown as UiNavigationItem[],
             user,
             pageTitle: undefined,

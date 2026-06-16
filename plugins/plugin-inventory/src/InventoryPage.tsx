@@ -1,15 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
-import { Settings } from 'lucide-react'
-import { ModulePage, type ModuleNavItem } from '@fayz-ai/ui'
+import { ModulePage, PageTransition, type ModuleNavItem } from '@fayz-ai/ui'
 import { InventoryContextProvider, type ResolvedInventoryConfig } from './InventoryContext'
 import type { InventoryDataProvider } from './data/types'
 import type { InventoryUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
-import { useModuleNavigation } from '@fayz-ai/saas'
+import { useModuleNavigation, ModuleActionBar, createViewRouter } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
-import { QuickActionsButton } from '@fayz-ai/saas'
-import { Button } from '@fayz-ai/ui'
 import { DashboardView } from './views/DashboardView'
 import { ProductListView } from './views/ProductListView'
 import { ProductFormView } from './views/ProductFormView'
@@ -61,7 +58,7 @@ export function InventoryPage({ config, provider, store, registries }: {
   registries?: PluginRegistryDef[]
 }) {
   const t = useTranslation()
-  const { view, animationClass, navigate } = useModuleNavigation('/inventory', {
+  const { view, direction, navigate } = useModuleNavigation('/inventory', {
     dashboard: 0,
     'products-list': 0, 'products-new': 1,
     'stock-entry': 1, 'stock-exit': 1, 'stock-history': 0,
@@ -115,7 +112,7 @@ export function InventoryPage({ config, provider, store, registries }: {
   if (isSettings && registries && registries.length > 0) {
     return (
       <InventoryContextProvider config={config} provider={provider} store={store}>
-        <div key="settings" className={animationClass}>
+        <PageTransition transitionKey="settings" direction={direction}>
           <div style={{ padding: '24px' }}>
             <div style={{ marginBottom: '16px' }}>
               <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{t('inventory.settingsPage.title')}</h1>
@@ -125,48 +122,29 @@ export function InventoryPage({ config, provider, store, registries }: {
             </div>
             <InventoryGeneralSettings />
           </div>
-        </div>
+        </PageTransition>
       </InventoryContextProvider>
     )
   }
 
-  // Parse edit/detail intents from view like 'products-edit:uuid' or 'stock-detail:uuid'
-  const editMatch = view.match(/^products-edit:(.+)$/)
-  const editId = editMatch?.[1]
-  const movementDetailMatch = view.match(/^stock-detail:(.+)$/)
-  const movementDetailId = movementDetailMatch?.[1]
-
-  function renderView() {
-    if (editId) return <ProductFormView editId={editId} onSaved={() => navigate('products-list')} />
-
-    if (movementDetailId) {
-      // Find the movement in the store or fetch it
-      const movements = store.getState().movements
-      const movement = movements.find((m) => m.id === movementDetailId)
-      if (movement) {
-        return <StockMovementView defaultType={movement.movementType} viewMovement={movement} onSaved={() => navigate('stock-history')} />
-      }
-      // If not found, go back to history
-      return <MovementHistoryView onViewDetail={(id) => navigate(`stock-detail:${id}`)} />
-    }
-
-    switch (view) {
-      case 'products-list': return <ProductListView onNew={() => navigate('products-new')} onEdit={(id) => navigate(`products-edit:${id}`)} />
-      case 'products-new': return <ProductFormView onSaved={() => navigate('products-list')} />
-      case 'stock-entry': return <StockMovementView defaultType="entry" onSaved={() => navigate('stock-history')} />
-      case 'stock-exit': return <StockMovementView defaultType="exit" onSaved={() => navigate('stock-history')} />
-      case 'stock-history': return <MovementHistoryView onViewDetail={(id) => navigate(`stock-detail:${id}`)} />
-      case 'recipes-list': return <RecipesView onNew={() => navigate('recipes-new')} onView={(id) => navigate(`recipes-detail:${id}`)} />
-      case 'recipes-new': return <RecipeFormView onSaved={(id) => id ? navigate(`recipes-detail:${id}`) : navigate('recipes-list')} />
-      default: {
-        if (view.startsWith('recipes-detail:')) {
-          const id = view.slice('recipes-detail:'.length)
-          return <RecipeDetailView recipeId={id} onBack={() => navigate('recipes-list')} />
-        }
-        return <DashboardView />
-      }
-    }
-  }
+  const renderView = createViewRouter([
+    { id: 'products-list', render: () => <ProductListView onNew={() => navigate('products-new')} onEdit={(id) => navigate(`products-edit:${id}`)} /> },
+    { id: 'products-new', render: () => <ProductFormView onSaved={() => navigate('products-list')} /> },
+    { id: 'products-edit', render: ({ id }) => <ProductFormView editId={id!} onSaved={() => navigate('products-list')} /> },
+    { id: 'stock-entry', render: () => <StockMovementView defaultType="entry" onSaved={() => navigate('stock-history')} /> },
+    { id: 'stock-exit', render: () => <StockMovementView defaultType="exit" onSaved={() => navigate('stock-history')} /> },
+    { id: 'stock-history', render: () => <MovementHistoryView onViewDetail={(id) => navigate(`stock-detail:${id}`)} /> },
+    { id: 'stock-detail', render: ({ id }) => {
+      const movement = store.getState().movements.find((m) => m.id === id)
+      return movement
+        ? <StockMovementView defaultType={movement.movementType} viewMovement={movement} onSaved={() => navigate('stock-history')} />
+        : <MovementHistoryView onViewDetail={(mid) => navigate(`stock-detail:${mid}`)} />
+    } },
+    { id: 'recipes-list', render: () => <RecipesView onNew={() => navigate('recipes-new')} onView={(id) => navigate(`recipes-detail:${id}`)} /> },
+    { id: 'recipes-new', render: () => <RecipeFormView onSaved={(id) => id ? navigate(`recipes-detail:${id}`) : navigate('recipes-list')} /> },
+    { id: 'recipes-detail', render: ({ id }) => <RecipeDetailView recipeId={id!} onBack={() => navigate('recipes-list')} /> },
+    { id: 'dashboard', render: () => <DashboardView /> },
+  ], 'dashboard')
 
   return (
     <InventoryContextProvider config={config} provider={provider} store={store}>
@@ -175,25 +153,17 @@ export function InventoryPage({ config, provider, store, registries }: {
         subtitle={config.labels.pageSubtitle}
         nav={nav}
         showHeader={isSummary}
+        viewKey={view}
+        direction={direction}
         headerAction={
-          <div className="flex items-center gap-2">
-            {quickActions.length > 0 && <QuickActionsButton actions={quickActions} />}
-            {registries && registries.length > 0 && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => { window.location.hash = '/settings/inventory' }}
-                title="Inventory Settings"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <ModuleActionBar
+            quickActions={quickActions}
+            settingsPath={registries && registries.length > 0 ? '/settings/inventory' : undefined}
+            settingsLabel="Inventory Settings"
+          />
         }
       >
-        <div key={view} className={animationClass}>
-          {renderView()}
-        </div>
+        {renderView(view)}
       </ModulePage>
     </InventoryContextProvider>
   )

@@ -1,6 +1,8 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import type { PluginManifest, PluginScope, VerticalId, DashboardWidgetDef, DashboardLayoutConfig } from '@fayz-ai/core'
+import { DashboardCanvas, type DashboardCanvasProps } from '@fayz-ai/ui'
 import { DashboardPage } from './DashboardPage'
+import { metricsToWidgets, sectionsToWidgets, onboardingToWidget } from './builders'
 import { dashboardLocales } from './locales'
 import type { DashboardMetric, DashboardSection, OnboardingStep } from './types'
 
@@ -42,6 +44,18 @@ export interface DashboardPluginOptions {
   navIcon?: string
   /** Skip adding a navigation entry (use when the consumer app provides its own page entry for '/') */
   skipNavigation?: boolean
+  /** Render the in-content title/subtitle. Set false when the app shell owns the
+   *  page title (sidebar/GHL-style layouts). Default: true. */
+  showHeader?: boolean
+  /** App-level curation of the home surface — which widgets show, order, span.
+   *  Applied on top of every plugin's registered defaults. */
+  layout?: DashboardLayoutConfig
+  /** Custom widgets the consumer app contributes directly to the home surface. */
+  customWidgets?: DashboardWidgetDef[]
+  /** Show the shared, sticky time-range control on the home. Pass `true` for
+   *  defaults (7d/30d/90d) or an options object. Widgets read it via
+   *  useDashboardRange(); provide `onChange` to drive app-level refetching. */
+  range?: DashboardCanvasProps['range']
 }
 
 // ---------------------------------------------------------------------------
@@ -63,15 +77,28 @@ const DEFAULT_LABELS: DashboardPluginLabels = {
 
 export function createDashboardPlugin(options?: DashboardPluginOptions): PluginManifest {
   const labels: DashboardPluginLabels = { ...DEFAULT_LABELS, ...options?.labels }
-  const sections = options?.sections ?? []
+  const onboardingSteps = options?.onboardingSteps ?? []
+  const showOnboarding = options?.showOnboarding ?? onboardingSteps.length > 0
+
+  // Everything the dashboard plugin owns flows through the widget registry:
+  // legacy metrics/sections, the onboarding checklist, and app custom widgets.
+  const dashboardWidgets: DashboardWidgetDef[] = [
+    ...metricsToWidgets(options?.metrics ?? [], options?.currency),
+    ...sectionsToWidgets(options?.sections ?? []),
+    ...(showOnboarding && onboardingSteps.length > 0
+      ? [onboardingToWidget(onboardingSteps, { title: labels.onboardingTitle, subtitle: labels.onboardingSubtitle })]
+      : []),
+    ...(options?.customWidgets ?? []),
+  ]
 
   const PageComponent: React.ComponentType<unknown> = () =>
-    React.createElement(DashboardPage, {
+    React.createElement(DashboardCanvas, {
+      surface: 'home',
       title: labels.pageTitle,
       subtitle: labels.pageSubtitle,
-      metrics: options?.metrics ?? [],
-      sections,
-      currency: options?.currency,
+      showHeader: options?.showHeader,
+      appLayout: options?.layout,
+      range: options?.range,
     })
 
   return {
@@ -105,6 +132,7 @@ export function createDashboardPlugin(options?: DashboardPluginOptions): PluginM
     ],
 
     widgets: [],
+    dashboardWidgets,
 
     aiTools: [
       {
@@ -139,6 +167,23 @@ export function createDashboardPlugin(options?: DashboardPluginOptions): PluginM
 // ---------------------------------------------------------------------------
 // Re-exports
 // ---------------------------------------------------------------------------
+
+export { DashboardPage } from './DashboardPage'
+export {
+  DashboardCanvas,
+  DashboardNavigateProvider,
+  useDashboardNavigate,
+  resolveDashboardLayout,
+  useDashboardPreferences,
+  type DashboardCanvasProps,
+  type LaidOutWidget,
+  type DashboardPreferencesState,
+} from '@fayz-ai/ui'
+export {
+  metricsToWidgets,
+  sectionsToWidgets,
+  onboardingToWidget,
+} from './builders'
 
 export type {
   DashboardMetric,

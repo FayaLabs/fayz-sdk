@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { BookOpen, Clock, Layers, Package } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useInventoryProvider } from '../InventoryContext'
 import { useTranslation } from '@fayz-ai/core'
-import { Breadcrumb } from '@fayz-ai/ui'
+import { Breadcrumb, DataTable } from '@fayz-ai/ui'
 import type { Recipe, RecipeIngredient } from '../types'
 
 function DetailSkeleton() {
@@ -77,6 +78,29 @@ export function RecipeDetailView({ recipeId, onBack }: { recipeId: string; onBac
       </div>
     )
   }
+
+  const ingredientColumns: ColumnDef<RecipeIngredient, any>[] = [
+    {
+      id: 'index', header: '#',
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.index + 1}</span>,
+    },
+    {
+      accessorKey: 'productName', header: t('inventory.recipeDetail.ingredient'),
+      cell: ({ getValue }) => <span className="font-medium">{(getValue() as string) || '—'}</span>,
+    },
+    {
+      accessorKey: 'quantity', header: () => <span className="block text-right">{t('inventory.recipeDetail.quantity')}</span>,
+      cell: ({ getValue }) => <span className="block text-right tabular-nums">{getValue() as number}</span>,
+    },
+    {
+      accessorKey: 'unitName', header: t('inventory.recipeDetail.unit'),
+      cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{(getValue() as string) || '—'}</span>,
+    },
+    {
+      accessorKey: 'notes', header: t('inventory.recipeDetail.notes'),
+      cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{(getValue() as string) || '—'}</span>,
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -159,30 +183,7 @@ export function RecipeDetailView({ recipeId, onBack }: { recipeId: string; onBac
               <p className="text-xs text-muted-foreground">{t('inventory.recipeDetail.noIngredients')}</p>
             </div>
           ) : (
-            <div className="rounded-xl border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-[10px] text-muted-foreground uppercase tracking-wider bg-muted/20">
-                    <th className="text-left py-2.5 px-4 font-medium w-8">#</th>
-                    <th className="text-left py-2.5 px-4 font-medium">{t('inventory.recipeDetail.ingredient')}</th>
-                    <th className="text-right py-2.5 px-4 font-medium">{t('inventory.recipeDetail.quantity')}</th>
-                    <th className="text-left py-2.5 px-4 font-medium">{t('inventory.recipeDetail.unit')}</th>
-                    <th className="text-left py-2.5 px-4 font-medium">{t('inventory.recipeDetail.notes')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {ingredients.map((ing, i) => (
-                    <tr key={ing.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="py-2.5 px-4 text-xs text-muted-foreground">{i + 1}</td>
-                      <td className="py-2.5 px-4 font-medium">{ing.productName || '—'}</td>
-                      <td className="py-2.5 px-4 text-right tabular-nums">{ing.quantity}</td>
-                      <td className="py-2.5 px-4 text-xs text-muted-foreground">{ing.unitName || '—'}</td>
-                      <td className="py-2.5 px-4 text-xs text-muted-foreground">{ing.notes || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable columns={ingredientColumns} data={ingredients} variant="card" />
           )}
         </div>
       </div>

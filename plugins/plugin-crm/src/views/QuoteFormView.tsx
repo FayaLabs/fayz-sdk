@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Plus, Trash2, X, Check, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, X, Check, ChevronDown } from 'lucide-react'
 import { useCrmConfig, useCrmStore, useCrmProvider, formatCurrency } from '../CrmContext'
 import { useTranslation } from '@fayz-ai/core'
 import type { EntityLookupMap } from '@fayz-ai/saas'
-import { SubpageHeader } from '@fayz-ai/ui'
+import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 import { SearchSelect, type SearchSelectOption } from '@fayz-ai/ui'
 import { CurrencyInput } from '@fayz-ai/ui'
 import { DatePicker } from '@fayz-ai/ui'
@@ -280,7 +280,7 @@ export function QuoteFormView({ quoteId, leadId, onSaved }: { quoteId?: string; 
   }
 
   async function handleSave() {
-    if (items.length === 0) return
+    if (items.length === 0) { toast.error(t('crm.quoteForm.errNoItems')); return }
     setSaving(true)
     try {
       const input = {
@@ -310,6 +310,33 @@ export function QuoteFormView({ quoteId, leadId, onSaved }: { quoteId?: string; 
       }
     } finally { setSaving(false) }
   }
+
+  // Dirty detection — snapshot editable fields once async load settles
+  const currentFields = {
+    contactId,
+    contactName,
+    linkedLeadId,
+    linkedDealId,
+    quoteDate,
+    validUntil,
+    currentStatus,
+    paymentConditions,
+    observations,
+    items: items.map((it) => ({ itemKind: it.itemKind, description: it.description, quantity: it.quantity, unitPrice: it.unitPrice, discount: it.discount })),
+  }
+  const snapshot = React.useRef<string | null>(null)
+  useEffect(() => {
+    if (!loadingExisting && snapshot.current === null) snapshot.current = JSON.stringify(currentFields)
+  }, [loadingExisting])
+  const dirty = snapshot.current !== null && JSON.stringify(currentFields) !== snapshot.current
+
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: () => { void handleSave() },
+    onDiscard: () => onSaved?.(),
+    saveLabel: isEdit ? t('crm.quoteForm.saveChanges') : t('crm.quoteForm.saveQuote'),
+  })
 
   if (loadingExisting) {
     return (
@@ -346,18 +373,6 @@ export function QuoteFormView({ quoteId, leadId, onSaved }: { quoteId?: string; 
         subtitle={isEdit ? t('crm.quoteForm.editSubtitle') : t('crm.quoteForm.newSubtitle')}
         onBack={() => onSaved?.()}
         parentLabel={t('crm.quotes.title')}
-        actions={
-          <div className="flex items-center gap-2">
-            {onSaved && (
-              <button onClick={() => onSaved()} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors">
-                <X className="h-3 w-3" /> {t('crm.quoteForm.cancel')}
-              </button>
-            )}
-            <button onClick={handleSave} disabled={items.length === 0 || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset transition-colors disabled:opacity-50">
-              <Save className="h-3 w-3" /> {saving ? t('crm.quoteForm.saving') : isEdit ? t('crm.quoteForm.saveChanges') : t('crm.quoteForm.saveQuote')}
-            </button>
-          </div>
-        }
       />
 
       {/* Status indicator */}

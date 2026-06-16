@@ -3,8 +3,8 @@ import type {
   Product, ProductImage, Category, Order, ShopCustomer, Discount,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
   CreateCategoryInput, UpdateCategoryInput,
-  CreateOrderInput, UpdateOrderInput, ListOrdersOptions,
-  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions,
+  CreateOrderInput, UpdateOrderInput, ListOrdersOptions, PlaceOrderInput,
+  CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
   CreateDiscountInput, UpdateDiscountInput, ListDiscountsOptions,
 } from './types'
 import { MOCK_PRODUCTS, MOCK_CATEGORIES, MOCK_DISCOUNTS } from './mock-catalog'
@@ -210,6 +210,84 @@ export class MockShopProvider implements ShopProvider {
     return this.orders[i]
   }
 
+  // Trusted placement (mock parity with the shop_place_order RPC): re-reads
+  // prices + stock from the catalog, validates the discount, decrements
+  // inventory. The browser-supplied prices are never used.
+  async placeOrder(input: PlaceOrderInput): Promise<Order> {
+    this.syncOrders()
+    this.syncCustomers()
+
+    // Resolve / create the customer (find-or-create by email).
+    let customerId = input.customerId ?? null
+    let customerName = input.customer?.name?.trim() || null
+    const email = input.customer?.email?.trim().toLowerCase() || null
+    if (!customerId && email) {
+      const existing = this.customers.find(c => (c.email ?? '').toLowerCase() === email)
+      if (existing) {
+        customerId = existing.id
+        customerName = customerName ?? `${existing.firstName} ${existing.lastName}`.trim()
+      } else {
+        const [first, ...rest] = (customerName ?? email).split(' ')
+        const created = await this.createCustomer({ firstName: first || email, lastName: rest.join(' '), email })
+        customerId = created.id
+      }
+    }
+
+    // Re-read price + guard stock from the catalog (never trust the client).
+    const items: CreateOrderInput['items'] = []
+    let subtotal = 0
+    for (const line of input.items) {
+      const product = this.products.find(p => p.id === line.productId)
+      if (!product || product.status !== 'active') throw new Error(`Product unavailable: ${line.productId}`)
+      if (product.inventoryCount < line.quantity) throw new Error(`Insufficient stock for ${product.name}`)
+      const name = line.optionsLabel ? `${product.name} (${line.optionsLabel})` : product.name
+      subtotal += product.price * line.quantity
+      items.push({ productId: product.id, name, sku: product.sku ?? undefined, quantity: line.quantity, unitPrice: product.price, imageUrl: product.images[0]?.url })
+    }
+    subtotal = Math.round(subtotal * 100) / 100
+
+    // Validate + apply the discount server-side.
+    let shippingTotal = Math.max(input.shippingTotal ?? 0, 0)
+    let discountTotal = 0
+    let appliedCode: string | null = null
+    if (input.discountCode) {
+      const code = input.discountCode.trim().toLowerCase()
+      const d = this.discounts.find(x => (x.code ?? '').toLowerCase() === code)
+      const ts = now()
+      const valid = !!d && d.status === 'active' && d.startsAt <= ts && (!d.endsAt || d.endsAt >= ts) && (d.usageLimit == null || d.timesUsed < d.usageLimit)
+      if (valid && d) {
+        appliedCode = d.code
+        if (d.type === 'percentage') discountTotal = Math.round(subtotal * d.value) / 100
+        else if (d.type === 'fixed_amount') discountTotal = Math.min(d.value, subtotal)
+        else if (d.type === 'free_shipping') shippingTotal = 0
+        // buy_x_get_y unsupported in v1: code recorded, no monetary effect
+        d.timesUsed += 1
+      }
+    }
+    discountTotal = Math.round(Math.min(Math.max(discountTotal, 0), subtotal) * 100) / 100
+
+    // Persist via createOrder (recomputes total from these trusted values).
+    const order = await this.createOrder({
+      customerId: customerId ?? undefined,
+      customerName: customerName ?? undefined,
+      customerEmail: input.customer?.email ?? undefined,
+      currency: input.currency,
+      notes: input.notes,
+      discountCode: appliedCode ?? undefined,
+      discountTotal,
+      shippingTotal,
+      items,
+    })
+
+    // Decrement inventory (in-memory; the mock catalog reseeds on reload).
+    for (const line of input.items) {
+      const product = this.products.find(p => p.id === line.productId)
+      if (product) product.inventoryCount = Math.max(0, product.inventoryCount - line.quantity)
+    }
+
+    return order
+  }
+
   // ---------------------------------------------------------------------------
   // Customers
   // ---------------------------------------------------------------------------
@@ -248,6 +326,15 @@ export class MockShopProvider implements ShopProvider {
     this.syncCustomers()
     this.customers = this.customers.filter(c => c.id !== id)
     this.persistCustomers()
+  }
+
+  async resolveCustomer(input: ResolveCustomerInput): Promise<ShopCustomer> {
+    this.syncCustomers()
+    const email = input.email.trim().toLowerCase()
+    const existing = this.customers.find(c => (c.email ?? '').toLowerCase() === email)
+    if (existing) return existing
+    const [first, ...rest] = (input.name?.trim() || email).split(/\s+/)
+    return this.createCustomer({ firstName: first || email, lastName: rest.join(' '), email })
   }
 
   // ---------------------------------------------------------------------------

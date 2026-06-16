@@ -8,12 +8,8 @@ import { formatMoney } from '../format'
 import { TID } from '../testids'
 import { CustomerAccountShell } from '../components/CustomerAccountShell'
 import { OrderTrackingTimeline } from '../components/OrderTrackingTimeline'
-
-const FINANCIAL_LABEL: Record<string, string> = {
-  paid: 'Pago',
-  pending: 'Pendente',
-  refunded: 'Reembolsado',
-}
+import { financialStatusBadge } from '../order-status'
+import { useStorefrontHead } from '../hooks/useStorefrontHead'
 
 const CONFETTI_COLORS = ['hsl(var(--primary))', '#f59e0b', '#10b981', '#3b82f6', '#ec4899']
 
@@ -58,6 +54,7 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const money = (v: number) => formatMoney(v, config.currency, config.locale)
+  useStorefrontHead({ title: order ? `Pedido #${order.orderNumber} — ${config.name}` : config.name })
 
   useEffect(() => {
     let cancelled = false
@@ -106,9 +103,9 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
               Pedido <span data-testid={TID.orderNumber} className="font-semibold">#{order.orderNumber}</span>{' '}
               <span
                 data-testid={TID.orderStatus}
-                className="ml-2 inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800"
+                className={`ml-2 inline-flex rounded-full px-2.5 py-0.5 text-sm font-medium ${financialStatusBadge(order.financialStatus).className}`}
               >
-                {FINANCIAL_LABEL[order.financialStatus] ?? order.financialStatus}
+                {financialStatusBadge(order.financialStatus).label}
               </span>
             </p>
           </div>
@@ -127,8 +124,8 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
           </div>
           <div>
             <p className="text-muted-foreground">Pagamento</p>
-            <p className="mt-1 font-semibold">{FINANCIAL_LABEL[order.financialStatus] ?? order.financialStatus}</p>
-            <p className="text-muted-foreground">Cartão salvo para próximas compras</p>
+            <p className="mt-1 font-semibold">{financialStatusBadge(order.financialStatus).label}</p>
+            <p className="text-muted-foreground">Processado no checkout</p>
           </div>
         </div>
 

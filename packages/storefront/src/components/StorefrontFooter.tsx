@@ -80,11 +80,20 @@ export function StorefrontFooter() {
           </ul>
         </div>
       </div>
-      <div className="border-t py-5 text-center text-xs text-muted-foreground">
-        © {config.name} — powered by Fayz · Fotos:{' '}
-        <a href="https://unsplash.com" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">
-          Unsplash
-        </a>
+      <div className="border-t">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6">
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link to="/privacy" className="transition-colors hover:text-foreground">Privacidade</Link>
+            <Link to="/terms" className="transition-colors hover:text-foreground">Termos</Link>
+            <Link to="/refunds" className="transition-colors hover:text-foreground">Trocas e devoluções</Link>
+          </nav>
+          <p className="text-center">
+            © {config.name} — powered by Fayz · Fotos:{' '}
+            <a href="https://unsplash.com" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">
+              Unsplash
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   )

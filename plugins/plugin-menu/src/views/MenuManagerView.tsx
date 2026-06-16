@@ -127,6 +127,7 @@ function CategorySection({
           </div>
 
           {/* Items table */}
+          {/* drift-allow: raw-table — interactive cells (drag handles, availability toggles, inline price/feature controls) don't fit DataTable */}
           {items.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">

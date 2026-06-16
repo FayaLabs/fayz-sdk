@@ -1,5 +1,21 @@
 import * as React from 'react'
-import { AppShell, type NavigationItem } from '@fayz-ai/ui'
+import {
+  AppShell,
+  type NavigationItem,
+  ModuleLayoutProvider,
+  PageTransition,
+  type ModuleNavVariant,
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownLabel,
+  DropdownSeparator,
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from '@fayz-ai/ui'
+import { useOrganizationStore } from '../org/store'
 import { useAuth } from '@fayz-ai/auth'
 import { usePluginRuntime, resolvePluginComponent, useTranslation } from '@fayz-ai/core'
 import type { PermissionAction, PluginNavigationEntry, PluginRouteDefinition, PluginSettingsTab } from '@fayz-ai/core'
@@ -39,6 +55,106 @@ export interface AdminShellProps {
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
   showSettings?: boolean
   showOrgSettings?: boolean
+  /** Wrap the main content in an inset "framed" card (default: true). The
+   *  sidebar is always flush/full-height. */
+  contentFrame?: boolean
+  /** How module-internal navigation renders. Defaults to 'tabs' for the
+   *  'sidebar' layout and 'rail' for 'topbar'. */
+  moduleNav?: ModuleNavVariant
+}
+
+// ---------------------------------------------------------------------------
+// WorkspaceSwitcher — sub-account / workspace selector at the sidebar top.
+// Reads the native org store (the one AdminProviders populates).
+// ---------------------------------------------------------------------------
+
+function WorkspaceSwitcher() {
+  const currentOrg = useOrganizationStore((s) => s.currentOrg)
+  const userOrgs = useOrganizationStore((s) => s.userOrgs)
+  const setCurrentOrg = useOrganizationStore((s) => s.setCurrentOrg)
+  if (!currentOrg) return null
+
+  const Building = LucideIcons.Building2
+  const Chevron = LucideIcons.ChevronsUpDown
+  const Check = LucideIcons.Check
+  const options = userOrgs.length
+    ? userOrgs
+    : [{ orgId: currentOrg.id, orgName: currentOrg.name, orgSlug: currentOrg.slug }]
+
+  return (
+    <Dropdown>
+      <DropdownTrigger asChild>
+        <button className="flex w-full items-center gap-2 rounded-md border border-sidebar-border/60 bg-sidebar-accent/30 px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-sidebar-accent text-sidebar-accent-foreground">
+            <Building className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-sidebar-foreground">{currentOrg.name}</span>
+          <Chevron className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
+        </button>
+      </DropdownTrigger>
+      <DropdownContent align="start" className="w-56 bg-sidebar text-sidebar-foreground border-sidebar-border">
+        <DropdownLabel className="text-sidebar-muted">Workspaces</DropdownLabel>
+        <DropdownSeparator className="bg-sidebar-border" />
+        {options.map((m) => (
+          <DropdownItem
+            key={m.orgId}
+            onClick={() => setCurrentOrg({ id: m.orgId, name: m.orgName, slug: m.orgSlug, createdAt: '', updatedAt: '' })}
+            className="flex items-center gap-2 focus:bg-sidebar-accent focus:text-sidebar-accent-foreground"
+          >
+            <span className="min-w-0 flex-1 truncate">{m.orgName}</span>
+            {currentOrg.id === m.orgId && <Check className="h-4 w-4 shrink-0" />}
+          </DropdownItem>
+        ))}
+      </DropdownContent>
+    </Dropdown>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// AdminUserMenu — user dropdown rendered in the sidebar bottom row.
+// ---------------------------------------------------------------------------
+
+function AdminUserMenu({
+  user,
+  onProfile,
+  onSettings,
+  onSignOut,
+}: {
+  user?: { fullName?: string; email: string; avatarUrl?: string }
+  onProfile?: () => void
+  onSettings?: () => void
+  onSignOut?: () => void
+}) {
+  if (!user) return null
+  const name = user.fullName ?? user.email
+  const initials = name.replace(/[^A-Za-z0-9]/g, ' ').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+  return (
+    <Dropdown>
+      <DropdownTrigger asChild>
+        <button className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-sidebar-accent/50">
+          <Avatar className="h-7 w-7 shrink-0">
+            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={name} />}
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <span className="min-w-0 truncate text-xs font-medium text-sidebar-foreground">{name}</span>
+        </button>
+      </DropdownTrigger>
+      <DropdownContent align="start" className="w-56 bg-sidebar text-sidebar-foreground border-sidebar-border">
+        <DropdownLabel className="truncate text-sidebar-muted">{user.email}</DropdownLabel>
+        <DropdownSeparator className="bg-sidebar-border" />
+        {onProfile && (
+          <DropdownItem onClick={onProfile} className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">Profile</DropdownItem>
+        )}
+        {onSettings && (
+          <DropdownItem onClick={onSettings} className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">Settings</DropdownItem>
+        )}
+        <DropdownSeparator className="bg-sidebar-border" />
+        {onSignOut && (
+          <DropdownItem onClick={onSignOut} className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">Sign out</DropdownItem>
+        )}
+      </DropdownContent>
+    </Dropdown>
+  )
 }
 
 function navEntryToItem(entry: PluginNavigationEntry): NavigationItem {
@@ -57,6 +173,8 @@ type OrderedNavigationItem = NavigationItem & { position: number }
 interface RouteEntry {
   path: string
   Component: React.ComponentType<Record<string, unknown>>
+  /** Render edge-to-edge with no page padding wrapper (chat, kanban, canvas). */
+  fullBleed?: boolean
 }
 
 function registerEntityRoute(
@@ -155,7 +273,7 @@ function buildSettingsTabs(
   return settingsTabs
 }
 
-function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false }: AdminShellProps) {
+function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, contentFrame = true, moduleNav }: AdminShellProps) {
   const runtime = usePluginRuntime()
   const t = useTranslation()
   const can = usePermissionOptional()
@@ -186,8 +304,8 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     for (const r of runtime.routes as PluginRouteDefinition[]) {
       const Component = resolvePluginComponent(r) as React.ComponentType<Record<string, unknown>> | undefined
       if (Component) {
-        list.push({ path: r.path, Component })
-        list.push({ path: `${r.path}/*`, Component })
+        list.push({ path: r.path, Component, fullBleed: r.fullBleed })
+        list.push({ path: `${r.path}/*`, Component, fullBleed: r.fullBleed })
       }
     }
     if (showSettings) list.push({ path: '/settings/*', Component: SettingsPage as React.ComponentType<Record<string, unknown>> })
@@ -223,6 +341,23 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     ? { fullName: user.fullName ?? user.email, email: user.email, avatarUrl: user.avatarUrl }
     : undefined
 
+  // Module-internal nav style: explicit override, else by layout (GHL-style
+  // tabs for sidebar products, left rail for topbar products).
+  const moduleVariant: ModuleNavVariant = moduleNav ?? (layout === 'sidebar' ? 'tabs' : 'rail')
+
+  // The layout owns the page title (shown in the top header), derived from the
+  // active navigation entry — individual pages don't render their own title.
+  const activePageTitle = React.useMemo(() => {
+    if (path === '/settings' || path.startsWith('/settings/')) return tr('common.settings', 'Settings')
+    const candidates = navigation
+      .filter((n) => n.route)
+      .sort((a, b) => b.route.length - a.route.length)
+    const hit = candidates.find((n) =>
+      n.route === '/' ? path === '/' || path === '' : path === n.route || path.startsWith(n.route + '/') || path.startsWith(n.route),
+    )
+    return hit?.label ?? candidates.find((n) => n.route === '/')?.label ?? ''
+  }, [navigation, path, tr])
+
   const activeContent = ActiveComponent ? (
     match.route.path === '/settings' || match.route.path === '/settings/*'
       ? <SettingsPage extraTabs={settingsTabs} />
@@ -230,21 +365,36 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
   ) : null
 
   return (
+    <ModuleLayoutProvider variant={moduleVariant}>
     <AppShell
       variant={layout}
-      sidebarFrame
+      contentFrame={contentFrame}
       navigation={navigation}
       logo={logo ?? <span className="text-lg font-bold">{appName}</span>}
       user={shellUser}
+      pageTitle={activePageTitle}
       currentPath={path}
       onNavigate={(route) => navigateTo(route)}
       onSignOut={() => { void signOut() }}
       onSettings={() => navigateTo('/settings')}
+      sidebarTopContent={<WorkspaceSwitcher />}
+      userMenuSlot={
+        <AdminUserMenu
+          user={shellUser}
+          onSettings={() => navigateTo('/settings')}
+          onSignOut={() => { void signOut() }}
+        />
+      }
     >
       {activeContent ? (
-        <div className="saas-page-enter space-y-6 p-6">
-          {activeContent}
-        </div>
+        <PageTransition
+          transitionKey={match?.route.path ?? path}
+          className={match?.route.fullBleed ? 'h-full min-h-0' : undefined}
+        >
+          {match?.route.fullBleed
+            ? <div className="h-full min-h-0 overflow-hidden">{activeContent}</div>
+            : <div className="space-y-6 p-6">{activeContent}</div>}
+        </PageTransition>
       ) : (
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
           <p className="text-lg font-semibold text-foreground">
@@ -261,6 +411,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
         </div>
       )}
     </AppShell>
+    </ModuleLayoutProvider>
   )
 }
 

@@ -3,7 +3,8 @@ import { ShoppingBag } from 'lucide-react'
 import type { Product } from '@fayz-ai/shop/types'
 import { useCartStore } from '../stores/cart.store'
 import { useStorefrontConfig } from '../config'
-import { Link } from '../router'
+import { Link, navigateTo } from '../router'
+import { getProductOptionGroups } from '../product-options'
 import { Price } from './Price'
 import { TID } from '../testids'
 import { productCardSlotContract } from '../slot-contracts'
@@ -15,7 +16,7 @@ export interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const config = useStorefrontConfig()
   const addItem = useCartStore((s) => s.addItem)
-  const openDrawer = useCartStore((s) => s.openDrawer)
+  const hasOptions = getProductOptionGroups(product).length > 0
   const soldOut = product.inventoryCount <= 0
   const onSale = product.compareAtPrice != null && product.compareAtPrice > product.price
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0]
@@ -81,10 +82,16 @@ export function ProductCard({ product }: ProductCardProps) {
             type="button"
             {...productCardSlotContract.addButton}
             disabled={soldOut}
-            aria-label={`Adicionar ${product.name} ao carrinho`}
+            aria-label={hasOptions ? `Escolher opções de ${product.name}` : `Adicionar ${product.name} ao carrinho`}
             onClick={() => {
+              // Products with variants (size/color) must pick an option on the PDP
+              // — quick-adding would create an option-less line. Others add inline
+              // (addItem auto-opens the cart drawer).
+              if (hasOptions) {
+                navigateTo(`/product/${product.slug}`)
+                return
+              }
               addItem(product)
-              openDrawer()
             }}
             className="rounded-full border bg-background/90 p-2.5 text-foreground shadow-sm transition-all duration-200 hover:scale-110 hover:bg-primary hover:text-primary-foreground hover:shadow disabled:cursor-not-allowed disabled:opacity-40 lg:translate-y-1 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:disabled:opacity-0 lg:group-hover:disabled:opacity-40"
           >

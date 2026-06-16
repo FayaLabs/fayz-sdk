@@ -597,6 +597,61 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       })
       return this.getOrder(id)
     },
+    async placeOrder(input: {
+      tenantId?: string
+      customerId?: string
+      customer?: { name?: string; email?: string }
+      currency?: string
+      notes?: string
+      discountCode?: string
+      shippingTotal?: number
+      items: Array<{ productId: string; quantity: number; optionsLabel?: string }>
+    }) {
+      // Trusted placement over the legacy REST path: re-read prices from the
+      // catalog so the browser can never set what it pays.
+      const orderItems: Array<{ productId?: string; name: string; sku?: string; quantity: number; unitPrice: number; imageUrl?: string }> = []
+      let subtotal = 0
+      for (const line of input.items) {
+        const product = await this.getProduct(line.productId)
+        if (!product || product.status !== 'active') throw new FayzShopError(`Product unavailable: ${line.productId}`, 409)
+        if (product.inventoryCount < line.quantity) throw new FayzShopError(`Insufficient stock for ${product.name}`, 409)
+        const name = line.optionsLabel ? `${product.name} (${line.optionsLabel})` : product.name
+        subtotal += product.price * line.quantity
+        orderItems.push({ productId: product.id, name, sku: product.sku ?? undefined, quantity: line.quantity, unitPrice: product.price, imageUrl: product.images[0]?.url })
+      }
+      subtotal = Math.round(subtotal * 100) / 100
+
+      let shippingTotal = Math.max(input.shippingTotal ?? 0, 0)
+      let discountTotal = 0
+      let appliedCode: string | undefined
+      if (input.discountCode) {
+        const code = input.discountCode.trim().toLowerCase()
+        const discount = (await this.listDiscounts()).find((d) => (d.code ?? '').toLowerCase() === code)
+        const ts = nowIso()
+        const valid = !!discount && discount.status === 'active' && discount.startsAt <= ts
+          && (!discount.endsAt || discount.endsAt >= ts)
+          && (discount.usageLimit == null || discount.timesUsed < discount.usageLimit)
+        if (valid && discount) {
+          appliedCode = discount.code ?? undefined
+          if (discount.type === 'percentage') discountTotal = Math.round(subtotal * discount.value) / 100
+          else if (discount.type === 'fixed_amount') discountTotal = Math.min(discount.value, subtotal)
+          else if (discount.type === 'free_shipping') shippingTotal = 0
+        }
+      }
+      discountTotal = Math.round(Math.min(Math.max(discountTotal, 0), subtotal) * 100) / 100
+
+      return this.createOrder({
+        customerId: input.customerId,
+        customerName: input.customer?.name,
+        customerEmail: input.customer?.email,
+        currency: input.currency,
+        notes: input.notes,
+        discountCode: appliedCode,
+        discountTotal,
+        shippingTotal,
+        items: orderItems,
+      })
+    },
     async listCustomers(options?: FayzShopListCustomersOptions) {
       const query = tenantQuery()
       query.set('select', '*')
@@ -825,6 +880,9 @@ function createBrokerShopProvider(options: FayzShopProviderOptions) {
     },
     async updateOrder() {
       throw new FayzShopError('Order writes require the Fayz admin/broker API.', 501)
+    },
+    async placeOrder() {
+      throw new FayzShopError('Order placement requires the Fayz admin/broker API.', 501)
     },
     async listCustomers() {
       throw new FayzShopError('Customer reads require the Fayz admin/broker API.', 501)

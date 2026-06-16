@@ -1,9 +1,7 @@
-import React from 'react'
-import { useStore, type StoreApi } from 'zustand'
+import { createPluginContext, formatCurrency, type CurrencyConfig, type EntityLookupMap, type EntityLookup } from '@fayz-ai/saas'
 import type { FinancialPluginLabels, ItemTypeOption } from './index'
 import type { FinancialDataProvider } from './data/types'
 import type { FinancialUIState } from './store'
-import type { EntityLookupMap, EntityLookup } from '@fayz-ai/saas'
 
 // ---------------------------------------------------------------------------
 // Resolved config — fully merged, no optionals
@@ -18,11 +16,7 @@ export interface FinancialModules {
   cards: boolean
 }
 
-export interface FinancialCurrency {
-  code: string
-  locale: string
-  symbol: string
-}
+export type FinancialCurrency = CurrencyConfig
 
 export interface LocationOption {
   id: string
@@ -43,65 +37,11 @@ export interface ResolvedFinancialConfig {
   onBookingClick?: (orderId: string) => void
 }
 
-// ---------------------------------------------------------------------------
-// Contexts
-// ---------------------------------------------------------------------------
+const ctx = createPluginContext<ResolvedFinancialConfig, FinancialDataProvider, FinancialUIState>('FinancialPage')
 
-const FinancialConfigContext = React.createContext<ResolvedFinancialConfig | null>(null)
-const FinancialProviderContext = React.createContext<FinancialDataProvider | null>(null)
-const FinancialStoreContext = React.createContext<StoreApi<FinancialUIState> | null>(null)
+export const FinancialContextProvider = ctx.ContextProvider
+export const useFinancialConfig = ctx.useConfig
+export const useFinancialProvider = ctx.useProvider
+export const useFinancialStore = ctx.useStore
 
-// ---------------------------------------------------------------------------
-// Combined provider component
-// ---------------------------------------------------------------------------
-
-export function FinancialContextProvider({ config, provider, store, children }: {
-  config: ResolvedFinancialConfig
-  provider: FinancialDataProvider
-  store: StoreApi<FinancialUIState>
-  children: React.ReactNode
-}) {
-  return (
-    <FinancialConfigContext.Provider value={config}>
-      <FinancialProviderContext.Provider value={provider}>
-        <FinancialStoreContext.Provider value={store}>
-          {children}
-        </FinancialStoreContext.Provider>
-      </FinancialProviderContext.Provider>
-    </FinancialConfigContext.Provider>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
-
-export function useFinancialConfig(): ResolvedFinancialConfig {
-  const ctx = React.useContext(FinancialConfigContext)
-  if (!ctx) throw new Error('useFinancialConfig must be used within FinancialPage')
-  return ctx
-}
-
-export function useFinancialProvider(): FinancialDataProvider {
-  const ctx = React.useContext(FinancialProviderContext)
-  if (!ctx) throw new Error('useFinancialProvider must be used within FinancialPage')
-  return ctx
-}
-
-export function useFinancialStore<T>(selector: (state: FinancialUIState) => T): T {
-  const store = React.useContext(FinancialStoreContext)
-  if (!store) throw new Error('useFinancialStore must be used within FinancialPage')
-  return useStore(store, selector)
-}
-
-// ---------------------------------------------------------------------------
-// Currency formatter
-// ---------------------------------------------------------------------------
-
-export function formatCurrency(value: number, currency: FinancialCurrency): string {
-  return new Intl.NumberFormat(currency.locale, {
-    style: 'currency',
-    currency: currency.code,
-    minimumFractionDigits: 2,
-  }).format(value)
-}
+export { formatCurrency }

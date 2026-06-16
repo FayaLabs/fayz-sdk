@@ -1,5 +1,6 @@
 import React from 'react'
 import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react'
+import { SegmentedControl } from '@fayz-ai/ui'
 import { useAgendaConfig } from '../AgendaContext'
 import { useTranslation } from '@fayz-ai/core'
 
@@ -61,21 +62,13 @@ export function CalendarToolbar({
 
       {/* Right: view switcher + new */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center rounded-lg border p-0.5">
-          {VIEW_OPTION_KEYS.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => onViewChange(opt.key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                currentView === opt.key
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
-            >
-              {t(opt.labelKey)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          size="md"
+          options={VIEW_OPTION_KEYS.map((opt) => ({ value: opt.key, label: t(opt.labelKey) }))}
+          value={currentView}
+          onChange={onViewChange}
+          aria-label="Calendar view"
+        />
 
         <button
           onClick={onNewAppointment}

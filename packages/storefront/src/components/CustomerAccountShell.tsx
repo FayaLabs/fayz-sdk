@@ -6,21 +6,25 @@ import { Link } from '../router'
 import { useSessionStore } from '../stores/session.store'
 import { TID } from '../testids'
 
+export type AccountSection = 'profile' | 'orders' | 'addresses' | 'payments'
+
 interface CustomerAccountShellProps {
   title: string
   subtitle?: string
-  active: 'profile' | 'orders' | 'addresses' | 'payments'
+  active: AccountSection
+  /** Switch the active section in-place. */
+  onSelect?: (section: AccountSection) => void
   children: React.ReactNode
 }
 
 const menuItems = [
-  { id: 'profile', label: 'Perfil', icon: User, href: '/account' },
-  { id: 'orders', label: 'Meus pedidos', icon: Package, href: '/account' },
-  { id: 'addresses', label: 'Endereços', icon: MapPin, href: '/account' },
-  { id: 'payments', label: 'Pagamentos', icon: CreditCard, href: '/account' },
+  { id: 'profile', label: 'Perfil', icon: User },
+  { id: 'orders', label: 'Meus pedidos', icon: Package },
+  { id: 'addresses', label: 'Endereços', icon: MapPin },
+  { id: 'payments', label: 'Pagamentos', icon: CreditCard },
 ] as const
 
-export function CustomerAccountShell({ title, subtitle, active, children }: CustomerAccountShellProps) {
+export function CustomerAccountShell({ title, subtitle, active, onSelect, children }: CustomerAccountShellProps) {
   const config = useStorefrontConfig()
   const session = useSessionStore()
   const displayName = session.name || session.email?.split('@')[0] || 'Cliente'
@@ -56,16 +60,18 @@ export function CustomerAccountShell({ title, subtitle, active, children }: Cust
               const Icon = item.icon
               const selected = item.id === active
               return (
-                <Link
+                <button
                   key={item.id}
-                  to={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                  type="button"
+                  aria-current={selected ? 'page' : undefined}
+                  onClick={() => onSelect?.(item.id)}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
                     selected ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
-                </Link>
+                </button>
               )
             })}
           </nav>

@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { Save, Plus, Trash2, X, GripVertical } from 'lucide-react'
+import { Plus, Trash2, GripVertical } from 'lucide-react'
 import { useInventoryStore, useInventoryProvider } from '../InventoryContext'
 import { toast } from '@fayz-ai/ui'
-import { SubpageHeader } from '@fayz-ai/ui'
+import { SubpageHeader, useSaveBar } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { SearchSelect } from '@fayz-ai/ui'
 import type { CreateRecipeIngredientInput } from '../types'
@@ -48,7 +48,7 @@ export function RecipeFormView({ onSaved }: { onSaved?: (id?: string) => void })
   }
 
   async function handleSave() {
-    if (!name.trim() || !productId || ingredients.length === 0) return
+    if (!name.trim() || !productId || ingredients.length === 0) { toast.error(t('common.formIncomplete')); return }
     setSaving(true)
     try {
       const recipe = await createRecipe({
@@ -69,6 +69,15 @@ export function RecipeFormView({ onSaved }: { onSaved?: (id?: string) => void })
       onSaved?.(recipe.id)
     } finally { setSaving(false) }
   }
+
+  const dirty = !!(name || description || productId || prepTime || instructions || ingredients.length > 0 || yieldQuantity !== 1)
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: () => { void handleSave() },
+    onDiscard: () => onSaved?.(),
+    saveLabel: t('inventory.recipeForm.saveRecipe'),
+  })
 
   async function searchProducts(query: string) {
     const result = await provider.getProducts({ search: query, pageSize: 10 })
@@ -93,18 +102,6 @@ export function RecipeFormView({ onSaved }: { onSaved?: (id?: string) => void })
         subtitle={t('inventory.recipeForm.subtitle')}
         onBack={() => onSaved?.()}
         parentLabel={t('inventory.nav.recipes')}
-        actions={
-          <div className="flex items-center gap-2">
-            {onSaved && (
-              <button onClick={() => onSaved()} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors">
-                <X className="h-3 w-3" /> {t('inventory.recipeForm.cancel')}
-              </button>
-            )}
-            <button onClick={handleSave} disabled={!name.trim() || !productId || ingredients.length === 0 || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset transition-colors disabled:opacity-50">
-              <Save className="h-3 w-3" /> {saving ? t('inventory.recipeForm.saving') : t('inventory.recipeForm.saveRecipe')}
-            </button>
-          </div>
-        }
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

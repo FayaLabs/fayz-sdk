@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, Trash2, Save, Search, LayoutList, X, ChevronDown, Percent, Tag, Building2, Check, MoreVertical, Ban } from 'lucide-react'
+import { Plus, Trash2, Search, LayoutList, X, ChevronDown, Percent, Tag, Building2, Check, MoreVertical, Ban } from 'lucide-react'
 import { useFinancialConfig, useFinancialStore, useFinancialProvider, formatCurrency } from '../FinancialContext'
 import { SearchSelect } from '@fayz-ai/ui'
 import { CurrencyInput } from '@fayz-ai/ui'
 import { DatePicker } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import type { EntityLookupMap } from '@fayz-ai/saas'
-import { SubpageHeader } from '@fayz-ai/ui'
+import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import type { TransactionDirection, CreateInvoiceItemInput, CreateMovementInput } from '../types'
 
@@ -531,7 +531,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
   }
 
   async function handleSave() {
-    if (items.length === 0) return
+    if (items.length === 0) { toast.error(t('common.formIncomplete')); return }
     setSaving(true)
     try {
       const movInputs: CreateMovementInput[] = installments.map((inst, i) => ({
@@ -582,6 +582,29 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
     }
   }
 
+  const fields = {
+    contactName,
+    contactId,
+    unitId,
+    invoiceDate,
+    fiscalNumber,
+    observations,
+    items: items.map(({ _id, ...rest }) => rest),
+    installments: installments.map(({ _id, ...rest }) => rest),
+  }
+  const snapshot = useRef<string | null>(null)
+  useEffect(() => {
+    if (loaded && snapshot.current === null) snapshot.current = JSON.stringify(fields)
+  }, [loaded])
+  const dirty = snapshot.current !== null && JSON.stringify(fields) !== snapshot.current
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: () => { void handleSave() },
+    onDiscard: () => onSaved?.(),
+    saveLabel: t('financial.invoiceForm.save'),
+  })
+
   const title = direction === 'debit' ? t('financial.invoice.accountsPayable') : t('financial.invoice.accountsReceivable')
   const subtitle = isEdit ? t('financial.invoiceForm.editing') : t('financial.invoiceForm.creating')
 
@@ -593,23 +616,8 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
         onBack={onSaved}
         parentLabel={direction === 'debit' ? t('financial.nav.payables') : t('financial.nav.receivables')}
         actions={
-          <div className="flex items-center gap-2">
-            {onSaved && (
-              <Button variant="outline" size="sm" onClick={() => onSaved?.()}>
-                <X className="h-3.5 w-3.5" />
-                {t('financial.invoiceForm.close')}
-              </Button>
-            )}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSave}
-              disabled={items.length === 0 || saving}
-            >
-              <Save className="h-3.5 w-3.5" />
-              {saving ? t('financial.invoiceForm.saving') : t('financial.invoiceForm.save')}
-            </Button>
-            {isEdit && (
+          isEdit ? (
+            <div className="flex items-center gap-2">
               <div className="relative" ref={menuRef}>
                 <Button
                   variant="outline"
@@ -630,8 +638,8 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          ) : null
         }
       />
 

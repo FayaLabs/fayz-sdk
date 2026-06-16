@@ -1,29 +1,14 @@
 import React from 'react'
 import type { PluginManifest } from '@fayz-ai/core'
-import { registerTranslations, usePluginRuntimeOptional } from '@fayz-ai/core'
+import { createSafeDataProvider, registerTranslations, usePluginRuntimeOptional } from '@fayz-ai/core'
 import type { AgendaPluginOptions } from './config'
 import { resolveConfig } from './config'
 import { AgendaPage } from './AgendaPage'
 import { AgendaContextProvider } from './AgendaContext'
 import { createSupabaseAgendaProvider } from './data/supabase'
 import { createMockAgendaProvider } from './data/mock'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
-import type { AgendaDataProvider } from './data/types'
 import { WorkingHoursView } from './views/WorkingHoursView'
 import { setAgendaTenantId } from './lib/tenant'
-
-function createSafeAgendaProvider(): AgendaDataProvider {
-  let resolved: AgendaDataProvider | null = null
-  function get(): AgendaDataProvider {
-    if (!resolved) {
-      resolved = getSupabaseClientOptional() ? createSupabaseAgendaProvider() : createMockAgendaProvider()
-    }
-    return resolved
-  }
-  return new Proxy({} as AgendaDataProvider, {
-    get: (_, prop) => (...args: any[]) => (get() as any)[prop](...args),
-  })
-}
 import { createAgendaStore } from './store'
 import { agendaRegistries } from './registries'
 import { AgendaGeneralSettings } from './components/AgendaGeneralSettings'
@@ -37,7 +22,10 @@ import { setScheduleBlockConfig, getScheduleBlockConfig } from '@fayz-ai/saas'
 export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifest {
   const config = resolveConfig(options)
   registerTranslations(agendaLocales)
-  const provider = options?.dataProvider ?? createSafeAgendaProvider()
+  const provider = options?.dataProvider ?? createSafeDataProvider(
+    () => createSupabaseAgendaProvider(),
+    () => createMockAgendaProvider(),
+  )
   const store = createAgendaStore(provider, options?.financialBridge)
 
   // Register schedule block config globally so ScheduleEditor can read it

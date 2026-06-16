@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import {
   useCartStore,
@@ -8,6 +8,7 @@ import {
   selectTotal,
 } from '../stores/cart.store'
 import { useDiscountValidator } from '../hooks/useDiscountValidator'
+import { toast } from '../stores/toast.store'
 import { useStorefrontConfig } from '../config'
 import { navigateTo } from '../router'
 import { formatMoney } from '../format'
@@ -22,6 +23,16 @@ export function CartDrawer() {
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
 
+  // a11y: close on Escape while the drawer is open.
+  useEffect(() => {
+    if (!cart.isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') cart.closeDrawer()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [cart.isOpen, cart.closeDrawer])
+
   const subtotal = selectSubtotal(cart)
   const discountTotal = selectDiscountTotal(cart)
   const shipping = selectShipping(cart, config)
@@ -34,10 +45,13 @@ export function CartDrawer() {
     try {
       const result = await validate(code)
       if (result.valid) {
-        cart.applyDiscount(code.trim().toUpperCase(), result.percent)
+        const applied = code.trim().toUpperCase()
+        cart.applyDiscount(applied, result.percent)
         setCode('')
+        toast.success('Cupom aplicado!', `${applied} • ${result.percent}% de desconto`)
       } else {
         setDiscountError(result.message ?? 'Cupom inválido.')
+        toast.error('Cupom inválido', result.message ?? 'Verifique o código e tente novamente.')
       }
     } finally {
       setApplying(false)
@@ -106,7 +120,11 @@ export function CartDrawer() {
                   data-testid={TID.cartLine}
                   data-product-id={line.productId}
                   data-line-id={line.lineId ?? line.productId}
-                  className="flex animate-fade-up gap-3 rounded-lg p-1.5 transition-colors hover:bg-muted/40"
+                  className={`flex animate-fade-up gap-3 rounded-lg p-1.5 transition-all hover:bg-muted/40 ${
+                    (line.lineId ?? line.productId) === cart.justAddedLineId
+                      ? 'bg-primary/5 ring-1 ring-primary/30'
+                      : ''
+                  }`}
                 >
                   {line.imageUrl && (
                     <img src={line.imageUrl} alt={line.name} className="h-20 w-20 shrink-0 rounded-lg border object-cover" />

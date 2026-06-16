@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Save } from 'lucide-react'
 import { useCrmStore } from '../CrmContext'
 import { useTranslation } from '@fayz-ai/core'
-import { SubpageHeader } from '@fayz-ai/ui'
+import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 
 export function LeadFormView({ onSaved }: { onSaved?: (id?: string) => void }) {
   const t = useTranslation()
@@ -21,7 +20,7 @@ export function LeadFormView({ onSaved }: { onSaved?: (id?: string) => void }) {
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    if (!name.trim()) return
+    if (!name.trim()) { toast.error(t('common.formIncomplete')); return }
     setSaving(true)
     try {
       const lead = await createLead({ name, email: email || undefined, phone: phone || undefined, company: company || undefined, notes: notes || undefined })
@@ -29,16 +28,18 @@ export function LeadFormView({ onSaved }: { onSaved?: (id?: string) => void }) {
     } finally { setSaving(false) }
   }
 
+  const dirty = !!(name || email || phone || company || notes)
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: () => { void handleSave() },
+    onDiscard: () => onSaved?.(),
+    saveLabel: t('crm.leadForm.save'),
+  })
+
   return (
     <div className="space-y-5">
-      <SubpageHeader title={t('crm.leadForm.title')} subtitle={t('crm.leadForm.subtitle')} onBack={onSaved} parentLabel={t('crm.leads.title')} actions={
-        <div className="flex items-center gap-2">
-          {onSaved && <button onClick={() => onSaved()} className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors">{t('crm.leadForm.cancel')}</button>}
-          <button onClick={handleSave} disabled={!name.trim() || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset transition-colors disabled:opacity-50">
-            <Save className="h-3 w-3" /> {saving ? t('crm.leadForm.saving') : t('crm.leadForm.save')}
-          </button>
-        </div>
-      } />
+      <SubpageHeader title={t('crm.leadForm.title')} subtitle={t('crm.leadForm.subtitle')} onBack={onSaved} parentLabel={t('crm.leads.title')} />
       <div className="rounded-lg border bg-card shadow-sm p-5 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div><label className="text-xs font-medium text-muted-foreground">{t('crm.leadForm.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('crm.leadForm.namePlaceholder')} autoFocus className="w-full mt-1 rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>

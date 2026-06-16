@@ -4,28 +4,13 @@ import { TasksContextProvider, type ResolvedTasksConfig, type TasksPluginLabels 
 import type { TasksDataProvider } from './data/types'
 import type { TaskPriority } from './types'
 import { createMockTasksProvider } from './data/mock'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { createSupabaseTasksProvider } from './data/supabase'
 import { createTasksStore } from './store'
 import { tasksLocales } from './locales'
 import { tasksRegistries } from './registries'
 import { TasksGeneralSettings } from './components/TasksGeneralSettings'
 import { TasksTopbarButton } from './components/TasksTopbarButton'
-
-// ---------------------------------------------------------------------------
-// Safe provider (auto-selects mock or Supabase)
-// ---------------------------------------------------------------------------
-
-function createSafeTasksProvider(): TasksDataProvider {
-  let resolved: TasksDataProvider | null = null
-  function get(): TasksDataProvider {
-    if (!resolved) resolved = getSupabaseClientOptional() ? createSupabaseTasksProvider() : createMockTasksProvider()
-    return resolved
-  }
-  return new Proxy({} as TasksDataProvider, {
-    get: (_, prop) => (...args: any[]) => (get() as any)[prop](...args),
-  })
-}
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -128,7 +113,10 @@ export function createTasksPlugin(options?: TasksPluginOptions): PluginManifest 
   // Register locales globally so the plugin's translations resolve even when the
   // host shell does not mount @fayz-ai/core's I18nProvider (incremental de-bridge).
   registerTranslations(tasksLocales)
-  const provider = options?.dataProvider ?? createSafeTasksProvider()
+  const provider = options?.dataProvider ?? createSafeDataProvider(
+    () => createSupabaseTasksProvider(),
+    () => createMockTasksProvider(),
+  )
   const store = createTasksStore(provider)
 
   return {
