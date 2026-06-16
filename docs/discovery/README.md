@@ -9,6 +9,7 @@ This folder is the durable architecture record for the Fayz platform. It was cle
 3. **[ROADMAP.md](ROADMAP.md)** — Ranked gaps, the next two weeks (one vertical slice fully wired), the Linear grooming plan, and how to keep this audit alive.
 4. **[RELEASE-PLAN.md](RELEASE-PLAN.md)** — How we ship into the live Fayz in four ordered steps (every project ships the SDK → agent handles packages → deploy our apps → plugin center for customers), plus the two parallel agent lanes (Codex / Claude Code). Mirrored to the Linear project doc "Release plan + agent lanes".
 5. **[ARCHITECTURE-MAP.md](ARCHITECTURE-MAP.md)** — The visual, human-first read: Mermaid diagrams of the whole system, the curated-vs-flexible hinge, the plugin-install seam, the release road mapped to tickets, and the two-lane split. Start here if you want the picture, not the prose.
+6. **[PLUGIN-ECOSYSTEM.md](PLUGIN-ECOSYSTEM.md)** — The honest stress-test: will the plugin model work on an AI builder, does it scale, how outsiders publish, and the anti-Frankenstein control panel (each mess-risk → guardrail → enforced/missing). Read this before opening the marketplace to customers.
 
 ## Durable decision records (the locks)
 
