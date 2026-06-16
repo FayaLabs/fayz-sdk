@@ -22,6 +22,7 @@
     "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
@@ -30,6 +31,7 @@
   },
   "dependencies": {
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
     "lucide-react": "^0.400.0",
     "zustand": "^4.5.0"
@@ -38,7 +40,8 @@
     "@types/react": "^18.3.0",
     "react": "^18.3.0",
     "tsup": "^8.2.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.9"
   },
   "license": "MIT",
   "keywords": [

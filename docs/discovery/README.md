@@ -1,64 +1,40 @@
-# Fayz SDK Discovery Workspace
+# Fayz SDK — Discovery & Architecture
 
-This folder is the working area for turning Vini's long-form prompts, market references, and architecture ideas into an executable SDK plan.
+This folder is the durable architecture record for the Fayz platform. It was cleaned on **2026-06-16**: ~16 ephemeral weekend-process and superseded docs were moved to [`_archive/`](_archive/), and three authoritative synthesis docs were written from a full cross-repo audit.
 
-## Purpose
+## Start here (the current truth)
 
-We are using `~/dev/fayz-sdk` as the discovery + implementation workspace for the Fayz SDK. The SDK should become the typed, manifest-first foundation for AI-native business software: modules, entities, workflows, actions, permissions, events, surfaces, plugins, and AI-agent-safe capabilities.
+1. **[STATE.md](STATE.md)** — Where the platform actually is. The three-repo topology, layer-by-layer maturity, the one structural gap, and the reference contract. *Read this first.*
+2. **[PLUGIN-MODEL.md](PLUGIN-MODEL.md)** — The answer to "curated plugins without becoming rigid." The three-layer model, the four escape valves, the Plugin Capability Contract, plugin depth inventory, and community strategy.
+3. **[ROADMAP.md](ROADMAP.md)** — Ranked gaps, the next two weeks (one vertical slice fully wired), the Linear grooming plan, and how to keep this audit alive.
+4. **[RELEASE-PLAN.md](RELEASE-PLAN.md)** — How we ship into the live Fayz in four ordered steps (every project ships the SDK → agent handles packages → deploy our apps → plugin center for customers), plus the two parallel agent lanes (Codex / Claude Code). Mirrored to the Linear project doc "Release plan + agent lanes".
 
-The goal is not to design the final SAP-scale platform now. The goal is to define the minimum durable concepts that let Fayz validate the category with real verticals, while leaving clear upgrade paths.
+## Durable decision records (the locks)
 
-## Files
+These are the standing decisions the synthesis docs build on. Keep; don't duplicate.
 
-### Core discovery
+- [01-product-brief.md](01-product-brief.md) — category thesis, target users, vertical proof points.
+- [02-architecture-principles.md](02-architecture-principles.md) — non-negotiables.
+- [03-concept-map.md](03-concept-map.md) — glossary of platform primitives.
+- [20-architecture-lock.md](20-architecture-lock.md) — locked minimal architecture (canonical `AppManifest`, provider boundary, surfaces). *Note: its many "supervisor refresh" sections are historical; STATE.md supersedes the operational parts.*
+- [26-app-contract-and-integrations-decision.md](26-app-contract-and-integrations-decision.md) — manifest-first app contracts, plugin factories, integration lessons.
+- [27-npm-sdk-package-lock.md](27-npm-sdk-package-lock.md) — one public package; lean `@fayz-ai/sdk`.
+- [28-proof-first-route-lock.md](28-proof-first-route-lock.md) — proof-first scope lock; capabilities before packages.
+- [30-sdk-app-operating-contract.md](30-sdk-app-operating-contract.md) — edit boundaries between generated apps and SDK engines. *The operational contract for the AI builder.*
+- [18-fay-1182-runtime-session-decision.md](18-fay-1182-runtime-session-decision.md) · [24-runtime-oauth-helper-contract.md](24-runtime-oauth-helper-contract.md) · [25-provider-onboarding-decision-brief.md](25-provider-onboarding-decision-brief.md) — the OAuth/runtime-broker trust boundary.
 
-- `00-intake-log.md` — raw input blocks from Vini, preserved with source and date.
-- `01-product-brief.md` — synthesized product/category framing.
-- `02-architecture-principles.md` — non-negotiables and design constraints.
-- `03-concept-map.md` — glossary of platform primitives.
-- `04-phase-plan.md` — ordered phases from discovery to implementation.
-- `05-open-questions.md` — decisions we should not fake yet.
+## Reference
 
-### References and mission capture
+- [06-base44-reference.md](06-base44-reference.md) — competitive SDK reference (Base44).
+- [10-architecture-visuals.md](10-architecture-visuals.md) — Mermaid diagrams.
+- [29-generated-app-dogfood-status.md](29-generated-app-dogfood-status.md) — dogfood gate status log (Fayz-repo agent-scope gates).
+- [research/](research/) — the five research-lane outputs (sdk-manifest-provider, fayz-panel-api, generated-project-scaffold, package-design-system, beauty-proof).
 
-- `06-base44-reference.md` — competitive SDK reference notes.
-- `07-vini-mission-brief.md` — structured capture of the weekend mission.
-- `08-current-codebase-findings.md` — inspected codebase facts.
-- `09-linear-structure.md` — proposed Linear structure, parked until architecture lock.
+## Also in `docs/` (outside discovery)
 
-### Weekend operating system
+- `../architecture-v2.md`, `../architecture-blueprint.md`, `../customization-ladder.md` — earlier architecture writing; consistent with the manifest-first direction.
+- `../bling-integration-brief.md`, `../de-bridge-playbook.md`, `../agent-guide.md` — operational briefs.
 
-- `10-architecture-visuals.md` — Mermaid diagrams for architecture discussion.
-- `11-fayz-core-structure.md` — recommended `@fayz/core`/repo boundaries.
-- `12-weekend-operating-plan.md` — staged weekend work plan.
-- `13-codex-research-lanes.md` — Codex research prompts and lane definitions.
-- `14-update-routing-protocol.md` — update format/cadence for Product and Engineering topics.
-- `15-72h-supervision-protocol.md` — durable Hermes/Codex supervision loop.
-- `16-active-run-state.md` — current run state, process ids, cron id, constraints.
-- `17-progress-log.md` — append-only progress log.
-- `20-architecture-lock.md` — locked minimal architecture for weekend slice.
-- `21-implementation-plan.md` — concrete workstreams and verification.
-- `22-decisions-from-codex-open-questions.md` — working defaults for research questions.
-- `23-milestone-packaging-plan.md` — commit/review packaging plan for turning the dirty weekend branches into coherent milestone slices.
-- `24-runtime-oauth-helper-contract.md` — agent-safe contract for `createFayzRuntimeClient()` and OAuth-backed provider calls.
-- `25-provider-onboarding-decision-brief.md` — product/permission decision brief for OAuth provider setup and disconnect.
-- `26-app-contract-and-integrations-decision.md` — CTO decision brief for manifest-first app contracts, plugin factories, bridge replacement, and SAP/Slack/Notion/AppFlowy integration lessons.
-- `27-npm-sdk-package-lock.md` — practical package/publication lock for public npm, lean `@fayz-ai/sdk`, internal app runtime, and generated project usage.
-- `28-proof-first-route-lock.md` — Vini-approved recalculation: proof-first capability platform, one public SDK package, Beauty + second vertical before public runtime/plugin ecosystem.
+---
 
-## Working method
-
-1. Paste each large prompt block into the conversation.
-2. I will append a cleaned summary to `00-intake-log.md` and extract durable decisions into the other docs.
-3. When enough inputs are captured, I will turn the docs into a concrete implementation plan with file paths, tasks, tests, and validation.
-4. We only implement after the foundation is coherent enough to avoid rework.
-
-## Current baseline
-
-Existing architecture docs already point toward a **manifest-first** SDK:
-
-- `docs/architecture-v2.md`
-- `docs/customization-ladder.md`
-- `docs/architecture-blueprint.md`
-
-This discovery workspace should refine, not duplicate blindly. If new ideas conflict with existing architecture, we record the decision explicitly.
+*Archived process docs (intake log, weekend operating plan, supervision protocols, run-state, progress log, superseded plans, old Linear structure) live in [`_archive/`](_archive/) — preserved for history, out of the active set.*
