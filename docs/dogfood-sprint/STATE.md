@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** beauty-saas
-- **Next task:** B2 (wire dashboard `compute` fns to real `fayz.data` queries)
+- **Next task:** B3 (replace onboarding `check: async () => false` with real existence queries)
 - **Milestone in progress:** M-BEAUTY
 
 ## Order
@@ -13,7 +13,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 ## Task queues  (mirror of PLAN.md — tick here as you go)
 
 ### beauty-saas  [M-BEAUTY]
-- [ ] B2 dashboard real queries
+- [x] B2 dashboard real queries — 7/10 metrics wired (v_bookings/v_clients/v_staff); avg-rating, occupancy, product-sales left hardcoded w/ TODO(B4) — typecheck pass
 - [ ] B3 onboarding real checks
 - [ ] B4 migrations for B2/B3 views
 - [ ] B5 commission compute
@@ -41,6 +41,14 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 
 ## Blockers
 - (none yet)
+
+## Notes for B4 (migrations)
+- B2 left 3 metrics hardcoded — each needs a source view before it can be real:
+  - `avg-rating` → reviews/ratings table or `v_client_ratings` (none exists).
+  - `occupancy-rate` → slot-capacity view from `work_schedules` × service duration.
+  - `product-sales` → goods-vs-service split on order lines or an `inv_` sales rollup.
+- B2 revenue uses `v_bookings.order_total` summed client-side via `listRows` (no
+  server aggregate in `fayz.data`). If volume grows, B4 can add `v_revenue_week`.
 
 ## FOR THE HUMAN  (checkpoint queue — do these when you stop in)
 - Nothing staged yet. The first checkpoint will be **B-CHECK** once beauty-saas code tasks land.
