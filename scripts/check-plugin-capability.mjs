@@ -14,6 +14,17 @@
 //   seed         typed seed/demo rows (seedData / SEED_ / makeSeed)
 //   permissions  declared grants (declaredFeatures / permissions / requiredPermission)
 //   tests        at least one *.test.* / *.spec.* — proves the slice end-to-end
+//   rls          the tenant-isolation form used by the plugin's migrations (M-LOCK)
+//
+// RLS convention (DATA-MODEL.md point 4 — the form to lock):
+//   canonical  policies use `tenant_id IN (SELECT public.user_tenant_ids())`  (plugin-tasks)
+//   divergent  policies use the inline `saas_core.tenant_members WHERE user_id = auth.uid()`
+//              form — functionally equivalent but NOT the locked convention (plugin-forms, resto)
+//   deferred   tables ENABLE RLS but define no inline policy — relies on project_rls.sql
+//              auto-detection (crm/financial/inventory). Acceptable, but the policy form is
+//              decided elsewhere; flagged so the lock decision is explicit.
+//   no-rls     a tenant_id table with no ENABLE ROW LEVEL SECURITY — a real isolation gap.
+// Reported only (never blocks). Standardizing on `canonical` is the M-LOCK deliverable.
 //
 // Classification:
 //   capability   provider + entities + seed + tests + (migrations wired if .sql present)
@@ -70,6 +81,22 @@ function inspectPlugin(pluginDir) {
     ? readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'))
     : []
 
+  // RLS convention audit (M-LOCK): classify the tenant-isolation form the plugin's
+  // migrations use, so divergence from the canonical `user_tenant_ids()` form is visible.
+  const sql = migrationFiles.map((f) => readFileSync(join(migrationsDir, f), 'utf8')).join('\n')
+  const hasTenantTable = /\btenant_id\b/.test(sql)
+  const enablesRls = /ENABLE\s+ROW\s+LEVEL\s+SECURITY/i.test(sql)
+  const definesPolicy = /CREATE\s+POLICY/i.test(sql)
+  const canonicalRls = /user_tenant_ids\s*\(\s*\)/.test(sql)
+  const divergentRls = /tenant_members\s+WHERE\s+user_id\s*=\s*auth\.uid\s*\(\s*\)/i.test(sql)
+  let rls
+  if (!hasTenantTable) rls = 'n/a'
+  else if (divergentRls) rls = 'divergent'
+  else if (canonicalRls) rls = 'canonical'
+  else if (enablesRls && !definesPolicy) rls = 'deferred'
+  else if (definesPolicy) rls = 'other'
+  else rls = 'no-rls'
+
   const provider =
     /createSafeDataProvider\s*\(/.test(src) ||
     files.some((f) => /\/data\/supabase\.(ts|tsx)$/.test(f)) ||
@@ -103,7 +130,7 @@ function inspectPlugin(pluginDir) {
   if (!tests) missing.push('tests')
 
   // permissions is recommended, surfaced separately (not blocking completeness).
-  const facets = { provider, entities, migrationFiles: migrationFiles.length, migrationsWired, seed, permissions, tests }
+  const facets = { provider, entities, migrationFiles: migrationFiles.length, migrationsWired, seed, permissions, tests, rls }
 
   let klass
   if (!provider && !entities && migrationFiles.length === 0) klass = 'visual'
@@ -135,13 +162,16 @@ if (existsSync(PLUGINS_DIR)) {
 // --- Report -----------------------------------------------------------------
 const pad = (s, n) => String(s).padEnd(n)
 const mig = (f) => (f.migrationFiles === 0 ? '·' : f.migrationsWired ? '✓' : '⚠') // ⚠ = sql exists, not wired
+// Short RLS-form token for the report. canonical=locked target; DIVERGENT flagged loud.
+const rlsTok = (v) =>
+  ({ canonical: 'ok ', divergent: 'DIV', deferred: 'def', other: '?? ', 'no-rls': 'GAP', 'n/a': '·  ' }[v] || '·  ')
 console.log('Plugin capability contract — classification\n')
-console.log(`  ${pad('plugin', 22)} prov ent mig seed perm test  class`)
-console.log(`  ${'-'.repeat(22)} ---- --- --- ---- ---- ----  -----`)
+console.log(`  ${pad('plugin', 22)} prov ent mig seed perm test rls  class`)
+console.log(`  ${'-'.repeat(22)} ---- --- --- ---- ---- ---- ---  -----`)
 for (const r of rows) {
   const f = r.facets
   console.log(
-    `  ${pad(r.plugin, 22)}  ${yes(f.provider)}    ${yes(f.entities)}   ${mig(f)}   ${yes(f.seed)}    ${yes(f.permissions)}    ${yes(f.tests)}   ${r.klass}`,
+    `  ${pad(r.plugin, 22)}  ${yes(f.provider)}    ${yes(f.entities)}   ${mig(f)}   ${yes(f.seed)}    ${yes(f.permissions)}    ${yes(f.tests)}  ${rlsTok(f.rls)}  ${r.klass}`,
   )
 }
 
@@ -156,6 +186,22 @@ if (gaps.length) {
   console.log('\n  To reach capability-complete:')
   for (const r of gaps) console.log(`  - ${pad(r.plugin, 22)} needs: ${r.missing.join(', ')}`)
 }
+
+// --- RLS convention audit (M-LOCK) -----------------------------------------
+// canonical is the form to lock (DATA-MODEL.md point 4). Surface every other form so
+// the lock decision is explicit. Report-only — does not affect exit code.
+const byRls = rows.reduce((acc, r) => ((acc[r.facets.rls] = acc[r.facets.rls] || []).push(r.plugin), acc), {})
+console.log('\n  RLS isolation form  (target: canonical — tenant_id IN (SELECT public.user_tenant_ids())):')
+console.log(
+  `    ${(byRls.canonical || []).length} canonical · ${(byRls.divergent || []).length} divergent · ` +
+    `${(byRls.deferred || []).length} deferred · ${(byRls['no-rls'] || []).length} no-rls · ${(byRls.other || []).length} other`,
+)
+if (byRls.divergent?.length)
+  console.log(`    DIV  standardize to user_tenant_ids(): ${byRls.divergent.join(', ')}`)
+if (byRls.deferred?.length)
+  console.log(`    def  RLS deferred to project_rls.sql auto-detection: ${byRls.deferred.join(', ')}`)
+if (byRls['no-rls']?.length)
+  console.log(`    GAP  tenant_id table with NO row-level security: ${byRls['no-rls'].join(', ')}`)
 
 if (failures.length) {
   console.error('\nPlugin capability check FAILED (--strict):')
