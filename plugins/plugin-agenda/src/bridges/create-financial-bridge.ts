@@ -141,97 +141,19 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
       dueDate?: string
       paymentMethodTypeId?: string
     }): Promise<string> {
-      // Promote the existing service_order to an invoice_receivable — no duplication
+      // Promote the existing order to an invoice_receivable atomically via the
+      // shared DB function (ref + stage/direction + N installments, idempotent).
+      // status='invoiced' is valid for appointment/service_order (CHECK).
       const supabase = getSupabaseClientOptional() as any
       if (!supabase) throw new Error('Supabase not available')
-
-      const { data: order } = await supabase
-        .schema('saas_core')
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single()
-
-      if (!order) throw new Error('Order not found')
-
-      // Get client name for metadata
-      let contactName: string | undefined
-      if (order.party_id) {
-        const { data: person } = await supabase
-          .schema('saas_core')
-          .from('persons')
-          .select('name')
-          .eq('id', order.party_id)
-          .single()
-        contactName = person?.name as string | undefined
-      }
-
-      // Get items summary
-      const { data: orderItems } = await supabase
-        .schema('saas_core')
-        .from('order_items')
-        .select('name')
-        .eq('order_id', orderId)
-        .order('sort_order', { ascending: true })
-
-      const itemsSummary = (orderItems ?? []).map((i: any) => i.name).filter(Boolean).join(', ')
-      const total = Number(order.total) || 0
-      const installmentCount = options?.installments ?? 1
-      const dueDate = options?.dueDate ?? new Date().toISOString().slice(0, 10)
-
-      // 1. Generate sequential reference number
-      const { data: seq } = await supabase
-        .schema('saas_core')
-        .rpc('next_sequence', { p_tenant_id: order.tenant_id, p_kind: 'invoice_receivable' })
-      const referenceNumber = seq ? `REC-${String(seq).padStart(5, '0')}` : undefined
-
-      // 2. Promote the linked order to an invoice-like document without
-      // touching booking status. Beauty's current schema has no stage column.
-      await supabase
-        .schema('saas_core')
-        .from('orders')
-        .update({
-          status: 'invoiced',
-          reference_number: referenceNumber,
-          metadata: {
-            ...((order.metadata as Record<string, unknown>) ?? {}),
-            source: 'agenda',
-            itemsSummary,
-            contactName,
-            installmentCount,
-            direction: 'credit',
-          },
-        })
-        .eq('id', orderId)
-
-      // 2. Create financial movements (installments) against the same order
-      const installments = Array.from({ length: installmentCount }, (_, i) => {
-        const due = new Date(dueDate)
-        due.setMonth(due.getMonth() + i)
-        const amt = Math.round((total / installmentCount) * 100) / 100
-        return {
-          tenant_id: order.tenant_id,
-          invoice_id: orderId,
-          direction: 'credit',
-          movement_kind: 'bill',
-          amount: amt,
-          paid_amount: 0,
-          status: 'pending',
-          due_date: due.toISOString().slice(0, 10),
-          installment_number: i + 1,
-        }
+      const { error } = await supabase.rpc('fn_invoice_from_order', {
+        p_order_id: orderId,
+        p_due_date: options?.dueDate ?? null,
+        p_status: 'invoiced',
+        p_installments: options?.installments ?? 1,
+        p_direction: 'credit',
       })
-
-      // Fix rounding on last installment
-      if (installments.length > 1) {
-        const sumSoFar = installments.slice(0, -1).reduce((s, inst) => s + inst.amount, 0)
-        installments[installments.length - 1].amount = Math.round((total - sumSoFar) * 100) / 100
-      }
-
-      await supabase
-        .from('financial_movements')
-        .insert(installments)
-
+      if (error) throw new Error(error.message)
       return orderId
     },
 
