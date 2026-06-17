@@ -19,6 +19,13 @@ export interface FayzOrdersProviderOptions extends FayzClientOptions {
   runtime?: boolean
   ordersTable?: string
   orderItemsTable?: string
+  /**
+   * Active tenant id (or a getter) used to scope reads and stamp writes on the
+   * orders table. When omitted, scoping is left to the runtime/RLS context.
+   * Only the orders table carries `tenant_id`; order_items scope via their
+   * parent order, so this never touches the order-items table.
+   */
+  tenantId?: string | (() => string | undefined | null)
 }
 
 interface OrderRow {
@@ -284,6 +291,16 @@ export function createFayzOrdersProvider(options: FayzOrdersProviderOptions = {}
   const orderItemsTable = options.orderItemsTable ?? DEFAULT_ORDER_ITEMS_TABLE
   const tableOptions = { projectId: options.projectId, schema: options.schema, runtime: options.runtime }
 
+  function resolveTenant(): string | undefined {
+    const value = typeof options.tenantId === 'function' ? options.tenantId() : options.tenantId
+    return value ?? undefined
+  }
+
+  function withTenant(filters: FayzTableFilter[]): FayzTableFilter[] {
+    const tenantId = resolveTenant()
+    return tenantId ? [{ column: 'tenant_id', operator: 'eq', value: tenantId }, ...filters] : filters
+  }
+
   async function listItemRows(orderIds: string[]): Promise<OrderItemRow[]> {
     if (orderIds.length === 0) return []
     const rows: OrderItemRow[] = []
@@ -317,7 +334,7 @@ export function createFayzOrdersProvider(options: FayzOrdersProviderOptions = {}
     const response = await client.data.listRows<OrderRow>({
       ...tableOptions,
       table: ordersTable,
-      filters: filtersFromQuery(query),
+      filters: withTenant(filtersFromQuery(query)),
       sortColumn: 'created_at',
       sortDirection: 'desc',
       limit: 500,
@@ -329,7 +346,7 @@ export function createFayzOrdersProvider(options: FayzOrdersProviderOptions = {}
     const response = await client.data.listRows<OrderRow>({
       ...tableOptions,
       table: ordersTable,
-      filters: [{ column: 'id', operator: 'eq', value: id }],
+      filters: withTenant([{ column: 'id', operator: 'eq', value: id }]),
       limit: 1,
     })
     return (await hydrate(response.rows))[0] ?? null
@@ -346,10 +363,11 @@ export function createFayzOrdersProvider(options: FayzOrdersProviderOptions = {}
     },
 
     async createOrder(input) {
+      const tenantId = resolveTenant()
       const orderRow = await client.data.createRow<OrderRow>({
         ...tableOptions,
         table: ordersTable,
-        row: orderPayload(input),
+        row: tenantId ? { ...orderPayload(input), tenant_id: tenantId } : orderPayload(input),
       })
       await Promise.all(input.items.map((item, index) => client.data.createRow<OrderItemRow>({
         ...tableOptions,

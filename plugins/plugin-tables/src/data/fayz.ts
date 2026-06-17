@@ -17,6 +17,11 @@ export interface FayzTablesProviderOptions extends FayzClientOptions {
   tableName?: string
   schema?: string
   runtime?: boolean
+  /**
+   * Active tenant id (or a getter) used to scope reads and stamp writes on the
+   * restaurant_tables table. When omitted, scoping is left to runtime/RLS.
+   */
+  tenantId?: string | (() => string | undefined | null)
 }
 
 interface RestaurantTableRow {
@@ -167,10 +172,20 @@ export function createFayzTablesProvider(options: FayzTablesProviderOptions = {}
     runtime: options.runtime,
   }
 
+  function resolveTenant(): string | undefined {
+    const value = typeof options.tenantId === 'function' ? options.tenantId() : options.tenantId
+    return value ?? undefined
+  }
+
+  function withTenant(filters: FayzTableFilter[]): FayzTableFilter[] {
+    const tenantId = resolveTenant()
+    return tenantId ? [{ column: 'tenant_id', operator: 'eq', value: tenantId }, ...filters] : filters
+  }
+
   async function listTables(query?: TableQuery): Promise<RestaurantTable[]> {
     const response = await client.data.listRows<RestaurantTableRow>({
       ...baseOptions,
-      filters: filtersFromQuery(query),
+      filters: withTenant(filtersFromQuery(query)),
       sortColumn: 'number',
       sortDirection: 'asc',
       limit: 500,
@@ -181,7 +196,7 @@ export function createFayzTablesProvider(options: FayzTablesProviderOptions = {}
   async function getById(id: string): Promise<RestaurantTable | null> {
     const response = await client.data.listRows<RestaurantTableRow>({
       ...baseOptions,
-      filters: [{ column: 'id', operator: 'eq', value: id }],
+      filters: withTenant([{ column: 'id', operator: 'eq', value: id }]),
       limit: 1,
     })
     return response.rows[0] ? rowToTable(response.rows[0]) : null
@@ -197,9 +212,10 @@ export function createFayzTablesProvider(options: FayzTablesProviderOptions = {}
     },
 
     async createTable(input: CreateTableInput) {
+      const tenantId = resolveTenant()
       const row = await client.data.createRow<RestaurantTableRow>({
         ...baseOptions,
-        row: tableCreatePayload(input),
+        row: tenantId ? { ...tableCreatePayload(input), tenant_id: tenantId } : tableCreatePayload(input),
       })
       return rowToTable(row)
     },
