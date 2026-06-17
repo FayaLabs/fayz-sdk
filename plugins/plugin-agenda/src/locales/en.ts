@@ -62,6 +62,8 @@ export const en: Record<string, string> = {
   "agenda.payment.checkingOut": "Processing…",
   "agenda.payment.serviceSummary": "Service summary",
   "agenda.payment.paymentMethod": "Payment method",
+  "agenda.payment.noMethods": "No payment methods configured.",
+  "agenda.payment.configureMethods": "Set up payment methods",
   "agenda.payment.checkoutComplete": "Payment confirmed",
   "agenda.payment.card": "Card",
   "agenda.payment.method": "Method",

@@ -258,6 +258,14 @@ export function BookingPaymentPanel({ orderId, orderTotal, services, onClose, on
           {/* Payment method grid */}
           <div>
             <p className="text-[11px] font-medium text-muted-foreground mb-2">{t('agenda.payment.paymentMethod')}</p>
+            {paymentTypes.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-input bg-muted/30 px-3 py-3 text-center">
+                <p className="text-xs text-muted-foreground">{t('agenda.payment.noMethods')}</p>
+                <a href="#/financial/settings" className="mt-1.5 inline-block text-xs font-medium text-primary hover:underline">
+                  {t('agenda.payment.configureMethods')} →
+                </a>
+              </div>
+            ) : (
             <div className="grid grid-cols-3 gap-1.5">
               {paymentTypes.map((pt) => {
                 const ptTx = pt.transactionType ?? pt.name.toLowerCase().replace(/\s+/g, '_')
@@ -279,6 +287,7 @@ export function BookingPaymentPanel({ orderId, orderTotal, services, onClose, on
                 )
               })}
             </div>
+            )}
           </div>
 
           {/* Extra fields based on payment type */}

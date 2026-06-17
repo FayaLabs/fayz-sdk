@@ -62,6 +62,8 @@ export const ptBR: Record<string, string> = {
   "agenda.payment.checkingOut": "Processando…",
   "agenda.payment.serviceSummary": "Resumo do atendimento",
   "agenda.payment.paymentMethod": "Forma de pagamento",
+  "agenda.payment.noMethods": "Nenhuma forma de pagamento configurada.",
+  "agenda.payment.configureMethods": "Configurar formas de pagamento",
   "agenda.payment.checkoutComplete": "Pagamento confirmado",
   "agenda.payment.card": "Cartão",
   "agenda.payment.method": "Método",
