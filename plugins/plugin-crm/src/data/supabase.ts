@@ -75,7 +75,9 @@ export function createSupabaseCrmProvider(options?: {
 
     async getLeadById(id: string): Promise<Lead | null> {
       const { pub } = getClients()
-      const { data: r } = await pub.from('v_leads').select('*').eq('id', id).single()
+      // maybeSingle: callers pass a person id that may be a customer (not a lead);
+      // v_leads then returns 0 rows. single() would 406; maybeSingle() returns null.
+      const { data: r } = await pub.from('v_leads').select('*').eq('id', id).maybeSingle()
       if (!r) return null
       return {
         id: r.id, name: r.name, email: r.email, phone: r.phone,
@@ -162,7 +164,7 @@ export function createSupabaseCrmProvider(options?: {
 
     async getDealById(id: string): Promise<Deal | null> {
       const { pub } = getClients()
-      const { data: r } = await pub.from('v_deals').select('*').eq('id', id).single()
+      const { data: r } = await pub.from('v_deals').select('*').eq('id', id).maybeSingle()
       if (!r) return null
       return {
         id: r.id, title: r.title ?? '', value: r.value ?? 0,
@@ -354,7 +356,7 @@ export function createSupabaseCrmProvider(options?: {
 
     async getQuoteById(id: string): Promise<Quote | null> {
       const { core } = getClients()
-      const { data: order } = await core.from('orders').select('*').eq('id', id).eq('kind', 'quote').single()
+      const { data: order } = await core.from('orders').select('*').eq('id', id).eq('kind', 'quote').maybeSingle()
       if (!order) return null
       const { data: items } = await core.from('order_items').select('*').eq('order_id', id).order('sort_order')
       const stage = order.stage as string | undefined
