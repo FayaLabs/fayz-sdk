@@ -6,11 +6,12 @@ import type {
   ProductQuery, MovementQuery,
   PaginatedResult, InventorySummary, MovementType,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getInventoryTenantId } from '../lib/tenant'
 
 function getTenantId(): string | undefined {
-  return getInventoryTenantId()
+  // Local override wins; else use the app's active tenant so writes pass RLS.
+  return getInventoryTenantId() ?? getActiveTenantId()
 }
 
 function snakeToCamel(obj: Record<string, unknown>): Record<string, unknown> {

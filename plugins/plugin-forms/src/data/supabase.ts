@@ -12,10 +12,11 @@ import type {
   CreateDocumentInput,
   UpdateDocumentInput,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 
 function getTenantId(): string {
-  return getFormsTenantId() ?? ''
+  // Local override wins; else use the app's active tenant so writes pass RLS.
+  return getFormsTenantId() ?? getActiveTenantId() ?? ''
 }
 
 function getClient() {

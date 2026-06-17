@@ -1,10 +1,11 @@
 import type { TasksDataProvider } from './types'
 import type { Task, TaskLabel, TasksSummary, TaskStatus } from '../types'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getTasksTenantId } from '../lib/tenant'
 
 function getTenantId(): string | undefined {
-  return getTasksTenantId()
+  // Local override wins; else use the app's active tenant so writes pass RLS.
+  return getTasksTenantId() ?? getActiveTenantId()
 }
 
 function getClient() {

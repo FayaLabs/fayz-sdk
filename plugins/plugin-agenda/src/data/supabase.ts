@@ -4,7 +4,7 @@ import type {
   CreateBookingInput, UpdateBookingInput, SaveScheduleInput,
   BookingQuery, ConflictCheckParams, AvailableSlotsParams, BookingStatus,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getAgendaTenantId } from '../lib/tenant'
 
 // ---------------------------------------------------------------------------
@@ -12,7 +12,9 @@ import { getAgendaTenantId } from '../lib/tenant'
 // ---------------------------------------------------------------------------
 
 function getTenantId(): string | undefined {
-  return getAgendaTenantId()
+  // Plugin-local override wins; else fall back to the app's active tenant so
+  // writes stamp the right tenant_id and pass orders/bookings RLS.
+  return getAgendaTenantId() ?? getActiveTenantId()
 }
 
 function snakeToCamel(obj: Record<string, unknown>): Record<string, unknown> {

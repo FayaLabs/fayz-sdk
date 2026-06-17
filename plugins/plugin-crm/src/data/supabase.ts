@@ -5,12 +5,15 @@ import type {
   LeadQuery, DealQuery, ActivityQuery, QuoteQuery,
   PaginatedResult, CrmSummary, FunnelStage,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getCrmTenantId } from '../lib/tenant'
 import { deriveLeadStatus, deriveQuoteStatus } from '../cascade'
 
 function getTenantId(): string | undefined {
-  return getCrmTenantId()
+  // Plugin-local override wins; otherwise use the app's active tenant (set on
+  // org switch). Without this fallback, writes stamp tenant_id=undefined and
+  // fail the persons/orders RLS WITH CHECK (tenant_id IN user_tenant_ids()).
+  return getCrmTenantId() ?? getActiveTenantId()
 }
 
 function snakeToCamel(obj: Record<string, unknown>): Record<string, unknown> {

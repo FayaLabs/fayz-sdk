@@ -9,11 +9,12 @@ import type {
   PaginatedResult, FinancialSummary, StatementEntry, CashSessionSummary,
   DateRange,
 } from '../types'
-import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getFinancialTenantId } from '../lib/tenant'
 
 function getTenantId(): string | undefined {
-  return getFinancialTenantId()
+  // Local override wins; else use the app's active tenant so writes pass RLS.
+  return getFinancialTenantId() ?? getActiveTenantId()
 }
 
 function snakeToCamel(obj: Record<string, unknown>): Record<string, unknown> {
