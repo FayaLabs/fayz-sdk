@@ -105,8 +105,8 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
     orderIds.length
       ? core.from('orders').select('id, total, status').in('id', orderIds)
       : Promise.resolve({ data: [], error: null }),
-    bookingIds.length
-      ? core.from('booking_items').select('id, booking_id, service_id, name, duration_minutes, price, assignee_id, sort_order').in('booking_id', bookingIds)
+    orderIds.length
+      ? core.from('order_items').select('id, order_id, service_id, name, duration_minutes, unit_price, assignee_id, sort_order').in('order_id', orderIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 
@@ -118,21 +118,22 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
   const personsById = indexById(persons)
   const locationsById = indexById(locations)
   const ordersById = indexById(orders)
-  const itemsByBookingId = groupBy(items ?? [], (item: any) => item.booking_id)
+  // S4: line items come from order_items (single source), keyed by order_id.
+  const itemsByOrderId = groupBy(items ?? [], (item: any) => item.order_id)
 
   return bookings.map((booking) => {
     const client = booking.party_id ? personsById.get(booking.party_id) : null
     const professional = booking.assignee_id ? personsById.get(booking.assignee_id) : null
     const location = booking.location_id ? locationsById.get(booking.location_id) : null
     const order = booking.order_id ? ordersById.get(booking.order_id) : null
-    const bookingItems = (itemsByBookingId.get(booking.id) ?? [])
+    const bookingItems = ((booking.order_id ? itemsByOrderId.get(booking.order_id) : null) ?? [])
       .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
       .map((item: any) => ({
         id: item.id,
         serviceId: item.service_id,
         name: item.name,
         durationMinutes: item.duration_minutes,
-        price: item.price,
+        price: item.unit_price,
         assigneeId: item.assignee_id,
       }))
     const itemDuration = bookingItems.reduce((sum: number, item: any) => sum + (item.durationMinutes ?? 0), 0)
@@ -290,18 +291,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       if (bookingErr) throw bookingErr
 
       if (hasServices) {
-        const bookingItems = input.services.map((s, i) => ({
-          booking_id: booking.id,
-          service_id: s.serviceId,
-          name: s.name,
-          duration_minutes: s.durationMinutes,
-          price: s.price,
-          sort_order: i,
-          assignee_id: s.assigneeId ?? input.professionalId,
-        }))
-        const { error: biErr } = await core.from('booking_items').insert(bookingItems)
-        if (biErr) throw biErr
-
+        // S4: line items live ONLY in order_items now (booking_items deprecated).
         const orderItems = input.services.map((s, i) => ({
           order_id: order.id,
           service_id: s.serviceId,
@@ -359,23 +349,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       const { error } = await core.from('bookings').update(updates).eq('id', id)
       if (error) throw error
 
-      if (data.services) {
-        await core.from('booking_items').delete().eq('booking_id', id)
-        if (data.services.length > 0) {
-          const items = data.services.map((svc, idx) => ({
-            booking_id: id,
-            service_id: svc.serviceId || null,
-            name: svc.name,
-            duration_minutes: svc.durationMinutes,
-            price: svc.price,
-            sort_order: idx,
-            assignee_id: svc.assigneeId ?? effectiveAssigneeId,
-          }))
-          const { error: itemErr } = await core.from('booking_items').insert(items)
-          if (itemErr) throw itemErr
-        }
-      }
-
+      // S4: services are updated only in order_items below (booking_items deprecated).
       const orderId = existing?.order_id as string | null | undefined
       if (orderId) {
         const orderUpdates: Record<string, unknown> = {}
