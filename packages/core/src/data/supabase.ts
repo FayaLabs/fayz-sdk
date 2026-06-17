@@ -94,6 +94,15 @@ export function createSupabaseProvider<T extends { id: string }>(
         }
       }
 
+      // Faceted / dynamic filters from the query (equality, mapped to columns).
+      if (query.filters) {
+        for (const [key, val] of Object.entries(query.filters)) {
+          if (val == null || val === '') continue
+          const col = columnMap?.[key] ?? camelToSnake(key)
+          q = (q as { eq: (c: string, v: unknown) => unknown }).eq(col, val) as Record<string, unknown>
+        }
+      }
+
       if (query.search && searchCols.length > 0) {
         const term = `%${query.search}%`
         const orClause = searchCols.map((col) => `${camelToSnake(col)}.ilike.${term}`).join(',')

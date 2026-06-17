@@ -1,15 +1,13 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { Pencil, Trash2, MoreVertical, Upload, Download } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import type { ColumnDef as TanStackColumnDef } from '@tanstack/react-table'
 import { useOrganizationStore } from '../org'
 import { useTranslation } from '@fayz-ai/core'
 import { Card } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
-import { DataTable } from '@fayz-ai/ui'
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@fayz-ai/ui'
 import { CrudFormPage } from './CrudFormPage'
+import { CrudListView, type CrudFacet } from './CrudListView'
 import { CrudDetailPage } from './CrudDetailPage'
-import { CrudCardGrid } from './CrudCardGrid'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { ImportWizard } from './ImportWizard'
 import { exportToCSV } from './csv-export'
@@ -166,9 +164,31 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
   const [deleteItem, setDeleteItem] = useState<T | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [importOpen, setImportOpen] = useState(false)
+  const [activeFilters, setActiveFilters] = useState<Record<string, string | undefined>>({})
+  const activeFiltersRef = useRef<Record<string, string | undefined>>({})
 
   const namePlural = entityDef.namePlural ?? entityDef.name + 's'
   const displayField = entityDef.displayField ?? entityDef.fields[0]?.key ?? 'id'
+
+  // Resolve declared facets (entityDef.facets) into pill options from each field.
+  const resolvedFacets = useMemo<CrudFacet[]>(() => {
+    return (entityDef.facets ?? []).map((f) => {
+      const field = entityDef.fields.find((x) => x.key === f.field)
+      const options = (field?.options ?? []).map((o) =>
+        typeof o === 'string' ? { value: o, label: o } : { value: o.value, label: o.label },
+      )
+      return { field: f.field, options, allLabel: f.allLabel }
+    })
+  }, [entityDef])
+
+  const handleFacetChange = useCallback((field: string, value: string | undefined) => {
+    const next = { ...activeFiltersRef.current }
+    if (value == null) delete next[field]
+    else next[field] = value
+    activeFiltersRef.current = next
+    setActiveFilters(next)
+    store.setQuery({ filters: next })
+  }, [store])
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleInlineUpdate = useCallback(async (id: string, field: string, value: any) => {
@@ -405,7 +425,8 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
       )
     }
   } else {
-    // List view
+    // List view — delegated to the shared CrudListView (header, search, facet
+    // pills, table/cards). Data + routing stay here (store-backed).
     const handleSearch = (value: string) => {
       setSearchInput(value)
       if (searchTimer.current) clearTimeout(searchTimer.current)
@@ -414,103 +435,28 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
       }, 350)
     }
 
-    const isInitialLoad = store.items === null
-    const isEmpty = store.items !== null && store.items.length === 0
-
     const hasSearch = entityDef.fields.some((f) => f.searchable)
-    const navigateToNew = () => { setCrudHash(normalizedBasePath, 'new') }
 
     content = (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{namePlural}</h1>
-            {isInitialLoad ? (
-              <div className="h-5 w-32 animate-pulse rounded bg-muted mt-1" />
-            ) : (
-              <p className="text-muted-foreground">{t('crud.list.totalCount', { count: String(store.total), entities: namePlural.toLowerCase() })}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {!readOnly && (feature ? (
-              <PermissionGate feature={feature} action="create">
-                <Button onClick={navigateToNew}>{t('crud.list.addEntity', { entity: entityDef.name })}</Button>
-              </PermissionGate>
-            ) : (
-              <Button onClick={navigateToNew}>{t('crud.list.addEntity', { entity: entityDef.name })}</Button>
-            ))}
-            <Dropdown>
-              <DropdownTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownTrigger>
-              <DropdownContent align="end">
-                <DropdownItem onClick={() => setImportOpen(true)}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  {t('crud.import.action')}
-                </DropdownItem>
-                <DropdownItem onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-2" />
-                  {t('crud.export.action')}
-                </DropdownItem>
-              </DropdownContent>
-            </Dropdown>
-          </div>
-        </div>
-
-        {hasSearch && (
-          <div className="relative max-w-sm">
-            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input
-              type="text"
-              placeholder={t('crud.list.search', { entities: namePlural.toLowerCase() })}
-              value={searchInput}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        )}
-
-        {isInitialLoad ? (
-          display === 'cards' ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <div className="p-5 space-y-3">
-                    <div className="h-5 w-2/3 animate-pulse rounded bg-muted" />
-                    <div className="space-y-2">
-                      <div className="flex justify-between"><div className="h-4 w-20 animate-pulse rounded bg-muted" /><div className="h-4 w-16 animate-pulse rounded bg-muted" /></div>
-                      <div className="flex justify-between"><div className="h-4 w-24 animate-pulse rounded bg-muted" /><div className="h-4 w-12 animate-pulse rounded bg-muted" /></div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <DataTable columns={tanColumns} data={[]} loading skeletonRows={3} />
-          )
-        ) : isEmpty ? (
-          <DataTable
-            columns={tanColumns}
-            data={[]}
-            emptyMessage={t('crud.list.empty', { entities: namePlural.toLowerCase() })}
-          />
-        ) : display === 'cards' ? (
-          <CrudCardGrid
-            items={store.items ?? []}
-            entityDef={entityDef as EntityDef<any>}
-            onEdit={(item) => { setCrudHash(normalizedBasePath, (item as any).id) }}
-            onDelete={(item) => setDeleteItem(item)}
-          />
-        ) : (
-          <DataTable
-            columns={tanColumns}
-            data={store.items ?? []}
-            onRowClick={(row) => { setCrudHash(normalizedBasePath, (row as any).id) }}
-          />
-        )}
-      </div>
+      <CrudListView
+        entityDef={entityDef}
+        columns={tanColumns}
+        items={store.items}
+        total={store.total}
+        display={display}
+        search={searchInput}
+        onSearchChange={hasSearch ? handleSearch : undefined}
+        facets={resolvedFacets}
+        activeFilters={activeFilters}
+        onFacetChange={handleFacetChange}
+        onNew={() => setCrudHash(normalizedBasePath, 'new')}
+        onRowClick={(row) => setCrudHash(normalizedBasePath, (row as any).id)}
+        onDelete={(item) => setDeleteItem(item)}
+        onImport={() => setImportOpen(true)}
+        onExport={handleExport}
+        feature={feature}
+        readOnly={readOnly}
+      />
     )
   }
 

@@ -92,9 +92,9 @@ export function CurrencyInput({
       {label && <label className="text-xs font-medium text-muted-foreground">{label}</label>}
       <div
         className={cn(
-          'flex items-center rounded-lg border bg-background transition-colors cursor-text',
+          'flex items-center rounded-lg border border-input bg-background ring-offset-background transition-colors cursor-text',
           label && 'mt-1',
-          focused && 'ring-2 ring-primary/20',
+          focused && 'border-ring ring-2 ring-ring ring-offset-2',
           disabled && 'opacity-50 cursor-not-allowed',
         )}
         onClick={() => inputRef.current?.focus()}
@@ -112,7 +112,7 @@ export function CurrencyInput({
           placeholder={placeholder ?? format(0)}
           disabled={disabled}
           readOnly={false}
-          className="flex-1 bg-transparent px-2 py-2 text-sm outline-none text-right tabular-nums caret-transparent selection:bg-primary/20"
+          className="flex-1 bg-transparent px-2 py-2 text-sm outline-none text-right tabular-nums caret-primary selection:bg-primary/20"
           onChange={() => {}}
         />
       </div>

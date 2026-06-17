@@ -151,6 +151,24 @@ export function StockMovementView({ defaultType, onSaved, viewMovement }: {
 
   useEffect(() => { fetchProducts({}); fetchLocations() }, [])
 
+  // Build a map of locationId → total quantity from positions.
+  // NOTE: these useMemo hooks must run before the early returns below, otherwise
+  // saving (which flips savedMovement) renders fewer hooks → React error.
+  const positionByLocation = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const pos of positions) {
+      if (pos.stockLocationId) {
+        map[pos.stockLocationId] = (map[pos.stockLocationId] ?? 0) + pos.quantity
+      }
+    }
+    return map
+  }, [positions])
+
+  // Sort locations by stock position (highest first)
+  const sortedLocations = useMemo(() => {
+    return [...locations].sort((a, b) => (positionByLocation[b.id] ?? 0) - (positionByLocation[a.id] ?? 0))
+  }, [locations, positionByLocation])
+
   // If viewing a movement detail
   if (viewMovement) {
     return <MovementDetail movement={viewMovement} currency={currency} onClose={() => onSaved?.()} />
@@ -197,22 +215,6 @@ export function StockMovementView({ defaultType, onSaved, viewMovement }: {
       setPositions([])
     }
   }
-
-  // Build a map of locationId → total quantity from positions
-  const positionByLocation = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const pos of positions) {
-      if (pos.stockLocationId) {
-        map[pos.stockLocationId] = (map[pos.stockLocationId] ?? 0) + pos.quantity
-      }
-    }
-    return map
-  }, [positions])
-
-  // Sort locations by stock position (highest first)
-  const sortedLocations = useMemo(() => {
-    return [...locations].sort((a, b) => (positionByLocation[b.id] ?? 0) - (positionByLocation[a.id] ?? 0))
-  }, [locations, positionByLocation])
 
   const canProceedStep1 = !!productId
   const canProceedStep2 = quantity > 0 && (!needsReason || reason.trim()) && (!needsDest || destLocationId)

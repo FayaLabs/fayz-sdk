@@ -31,6 +31,8 @@ export function metricsToWidgets(metrics: DashboardMetric[], currency?: KpiCurre
           compute={metric.compute}
           format={metric.format}
           currency={currency}
+          goal={metric.goal}
+          accent={metric.accent}
         />
       ),
     }),

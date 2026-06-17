@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, ImagePlus, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import { Input } from '@fayz-ai/ui'
 import { Checkbox } from '@fayz-ai/ui'
+import { CurrencyInput } from '@fayz-ai/ui'
 import { toast } from '@fayz-ai/ui'
 import { useSaveBar, useBackHandler } from '@fayz-ai/ui'
 import { PersonFormLayout } from './archetypes/PersonFormLayout'
@@ -24,12 +25,28 @@ interface CrudFormPageProps {
   namePlural: string
   /** Embedded mode — no breadcrumb, compact layout. For use inside modals/panels. */
   embedded?: boolean
+  /** Hide the internal breadcrumb while keeping the full-page SaveBar/Escape flow.
+   *  Use when a parent already renders its own header (e.g. SubpageHeader). */
+  hideBreadcrumb?: boolean
+}
+
+/** Derive a currency symbol from an ISO code (e.g. USD → "$") when not given. */
+function currencySymbolFor(code: string | undefined, locale: string): string {
+  if (!code) return 'R$'
+  try {
+    const parts = new Intl.NumberFormat(locale, { style: 'currency', currency: code }).formatToParts(0)
+    return parts.find((p) => p.type === 'currency')?.value ?? code
+  } catch {
+    return code
+  }
 }
 
 function getDefaultValues(fields: FieldDef[]): Record<string, any> {
   const values: Record<string, any> = {}
   for (const field of fields) {
     if (field.showInForm === false) continue
+    // Computed fields are read-only and never part of the payload.
+    if (field.type === 'computed') continue
     if (field.defaultValue != null) {
       values[field.key] = field.defaultValue
     } else {
@@ -49,10 +66,62 @@ function getDefaultValues(fields: FieldDef[]): Record<string, any> {
   return values
 }
 
-function renderField(field: FieldDef, value: any, onChange: (val: any) => void) {
+function renderField(field: FieldDef, value: any, onChange: (val: any) => void, allValues: Record<string, any> = {}) {
   const baseClass = 'flex h-9 w-full rounded-input border border-input bg-background px-3 py-1.5 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
 
   switch (field.type) {
+    case 'currency': {
+      const locale = field.currencyLocale ?? 'pt-BR'
+      return (
+        <CurrencyInput
+          value={Number(value) || 0}
+          onChange={(n) => onChange(n)}
+          currencyCode={field.currency}
+          locale={locale}
+          symbol={field.currencySymbol ?? currencySymbolFor(field.currency, locale)}
+        />
+      )
+    }
+    case 'segmented': {
+      const options = (field.options ?? []).map((o) =>
+        typeof o === 'string' ? { label: o, value: o, description: undefined } : o,
+      )
+      return (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {options.map((o) => {
+            const active = value === o.value
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => onChange(o.value)}
+                className={`rounded-lg border-2 p-3 text-left transition-all ${
+                  active
+                    ? 'border-primary bg-primary/5'
+                    : 'border-transparent bg-muted/20 hover:bg-muted/40'
+                }`}
+              >
+                <p className={`text-sm font-medium ${active ? 'text-primary' : ''}`}>{o.label}</p>
+                {'description' in o && o.description && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{o.description}</p>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )
+    }
+    case 'computed': {
+      const result = field.compute ? field.compute(allValues) : null
+      const tone = result?.tone === 'positive' ? 'text-success'
+        : result?.tone === 'negative' ? 'text-destructive'
+        : 'text-foreground'
+      return (
+        <div className="mt-1 rounded-lg border bg-muted/20 px-3 py-2 text-sm tabular-nums text-right">
+          {result ? <span className={tone}>{result.display}</span> : <span className="text-muted-foreground">—</span>}
+        </div>
+      )
+    }
     case 'textarea':
       return (
         <textarea
@@ -93,7 +162,6 @@ function renderField(field: FieldDef, value: any, onChange: (val: any) => void) 
         </label>
       )
     case 'number':
-    case 'currency':
       return (
         <Input
           type="number"
@@ -103,7 +171,6 @@ function renderField(field: FieldDef, value: any, onChange: (val: any) => void) 
           required={field.required}
           min={field.min}
           max={field.max}
-          step={field.type === 'currency' ? '0.01' : undefined}
         />
       )
     case 'date':
@@ -143,7 +210,7 @@ function renderField(field: FieldDef, value: any, onChange: (val: any) => void) 
   }
 }
 
-function FormFieldItem({ field, value, onChange }: { field: FieldDef; value: any; onChange: (val: any) => void }) {
+function FormFieldItem({ field, value, onChange, allValues }: { field: FieldDef; value: any; onChange: (val: any) => void; allValues?: Record<string, any> }) {
   return (
     <div className={`grid gap-1 ${field.span === 2 ? 'md:col-span-2' : ''}`}>
       {field.type !== 'boolean' && (
@@ -152,7 +219,8 @@ function FormFieldItem({ field, value, onChange }: { field: FieldDef; value: any
           {field.required && <span className="text-destructive ml-0.5">*</span>}
         </label>
       )}
-      {renderField(field, value, onChange)}
+      {renderField(field, value, onChange, allValues)}
+      {field.hint && <p className="text-[10px] text-muted-foreground mt-0.5">{field.hint}</p>}
     </div>
   )
 }
@@ -170,6 +238,20 @@ function FormGroup({
 }) {
   const cols = group.columns ?? 2
 
+  const grid = (
+    <div className={`grid gap-3 ${cols >= 2 ? 'md:grid-cols-2' : ''} ${cols >= 3 ? 'lg:grid-cols-3' : ''}`}>
+      {fields.map((field) => (
+        <FormFieldItem
+          key={field.key}
+          field={field}
+          value={values[field.key]}
+          onChange={(val) => onChange(field.key, val)}
+          allValues={values}
+        />
+      ))}
+    </div>
+  )
+
   return (
     <div>
       <h3 className="text-sm font-semibold text-foreground">{group.label}</h3>
@@ -178,23 +260,26 @@ function FormGroup({
       )}
       <Card>
         <CardContent className="pt-4">
-          <div className={`grid gap-3 ${cols >= 2 ? 'md:grid-cols-2' : ''} ${cols >= 3 ? 'lg:grid-cols-3' : ''}`}>
-            {fields.map((field) => (
-              <FormFieldItem
-                key={field.key}
-                field={field}
-                value={values[field.key]}
-                onChange={(val) => onChange(field.key, val)}
-              />
-            ))}
-          </div>
+          {group.imageSlot ? (
+            <div className="flex gap-4">
+              {/* Decorative image slot — non-functional placeholder for now. */}
+              <div className="shrink-0">
+                <div className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary/50">
+                  <ImagePlus className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="flex-1">{grid}</div>
+            </div>
+          ) : (
+            grid
+          )}
         </CardContent>
       </Card>
     </div>
   )
 }
 
-export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel, namePlural, embedded }: CrudFormPageProps) {
+export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel, namePlural, embedded, hideBreadcrumb }: CrudFormPageProps) {
   const t = useTranslation()
   const formFields = entityDef.fields.filter((f) => f.showInForm !== false)
   const displayField = entityDef.displayField ?? entityDef.fields[0]?.key ?? 'id'
@@ -210,12 +295,16 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
     initialRef.current = JSON.stringify(init)
   }, [mode, initialData])
 
+  const computedKeys = new Set(formFields.filter((f) => f.type === 'computed').map((f) => f.key))
+
   const submit = async () => {
     setSaving(true)
     try {
-      // Sanitize: convert empty strings to null so the DB doesn't choke on e.g. empty date fields
+      // Sanitize: convert empty strings to null so the DB doesn't choke on e.g. empty date fields.
+      // Computed fields are read-only and never persisted.
       const sanitized: Record<string, any> = {}
       for (const [key, val] of Object.entries(values)) {
+        if (computedKeys.has(key)) continue
         sanitized[key] = val === '' ? null : val
       }
       await onSubmit(sanitized)
@@ -317,6 +406,7 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
                         field={field}
                         value={values[field.key]}
                         onChange={(val) => handleChange(field.key, val)}
+                        allValues={values}
                       />
                     ))}
                   </div>
@@ -344,8 +434,8 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
   return (
     <div className={`w-full flex flex-col items-center ${embedded ? 'text-sm' : ''}`}>
       <div className={`w-full ${embedded ? 'space-y-3' : 'max-w-3xl space-y-5'}`}>
-        {/* Breadcrumb + subtitle — hidden in embedded mode */}
-        {!embedded && (
+        {/* Breadcrumb + subtitle — hidden in embedded mode or when a parent owns the header */}
+        {!embedded && !hideBreadcrumb && (
           <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
               <ArrowLeft className="h-3.5 w-3.5" />

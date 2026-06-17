@@ -267,7 +267,9 @@ function buildSettingsTabs(
       label: translated === labelKey ? tab.label : translated,
       icon: React.createElement(IconComp as React.ComponentType<{ className?: string }>, { className: 'h-4 w-4' }),
       component: React.createElement(tab.component),
-    })
+      // Flag plugin-contributed tabs so SettingsPage draws the core/plugins divider.
+      isPlugin: true,
+    } as any)
   }
 
   return settingsTabs

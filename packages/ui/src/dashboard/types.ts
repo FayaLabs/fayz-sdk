@@ -16,6 +16,8 @@ export interface KpiValue {
   /** Unit suffix (e.g. 'min'). */
   unit?: string
   trend?: KpiTrend
+  /** Optional series (oldest → newest) rendered as an inline sparkline. */
+  spark?: number[]
 }
 
 export interface KpiCurrency {

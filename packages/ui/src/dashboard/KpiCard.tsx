@@ -31,12 +31,71 @@ function TrendChip({ trend, delta, invert }: { trend: KpiTrend; delta: number | 
   const Icon = trend === 'up' ? TrendingUp : TrendingDown
   return (
     <span className={cn(
-      'mb-0.5 inline-flex items-center gap-0.5 text-xs font-medium',
+      'inline-flex items-center gap-0.5 text-xs font-medium',
       good ? 'text-emerald-600' : 'text-rose-600',
     )}>
       <Icon className="h-3 w-3" />
       {delta != null ? `${delta > 0 ? '+' : ''}${delta}%` : null}
     </span>
+  )
+}
+
+/** Trend-aware accent: green when good, red when bad, theme-info when flat. */
+function trendColor(trend: KpiTrend | undefined, invert?: boolean): string {
+  if (!trend || trend === 'neutral') return 'hsl(var(--info))'
+  const good = invert ? trend === 'down' : trend === 'up'
+  return good ? '#10b981' : '#f43f5e'
+}
+
+/** Tiny dependency-free SVG sparkline (oldest → newest), with a soft area fill. */
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const gid = React.useId()
+  if (!data || data.length < 2) return null
+  const W = 96, H = 32, P = 3
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const span = max - min || 1
+  const step = (W - P * 2) / (data.length - 1)
+  const pts = data.map((d, i) => {
+    const x = P + i * step
+    const y = P + (H - P * 2) * (1 - (d - min) / span)
+    return [x, y] as const
+  })
+  const line = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-8 w-24 shrink-0 overflow-visible" preserveAspectRatio="none" aria-hidden>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
+
+/** Semicircular radial gauge showing `value` as a fraction of `goal`. */
+function Gauge({ value, goal, color, children }: { value: number; goal: number; color: string; children: React.ReactNode }) {
+  const pct = goal > 0 ? Math.min(1, Math.max(0, value / goal)) : 0
+  const R = 40, CX = 50, CY = 46, SW = 9
+  const len = Math.PI * R
+  const d = `M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}`
+  return (
+    <div className="relative mx-auto w-full max-w-[160px]">
+      <svg viewBox="0 0 100 52" className="w-full" aria-hidden>
+        <path d={d} fill="none" stroke="hsl(var(--muted))" strokeWidth={SW} strokeLinecap="round" />
+        <path
+          d={d} fill="none" stroke={color} strokeWidth={SW} strokeLinecap="round"
+          strokeDasharray={len} strokeDashoffset={len * (1 - pct)}
+        />
+      </svg>
+      <div className="absolute inset-x-0 bottom-0 text-center text-2xl font-semibold tracking-tight text-foreground">
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -58,6 +117,12 @@ export interface KpiCardProps {
   trend?: KpiTrend
   /** For cost-style metrics where down is good (e.g. CPA). */
   invertTrend?: boolean
+  /** Inline sparkline series (oldest → newest). Async usage: return via KpiValue.spark. */
+  spark?: number[]
+  /** Render the card as a radial gauge toward this goal value. */
+  goal?: number
+  /** Accent color for the sparkline/gauge. Defaults to a trend-aware color. */
+  accent?: string
   loading?: boolean
 }
 
@@ -88,6 +153,7 @@ export function KpiCard(props: KpiCardProps) {
   let previous = props.previous
   let trend = props.trend
   let unit: string | undefined
+  let spark = props.spark
 
   if (isAsync && computed) {
     display = formatKpiValue(computed.value, format, currency)
@@ -95,6 +161,7 @@ export function KpiCard(props: KpiCardProps) {
     previous = computed.previousValue
     trend = computed.trend
     unit = computed.unit
+    spark = computed.spark ?? spark
   } else if (display == null && props.amount != null) {
     display = formatKpiValue(props.amount, format, currency)
     current = current ?? props.amount
@@ -104,6 +171,55 @@ export function KpiCard(props: KpiCardProps) {
   const delta = current != null && previous != null && previous !== 0
     ? Math.round(((current - previous) / previous) * 100)
     : null
+  const accent = props.accent ?? trendColor(resolvedTrend, invertTrend)
+
+  const valueText = (
+    <>
+      {display}
+      {unit ? <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span> : null}
+    </>
+  )
+  const trendChip = resolvedTrend ? <TrendChip trend={resolvedTrend} delta={delta} invert={invertTrend} /> : null
+
+  // Pick a body layout: gauge (goal set) → sparkline (series set) → plain.
+  const isGauge = props.goal != null && current != null
+  const hasSpark = Boolean(spark && spark.length >= 2)
+
+  let body: React.ReactNode
+  if (errored) {
+    body = <span className="text-sm text-muted-foreground">—</span>
+  } else if (loading) {
+    body = isGauge
+      ? <div className="mx-auto h-16 w-32 animate-pulse rounded bg-muted" />
+      : <div className="h-7 w-20 animate-pulse rounded bg-muted" />
+  } else if (isGauge) {
+    body = (
+      <div>
+        <Gauge value={current!} goal={props.goal!} color={accent}>{valueText}</Gauge>
+        <div className="mt-1 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          {trendChip}
+          <span>{sub ?? `out of ${formatKpiValue(props.goal!, format, currency)}`}</span>
+        </div>
+      </div>
+    )
+  } else if (hasSpark) {
+    body = (
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-2xl font-semibold tracking-tight text-foreground">{valueText}</div>
+          {trendChip ? <div className="mt-0.5">{trendChip}</div> : null}
+        </div>
+        <Sparkline data={spark!} color={accent} />
+      </div>
+    )
+  } else {
+    body = (
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-2xl font-semibold tracking-tight text-foreground">{valueText}</span>
+        {trendChip ? <span className="mb-0.5">{trendChip}</span> : null}
+      </div>
+    )
+  }
 
   return (
     <Card>
@@ -112,20 +228,8 @@ export function KpiCard(props: KpiCardProps) {
           <span className="text-sm text-muted-foreground">{label}</span>
           <span className="text-muted-foreground">{renderIcon(icon)}</span>
         </div>
-        {errored ? (
-          <span className="text-sm text-muted-foreground">—</span>
-        ) : loading ? (
-          <div className="h-7 w-20 animate-pulse rounded bg-muted" />
-        ) : (
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-foreground">
-              {display}
-              {unit ? <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span> : null}
-            </span>
-            {resolvedTrend ? <TrendChip trend={resolvedTrend} delta={delta} invert={invertTrend} /> : null}
-          </div>
-        )}
-        {sub ? <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p> : null}
+        {body}
+        {sub && !isGauge ? <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p> : null}
       </CardContent>
     </Card>
   )

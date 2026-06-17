@@ -1,5 +1,7 @@
 export { createCrudPage } from './createCrudPage'
 export { CrudPage } from './CrudPage'
+export { CrudListView } from './CrudListView'
+export type { CrudListViewProps, CrudFacet } from './CrudListView'
 export { CrudFormPage } from './CrudFormPage'
 export { CrudDetailPage } from './CrudDetailPage'
 export { CrudCardGrid } from './CrudCardGrid'

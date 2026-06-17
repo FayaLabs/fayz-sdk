@@ -4,10 +4,17 @@ import type { EntityArchetype } from './entities'
 export type FieldType =
   | 'text' | 'email' | 'phone' | 'url' | 'image'
   | 'number' | 'currency'
-  | 'select' | 'multiselect'
+  | 'select' | 'multiselect' | 'segmented'
   | 'date' | 'datetime' | 'time'
   | 'boolean' | 'textarea'
-  | 'color'
+  | 'color' | 'computed'
+
+/** Read-only display produced by a `computed` field's `compute()`. */
+export interface ComputedFieldValue {
+  display: string
+  /** Drives the value colour (green / red / muted). Default: neutral. */
+  tone?: 'positive' | 'negative' | 'neutral'
+}
 
 export interface FieldDef {
   key: string
@@ -15,10 +22,18 @@ export interface FieldDef {
   type: FieldType
   required?: boolean
   placeholder?: string
-  options?: string[] | { label: string; value: string }[]
+  /** Small helper text shown under the field input. */
+  hint?: string
+  /** Options for `select` / `multiselect` / `segmented`. The optional
+   *  `description` is shown under the label on `segmented` radio-cards. */
+  options?: string[] | { label: string; value: string; description?: string }[]
   min?: number
   max?: number
+  /** ISO currency code for `currency` fields (e.g. 'BRL'). */
   currency?: string
+  /** Symbol/locale for the `currency` field's CurrencyInput. Default 'R$' / 'pt-BR'. */
+  currencySymbol?: string
+  currencyLocale?: string
   showInTable?: boolean
   showInForm?: boolean
   showInDetail?: boolean
@@ -28,6 +43,9 @@ export interface FieldDef {
    *  an AppManifest, reference a registered cell renderer by id instead. */
   renderCell?: (value: unknown, row: unknown) => React.ReactNode
   renderCellId?: string
+  /** Derives a read-only value from the other form values (for `computed`
+   *  fields, e.g. margin). Returns null to render an em-dash. */
+  compute?: (values: Record<string, unknown>) => ComputedFieldValue | null
   defaultValue?: unknown
   group?: string
   span?: 1 | 2
@@ -39,6 +57,8 @@ export interface FieldGroup {
   label: string
   description?: string
   columns?: 1 | 2 | 3
+  /** Renders a decorative image slot to the left of the group's fields. */
+  imageSlot?: boolean
 }
 
 export interface DetailTab {
@@ -82,4 +102,7 @@ export interface EntityDef<T = Record<string, unknown>> {
   displayField?: string
   subtitleField?: string
   imageField?: string
+  /** Faceted filters shown as pills below the list search box. Each references a
+   *  field whose `options` supply the pills; an "All" pill clears the filter. */
+  facets?: { field: string; allLabel?: string }[]
 }

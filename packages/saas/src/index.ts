@@ -20,6 +20,7 @@ export { navigateTo as adminNavigateTo, useAdminPath } from './app/routing'
 // The native pieces are exported here, ready for the native shell.
 export {
   CrudPage,
+  CrudListView,
   CrudFormPage,
   CrudDetailPage,
   CrudCardGrid,
@@ -28,7 +29,7 @@ export {
   exportToCSV,
   createCrudPage as createNativeCrudPage,
 } from './crud'
-export type { ImportRowError } from './crud'
+export type { ImportRowError, CrudListViewProps, CrudFacet } from './crud'
 export { PermissionGate } from './permissions/PermissionGate'
 export { WidgetSlot } from './plugins/WidgetSlot'
 export { useFieldRules } from './hooks/useFieldRules'

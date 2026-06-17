@@ -9,7 +9,7 @@ import { useModuleNavigation, ModuleActionBar, createViewRouter } from '@fayz-ai
 import { useTranslation } from '@fayz-ai/core'
 import { DashboardView } from './views/DashboardView'
 import { ProductListView } from './views/ProductListView'
-import { ProductFormView } from './views/ProductFormView'
+import { ProductCrudForm } from './views/ProductCrudForm'
 import { StockMovementView } from './views/StockMovementView'
 import { MovementHistoryView } from './views/MovementHistoryView'
 import { RecipesView } from './views/RecipesView'
@@ -129,8 +129,8 @@ export function InventoryPage({ config, provider, store, registries }: {
 
   const renderView = createViewRouter([
     { id: 'products-list', render: () => <ProductListView onNew={() => navigate('products-new')} onEdit={(id) => navigate(`products-edit:${id}`)} /> },
-    { id: 'products-new', render: () => <ProductFormView onSaved={() => navigate('products-list')} /> },
-    { id: 'products-edit', render: ({ id }) => <ProductFormView editId={id!} onSaved={() => navigate('products-list')} /> },
+    { id: 'products-new', render: () => <ProductCrudForm onSaved={() => navigate('products-list')} /> },
+    { id: 'products-edit', render: ({ id }) => <ProductCrudForm editId={id!} onSaved={() => navigate('products-list')} /> },
     { id: 'stock-entry', render: () => <StockMovementView defaultType="entry" onSaved={() => navigate('stock-history')} /> },
     { id: 'stock-exit', render: () => <StockMovementView defaultType="exit" onSaved={() => navigate('stock-history')} /> },
     { id: 'stock-history', render: () => <MovementHistoryView onViewDetail={(id) => navigate(`stock-detail:${id}`)} /> },

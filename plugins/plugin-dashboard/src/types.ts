@@ -17,6 +17,8 @@ export interface MetricValue {
   unit?: string
   /** Trend direction for visual indicator */
   trend?: 'up' | 'down' | 'neutral'
+  /** Optional series (oldest → newest) rendered as an inline sparkline. */
+  spark?: number[]
 }
 
 export interface DashboardMetric {
@@ -38,6 +40,10 @@ export interface DashboardMetric {
   defaultOrder: number
   /** How to format the value */
   format?: MetricFormat
+  /** Render the card as a radial gauge toward this goal value. */
+  goal?: number
+  /** Accent color for the gauge/sparkline. Defaults to a trend-aware color. */
+  accent?: string
 }
 
 export interface ResolvedMetric extends DashboardMetric {

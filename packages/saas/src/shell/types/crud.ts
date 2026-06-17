@@ -4,10 +4,16 @@ import type { EntityArchetype } from './entities'
 export type FieldType =
   | 'text' | 'email' | 'phone' | 'url' | 'image'
   | 'number' | 'currency'
-  | 'select' | 'multiselect'
+  | 'select' | 'multiselect' | 'segmented'
   | 'date' | 'datetime' | 'time'
   | 'boolean' | 'textarea'
-  | 'color'
+  | 'color' | 'computed'
+
+/** Read-only display produced by a `computed` field's `compute()`. */
+export interface ComputedFieldValue {
+  display: string
+  tone?: 'positive' | 'negative' | 'neutral'
+}
 
 export interface FieldDef {
   key: string
@@ -15,10 +21,15 @@ export interface FieldDef {
   type: FieldType
   required?: boolean
   placeholder?: string
-  options?: string[] | { label: string; value: string }[]
+  /** Small helper text shown under the field input. */
+  hint?: string
+  options?: string[] | { label: string; value: string; description?: string }[]
   min?: number
   max?: number
   currency?: string
+  /** Symbol/locale for the `currency` field's CurrencyInput. Default 'R$' / 'pt-BR'. */
+  currencySymbol?: string
+  currencyLocale?: string
   showInTable?: boolean
   showInForm?: boolean
   /** Show this field in the detail page overview (default: true) */
@@ -26,6 +37,8 @@ export interface FieldDef {
   sortable?: boolean
   searchable?: boolean
   renderCell?: (value: any, row: any) => React.ReactNode
+  /** Derives a read-only value from the other form values (for `computed` fields). */
+  compute?: (values: Record<string, any>) => ComputedFieldValue | null
   defaultValue?: any
   /** Field group name — groups fields into sections in forms and detail views */
   group?: string
@@ -41,6 +54,8 @@ export interface FieldGroup {
   description?: string
   /** Number of columns for this group (default: 2) */
   columns?: 1 | 2 | 3
+  /** Renders a decorative image slot to the left of the group's fields. */
+  imageSlot?: boolean
 }
 
 export interface DetailTab {
@@ -95,6 +110,9 @@ export interface EntityDef<T = Record<string, any>> {
   subtitleField?: string
   /** Field key containing an image URL — shown as hero image on card layout and detail avatar */
   imageField?: string
+  /** Faceted filters shown as pills below the list search box. Each references a
+   *  field whose `options` supply the pills; an "All" pill clears the filter. */
+  facets?: { field: string; allLabel?: string }[]
 }
 
 // ---------------------------------------------------------------------------

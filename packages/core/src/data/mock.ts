@@ -28,6 +28,14 @@ export function createMockProvider<T extends { id: string; [key: string]: unknow
         )
       }
 
+      // Faceted / dynamic filters (equality match per key).
+      if (query.filters) {
+        for (const [key, val] of Object.entries(query.filters)) {
+          if (val == null || val === '') continue
+          filtered = filtered.filter((item) => item[key] === val)
+        }
+      }
+
       const sortBy = query.sortBy ?? defaultSort
       const sortDir = query.sortDir ?? defaultSortDir
       if (sortBy) {

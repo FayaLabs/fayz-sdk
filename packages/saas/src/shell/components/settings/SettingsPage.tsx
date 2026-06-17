@@ -67,7 +67,11 @@ export function SettingsPage({
     return () => window.removeEventListener('hashchange', handler)
   }, [resolvedTabs])
 
-  const activeContent = activeTab ? resolvedTabs.find((t) => t.id === activeTab)?.component : null
+  // Desktop always shows a selected tab; when none is chosen yet (landing on
+  // /settings), default to the first tab — 'general'. Mobile keeps its
+  // list-first master/detail behaviour (driven by the raw activeTab below).
+  const desktopTab = activeTab ?? resolvedTabs[0]?.id ?? null
+  const activeContent = desktopTab ? resolvedTabs.find((t) => t.id === desktopTab)?.component : null
   const activeLabel = activeTab ? resolvedTabs.find((t) => t.id === activeTab)?.label : null
 
   // On mobile: show list OR content. On desktop: show both.
@@ -83,7 +87,7 @@ export function SettingsPage({
     window.location.hash = '/settings'
   }
 
-  const renderNav = () => (
+  const renderNav = (activeId: string | null) => (
     <ul className="space-y-0.5">
       {resolvedTabs.map((tab, i) => (
         <React.Fragment key={tab.id}>
@@ -98,7 +102,7 @@ export function SettingsPage({
               onClick={() => handleSelectTab(tab.id)}
               className={cn(
                 'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                activeTab === tab.id
+                activeId === tab.id
                   ? 'bg-muted text-foreground'
                   : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               )}
@@ -139,7 +143,7 @@ export function SettingsPage({
 
       {/* Desktop: side-by-side layout */}
       <div className="hidden md:flex md:gap-6">
-        <nav className="w-52 shrink-0">{renderNav()}</nav>
+        <nav className="w-52 shrink-0">{renderNav(desktopTab)}</nav>
         <div className="min-w-0 flex-1">{activeContent ?? resolvedTabs[0]?.component}</div>
       </div>
 
@@ -148,7 +152,7 @@ export function SettingsPage({
         {showingContent ? (
           <div>{activeContent}</div>
         ) : (
-          <nav>{renderNav()}</nav>
+          <nav>{renderNav(activeTab)}</nav>
         )}
       </div>
 

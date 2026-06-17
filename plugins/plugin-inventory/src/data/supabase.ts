@@ -73,6 +73,8 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
       const { core, pub } = getClients()
       let qb = core.from('products').select('*', { count: 'exact' })
       if (query.search) qb = qb.ilike('name', `%${query.search}%`)
+      // productType lives in the metadata JSON column → filter on metadata->>productType.
+      if (query.productType) qb = qb.eq('metadata->>productType', query.productType)
       if (query.isActive !== undefined) qb = qb.eq('is_active', query.isActive)
       if (query.lowStockOnly) qb = qb.lte('stock', 0) // simplified
       const page = query.page ?? 1
