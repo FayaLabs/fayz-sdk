@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** resto-saas
-- **Next task:** R1 (real provider selection + env)
+- **Next task:** R2 (MenuManager real data)
 - **Milestone in progress:** M-RESTO  (beauty-saas → M-BEAUTY staged behind B-CHECK; pulse-store code-complete → M-PULSE staged behind P3)
 
 ## Order
@@ -29,7 +29,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 > **PULSE PROVIDER/SCHEMA NOTE (found during P1 — affects P3 e2e):** pulse-store's storefront provider is `createFayzShopProvider({supabaseUrl, publishableKey, storeId})` (legacy *supabase mode*, src/config/shop.ts). That path (1) is **read-only** — all write methods throw 501 ("writes require the Fayz admin/broker API") and it uses the anon/publishable key, and (2) queries **bare tables** `products`/`product_images`/`categories`/`orders`/`order_items`/`discounts` with a **client-side placeOrder** (NOT the `shop_place_order` SECURITY DEFINER RPC). The seed (and the DATA-MODEL Ring-1 convention + the task title) target the canonical **`shop_*`** schema used by `SupabaseShopProvider` (which DOES use `shop_place_order`). So before P3 can pass e2e, reconcile ONE of: (a) switch pulse to `SupabaseShopProvider` (shop_* + RPC, the convention) — preferred; or (b) point the seed at the bare `products`/etc tables the legacy provider reads; or (c) confirm euzqjcusjloljlgwlkiw exposes `products` as views over `shop_*`. Recommend (a) — fold into P2 or a new P1b. Until reconciled, seeded `shop_*` rows won't appear in the storefront.
 
 ### resto-saas  [M-RESTO]
-- [ ] R1 real provider selection + env
+- [x] R1 real provider selection + env — added shared `src/config/provider-env.ts` (`shouldUseFayzProvider(scope)` + `fayzClientEnv()` + `env()`), dedup'ing the duplicated `env`/`shouldUseFayz*Provider`/client-option plumbing across menu.ts/orders.ts/tables.ts. Selection precedence: per-scope flag `VITE_FAYZ_<SCOPE>_PROVIDER` → global `VITE_FAYZ_PROVIDER` → **auto-detect** (a Fayz runtime token present). So menu/orders/tables flip from mock→real as soon as a runtime token is set (no longer "disabled by default"); flags accept fayz/sdk/real/on/true to enable, mock/off/none/false to force mock. NOTE: these 3 plugins ship only a fayz-runtime provider (`createFayz*Provider` via Fayz data API) + mock — there is NO direct-Supabase menu/orders/tables provider, so their real path is the Fayz runtime token, distinct from the SDK plugins (crm/financial/inventory) which read project Supabase via `VITE_SUPABASE_URL`. Completed `.env.example` documenting both backends + all per-plugin overrides. typecheck pass EXIT=0.
 - [ ] R2 MenuManager real data
 - [ ] R3 app-owned restaurant module/plugin seam (community-plugin template)
 - [ ] R4 orders/tables real data + RLS
