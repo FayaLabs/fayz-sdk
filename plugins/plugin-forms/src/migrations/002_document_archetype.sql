@@ -37,16 +37,16 @@ CREATE INDEX IF NOT EXISTS idx_documents_status ON saas_core.documents(tenant_id
 
 CREATE POLICY "documents_select" ON saas_core.documents
   FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "documents_insert" ON saas_core.documents
   FOR INSERT TO authenticated
-  WITH CHECK (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "documents_update" ON saas_core.documents
   FOR UPDATE TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "documents_delete" ON saas_core.documents
   FOR DELETE TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
 -- ============================================================
 -- Alter frm_documents to become extension table for 'form' kind
@@ -75,16 +75,16 @@ CREATE INDEX IF NOT EXISTS idx_frm_documents_template ON public.frm_documents(te
 
 CREATE POLICY "frm_documents_select" ON public.frm_documents
   FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "frm_documents_insert" ON public.frm_documents
   FOR INSERT TO authenticated
-  WITH CHECK (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "frm_documents_update" ON public.frm_documents
   FOR UPDATE TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "frm_documents_delete" ON public.frm_documents
   FOR DELETE TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
 -- frm_document_files: file attachments for form fields
 CREATE TABLE public.frm_document_files (
@@ -107,16 +107,16 @@ CREATE INDEX IF NOT EXISTS idx_frm_document_files_document ON public.frm_documen
 
 CREATE POLICY "frm_document_files_select" ON public.frm_document_files
   FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "frm_document_files_insert" ON public.frm_document_files
   FOR INSERT TO authenticated
-  WITH CHECK (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "frm_document_files_update" ON public.frm_document_files
   FOR UPDATE TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 CREATE POLICY "frm_document_files_delete" ON public.frm_document_files
   FOR DELETE TO authenticated
-  USING (tenant_id IN (SELECT tenant_id FROM saas_core.tenant_members WHERE user_id = auth.uid()));
+  USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
 -- View: all documents for a person with form data joined when applicable
 CREATE OR REPLACE VIEW public.v_documents AS
