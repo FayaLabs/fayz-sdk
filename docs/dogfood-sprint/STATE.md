@@ -3,9 +3,9 @@
 > The brain. Trust this over chat history. Update it at the end of every iteration.
 
 ## FOCUS
-- **App:** pulse-store
-- **Next task:** P2 (storefront content from data)
-- **Milestone in progress:** M-PULSE  (beauty-saas code queue complete → M-BEAUTY staged behind B-CHECK human)
+- **App:** resto-saas
+- **Next task:** R1 (real provider selection + env)
+- **Milestone in progress:** M-RESTO  (beauty-saas → M-BEAUTY staged behind B-CHECK; pulse-store code-complete → M-PULSE staged behind P3)
 
 ## Order
 beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
@@ -23,8 +23,8 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 
 ### pulse-store  [M-PULSE]
 - [x] P1 catalog→shop_products seed module — authored `src/config/seed.ts`: idempotent `seedPulseCatalog({client?, tenantId?})` upserts pulseCatalog into `shop_categories`/`shop_products`/`shop_product_images`/`shop_discounts` (columns mirror SupabaseShopProvider). Idempotency by tenant-scoped natural key (category.slug, product.sku, discount.code, image.url) → re-runnable. Returns per-table touch counts. typecheck pass EXIT=0. ⚠️ See PROVIDER NOTE below — storefront reads a DIFFERENT schema than the seed writes.
-- [ ] P2 storefront content from data
-- [~] P3 human: seed live + place test order (RLS verify)
+- [x] P2 storefront content from data — extracted announcement, hero slides, benefits, banners, newsletter copy + footer out of hardcoded `app.ts` into `src/config/content.ts` (`pulseContent: StorefrontContent`, typed against storefront `HomeConfig`/`FooterConfig`). `app.ts` now consumes `pulseContent.{announcement,home,footer}` verbatim — one content-authoring surface. Category copy (name/description) already flows `catalog.ts` → `seed.ts` → `shop_categories`. typecheck EXIT=0, build pass (vite ✓). NOTE: hero/banner/announcement are storefront-chrome content with no `shop_*` table; a content/settings table + seed-write path is deferred (would need a migration + RLS — fold into P3 reconcile or a P2b if a data-driven home is required).
+- [~] P3 human: seed live + place test order (RLS verify)  ← **NEXT HUMAN CHECKPOINT** (also reconcile provider/schema, see PULSE PROVIDER/SCHEMA NOTE)
 
 > **PULSE PROVIDER/SCHEMA NOTE (found during P1 — affects P3 e2e):** pulse-store's storefront provider is `createFayzShopProvider({supabaseUrl, publishableKey, storeId})` (legacy *supabase mode*, src/config/shop.ts). That path (1) is **read-only** — all write methods throw 501 ("writes require the Fayz admin/broker API") and it uses the anon/publishable key, and (2) queries **bare tables** `products`/`product_images`/`categories`/`orders`/`order_items`/`discounts` with a **client-side placeOrder** (NOT the `shop_place_order` SECURITY DEFINER RPC). The seed (and the DATA-MODEL Ring-1 convention + the task title) target the canonical **`shop_*`** schema used by `SupabaseShopProvider` (which DOES use `shop_place_order`). So before P3 can pass e2e, reconcile ONE of: (a) switch pulse to `SupabaseShopProvider` (shop_* + RPC, the convention) — preferred; or (b) point the seed at the bare `products`/etc tables the legacy provider reads; or (c) confirm euzqjcusjloljlgwlkiw exposes `products` as views over `shop_*`. Recommend (a) — fold into P2 or a new P1b. Until reconciled, seeded `shop_*` rows won't appear in the storefront.
 
@@ -64,8 +64,17 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
   4. Verify tenant isolation: switch org in the OrgSwitcher and confirm the dashboard/agenda data swaps (this exercises `setActiveTenantId` → cache clear).
   - Leave findings in **FEEDBACK** below; the next iteration honors them before continuing pulse-store.
 
+- **P-CHECK / P3 — pulse-store (code tasks P1–P2 landed on `fay/dogfood-sprint`).** Do this to reach M-PULSE:
+  1. **Reconcile the provider/schema first** (see PULSE PROVIDER/SCHEMA NOTE above). Recommended: switch pulse to `SupabaseShopProvider` (canonical `shop_*` + `shop_place_order` RPC). Until done, the seed's `shop_*` rows won't appear in the legacy provider's storefront (it reads bare `products`/etc).
+  2. Run the catalog seed against the live shop DB (euzqjcusjloljlgwlkiw) with a **write-capable** client: `seedPulseCatalog({ client, tenantId })` from `src/config/seed.ts` (anon/publishable key is read-only). Confirm per-table touch counts (categories/products/images/discounts).
+  3. Set `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_PUBLISHABLE_KEY` (+ `PUBLIC_FAYZ_STORE_ID`) in `.env` so the storefront boots on the real provider instead of mock.
+  4. Place a test order via the storefront; confirm it routes through the `shop_place_order` SECURITY DEFINER RPC, inventory decrements, and the customer-scoped order read respects RLS.
+  - P2 left hero/banner/announcement copy in `src/config/content.ts` (code config, no `shop_*` table). If a data-driven home is wanted, decide whether to add a content/settings table + seed-write path (needs a migration + RLS) — otherwise content stays code-config.
+  - Leave findings in **FEEDBACK**; the next iteration honors them before continuing resto-saas.
+
 ## FEEDBACK  (you write here; the next iteration honors it first)
 - (empty)
 
 ## Milestones reached
 - **M-BEAUTY (code-complete)** — beauty-saas code tasks B2–B7 all landed + typecheck green on `fay/dogfood-sprint`. Full M-BEAUTY (e2e DoD) gated on **B-CHECK** human checkpoint. FOCUS advanced to pulse-store.
+- **M-PULSE (code-complete)** — pulse-store code tasks P1 (catalog→shop_* seed) + P2 (storefront content → data module) landed + typecheck/build green on `fay/dogfood-sprint`. Full M-PULSE (e2e DoD: real catalog persisted, checkout via RPC, RLS verified) gated on **P3** human checkpoint + provider/schema reconcile. FOCUS advanced to resto-saas.
