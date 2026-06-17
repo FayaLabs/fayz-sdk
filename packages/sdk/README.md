@@ -1,89 +1,42 @@
 # @fayz-ai/sdk
 
-TypeScript SDK for generated Fayz projects.
+> The typed client and contract layer every Fayz app talks to.
 
-Use this package in every Fayz-generated project to standardize API access, app params, shared types, and Runtime OAuth broker calls.
+[![npm](https://img.shields.io/npm/v/@fayz-ai/sdk.svg)](https://www.npmjs.com/package/@fayz-ai/sdk)
+[![license](https://img.shields.io/npm/l/@fayz-ai/sdk.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
+
+Fayz builds real, multi-tenant SaaS apps by composing plugins. `@fayz-ai/sdk` is the seam between a generated Fayz project and the platform behind it: a typed API client, the shared manifest/user/params types, a runtime broker for OAuth-backed integrations, and the release-channel resolver that keeps every package on a coherent version set.
+
+This is the lowest-trust, zero-React layer — no UI, no framework, just the contract. Generated apps call Fayz through the SDK instead of importing provider clients directly, so OAuth secrets and tenant authority stay server-side where they belong. If you're reading Fayz tables, exchanging plugin OAuth grants, or pinning a package channel, you start here.
+
+## What's inside
+- `createFayzClient` / `fayz` — typed client with `auth.me()` and `data` row access (`listRows`, `countRows`, `createRow`, `updateRow`, `deleteRows`) plus `FayzApiError`
+- `createFayzRuntimeClient` / `FayzRuntimeError` — runtime OAuth broker for plugin grant exchange and Google Calendar access
+- `createFayzShopProvider` / `FayzShopError` — commerce read provider (products, orders, customers, discounts) with status types
+- `appParams` / `resolveAppParams` — read the app params Fayz injects into a generated project
+- `fayzPackageVersionSets` + `resolveFayzPackage*` — release-channel resolution across the SDK
+- Shared types: `AppManifest`, `PageManifest`, `SurfaceManifest`, `PluginRef`, `FayzUser`, `FayzAuthMeResponse`
 
 ## Install
-
 ```bash
 npm install @fayz-ai/sdk
 ```
+No peer dependencies — framework-agnostic.
 
-## Basic Usage
-
-```ts
-import { fayz } from '@fayz-ai/sdk'
-import { appParams } from '@fayz-ai/sdk/app-params'
-
-const currentUser = await fayz.auth.me()
-
-console.log(appParams.appId, currentUser)
-```
-
-## Custom Client
-
-```ts
-import { createFayzClient } from '@fayz-ai/sdk'
-
-const fayz = createFayzClient({
-  baseUrl: 'https://api.fayz.ai',
-  appId: 'app_123',
-  token: 'runtime-token',
-})
-
-const user = await fayz.auth.me()
-```
-
-## Data/API Access
-
-Generated apps should call Fayz through the SDK instead of importing provider clients directly.
-
+## Usage
 ```ts
 import { fayz } from '@fayz-ai/sdk'
 
-const appointmentsToday = await fayz.data.countRows({
+const me = await fayz.auth.me()
+
+const { rows, total } = await fayz.data.listRows({
   table: 'v_bookings',
-  filters: [
-    { column: 'starts_at', operator: 'gte', value: dayStart },
-    { column: 'starts_at', operator: 'lt', value: dayEnd },
-    { column: 'status', operator: 'neq', value: 'cancelled' },
-    { column: 'status', operator: 'neq', value: 'no_show' },
-  ],
+  filters: [{ column: 'status', operator: 'neq', value: 'cancelled' }],
 })
 ```
 
-## Runtime OAuth Broker
+## Part of the Fayz SDK
+The foundation client beneath `@fayz-ai/core`, `@fayz-ai/saas`, and every Fayz plugin.
 
-Provider OAuth secrets and refresh tokens stay server-side in Fayz. Generated projects should exchange a short-lived runtime token through Fayz and call brokered helpers.
-
-```ts
-import { createFayzRuntimeClient } from '@fayz-ai/sdk/runtime'
-
-const runtime = createFayzRuntimeClient({
-  baseUrl: 'https://api.fayz.ai',
-  projectId: 'project_123',
-  runtimeToken: 'runtime-token',
-})
-
-const grant = await runtime.exchangePluginOAuth({
-  pluginId: 'agenda',
-  scopes: ['google.calendar.readonly'],
-})
-
-const calendars = await runtime.googleCalendar(grant.token).listCalendars()
-```
-
-## Package Roles
-
-- `@fayz-ai/sdk`: default SDK package for every generated project.
-
-App runtime, shell, UI, and plugin modules are platform-bundled/internal while the Beauty manifest proof validates the right public boundary. Do not install or publish separate runtime/plugin packages for generated apps yet.
-
-## Security Boundary
-
-Do not put OAuth client secrets, provider refresh tokens, partner API keys, tenant authority decisions, or raw Fayz service secrets in SDK packages, generated repos, manifests, or browser code.
-
-## License
-
-MIT
+## Roadmap & contributing
+Built and evolving in the open. See the [Fayz SDK roadmap](../../docs/ROADMAP.md#sdk) for current gaps, missing features, and good first issues.
