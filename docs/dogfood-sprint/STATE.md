@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** pulse-store
-- **Next task:** P1 (catalog→shop_products seed module)
+- **Next task:** P2 (storefront content from data)
 - **Milestone in progress:** M-PULSE  (beauty-saas code queue complete → M-BEAUTY staged behind B-CHECK human)
 
 ## Order
@@ -22,9 +22,11 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 - [~] B-CHECK human: apply migrations + login smoke test  ← **NEXT HUMAN CHECKPOINT** (see FOR THE HUMAN)
 
 ### pulse-store  [M-PULSE]
-- [ ] P1 catalog→shop_products seed module
+- [x] P1 catalog→shop_products seed module — authored `src/config/seed.ts`: idempotent `seedPulseCatalog({client?, tenantId?})` upserts pulseCatalog into `shop_categories`/`shop_products`/`shop_product_images`/`shop_discounts` (columns mirror SupabaseShopProvider). Idempotency by tenant-scoped natural key (category.slug, product.sku, discount.code, image.url) → re-runnable. Returns per-table touch counts. typecheck pass EXIT=0. ⚠️ See PROVIDER NOTE below — storefront reads a DIFFERENT schema than the seed writes.
 - [ ] P2 storefront content from data
 - [~] P3 human: seed live + place test order (RLS verify)
+
+> **PULSE PROVIDER/SCHEMA NOTE (found during P1 — affects P3 e2e):** pulse-store's storefront provider is `createFayzShopProvider({supabaseUrl, publishableKey, storeId})` (legacy *supabase mode*, src/config/shop.ts). That path (1) is **read-only** — all write methods throw 501 ("writes require the Fayz admin/broker API") and it uses the anon/publishable key, and (2) queries **bare tables** `products`/`product_images`/`categories`/`orders`/`order_items`/`discounts` with a **client-side placeOrder** (NOT the `shop_place_order` SECURITY DEFINER RPC). The seed (and the DATA-MODEL Ring-1 convention + the task title) target the canonical **`shop_*`** schema used by `SupabaseShopProvider` (which DOES use `shop_place_order`). So before P3 can pass e2e, reconcile ONE of: (a) switch pulse to `SupabaseShopProvider` (shop_* + RPC, the convention) — preferred; or (b) point the seed at the bare `products`/etc tables the legacy provider reads; or (c) confirm euzqjcusjloljlgwlkiw exposes `products` as views over `shop_*`. Recommend (a) — fold into P2 or a new P1b. Until reconciled, seeded `shop_*` rows won't appear in the storefront.
 
 ### resto-saas  [M-RESTO]
 - [ ] R1 real provider selection + env
