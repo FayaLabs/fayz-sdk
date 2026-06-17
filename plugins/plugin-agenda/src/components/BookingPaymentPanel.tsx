@@ -221,7 +221,7 @@ export function BookingPaymentPanel({ orderId, orderTotal, services, onClose, on
               <span className="text-[10px] font-mono text-muted-foreground">#{detail.referenceNumber}</span>
             )}
             <a
-              href={`#/financial/receivables-detail:${detail.invoiceId}`}
+              href={`#/financial/receivables/detail/${detail.invoiceId}`}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline ml-auto"
             >
               {t('agenda.payment.viewInvoice')}
