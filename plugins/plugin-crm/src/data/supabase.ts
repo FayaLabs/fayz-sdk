@@ -476,41 +476,15 @@ export function createSupabaseCrmProvider(options?: {
       const quote = await provider.getQuoteById(id)
       if (!quote) throw new Error('Quote not found')
 
-      // 1. Read existing order + items
-      const { data: quoteOrder } = await core.from('orders').select('*').eq('id', id).single()
-      const { data: quoteItems } = await core.from('order_items').select('name').eq('order_id', id).order('sort_order')
-      const itemsSummary = (quoteItems ?? []).map((i: any) => i.name).filter(Boolean).join(', ')
-      const existingMeta = (quoteOrder?.metadata as Record<string, unknown>) ?? {}
-
-      // 2. Generate invoice reference number
-      let referenceNumber: string | undefined
-      try {
-        const { data: seq } = await core.rpc('next_sequence', { p_tenant_id: tenantId, p_kind: 'invoice_receivable' })
-        if (seq) referenceNumber = `REC-${String(seq).padStart(5, '0')}`
-      } catch { /* sequence might not exist */ }
-
-      // 3. Promote the quote IN-PLACE: same row, stage advances
-      await core.from('orders').update({
-        status: 'approved',
-        stage: 'invoiced',
-        direction: 'credit',
-        reference_number: referenceNumber ?? quoteOrder?.reference_number,
-        metadata: {
-          ...existingMeta,
-          itemsSummary,
-          installmentCount: 1,
-          quoteNumber: quoteOrder?.reference_number,  // preserve original quote number
-        },
-      }).eq('id', id)
-
-      // 4. Create financial movement on the SAME order (no separate invoice row)
-      await pub.from('financial_movements').insert({
-        tenant_id: tenantId, invoice_id: id,
-        direction: 'credit', movement_kind: 'bill',
-        amount: quote.totalAmount, paid_amount: 0, status: 'pending',
-        due_date: quote.validUntil ?? new Date().toISOString().slice(0, 10),
-        installment_number: 1,
+      // 2-4. Atomic promotion (ref number + stage/direction + financial movement)
+      //      in one transaction via the shared DB function. Replaces the
+      //      multi-step write each plugin used to re-implement. Idempotent.
+      const { error: promoteErr } = await pub.rpc('fn_invoice_from_order', {
+        p_order_id: id,
+        p_due_date: quote.validUntil ?? null,
+        p_status: 'approved',
       })
+      if (promoteErr) throw new Error(promoteErr.message)
 
       // 5. Cascade: move deal to Won stage
       if (quote.dealId) {
