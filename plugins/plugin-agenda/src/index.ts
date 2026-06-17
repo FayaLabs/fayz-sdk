@@ -1,13 +1,11 @@
 import React from 'react'
 import type { PluginManifest } from '@fayz-ai/core'
-import { createSafeDataProvider, registerTranslations, usePluginRuntimeOptional } from '@fayz-ai/core'
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import type { AgendaPluginOptions } from './config'
 import { resolveConfig } from './config'
 import { AgendaPage } from './AgendaPage'
-import { AgendaContextProvider } from './AgendaContext'
 import { createSupabaseAgendaProvider } from './data/supabase'
 import { createMockAgendaProvider } from './data/mock'
-import { WorkingHoursView } from './views/WorkingHoursView'
 import { setAgendaTenantId } from './lib/tenant'
 import { createAgendaStore } from './store'
 import { agendaRegistries } from './registries'
@@ -49,22 +47,6 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(AgendaPage, { config, provider, store })
-
-  const WorkingHoursSettingsTab: React.FC = () => {
-    const runtime = usePluginRuntimeOptional()
-    const tenantId = runtime?.context.tenant?.id
-
-    React.useEffect(() => {
-      setAgendaTenantId(tenantId)
-      return () => setAgendaTenantId(undefined)
-    }, [tenantId])
-
-    return React.createElement(
-      AgendaContextProvider,
-      { config, provider, store, children: React.createElement(WorkingHoursView) },
-    )
-  }
-  WorkingHoursSettingsTab.displayName = 'WorkingHoursSettingsTab'
 
   return {
     id: 'agenda',
@@ -184,14 +166,6 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
         })(),
         order: 5,
         permission: { feature: 'appointments', action: 'read' as const },
-      },
-      {
-        id: 'agenda-working-hours',
-        label: config.labels.workingHours,
-        icon: 'Clock',
-        component: WorkingHoursSettingsTab as unknown as React.ComponentType<unknown>,
-        order: 6,
-        permission: { feature: 'agenda.schedules', action: 'read' as const },
       },
     ],
     locales: agendaLocales,
