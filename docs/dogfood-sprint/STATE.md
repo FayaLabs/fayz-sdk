@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** agency-os
-- **Next task:** A1 (initial migration set — saas_core + agency Ring-2)
+- **Next task:** A2 (replace placeholders, wire conversations/CRM/calendars to real data)
 - **Milestone in progress:** M-AGENCY  (beauty-saas → M-BEAUTY staged behind B-CHECK; pulse-store → M-PULSE staged behind P3; resto-saas code-complete → M-RESTO staged behind R-CHECK)
 
 ## Order
@@ -36,7 +36,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 - [~] R-CHECK human: provision DB, apply migrations, smoke test  ← **NEXT HUMAN CHECKPOINT** (see FOR THE HUMAN)
 
 ### agency-os  [M-AGENCY]
-- [ ] A1 initial migration set (saas_core + agency Ring-2)
+- [x] A1 initial migration set — copied the proven Ring-0 spine VERBATIM from beauty-saas (8 core migrations: `*_saas_core`, `*_project_rls` [defines `public.user_tenant_ids()`], `*_invitations_status`, `*_archetypes` [5 archetypes: persons/products/services/orders/bookings/+categories/transactions/schedules + items], `*_locations_archetype`, `*_fix_archetype_rls` [archetype RLS → `saas_core.user_tenant_ids()`], `*_archetype_grants`, `*_grants`) so all four apps share an IDENTICAL Ring 0 (M-LOCK goal). Authored agency Ring-2 `20260101000020_agency_subaccounts.sql` (idempotent): `public.snapshots` (agency-owned GHL provisioning templates, tenant-scoped) + `public.sub_accounts` (1:1 extension of `saas_core.tenants`, PK=tenant_id, with agency_tenant_id parent FK, snapshot_id, business_niche, timezone, white_label_domain, status check, onboarding flag) — both RLS-scoped on `saas_core.user_tenant_ids()` + grants + updated_at triggers. typecheck EXIT=0 (no TS touched), SQL `$$`/DO blocks balanced. Staged not applied (A-CHECK applies). NOTE: branch `fay/dogfood-sprint` carries 2 pre-existing uncommitted main edits (.env.example + app.tsx supabase-key fallback) NOT part of A1 — left uncommitted.
 - [ ] A2 replace placeholders, wire conversations/CRM/calendars
 - [ ] A3 multi-org isolation
 - [~] A-CHECK human: apply migrations, smoke test
