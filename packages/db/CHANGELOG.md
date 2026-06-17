@@ -1,5 +1,13 @@
 # @fayz-ai/db
 
+## 0.1.2
+
+### Patch Changes
+
+- Ship package READMEs to npm. Republish the SaaS foundation packages so their
+  npm pages render the new story-driven READMEs (npm only shows a README for a
+  freshly published version). No code changes — docs only.
+
 ## 0.1.1
 
 ### Patch Changes

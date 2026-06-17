@@ -1,5 +1,16 @@
 # @fayz-ai/plugin-dashboard
 
+## 0.1.2
+
+### Patch Changes
+
+- Ship package READMEs to npm. Republish the SaaS foundation packages so their
+  npm pages render the new story-driven READMEs (npm only shows a README for a
+  freshly published version). No code changes — docs only.
+- Updated dependencies
+  - @fayz-ai/core@0.1.7
+  - @fayz-ai/ui@0.1.7
+
 ## 0.1.1
 
 ### Patch Changes
