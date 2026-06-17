@@ -72,15 +72,38 @@ export function SaveBarProvider({ children }: { children: React.ReactNode }) {
   const handlers = React.useRef<{ onSave?: () => void; onDiscard?: () => void }>({})
   const api = React.useMemo<SaveBarApi>(() => ({ setState, handlers }), [])
 
+  // Stack of registered back-navigation handlers (latest-mounted wins) so the
+  // app-wide Escape key can navigate "up" to the parent route. Lives here, next
+  // to the SaveBar handlers, so ONE keydown listener arbitrates both — Escape
+  // discards a dirty form first, and only navigates back when none is open.
+  const backStack = React.useRef<React.MutableRefObject<(() => void) | undefined>[]>([])
+  const backApi = React.useMemo<BackNavApi>(() => ({ stack: backStack }), [])
+
   // Broadcast visibility to the module-level signal (for the ToastProvider).
   React.useEffect(() => { setSaveBarVisibleSignal(state.visible) }, [state.visible])
 
-  // Cmd/Ctrl+Enter submits the active (dirty) form from anywhere on the page.
+  // App-wide keyboard shortcuts, arbitrated in one place:
+  //   • Cmd/Ctrl+Enter → save the active (dirty) form
+  //   • Escape (form dirty) → discard the form
+  //   • Escape (no dirty form) → navigate back to the parent route
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && state.visible && !state.saving) {
-        e.preventDefault()
-        handlers.current.onSave?.()
+      if (state.visible && !state.saving) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault()
+          handlers.current.onSave?.()
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          handlers.current.onDiscard?.()
+        }
+        return
+      }
+      // No open/dirty form — Escape walks "up" via the topmost back handler.
+      if (e.key === 'Escape' && !e.defaultPrevented && !isEditableTarget(e.target)) {
+        for (let i = backStack.current.length - 1; i >= 0; i--) {
+          const back = backStack.current[i].current
+          if (back) { e.preventDefault(); back(); return }
+        }
       }
     }
     window.addEventListener('keydown', onKey)
@@ -89,11 +112,56 @@ export function SaveBarProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SaveBarApiContext.Provider value={api}>
-      <SaveBarStateContext.Provider value={state}>
-        {children}
-      </SaveBarStateContext.Provider>
+      <BackNavApiContext.Provider value={backApi}>
+        <SaveBarStateContext.Provider value={state}>
+          {children}
+        </SaveBarStateContext.Provider>
+      </BackNavApiContext.Provider>
     </SaveBarApiContext.Provider>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Back-navigation registry — lets any subpage register its "go to parent" action
+// so the shell's single Escape handler can drive it (see SaveBarProvider above).
+// SubpageHeader already receives onBack, so wiring it there gives every plugin
+// detail page Escape-to-parent for free, with zero per-plugin code.
+// ---------------------------------------------------------------------------
+
+interface BackNavApi {
+  stack: React.MutableRefObject<React.MutableRefObject<(() => void) | undefined>[]>
+}
+const BackNavApiContext = React.createContext<BackNavApi | null>(null)
+
+/** True when the keyboard event originates from a field where Escape has its
+ *  own meaning (clear/close), so we shouldn't hijack it for back-navigation. */
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null
+  if (!el || !el.tagName) return false
+  const tag = el.tagName.toLowerCase()
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable
+}
+
+/**
+ * Register a back-navigation handler with the app-wide Escape key. Call it in a
+ * subpage (or pass through SubpageHeader's onBack); while mounted, pressing
+ * Escape with no dirty form open invokes the most-recently-registered handler.
+ * Pass `undefined` to opt out (e.g. a top-level page with nothing to go back to).
+ */
+export function useBackHandler(onBack?: () => void): void {
+  const api = React.useContext(BackNavApiContext)
+  // Hold the latest closure in a ref so re-renders don't churn the stack.
+  const ref = React.useRef(onBack)
+  React.useEffect(() => { ref.current = onBack })
+  React.useEffect(() => {
+    if (!api) return
+    const stack = api.stack.current
+    stack.push(ref)
+    return () => {
+      const i = stack.indexOf(ref)
+      if (i !== -1) stack.splice(i, 1)
+    }
+  }, [api])
 }
 
 /**

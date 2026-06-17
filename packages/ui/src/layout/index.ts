@@ -16,7 +16,7 @@ export {
   type BackButtonStyle,
 } from './ModulePage'
 export { useModuleHeaderSlot, useModuleHeaderActionsSlot } from './AppShell'
-export { SaveBar, SaveBarProvider, useSaveBar, type SaveBarRegistration } from './SaveBar'
+export { SaveBar, SaveBarProvider, useSaveBar, useBackHandler, type SaveBarRegistration } from './SaveBar'
 export {
   PageTransition,
   NavTransitionProvider,

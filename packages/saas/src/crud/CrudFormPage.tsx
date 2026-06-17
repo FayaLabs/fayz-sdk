@@ -5,7 +5,7 @@ import { Button } from '@fayz-ai/ui'
 import { Input } from '@fayz-ai/ui'
 import { Checkbox } from '@fayz-ai/ui'
 import { toast } from '@fayz-ai/ui'
-import { useSaveBar } from '@fayz-ai/ui'
+import { useSaveBar, useBackHandler } from '@fayz-ai/ui'
 import { PersonFormLayout } from './archetypes/PersonFormLayout'
 import { ProductFormLayout } from './archetypes/ProductFormLayout'
 import { ServiceFormLayout } from './archetypes/ServiceFormLayout'
@@ -234,15 +234,25 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
 
   const dirty = JSON.stringify(values) !== initialRef.current
 
+  // Discard reverts the form to its pristine state and stays on the page (the
+  // SaveBar then hides). Leaving the page is a separate action — the breadcrumb
+  // link, or pressing Escape again once there's nothing left to discard.
+  const discard = () => { setValues(computeInit()) }
+
   // Full-page CRUD forms surface Save/Discard via the app-wide floating SaveBar.
   // Embedded forms (rendered inside other widgets) keep their inline buttons.
   useSaveBar({
     dirty: !embedded && dirty,
     saving,
     onSave: () => { void submit() },
-    onDiscard: onCancel,
+    onDiscard: discard,
     saveLabel: mode === 'create' ? t('crud.form.addTitle', { entity: entityDef.name }) : t('crud.form.saveChanges'),
   })
+
+  // Register "leave to parent" with the app-wide Escape key. While the form is
+  // dirty the SaveBar owns Escape (→ discard); once pristine, Escape navigates
+  // back — giving the two-step "discard, then leave" flow for free.
+  useBackHandler(embedded ? undefined : onCancel)
 
   const handleChange = (key: string, val: any) => {
     setValues((prev) => ({ ...prev, [key]: val }))

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { useBackHandler } from '../layout/SaveBar'
 
 interface BreadcrumbProps {
   /** Parent label (e.g. "Invoices", "Clients") — clicking navigates back */
@@ -11,6 +12,8 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ parent, current, onBack }: BreadcrumbProps) {
+  // Wire this page's back action into the app-wide Escape key (no per-plugin code).
+  useBackHandler(onBack)
   return (
     <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
       <button

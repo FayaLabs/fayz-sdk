@@ -122,6 +122,7 @@ export {
   SaveBar,
   SaveBarProvider,
   useSaveBar,
+  useBackHandler,
   type SaveBarRegistration,
   useModuleHeaderSlot,
   useModuleHeaderActionsSlot,

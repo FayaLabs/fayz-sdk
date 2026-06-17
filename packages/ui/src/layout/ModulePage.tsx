@@ -6,6 +6,7 @@ import { cn } from '../utils/cn'
 import { ICON_MAP } from './Topbar'
 import { useModuleHeaderSlot, useModuleHeaderActionsSlot } from './AppShell'
 import { PageTransition } from './PageTransition'
+import { useBackHandler } from './SaveBar'
 
 // ---------------------------------------------------------------------------
 // PageHeaderActions — portals a page's primary action button(s) into the shell
@@ -247,6 +248,8 @@ export interface SubpageHeaderProps {
 export function SubpageHeader({ title, subtitle, icon, onBack, parentLabel, actions, backStyle }: SubpageHeaderProps) {
   const t = useTranslation()
   const appStyle = useBackStyle()
+  // Wire this page's back action into the app-wide Escape key (no per-plugin code).
+  useBackHandler(onBack)
   const Icon = icon ? (ICON_MAP[icon] ?? null) : null
   // Breadcrumb/link need a parent label; without one we fall back to the icon button.
   const style: BackButtonStyle = !onBack ? 'icon' : (backStyle ?? appStyle)
