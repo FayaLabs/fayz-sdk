@@ -105,6 +105,9 @@ beautyplace forces a new archetype. That is the signal the model is right.
 1. **Ring 0 is fixed and small** — 5 archetypes + spine. New apps never add to it.
 2. **Capabilities are plugins** — prefixed tables, provisioned by manifest `migrations[]`, tenant-scoped + RLS. Adding a capability = installing a plugin, not editing core.
 3. **Domain richness is Ring 2** — 1:1 id-shared extensions + app-owned tables, in the app's repo, carrying `tenant_id` + RLS, free to hold custom code that calls SDK providers.
-4. **One isolation rule, everywhere** — every non-public table has `tenant_id` and RLS `USING (tenant_id IN (SELECT public.user_tenant_ids()))`. The capability gate will enforce this next.
+4. **One isolation rule, everywhere** — every non-public table has `tenant_id` and RLS `USING (tenant_id IN (SELECT public.user_tenant_ids()))`. The capability gate audits the form each plugin's migrations use (`node scripts/check-plugin-capability.mjs` → "RLS isolation form": canonical · divergent · deferred · no-rls).
+   - **canonical** (the locked form) — policies write `tenant_id IN (SELECT public.user_tenant_ids())` inline (plugin-tasks; plugin-forms + resto-saas standardized to it in L2).
+   - **deferred == canonical-at-apply** (confirmed L3) — crm/financial/inventory ship `ENABLE ROW LEVEL SECURITY` but **no** `CREATE POLICY`; their `public.<table>` (normal-named base tables with a `tenant_id` column) are caught by the `project_rls.sql` auto-detect DO-block, which emits exactly the canonical `tenant_id IN (SELECT public.user_tenant_ids())` policy for SELECT/INSERT/UPDATE/DELETE at apply time. So a `deferred` plugin lands as canonical on a real DB — it is **not** a divergence, only a deferral of *where* the policy text lives (the app's `project_rls.sql`, not the plugin's migration). Requirement for deferral to be safe: the table is in `public`, is a `BASE TABLE`, has a `tenant_id` column, and is **not** prefixed with `_` (the loop's `NOT LIKE '\_%'` filter).
+   - **divergent** / **no-rls** — flagged loud; standardize before lock.
 
 When all four apps run e2e on these rings, the architecture is validated → lock → Fayz emits it.

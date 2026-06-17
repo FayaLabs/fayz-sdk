@@ -21,8 +21,11 @@
 //   divergent  policies use the inline `saas_core.tenant_members WHERE user_id = auth.uid()`
 //              form — functionally equivalent but NOT the locked convention (plugin-forms, resto)
 //   deferred   tables ENABLE RLS but define no inline policy — relies on project_rls.sql
-//              auto-detection (crm/financial/inventory). Acceptable, but the policy form is
-//              decided elsewhere; flagged so the lock decision is explicit.
+//              auto-detection (crm/financial/inventory). CONFIRMED (L3) deferred == canonical
+//              at apply: the project_rls.sql DO-block discovers every public BASE TABLE with a
+//              tenant_id column (NOT LIKE '\_%') and emits the canonical user_tenant_ids() policy.
+//              So deferred lands as canonical on a real DB — a deferral of WHERE the policy text
+//              lives, not a divergence. Flagged only so the lock decision stays explicit.
 //   no-rls     a tenant_id table with no ENABLE ROW LEVEL SECURITY — a real isolation gap.
 // Reported only (never blocks). Standardizing on `canonical` is the M-LOCK deliverable.
 //
