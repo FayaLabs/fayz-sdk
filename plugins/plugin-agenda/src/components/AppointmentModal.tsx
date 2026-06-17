@@ -279,6 +279,8 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
   const createBooking = useAgendaStore((s) => s.createBooking)
   const updateBooking = useAgendaStore((s) => s.updateBooking)
   const deleteBooking = useAgendaStore((s) => s.deleteBooking)
+  const fetchBookings = useAgendaStore((s) => s.fetchBookings)
+  const agendaDateRange = useAgendaStore((s) => s.dateRange)
   const professionals = useAgendaStore((s) => s.professionals)
   const storeLocations = useAgendaStore((s) => s.locations)
 
@@ -720,6 +722,9 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
                   config.financialBridge!.getPaymentDetail(editOrderId).then((d) => {
                     if (d) { setEditPaymentStatus(d.status); setEditOrderTotal(d.totalAmount) }
                   }).catch(() => {})
+                  // Propagate to the calendar card + popover badge (booking.paymentStatus
+                  // is ledger-derived) so they update without a page refresh.
+                  if (agendaDateRange.start) fetchBookings(agendaDateRange)
                 }}
               />
             </div>
