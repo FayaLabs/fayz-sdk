@@ -181,6 +181,14 @@ export function PaymentModal({ movement, onClose, onPaid }: {
               style={{ gridTemplateRows: expandMethodPicker ? '1fr' : '0fr' }}
             >
               <div className="overflow-hidden">
+                {paymentMethodTypes.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-input bg-muted/30 px-3 py-3 text-center mt-1.5">
+                    <p className="text-xs text-muted-foreground">{t('financial.payment.noMethods')}</p>
+                    <a href="#/financial/settings" className="mt-1.5 inline-block text-xs font-medium text-primary hover:underline">
+                      {t('financial.payment.configureMethods')} →
+                    </a>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-3 gap-2 mt-1.5">
                   {paymentMethodTypes.map((type) => {
                     const tt = type.transactionType ?? ''
@@ -199,6 +207,7 @@ export function PaymentModal({ movement, onClose, onPaid }: {
                     )
                   })}
                 </div>
+                )}
               </div>
             </div>
           </div>

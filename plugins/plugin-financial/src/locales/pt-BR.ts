@@ -190,6 +190,8 @@ export const ptBR: Record<string, string> = {
   "financial.settings.requireOpeningDesc": "O saldo de abertura deve ser confirmado antes de iniciar uma sessão",
   "financial.settingsPage.subtitle": "Gerenciar métodos de pagamento, contas e configurações",
   "financial.settingsPage.title": "Configurações Financeiras",
+  "financial.payment.noMethods": "Nenhuma forma de pagamento configurada.",
+  "financial.payment.configureMethods": "Configurar formas de pagamento",
   "financial.statements.account": "Conta",
   "financial.statements.from": "De",
   "financial.statements.noTransactions": "Sem transações neste período",

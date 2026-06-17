@@ -190,6 +190,8 @@ export const en: Record<string, string> = {
   "financial.settings.requireOpeningDesc": "Opening balance must be confirmed before starting a session",
   "financial.settingsPage.subtitle": "Manage payment methods, accounts, and configurations",
   "financial.settingsPage.title": "Financial Settings",
+  "financial.payment.noMethods": "No payment methods configured.",
+  "financial.payment.configureMethods": "Set up payment methods",
   "financial.statements.account": "Account",
   "financial.statements.from": "From",
   "financial.statements.noTransactions": "No transactions in this period",
