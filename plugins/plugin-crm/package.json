@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-crm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fayz SDK — plugin-crm plugin",
   "type": "module",
   "main": "./dist/index.cjs",

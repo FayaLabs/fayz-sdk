@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/auth",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "description": "Fayz SDK auth — pluggable authentication adapters with React hooks",
   "type": "module",
   "main": "./src/index.ts",
