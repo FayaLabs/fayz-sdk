@@ -4,7 +4,7 @@
 
 ## FOCUS
 - **App:** resto-saas
-- **Next task:** R3 (app-owned restaurant module/plugin seam — community-plugin template)
+- **Next task:** R4 (orders/tables real data + RLS)
 - **Milestone in progress:** M-RESTO  (beauty-saas → M-BEAUTY staged behind B-CHECK; pulse-store code-complete → M-PULSE staged behind P3)
 
 ## Order
@@ -31,7 +31,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 ### resto-saas  [M-RESTO]
 - [x] R1 real provider selection + env — added shared `src/config/provider-env.ts` (`shouldUseFayzProvider(scope)` + `fayzClientEnv()` + `env()`), dedup'ing the duplicated `env`/`shouldUseFayz*Provider`/client-option plumbing across menu.ts/orders.ts/tables.ts. Selection precedence: per-scope flag `VITE_FAYZ_<SCOPE>_PROVIDER` → global `VITE_FAYZ_PROVIDER` → **auto-detect** (a Fayz runtime token present). So menu/orders/tables flip from mock→real as soon as a runtime token is set (no longer "disabled by default"); flags accept fayz/sdk/real/on/true to enable, mock/off/none/false to force mock. NOTE: these 3 plugins ship only a fayz-runtime provider (`createFayz*Provider` via Fayz data API) + mock — there is NO direct-Supabase menu/orders/tables provider, so their real path is the Fayz runtime token, distinct from the SDK plugins (crm/financial/inventory) which read project Supabase via `VITE_SUPABASE_URL`. Completed `.env.example` documenting both backends + all per-plugin overrides. typecheck pass EXIT=0.
 - [x] R2 MenuManager real data — the `/menu` surface is the **plugin** `MenuPage` (`createRestoMenuPlugin`→`createMenuPlugin`), already wired to `createFayzMenuProvider` by R1 (real fayz-runtime data; mock fallback only when no provider). `src/pages/MenuManager.tsx` (hardcoded `MOCK_CATEGORIES`) + `src/data/mock-menu.ts` (`mockMenu`) were dead orphans — defined but never imported/routed (pages.tsx `/menu` is a nav-child pointer; the plugin owns the component). Removed both so the real-data plugin page is the single menu surface; kept `types/menu-item.ts` (its `MenuItem`/`productEntity` are consumed via types/index). typecheck pass EXIT=0.
-- [ ] R3 app-owned restaurant module/plugin seam (community-plugin template)
+- [x] R3 app-owned restaurant module/plugin seam — consolidated the resto-specific plugins into a single app-owned `src/restaurant/` module (the community-plugin seam): moved `provider-env.ts` + `menu.ts`/`orders.ts`/`tables.ts` (config→restaurant), folded `components/ModuleToggles.tsx` + `registry.tsx`'s `moduleTogglesPlugin` into `restaurant/module-toggles.tsx`, and added `restaurant/index.ts` exposing one entry point `restaurantPlugins({orders})` → `PluginManifest[]` (callers pass only domain inputs; provider/schema/currency/nav encapsulated). `app.tsx` now `...restaurantPlugins({orders:{menuItemLookup,staffLookup}})`. Removed dead orphans `pages/TableMap.tsx` (hardcoded-mock page; the tables PLUGIN owns `/tables`, parallel to R2's MenuManager) and `registry.tsx` (+ its no-op `import './registry'` in App.tsx). Documented the seam contract + integration pattern in `restaurant/README.md`. typecheck pass EXIT=0, build pass (vite ✓).
 - [ ] R4 orders/tables real data + RLS
 - [~] R-CHECK human: provision DB, apply migrations, smoke test
 
