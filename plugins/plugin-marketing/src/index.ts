@@ -1,8 +1,10 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
+import { PluginSettingsPanel } from '@fayz-ai/saas'
 import { MarketingPage } from './MarketingPage'
 import { SettingsView } from './views/SettingsView'
+import { buildMarketingRegistries } from './registries'
 import { createMarketingDashboardWidgets } from './views/dashboardWidgets'
 import {
   MarketingContextProvider,
@@ -97,9 +99,18 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
   PageComponent.displayName = 'MarketingPage'
 
   // Settings lives in the SDK-core central Settings area (not a module tab).
+  // General preferences (channel tracking toggles) + a Channels registry tab,
+  // mirroring how plugin-menu surfaces Allergens.
+  const marketingRegistries = buildMarketingRegistries(config.channels)
   const SettingsComponent: React.ComponentType<unknown> = () =>
     React.createElement(MarketingContextProvider, { config, provider, store },
-      React.createElement(SettingsView))
+      React.createElement(PluginSettingsPanel, {
+        title: config.labels.settings ?? config.labels.pageTitle,
+        subtitle: config.labels.pageSubtitle,
+        generalSettings: React.createElement(SettingsView),
+        registries: marketingRegistries,
+        routeBase: '/settings/marketing',
+      }))
   SettingsComponent.displayName = 'MarketingSettings'
 
   return {
@@ -195,6 +206,7 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
         permission: { feature: 'marketing', action: 'create' as const },
       },
     ],
+    registries: marketingRegistries,
     settings: [
       {
         id: 'marketing',

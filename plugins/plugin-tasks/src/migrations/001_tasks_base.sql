@@ -42,16 +42,24 @@ CREATE INDEX IF NOT EXISTS idx_tsk_tasks_assigned ON public.tsk_tasks(assigned_t
 CREATE INDEX IF NOT EXISTS idx_tsk_tasks_due ON public.tsk_tasks(tenant_id, due_date)
   WHERE due_date IS NOT NULL;
 
--- RLS policies for tsk_tasks
+-- RLS policies for tsk_tasks (idempotent — DROP IF EXISTS before CREATE)
+DROP POLICY IF EXISTS tsk_tasks_select ON public.tsk_tasks;
 CREATE POLICY tsk_tasks_select ON public.tsk_tasks FOR SELECT TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS tsk_tasks_insert ON public.tsk_tasks;
 CREATE POLICY tsk_tasks_insert ON public.tsk_tasks FOR INSERT TO authenticated WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS tsk_tasks_update ON public.tsk_tasks;
 CREATE POLICY tsk_tasks_update ON public.tsk_tasks FOR UPDATE TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS tsk_tasks_delete ON public.tsk_tasks;
 CREATE POLICY tsk_tasks_delete ON public.tsk_tasks FOR DELETE TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.tsk_tasks TO authenticated;
 
--- RLS policies for tsk_labels
+-- RLS policies for tsk_labels (idempotent)
+DROP POLICY IF EXISTS tsk_labels_select ON public.tsk_labels;
 CREATE POLICY tsk_labels_select ON public.tsk_labels FOR SELECT TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS tsk_labels_insert ON public.tsk_labels;
 CREATE POLICY tsk_labels_insert ON public.tsk_labels FOR INSERT TO authenticated WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS tsk_labels_update ON public.tsk_labels;
 CREATE POLICY tsk_labels_update ON public.tsk_labels FOR UPDATE TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS tsk_labels_delete ON public.tsk_labels;
 CREATE POLICY tsk_labels_delete ON public.tsk_labels FOR DELETE TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.tsk_labels TO authenticated;

@@ -92,16 +92,27 @@ export function createArchetypeProvider<T extends { id: string }>(
   }
   const viewName = VIEW_MAP[config.projectTable] ?? `v_${config.projectTable}`
 
+  // Pure-archetype entity: the project table IS the archetype base (e.g. a
+  // customers list configured with `table: 'persons'`, no separate public
+  // extension table). Read/write saas_core.<base> directly — there is no public
+  // extension row and no v_ view to join. Extension-table entities (clients,
+  // staff_members, …) are unaffected.
+  const isPure = config.projectTable === ac.table
+
   return {
     async list(query: CrudQuery): Promise<CrudResult<T>> {
       const tenantId = config.tenantId()
       if (!tenantId) return { data: [], total: 0 }
 
-      // Single query via v_ view (JOINs public table with saas_core archetype)
-      let q = getClient()
-        .from(viewName)
-        .select('*', { count: 'exact' })
-        .eq('tenant_id', tenantId)
+      // Pure archetype → read saas_core.<base> directly (filtered by kind);
+      // otherwise the v_ view (JOINs public extension with saas_core archetype).
+      let q = isPure
+        ? coreClient().from(ac.table).select('*', { count: 'exact' }).eq('tenant_id', tenantId)
+        : getClient().from(viewName).select('*', { count: 'exact' }).eq('tenant_id', tenantId)
+
+      if (isPure && HAS_KIND.has(config.archetype)) {
+        q = q.eq('kind', config.archetypeKind)
+      }
 
       // Search
       if (query.search && config.searchColumns && config.searchColumns.length > 0) {
@@ -155,20 +166,23 @@ export function createArchetypeProvider<T extends { id: string }>(
       if (archetypeError) throw archetypeError
       const archetypeId = (archetypeRow as any).id
 
-      // 2. Insert into project table with archetype FK as PK
-      projectData[fkColumn] = archetypeId
-      projectData.tenant_id = tenantId
+      // 2. Insert into project table with archetype FK as PK.
+      //    Pure-archetype entities have no extension table — skip this step.
+      if (!isPure) {
+        projectData[fkColumn] = archetypeId
+        projectData.tenant_id = tenantId
 
-      const { error: projectError } = await getClient()
-        .from(config.projectTable)
-        .insert(projectData)
+        const { error: projectError } = await getClient()
+          .from(config.projectTable)
+          .insert(projectData)
 
-      if (projectError) {
-        await coreClient().from(ac.table).delete().eq('id', archetypeId)
-        throw projectError
+        if (projectError) {
+          await coreClient().from(ac.table).delete().eq('id', archetypeId)
+          throw projectError
+        }
       }
 
-      return { id: archetypeId, ...archetypeRow, ...projectData } as unknown as T
+      return { id: archetypeId, ...archetypeRow, ...(isPure ? {} : projectData) } as unknown as T
     },
 
     async update(id, data) {
@@ -182,7 +196,7 @@ export function createArchetypeProvider<T extends { id: string }>(
         if (error) throw error
       }
 
-      if (Object.keys(projectData).length > 0) {
+      if (!isPure && Object.keys(projectData).length > 0) {
         const { error } = await getClient()
           .from(config.projectTable)
           .update(projectData)
@@ -190,8 +204,11 @@ export function createArchetypeProvider<T extends { id: string }>(
         if (error) throw error
       }
 
-      // Re-fetch
+      // Re-fetch (archetype only for pure entities; otherwise join the extension)
       const { data: archetypeRow } = await coreClient().from(ac.table).select('*').eq('id', id).single()
+      if (isPure) {
+        return mapRow<T>({ ...archetypeRow, id } as Record<string, unknown>)
+      }
       const { data: projectRow } = await getClient().from(config.projectTable).select('*').eq(fkColumn, id).single()
 
       const flat = { ...archetypeRow, ...projectRow, id }
