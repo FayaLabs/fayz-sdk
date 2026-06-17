@@ -1,9 +1,10 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
+import { getActiveTenantId, getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
 import { ConversationsPage } from './ConversationsPage'
 import type { ConversationsProvider } from './data/types'
 import { createMockConversationsProvider } from './data/mock'
+import { createSupabaseConversationsProvider } from './data/supabase'
 import { createConversationsStore } from './store'
 import { conversationsLocales } from './locales'
 
@@ -26,9 +27,12 @@ export interface ConversationsPluginOptions {
 }
 
 function createSafeProvider(): ConversationsProvider {
-  // Supabase-backed provider lands in a later milestone; until then the mock
-  // provider powers the inbox regardless of backend.
-  void getSupabaseClientOptional()
+  // Real data when a Supabase client is registered (reads/writes the
+  // `conversations` + `conversation_messages` tables, tenant-scoped via the
+  // active-org context); falls back to the mock inbox when no backend is wired.
+  if (getSupabaseClientOptional()) {
+    return createSupabaseConversationsProvider({ tenantId: () => getActiveTenantId() })
+  }
   return createMockConversationsProvider()
 }
 
@@ -122,3 +126,7 @@ export function createConversationsPlugin(options?: ConversationsPluginOptions):
 export type { ConversationsProvider } from './data/types'
 export type { Conversation, Message, Channel } from './types'
 export { createMockConversationsProvider } from './data/mock'
+export {
+  createSupabaseConversationsProvider,
+  type SupabaseConversationsConfig,
+} from './data/supabase'
