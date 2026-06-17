@@ -64,7 +64,7 @@ beauty-saas → pulse-store → resto-saas → agency-os  (edit to reorder)
 
 ## FOR THE HUMAN  (checkpoint queue — do these when you stop in)
 
-> **⏸ SPRINT IS IDLE — all autonomous code work is done.** All four apps are code-complete and M-LOCK (the RLS convention lock) is complete; gate `--strict` re-confirmed EXIT=0 (2 canonical · 0 divergent · 3 deferred · 0 no-rls · 0 other) at iteration #23. **Nothing else can advance without you.** Four checkpoints are queued below (B-CHECK, P3, R-CHECK, A-CHECK) — each needs a live DB apply + a real login smoke test. Run any of them, then drop notes in **FEEDBACK** below; the next iteration honors that feedback before doing anything else. Until then every iteration just re-scans and idles.
+> **⏸ SPRINT IS IDLE — all autonomous code work is done.** All four apps are code-complete and M-LOCK (the RLS convention lock) is complete; gate `--strict` re-confirmed EXIT=0 (2 canonical · 0 divergent · 3 deferred · 0 no-rls · 0 other) at iteration #24. **Nothing else can advance without you.** Four checkpoints are queued below (B-CHECK, P3, R-CHECK, A-CHECK) — each needs a live DB apply + a real login smoke test. Run any of them, then drop notes in **FEEDBACK** below; the next iteration honors that feedback before doing anything else. Until then every iteration just re-scans and idles.
 
 - **B-CHECK — beauty-saas (all code tasks B2–B7 landed on `fay/dogfood-sprint`).** Do this to reach M-BEAUTY:
   1. Apply the staged migration: `cd ~/dev/fayz-app/beauty-saas && supabase db push` (adds `staff_members.commission_rate` + re-creates `v_staff` — file `supabase/migrations/20260616000001_staff_commission_rate.sql`). Until applied, B5 commission read tolerates the missing column.
