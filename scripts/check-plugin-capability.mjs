@@ -27,7 +27,15 @@
 //              So deferred lands as canonical on a real DB — a deferral of WHERE the policy text
 //              lives, not a divergence. Flagged only so the lock decision stays explicit.
 //   no-rls     a tenant_id table with no ENABLE ROW LEVEL SECURITY — a real isolation gap.
-// Reported only (never blocks). Standardizing on `canonical` is the M-LOCK deliverable.
+//   other      defines a CREATE POLICY that is neither canonical nor the known divergent form —
+//              an un-vetted isolation form that must be reviewed before lock.
+//
+// LOCKED (M-LOCK / L4): the RLS form is now an ENFORCED convention. Under --strict every
+// plugin must be canonical, deferred, or n/a — any divergent / no-rls / other form fails CI.
+// This is the lock: a future plugin that ships a non-canonical tenant-isolation policy can no
+// longer merge. deferred is allowed because L3 confirmed it lands as canonical at apply
+// (project_rls.sql auto-detect). Standardizing on `canonical` remains the goal; the gate now
+// guarantees nothing regresses below it.
 //
 // Classification:
 //   capability   provider + entities + seed + tests + (migrations wired if .sql present)
@@ -36,7 +44,8 @@
 //
 // Exit behavior:
 //   default      report + classify, ALWAYS exit 0 (safe to add to CI now)
-//   --strict     every plugin in ENFORCED must be capability-complete, else exit 1
+//   --strict     every plugin in ENFORCED must be capability-complete, AND no plugin may use a
+//                divergent / no-rls / other RLS form (the M-LOCK lock), else exit 1
 //
 // ENFORCED ratchets up one plugin at a time as each is migrated and tested.
 // plugin-tasks is the canonical reference (FAY-1206); it graduates into ENFORCED
@@ -205,6 +214,23 @@ if (byRls.deferred?.length)
   console.log(`    def  RLS deferred to project_rls.sql auto-detection: ${byRls.deferred.join(', ')}`)
 if (byRls['no-rls']?.length)
   console.log(`    GAP  tenant_id table with NO row-level security: ${byRls['no-rls'].join(', ')}`)
+if (byRls.other?.length)
+  console.log(`    ??   un-vetted RLS form (review before lock): ${byRls.other.join(', ')}`)
+
+// RLS convention LOCK (M-LOCK / L4): under --strict, the canonical form is now enforced for
+// EVERY plugin (not just ENFORCED). canonical / deferred / n/a pass; divergent / no-rls / other
+// fail. deferred is allowed because L3 confirmed it resolves to canonical at apply time.
+const RLS_ALLOWED = new Set(['canonical', 'deferred', 'n/a'])
+if (STRICT) {
+  for (const r of rows) {
+    if (!RLS_ALLOWED.has(r.facets.rls)) {
+      failures.push(
+        `${r.plugin} — RLS form '${r.facets.rls}' is not the locked convention; ` +
+          `use canonical tenant_id IN (SELECT public.user_tenant_ids())`,
+      )
+    }
+  }
+}
 
 if (failures.length) {
   console.error('\nPlugin capability check FAILED (--strict):')
@@ -215,6 +241,7 @@ if (failures.length) {
 
 console.log(
   STRICT
-    ? `\nStrict capability check passed for: ${ENFORCED.join(', ') || '(none enforced yet)'}.`
+    ? `\nStrict capability check passed for: ${ENFORCED.join(', ') || '(none enforced yet)'}.` +
+        `\nRLS convention LOCKED: all plugins on canonical/deferred — 0 divergent · 0 no-rls · 0 other.`
     : '\nReport only (no --strict). Add plugins to ENFORCED as they reach the bar.',
 )
