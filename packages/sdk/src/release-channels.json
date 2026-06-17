@@ -1,13 +1,55 @@
 {
   "channels": {
     "stable": {
-      "@fayz-ai/sdk": "^0.1.5"
+      "@fayz-ai/sdk": "^0.1.5",
+      "@fayz-ai/core": "^0.1.6",
+      "@fayz-ai/auth": "^0.1.6",
+      "@fayz-ai/ui": "^0.1.6",
+      "@fayz-ai/saas": "^0.1.6",
+      "@fayz-ai/db": "^0.1.1",
+      "@fayz-ai/plugin-agenda": "^0.1.1",
+      "@fayz-ai/plugin-financial": "^0.1.1",
+      "@fayz-ai/plugin-inventory": "^0.1.1",
+      "@fayz-ai/plugin-crm": "^0.1.1",
+      "@fayz-ai/plugin-dashboard": "^0.1.1",
+      "@fayz-ai/plugin-marketing": "^0.1.1",
+      "@fayz-ai/plugin-forms": "^0.1.1",
+      "@fayz-ai/plugin-tasks": "^0.1.1",
+      "@fayz-ai/plugin-reports": "^0.1.1"
     },
     "latest": {
-      "@fayz-ai/sdk": "^0.1.5"
+      "@fayz-ai/sdk": "^0.1.5",
+      "@fayz-ai/core": "^0.1.6",
+      "@fayz-ai/auth": "^0.1.6",
+      "@fayz-ai/ui": "^0.1.6",
+      "@fayz-ai/saas": "^0.1.6",
+      "@fayz-ai/db": "^0.1.1",
+      "@fayz-ai/plugin-agenda": "^0.1.1",
+      "@fayz-ai/plugin-financial": "^0.1.1",
+      "@fayz-ai/plugin-inventory": "^0.1.1",
+      "@fayz-ai/plugin-crm": "^0.1.1",
+      "@fayz-ai/plugin-dashboard": "^0.1.1",
+      "@fayz-ai/plugin-marketing": "^0.1.1",
+      "@fayz-ai/plugin-forms": "^0.1.1",
+      "@fayz-ai/plugin-tasks": "^0.1.1",
+      "@fayz-ai/plugin-reports": "^0.1.1"
     },
     "preview": {
-      "@fayz-ai/sdk": "^0.1.5"
+      "@fayz-ai/sdk": "^0.1.5",
+      "@fayz-ai/core": "^0.1.6",
+      "@fayz-ai/auth": "^0.1.6",
+      "@fayz-ai/ui": "^0.1.6",
+      "@fayz-ai/saas": "^0.1.6",
+      "@fayz-ai/db": "^0.1.1",
+      "@fayz-ai/plugin-agenda": "^0.1.1",
+      "@fayz-ai/plugin-financial": "^0.1.1",
+      "@fayz-ai/plugin-inventory": "^0.1.1",
+      "@fayz-ai/plugin-crm": "^0.1.1",
+      "@fayz-ai/plugin-dashboard": "^0.1.1",
+      "@fayz-ai/plugin-marketing": "^0.1.1",
+      "@fayz-ai/plugin-forms": "^0.1.1",
+      "@fayz-ai/plugin-tasks": "^0.1.1",
+      "@fayz-ai/plugin-reports": "^0.1.1"
     }
   }
 }

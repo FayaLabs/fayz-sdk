@@ -92,5 +92,7 @@
     "data-provider",
     "entity"
   ],
-  "private": true
+  "publishConfig": {
+    "access": "public"
+  }
 }
