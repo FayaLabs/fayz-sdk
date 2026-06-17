@@ -92,6 +92,26 @@ async function sweepOverdue() {
   }
 }
 
+// S2 (data-model refactor): paid amount, balance and status are DERIVED from the
+// append-only ledger via v_invoice_balances — the single source of truth — not
+// from stored order.stage / metadata.paidAmount (which drift). See
+// docs/dogfood-sprint/DATA-MODEL-REFACTOR.md.
+async function fetchInvoiceBalances(
+  pub: any,
+  ids: string[],
+): Promise<Map<string, { paid: number; balance: number; status: string }>> {
+  const map = new Map<string, { paid: number; balance: number; status: string }>()
+  if (!ids.length) return map
+  const { data } = await pub
+    .from('v_invoice_balances')
+    .select('invoice_id, paid, balance, status')
+    .in('invoice_id', ids)
+  for (const r of (data ?? []) as any[]) {
+    map.set(r.invoice_id, { paid: Number(r.paid) || 0, balance: Number(r.balance) || 0, status: r.status })
+  }
+  return map
+}
+
 export function createSupabaseFinancialProvider(): FinancialDataProvider {
   const provider: FinancialDataProvider = {
     // --- Invoices (orders at stage=invoiced/paid/partial/overdue/cancelled with direction) ---
@@ -120,18 +140,20 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       qb = qb.range((page - 1) * pageSize, page * pageSize - 1).order('created_at', { ascending: false })
       const { data, count } = await qb
 
+      const bal = await fetchInvoiceBalances(pub, (data ?? []).map((r: any) => r.id))
       const invoices: Invoice[] = (data ?? []).map((r: any) => {
         const meta = r.metadata ?? {}
         // Resolve direction from stage model or legacy kind
         const dir = r.direction ?? (r.kind === 'invoice_payable' ? 'debit' : 'credit')
+        const b = bal.get(r.id)
         return {
           id: r.id,
           direction: dir,
           invoiceDate: r.created_at?.slice(0, 10) ?? '',
           fiscalNumber: r.reference_number,
           totalAmount: r.total ?? 0,
-          paidAmount: meta.paidAmount ?? 0,
-          status: mapStageToInvoiceStatus(r.stage),
+          paidAmount: b?.paid ?? meta.paidAmount ?? 0,
+          status: b?.status ?? mapStageToInvoiceStatus(r.stage),
           totalInstallments: meta.installmentCount ?? 1,
           contactId: r.party_id,
           contactName: meta.contactName,
@@ -151,19 +173,19 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       if (!data) return null
       const o = snakeToCamel(data) as any
       const meta = data.metadata ?? {}
-      // Get actual paid amount and installment count from movements
+      // Paid amount + status are DERIVED from the ledger view (single source of truth).
+      const balance = (await fetchInvoiceBalances(pub, [id])).get(id)
       const { data: movs } = await pub.from('financial_movements')
         .select('paid_amount')
         .eq('invoice_id', id)
         .eq('movement_kind', 'bill')
-      const totalPaid = (movs ?? []).reduce((sum: number, m: any) => sum + (m.paid_amount ?? 0), 0)
       return {
         id: o.id,
         direction: o.direction ?? (o.kind === 'invoice_payable' ? 'debit' : 'credit'),
         invoiceDate: o.createdAt?.slice(0, 10) ?? '',
         fiscalNumber: o.referenceNumber,
-        totalAmount: o.total ?? 0, paidAmount: totalPaid,
-        status: mapStageToInvoiceStatus(o.stage),
+        totalAmount: o.total ?? 0, paidAmount: balance?.paid ?? 0,
+        status: balance?.status ?? mapStageToInvoiceStatus(o.stage),
         totalInstallments: (movs ?? []).length || 1, contactId: o.partyId,
         contactName: meta.contactName, itemsSummary: meta.itemsSummary,
         bookingStartsAt: o.startsAt ?? undefined,
