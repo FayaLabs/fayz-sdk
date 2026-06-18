@@ -5,9 +5,9 @@ import type { FinancialDataProvider } from './data/types'
 import type {
   Invoice, FinancialMovement, BankAccount, CashSession,
   PaymentMethod, PaymentMethodType, CardTransaction,
-  FinancialSummary, StatementEntry,
+  FinancialSummary, StatementResult,
   InvoiceQuery, MovementQuery, StatementQuery,
-  CreateInvoiceInput, PayMovementInput,
+  CreateInvoiceInput, PayMovementInput, CreateTransferInput,
   OpenCashSessionInput, CloseCashSessionInput,
   DateRange,
 } from './types'
@@ -39,8 +39,9 @@ export interface FinancialUIState {
   summary: FinancialSummary | null
   summaryLoading: boolean
 
-  statementEntries: StatementEntry[]
+  statement: StatementResult | null
   statementLoading: boolean
+  statementQuery: StatementQuery | null
 
   cardTransactions: CardTransaction[]
   cardsLoading: boolean
@@ -55,6 +56,7 @@ export interface FinancialUIState {
   fetchCardTransactions(dateRange?: DateRange): Promise<void>
   createInvoice(input: CreateInvoiceInput): Promise<Invoice>
   payMovement(input: PayMovementInput): Promise<void>
+  createTransfer(input: CreateTransferInput): Promise<void>
   cancelInvoice(invoiceId: string): Promise<void>
   openCashSession(input: OpenCashSessionInput): Promise<CashSession>
   closeCashSession(input: CloseCashSessionInput): Promise<CashSession>
@@ -87,8 +89,9 @@ export function createFinancialStore(provider: FinancialDataProvider): StoreApi<
     summary: null,
     summaryLoading: false,
 
-    statementEntries: [],
+    statement: null,
     statementLoading: false,
+    statementQuery: null,
 
     cardTransactions: [],
     cardsLoading: false,
@@ -137,9 +140,9 @@ export function createFinancialStore(provider: FinancialDataProvider): StoreApi<
 
     async fetchStatement(query) {
       return dedup('fin:statement:' + JSON.stringify(query), async () => {
-        set({ statementLoading: true })
-        const statementEntries = await provider.getStatement(query)
-        set({ statementEntries, statementLoading: false })
+        set({ statementLoading: true, statementQuery: query })
+        const statement = await provider.getStatement(query)
+        set({ statement, statementLoading: false })
       })
     },
 
@@ -175,6 +178,23 @@ export function createFinancialStore(provider: FinancialDataProvider): StoreApi<
         toast.success('Payment recorded')
       } catch (err: any) {
         toast.error('Failed to record payment', { description: err?.message })
+        throw err
+      }
+    },
+
+    async createTransfer(input) {
+      try {
+        await provider.createTransfer(input)
+        const query = get().statementQuery
+        const [bankAccounts, summary, statement] = await Promise.all([
+          provider.getBankAccounts(),
+          provider.getSummary(),
+          query ? provider.getStatement(query) : Promise.resolve(get().statement),
+        ])
+        set({ bankAccounts, summary, statement })
+        toast.success('Transfer recorded')
+      } catch (err: any) {
+        toast.error('Failed to record transfer', { description: err?.message })
         throw err
       }
     },

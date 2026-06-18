@@ -54,6 +54,18 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",
       "require": "./dist/types/index.cjs"
+    },
+    "./testing": {
+      "source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "require": "./dist/testing/index.cjs"
+    },
+    "./integrations": {
+      "source": "./src/integrations/index.ts",
+      "types": "./dist/integrations/index.d.ts",
+      "import": "./dist/integrations/index.js",
+      "require": "./dist/integrations/index.cjs"
     }
   },
   "files": [

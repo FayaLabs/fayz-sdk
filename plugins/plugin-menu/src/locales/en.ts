@@ -53,4 +53,12 @@ export const en: Record<string, string> = {
   'menu.settings.general': 'General',
   'menu.settings.taxRate': 'Default tax rate',
   'menu.settings.currency': 'Currency',
+  'menu.form.categoryName': 'Category name',
+  'menu.form.itemName': 'Item name',
+  'menu.form.description': 'Description',
+  'menu.form.category': 'Category',
+  'menu.form.uncategorized': 'Uncategorized',
+  'menu.form.optional': 'optional',
+  'menu.form.save': 'Save',
+  'menu.form.cancel': 'Cancel',
 }

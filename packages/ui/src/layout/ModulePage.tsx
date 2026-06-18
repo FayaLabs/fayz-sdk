@@ -7,6 +7,7 @@ import { ICON_MAP } from './Topbar'
 import { useModuleHeaderSlot, useModuleHeaderActionsSlot } from './AppShell'
 import { PageTransition } from './PageTransition'
 import { useBackHandler } from './SaveBar'
+import { useCrossModuleBack } from './useCrossModuleBack'
 
 // ---------------------------------------------------------------------------
 // PageHeaderActions — portals a page's primary action button(s) into the shell
@@ -248,19 +249,25 @@ export interface SubpageHeaderProps {
 export function SubpageHeader({ title, subtitle, icon, onBack, parentLabel, actions, backStyle }: SubpageHeaderProps) {
   const t = useTranslation()
   const appStyle = useBackStyle()
+
+  // Defer to the global navigation history when the user came from another
+  // module, so the back link points at the actual previous page. Within the
+  // same module the page's own onBack/parentLabel pass through unchanged.
+  const { onBack: effectiveOnBack, parentLabel: effectiveParentLabel } = useCrossModuleBack(onBack, parentLabel)
+
   // Wire this page's back action into the app-wide Escape key (no per-plugin code).
-  useBackHandler(onBack)
+  useBackHandler(effectiveOnBack)
   const Icon = icon ? (ICON_MAP[icon] ?? null) : null
   // Breadcrumb/link need a parent label; without one we fall back to the icon button.
-  const style: BackButtonStyle = !onBack ? 'icon' : (backStyle ?? appStyle)
-  const effectiveStyle: BackButtonStyle = style !== 'icon' && !parentLabel ? 'icon' : style
+  const style: BackButtonStyle = !effectiveOnBack ? 'icon' : (backStyle ?? appStyle)
+  const effectiveStyle: BackButtonStyle = style !== 'icon' && !effectiveParentLabel ? 'icon' : style
 
   const titleBlock = (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        {effectiveStyle === 'icon' && onBack && (
+        {effectiveStyle === 'icon' && effectiveOnBack && (
           <button
-            onClick={onBack}
+            onClick={effectiveOnBack}
             className="flex h-8 w-8 items-center justify-center rounded-lg border hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -285,7 +292,7 @@ export function SubpageHeader({ title, subtitle, icon, onBack, parentLabel, acti
       <div className="space-y-4 mb-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <button onClick={onBack} className="hover:text-foreground transition-colors">{parentLabel}</button>
+            <button onClick={effectiveOnBack} className="hover:text-foreground transition-colors">{effectiveParentLabel}</button>
             <ChevronRight className="h-3.5 w-3.5" />
             <span className="text-foreground font-medium">{title}</span>
           </div>
@@ -300,11 +307,11 @@ export function SubpageHeader({ title, subtitle, icon, onBack, parentLabel, acti
     return (
       <div className="space-y-3 mb-6">
         <button
-          onClick={onBack}
+          onClick={effectiveOnBack}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
-          {t('crud.detail.backTo', { entities: parentLabel as string })}
+          {t('crud.detail.backTo', { entities: effectiveParentLabel as string })}
         </button>
         {titleBlock}
       </div>

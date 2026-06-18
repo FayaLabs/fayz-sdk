@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { useBackHandler } from '../layout/SaveBar'
+import { useCrossModuleBack } from '../layout/useCrossModuleBack'
 
 interface BreadcrumbProps {
   /** Parent label (e.g. "Invoices", "Clients") — clicking navigates back */
@@ -12,17 +13,20 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ parent, current, onBack }: BreadcrumbProps) {
+  // When the user came from another module, point "back" at that actual
+  // previous page; otherwise keep this page's own parent/onBack.
+  const { onBack: effectiveOnBack, parentLabel: effectiveParent } = useCrossModuleBack(onBack, parent)
   // Wire this page's back action into the app-wide Escape key (no per-plugin code).
-  useBackHandler(onBack)
+  useBackHandler(effectiveOnBack)
   return (
     <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
       <button
         type="button"
-        onClick={onBack}
+        onClick={effectiveOnBack}
         className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {parent}
+        {effectiveParent}
       </button>
       {current !== undefined && (
         <>

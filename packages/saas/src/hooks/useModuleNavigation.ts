@@ -60,6 +60,21 @@ export function useModuleNavigation(hashBase: string, depthMap?: DepthMap, homeV
   const [direction, setDirection] = useState<NavDirection>('forward')
   const prevDepthRef = useRef(getDepth(getInitialView()))
 
+  // Track recent in-module views so detail/subpages can render a context-aware
+  // back link ("Back to {where you came from}") and return to the actual
+  // previous page rather than a hard-coded parent route. Records every distinct
+  // view (regardless of how it was reached: navigate(), topbar, browser back).
+  const historyRef = useRef<string[]>([getInitialView()])
+  const [previousView, setPreviousView] = useState<string | null>(null)
+  useEffect(() => {
+    const stack = historyRef.current
+    if (stack[stack.length - 1] !== view) {
+      stack.push(view)
+      if (stack.length > 30) stack.shift()
+    }
+    setPreviousView(stack.length >= 2 ? stack[stack.length - 2] : null)
+  }, [view])
+
   // Sync view from external hash changes (e.g., topbar nav clicking the module link)
   useEffect(() => {
     function handler() {
@@ -118,7 +133,18 @@ export function useModuleNavigation(hashBase: string, depthMap?: DepthMap, homeV
     }
   }, [hashBase])
 
+  // Return to the actual previous page. Uses the browser history when there's
+  // in-app history to pop (preserving the prior page); otherwise navigates to a
+  // sensible fallback (deep links / direct loads have nowhere to go back to).
+  const back = useCallback((fallbackView?: string) => {
+    if (historyRef.current.length >= 2) {
+      window.history.back()
+    } else {
+      navigate(fallbackView ?? homeView)
+    }
+  }, [navigate, homeView])
+
   const animationClass = direction === 'forward' ? 'saas-nav-forward' : 'saas-nav-back'
 
-  return { view, direction, animationClass, navigate }
+  return { view, direction, animationClass, navigate, previousView, back }
 }

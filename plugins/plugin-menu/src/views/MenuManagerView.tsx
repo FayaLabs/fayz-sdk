@@ -10,9 +10,169 @@ import {
   Loader2,
   UtensilsCrossed,
 } from 'lucide-react'
+import {
+  Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter,
+  Button, Input,
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@fayz-ai/ui'
 import { useMenuConfig, useMenuStore, formatCurrency } from '../MenuContext'
 import { useTranslation } from '@fayz-ai/core'
 import type { MenuCategory, MenuItem } from '../types'
+
+// ---------------------------------------------------------------------------
+// Create forms (category / item) — design-system Modal
+// ---------------------------------------------------------------------------
+
+const UNCATEGORIZED = '__none'
+const fieldLabel = 'text-sm font-medium text-foreground'
+
+function CategoryModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTranslation()
+  const createCategory = useMenuStore((s) => s.createCategory)
+  const [name, setName] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const submit = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      await createCategory({ name: name.trim() })
+      setName('')
+      onClose()
+    } catch {
+      // store surfaces a toast on failure
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <ModalContent size="sm">
+        <ModalHeader>
+          <ModalTitle>{t('menu.manager.addCategory')}</ModalTitle>
+        </ModalHeader>
+        <ModalBody className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className={fieldLabel}>{t('menu.form.categoryName')}</span>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
+            />
+          </label>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={onClose}>{t('menu.form.cancel')}</Button>
+          <Button onClick={submit} disabled={saving || !name.trim()}>
+            {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            {t('menu.form.save')}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  )
+}
+
+function ItemModal({
+  open,
+  categories,
+  defaultCategoryId,
+  onClose,
+}: {
+  open: boolean
+  categories: MenuCategory[]
+  defaultCategoryId?: string
+  onClose: () => void
+}) {
+  const t = useTranslation()
+  const config = useMenuConfig()
+  const createMenuItem = useMenuStore((s) => s.createMenuItem)
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
+  const [categoryId, setCategoryId] = useState(defaultCategoryId ?? UNCATEGORIZED)
+  const [description, setDescription] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const submit = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      await createMenuItem({
+        name: name.trim(),
+        price: Number(price) || 0,
+        categoryId: categoryId === UNCATEGORIZED ? undefined : categoryId,
+        description: description.trim() || undefined,
+      })
+      onClose()
+    } catch {
+      // store surfaces a toast on failure
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <ModalContent size="md">
+        <ModalHeader>
+          <ModalTitle>{t('menu.manager.addProduct')}</ModalTitle>
+        </ModalHeader>
+        <ModalBody className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className={fieldLabel}>{t('menu.form.itemName')}</span>
+            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1.5">
+              <span className={fieldLabel}>{t('menu.manager.price')} ({config.currency.symbol})</span>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className={fieldLabel}>{t('menu.form.category')}</span>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UNCATEGORIZED}>{t('menu.form.uncategorized')}</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          </div>
+          <label className="block space-y-1.5">
+            <span className={fieldLabel}>
+              {t('menu.form.description')}{' '}
+              <span className="text-muted-foreground font-normal">({t('menu.form.optional')})</span>
+            </span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={onClose}>{t('menu.form.cancel')}</Button>
+          <Button onClick={submit} disabled={saving || !name.trim()}>
+            {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            {t('menu.form.save')}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Toggle — inline switch component
@@ -73,11 +233,13 @@ function CategorySection({
   items,
   expanded,
   onToggle,
+  onAddProduct,
 }: {
   category: MenuCategory
   items: MenuItem[]
   expanded: boolean
   onToggle: () => void
+  onAddProduct: () => void
 }) {
   const t = useTranslation()
   const config = useMenuConfig()
@@ -120,7 +282,11 @@ function CategorySection({
         <>
           {/* Add product button */}
           <div className="px-4 pb-2">
-            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed rounded-md px-3 py-1.5 hover:bg-muted/30 transition-colors">
+            <button
+              type="button"
+              onClick={onAddProduct}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed rounded-md px-3 py-1.5 hover:bg-muted/30 transition-colors"
+            >
               <Plus className="h-3 w-3" />
               {t('menu.manager.addProduct')}
             </button>
@@ -290,6 +456,14 @@ export function MenuManagerView() {
   )
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [showItemModal, setShowItemModal] = useState(false)
+  const [itemModalCategory, setItemModalCategory] = useState<string | undefined>(undefined)
+
+  const openItemModal = (categoryId?: string) => {
+    setItemModalCategory(categoryId)
+    setShowItemModal(true)
+  }
 
   // ---- Load data on mount ----
   useEffect(() => {
@@ -396,9 +570,21 @@ export function MenuManagerView() {
           {isLoading && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
-          <button className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors">
+          <button
+            type="button"
+            onClick={() => setShowCategoryModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors"
+          >
             <Plus className="h-4 w-4" />
             {t('menu.manager.addCategory')}
+          </button>
+          <button
+            type="button"
+            onClick={() => openItemModal(undefined)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            {t('menu.manager.addProduct')}
           </button>
         </div>
       </div>
@@ -438,6 +624,7 @@ export function MenuManagerView() {
             items={getFilteredItems(category.id)}
             expanded={expandedCategories.has(category.id)}
             onToggle={() => toggleCategory(category.id)}
+            onAddProduct={() => openItemModal(category.id)}
           />
         ))}
       </div>
@@ -452,6 +639,24 @@ export function MenuManagerView() {
               <p className="text-xs text-muted-foreground mt-1">
                 {t('menu.manager.noItemsDesc')}
               </p>
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-muted/50"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('menu.manager.addCategory')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openItemModal(undefined)}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('menu.manager.addProduct')}
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -465,6 +670,18 @@ export function MenuManagerView() {
             </>
           )}
         </div>
+      )}
+
+      {showCategoryModal && (
+        <CategoryModal open onClose={() => setShowCategoryModal(false)} />
+      )}
+      {showItemModal && (
+        <ItemModal
+          open
+          categories={categories}
+          defaultCategoryId={itemModalCategory}
+          onClose={() => setShowItemModal(false)}
+        />
       )}
     </div>
   )

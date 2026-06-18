@@ -24,6 +24,8 @@ export function createSafeFinancialProvider(): FinancialDataProvider {
 import { financialRegistries } from './registries'
 import { financialLocales } from './locales'
 import { FinancialGeneralSettings } from './components/FinancialGeneralSettings'
+import { PersonStatementWidget } from './components/PersonStatementWidget'
+import { PluginSettingsPanel } from '@fayz-ai/saas'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -64,6 +66,8 @@ export interface FinancialPluginOptions {
     statements?: boolean
     commissions?: boolean
     cards?: boolean
+    /** Bank reconciliation (conciliação). Defaults off — enable with a bank connector. */
+    reconciliation?: boolean
   }
   labels?: Partial<FinancialPluginLabels>
   currency?: {
@@ -155,6 +159,8 @@ function resolveConfig(options?: FinancialPluginOptions): ResolvedFinancialConfi
       statements: options?.modules?.statements !== false,
       commissions: options?.modules?.commissions !== false,
       cards: options?.modules?.cards !== false,
+      // Opt-in: only shown when an app explicitly enables reconciliation (bank connector present).
+      reconciliation: options?.modules?.reconciliation === true,
     },
     labels: { ...DEFAULT_LABELS, ...options?.labels },
     currency: { ...DEFAULT_CURRENCY, ...options?.currency },
@@ -182,6 +188,11 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
   const provider = options?.dataProvider ?? createSafeFinancialProvider()
   const store = createFinancialStore(provider)
   const dashboardWidgets = createFinancialDashboardWidgets({ config, provider, store })
+
+  // Per-person statement tab (account_central-style): bound to this plugin's provider.
+  const PersonStatementBound: React.FC<any> = (props) =>
+    React.createElement(PersonStatementWidget, { person: props.item, provider, config })
+  PersonStatementBound.displayName = 'FinancialPersonStatement'
 
   const PageComponent: React.FC<any> = () =>
     React.createElement(FinancialPage, { config, provider, store, registries: financialRegistries })
@@ -218,7 +229,15 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
         permission: { feature: 'financial', action: 'read' as const },
       },
     ],
-    widgets: [],
+    widgets: [
+      {
+        id: 'financial-person-statement',
+        zone: 'person.detail.financial',
+        component: PersonStatementBound as unknown as React.ComponentType<unknown>,
+        order: 0,
+        permission: { feature: 'financial', action: 'read' as const },
+      },
+    ],
     dashboardWidgets,
     aiTools: [
       {
@@ -290,7 +309,13 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
         icon: 'DollarSign',
         component: (() => {
           const FinancialSettingsTab: React.FC = () =>
-            React.createElement(FinancialGeneralSettings)
+            React.createElement(PluginSettingsPanel, {
+              title: 'Financial Settings',
+              subtitle: 'Payment methods, accounts, and configurations',
+              generalSettings: React.createElement(FinancialGeneralSettings),
+              registries: financialRegistries,
+              routeBase: '/settings/financial',
+            })
           FinancialSettingsTab.displayName = 'FinancialSettingsTab'
           return FinancialSettingsTab as unknown as React.ComponentType<unknown>
         })(),

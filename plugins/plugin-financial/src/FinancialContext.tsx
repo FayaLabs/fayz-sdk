@@ -14,6 +14,8 @@ export interface FinancialModules {
   statements: boolean
   commissions: boolean
   cards: boolean
+  /** Bank reconciliation (conciliação). Opt-in — enable when a bank connector imports statements. */
+  reconciliation: boolean
 }
 
 export type FinancialCurrency = CurrencyConfig

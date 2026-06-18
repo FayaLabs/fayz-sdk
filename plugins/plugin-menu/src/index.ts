@@ -1,5 +1,6 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import { registerTranslations } from '@fayz-ai/core'
 import type { EntityLookup } from '@fayz-ai/saas'
 import type { MenuDataProvider } from './data/types'
 import { createMockMenuProvider } from './data/mock'
@@ -75,6 +76,7 @@ function resolveConfig(options?: MenuPluginOptions) {
 
 export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
   const config = resolveConfig(options)
+  registerTranslations(menuLocales)
   const provider = options?.dataProvider ?? createMockMenuProvider()
   const store = createMenuStore(provider)
 

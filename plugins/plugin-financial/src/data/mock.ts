@@ -3,10 +3,10 @@ import type {
   Invoice, InvoiceItem, FinancialMovement, BankAccount,
   CashSession, PaymentMethod, PaymentMethodType, ChartOfAccountsNode,
   CardTransaction,
-  CreateInvoiceInput, PayMovementInput,
+  CreateInvoiceInput, PayMovementInput, CreateTransferInput, TransferResult,
   OpenCashSessionInput, CloseCashSessionInput, CreateBankAccountInput,
   InvoiceQuery, MovementQuery, StatementQuery,
-  PaginatedResult, FinancialSummary, StatementEntry, CashSessionSummary,
+  PaginatedResult, FinancialSummary, StatementEntry, StatementResult, CashSessionSummary,
   DateRange, InvoiceStatus, MovementStatus,
 } from '../types'
 
@@ -25,6 +25,10 @@ function now(): string {
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
 }
 
 function matchesDateRange(dateStr: string | undefined, range?: DateRange): boolean {
@@ -281,43 +285,72 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
     },
 
     async payMovement(input: PayMovementInput): Promise<FinancialMovement> {
-      const movement = store.movements.find((m) => m.id === input.movementId)
-      if (!movement) throw new Error(`Movement ${input.movementId} not found`)
+      const bill = store.movements.find((m) => m.id === input.movementId)
+      if (!bill) throw new Error(`Movement ${input.movementId} not found`)
 
-      movement.paidAmount += input.amount
-      movement.paymentDate = input.paymentDate
-      movement.paymentMethodId = input.paymentMethodId ?? movement.paymentMethodId
-      movement.bankAccountId = input.bankAccountId ?? movement.bankAccountId
-      movement.cashSessionId = input.cashSessionId ?? movement.cashSessionId
-      movement.cardBrand = input.cardBrand
-      movement.cardInstallments = input.cardInstallments
-      movement.status = movement.paidAmount >= movement.amount ? 'paid' : 'partial'
-      movement.updatedAt = now()
+      // Net card settlement: derive the processing/MDR fee from the payment method (credits only).
+      const method = input.paymentMethodId ? store.paymentMethods.find((pm) => pm.id === input.paymentMethodId) : undefined
+      const feePct = bill.direction === 'credit' ? (method?.discountValue ?? 0) : 0
+      const thisFee = round2(input.amount * (feePct / 100))
 
-      // Update bank account balance
-      if (movement.bankAccountId) {
-        const account = store.bankAccounts.find((a) => a.id === movement.bankAccountId)
+      // 1. Record the cash event as its OWN payment movement (one row per payment).
+      const payment: FinancialMovement = {
+        id: uid(),
+        invoiceId: bill.invoiceId,
+        direction: bill.direction,
+        movementKind: 'payment',
+        amount: input.amount,
+        paidAmount: input.amount,
+        feeAmount: thisFee,
+        status: 'paid',
+        dueDate: bill.dueDate,
+        paymentDate: input.paymentDate,
+        installmentNumber: bill.installmentNumber,
+        paymentMethodId: input.paymentMethodId,
+        paymentMethodTypeId: input.paymentMethodTypeId,
+        bankAccountId: input.bankAccountId,
+        cashSessionId: input.cashSessionId,
+        cardBrand: input.cardBrand,
+        cardInstallments: input.cardInstallments,
+        notes: input.notes,
+        tenantId,
+        createdAt: now(),
+        updatedAt: now(),
+      }
+      store.movements.push(payment)
+
+      // 2. Update the bill (obligation) cache: cumulative paid + status. Clear its cash
+      //    fields so it stops being a cash event (the payment row is now the cash event).
+      bill.paidAmount = round2(bill.paidAmount + input.amount)
+      bill.status = bill.paidAmount >= bill.amount ? 'paid' : 'partial'
+      bill.paymentDate = undefined
+      bill.bankAccountId = undefined
+      bill.updatedAt = now()
+
+      // Update bank account balance by the NET cash impact (credit nets the fee).
+      if (input.bankAccountId) {
+        const account = store.bankAccounts.find((a) => a.id === input.bankAccountId)
         if (account) {
-          if (movement.direction === 'credit') {
-            account.currentBalance += input.amount
+          if (bill.direction === 'credit') {
+            account.currentBalance = round2(account.currentBalance + (input.amount - thisFee))
           } else {
-            account.currentBalance -= input.amount
+            account.currentBalance = round2(account.currentBalance - input.amount)
           }
           account.updatedAt = now()
         }
       }
 
-      // Recalculate invoice status
-      if (movement.invoiceId) {
-        const invoice = store.invoices.find((i) => i.id === movement.invoiceId)
+      // 3. Recalculate invoice status from its bills
+      if (bill.invoiceId) {
+        const invoice = store.invoices.find((i) => i.id === bill.invoiceId)
         if (invoice) {
-          const invoiceMovements = store.movements.filter((m) => m.invoiceId === invoice.id && m.movementKind === 'bill')
-          invoice.paidAmount = invoiceMovements.reduce((sum, m) => sum + m.paidAmount, 0)
+          const bills = store.movements.filter((m) => m.invoiceId === invoice.id && m.movementKind === 'bill')
+          invoice.paidAmount = bills.reduce((sum, m) => sum + m.paidAmount, 0)
           recalcInvoiceStatus(invoice)
         }
       }
 
-      return movement
+      return payment
     },
 
     async cancelMovement(id: string): Promise<void> {
@@ -325,6 +358,44 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
       if (!movement) throw new Error(`Movement ${id} not found`)
       movement.status = 'cancelled'
       movement.updatedAt = now()
+    },
+
+    // --- Transfers (between accounts) ---
+    async createTransfer(input: CreateTransferInput): Promise<TransferResult> {
+      if (!input.fromAccountId || !input.toAccountId || input.fromAccountId === input.toAccountId) {
+        throw new Error('Source and destination accounts must differ')
+      }
+      if (!(input.amount > 0)) throw new Error('Amount must be greater than zero')
+      const transferId = uid()
+      const debitMovementId = uid()
+      const creditMovementId = uid()
+      const base = {
+        movementKind: 'transfer' as const,
+        amount: input.amount,
+        paidAmount: input.amount,
+        feeAmount: 0,
+        status: 'paid' as const,
+        dueDate: input.date,
+        paymentDate: input.date,
+        notes: input.notes,
+        tenantId,
+        createdAt: now(),
+        updatedAt: now(),
+      }
+      store.movements.push({
+        ...base, id: debitMovementId, direction: 'debit', bankAccountId: input.fromAccountId,
+        metadata: { transferId, transferRole: 'out', counterAccountId: input.toAccountId },
+      } as FinancialMovement)
+      store.movements.push({
+        ...base, id: creditMovementId, direction: 'credit', bankAccountId: input.toAccountId,
+        metadata: { transferId, transferRole: 'in', counterAccountId: input.fromAccountId },
+      } as FinancialMovement)
+      // Reflect in stored balances.
+      const from = store.bankAccounts.find((a) => a.id === input.fromAccountId)
+      const to = store.bankAccounts.find((a) => a.id === input.toAccountId)
+      if (from) { from.currentBalance = round2(from.currentBalance - input.amount); from.updatedAt = now() }
+      if (to) { to.currentBalance = round2(to.currentBalance + input.amount); to.updatedAt = now() }
+      return { transferId, debitMovementId, creditMovementId }
     },
 
     // --- Bank Accounts ---
@@ -447,35 +518,99 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
       return results.sort((a, b) => a.expectedDate.localeCompare(b.expectedDate))
     },
 
-    // --- Statements ---
-    async getStatement(query: StatementQuery): Promise<StatementEntry[]> {
-      const account = store.bankAccounts.find((a) => a.id === query.bankAccountId)
-      if (!account) return []
-
-      const movements = store.movements
-        .filter((m) =>
-          m.bankAccountId === query.bankAccountId &&
-          m.status === 'paid' &&
-          matchesDateRange(m.paymentDate, query.dateRange)
-        )
-        .sort((a, b) => (a.paymentDate ?? '').localeCompare(b.paymentDate ?? ''))
-
-      let runningBalance = account.initialBalance
-      const entries: StatementEntry[] = []
-
-      for (const movement of movements) {
-        if (movement.direction === 'credit') {
-          runningBalance += movement.paidAmount
-        } else {
-          runningBalance -= movement.paidAmount
-        }
-        const invoice = movement.invoiceId
-          ? store.invoices.find((i) => i.id === movement.invoiceId)
-          : undefined
-        entries.push({ movement, invoice, runningBalance })
+    // --- Statements (ERP extract: opening balance + realized cash + per-row net/fee) ---
+    async getStatement(query: StatementQuery): Promise<StatementResult> {
+      const todayStr = today()
+      // A cash event = any non-cancelled movement with a payment_date (payment, transfer,
+      // or a legacy in-place-paid bill). Bills lose their payment_date once split.
+      const isRealized = (m: FinancialMovement) => m.status !== 'cancelled' && !!m.paymentDate
+      const consolidated = !query.bankAccountId
+      const scopeAccounts = consolidated
+        ? store.bankAccounts.filter((a) => a.isActive)
+        : store.bankAccounts.filter((a) => a.id === query.bankAccountId)
+      const accountIds = new Set(scopeAccounts.map((a) => a.id))
+      const accountNameById = new Map(store.bankAccounts.map((a) => [a.id, a.name]))
+      const initialSum = scopeAccounts.reduce((s, a) => s + a.initialBalance, 0)
+      // Only bail when a specific account was asked for and not found.
+      if (!consolidated && accountIds.size === 0) {
+        return { entries: [], openingBalance: 0, closingBalance: 0, totalCredits: 0, totalDebits: 0, totalFees: 0, net: 0, accountId: query.bankAccountId }
       }
 
-      return entries
+      const netOf = (m: FinancialMovement) => m.direction === 'credit'
+        ? m.paidAmount - (m.feeAmount ?? 0)
+        : -m.paidAmount
+
+      // Consolidated => all realized movements (incl. those with no bank account).
+      const inScope = store.movements.filter((m) =>
+        isRealized(m) && (consolidated || (m.bankAccountId && accountIds.has(m.bankAccountId))))
+
+      const openingBalance = round2(initialSum + inScope
+        .filter((m) => (m.paymentDate ?? '') < query.dateRange.from)
+        .reduce((s, m) => s + netOf(m), 0))
+
+      const rangeMovs = inScope
+        .filter((m) => matchesDateRange(m.paymentDate, query.dateRange))
+        .sort((a, b) => (a.paymentDate ?? '').localeCompare(b.paymentDate ?? '') || a.createdAt.localeCompare(b.createdAt))
+
+      let balance = openingBalance
+      let totalCredits = 0, totalDebits = 0, totalFees = 0
+      const entries: StatementEntry[] = rangeMovs.map((movement) => {
+        const gross = movement.paidAmount
+        const isCredit = movement.direction === 'credit'
+        const fee = isCredit ? (movement.feeAmount ?? 0) : 0
+        const net = isCredit ? round2(gross - fee) : gross
+        const isTransfer = movement.movementKind === 'transfer'
+        const meta = (movement.metadata ?? {}) as any
+        const entryKind: StatementEntry['entryKind'] = isTransfer
+          ? (meta.transferRole === 'in' ? 'transfer-in' : 'transfer-out')
+          : 'movement'
+        const counterAccountId = isTransfer ? meta.counterAccountId : undefined
+        balance = round2(isCredit ? balance + net : balance - net)
+        if (!(consolidated && isTransfer)) {
+          if (isCredit) totalCredits = round2(totalCredits + net)
+          else totalDebits = round2(totalDebits + net)
+          totalFees = round2(totalFees + fee)
+        }
+        return {
+          movement,
+          invoice: movement.invoiceId ? store.invoices.find((i) => i.id === movement.invoiceId) : undefined,
+          runningBalance: balance,
+          gross, fee, net, entryKind,
+          counterAccountId,
+          counterAccountName: counterAccountId ? accountNameById.get(counterAccountId) : undefined,
+        } as StatementEntry
+      })
+
+      // Link reconciled bank lines to the internal movement they were matched to.
+      for (const e of entries) {
+        const mid = e.movement.matchedMovementId
+        const mm = mid ? store.movements.find((m) => m.id === mid) : undefined
+        if (!mm) continue
+        const inv = mm.invoiceId ? store.invoices.find((i) => i.id === mm.invoiceId) : undefined
+        e.reconciledWith = {
+          movementId: mm.id,
+          description: mm.notes ?? undefined,
+          invoiceId: mm.invoiceId,
+          fiscalNumber: inv?.fiscalNumber,
+          contactName: inv?.contactName,
+        }
+      }
+
+      const accountCurrentBalance = round2(initialSum + inScope
+        .filter((m) => (m.paymentDate ?? '') <= todayStr)
+        .reduce((s, m) => s + netOf(m), 0))
+
+      return {
+        entries,
+        openingBalance,
+        closingBalance: balance,
+        totalCredits,
+        totalDebits,
+        totalFees,
+        net: round2(totalCredits - totalDebits),
+        accountId: query.bankAccountId,
+        accountCurrentBalance,
+      }
     },
 
     // --- Summary ---
@@ -496,7 +631,7 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
       const monthEnd = todayStr
 
       const monthMovements = store.movements.filter((m) =>
-        m.status === 'paid' && matchesDateRange(m.paymentDate, dateRange ?? { from: monthStart, to: monthEnd })
+        m.movementKind === 'payment' && matchesDateRange(m.paymentDate, dateRange ?? { from: monthStart, to: monthEnd })
       )
 
       const overdueReceivable = pendingReceivable.filter((m) => m.dueDate < todayStr)
@@ -512,6 +647,84 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
         overdueReceivableAmount: overdueReceivable.reduce((s, m) => s + (m.amount - m.paidAmount), 0),
         overduePayableCount: overduePayable.length,
         overduePayableAmount: overduePayable.reduce((s, m) => s + (m.amount - m.paidAmount), 0),
+      }
+    },
+
+    // --- Reconciliation (conciliação) ---
+    async importBankTransactions(input) {
+      let imported = 0, duplicates = 0
+      for (const line of input.lines) {
+        const dup = store.movements.some((m) => m.externalSource === line.externalSource && m.externalId === line.externalId)
+        if (dup) { duplicates++; continue }
+        store.movements.push({
+          id: uid(),
+          direction: line.direction,
+          movementKind: 'payment',
+          amount: line.amount,
+          paidAmount: line.amount,
+          status: 'paid',
+          dueDate: line.date,
+          paymentDate: line.date,
+          bankAccountId: line.bankAccountId ?? input.bankAccountId,
+          notes: line.description,
+          externalId: line.externalId,
+          externalSource: line.externalSource,
+          tenantId,
+          createdAt: now(),
+          updatedAt: now(),
+        } as FinancialMovement)
+        imported++
+      }
+      return { imported, duplicates }
+    },
+
+    async getUnreconciled(query) {
+      let results = store.movements.filter((m) => m.externalSource && !m.reconciledAt)
+      if (query?.bankAccountId) results = results.filter((m) => m.bankAccountId === query.bankAccountId)
+      if (query?.dateRange) results = results.filter((m) => matchesDateRange(m.paymentDate, query.dateRange))
+      return results.sort((a, b) => (b.paymentDate ?? '').localeCompare(a.paymentDate ?? ''))
+    },
+
+    async suggestReconciliation(bankMovementId) {
+      const line = store.movements.find((m) => m.id === bankMovementId)
+      if (!line) return []
+      const amount = line.amount
+      const tol = Math.max(0.01, round2(amount * 0.02))
+      const lineDate = line.paymentDate ?? line.dueDate
+      return store.movements
+        .filter((m) => !m.externalSource && !m.reconciledAt && m.direction === line.direction && m.id !== bankMovementId && Math.abs(m.amount - amount) <= tol)
+        .map((m) => {
+          const amtScore = amount > 0 ? Math.max(0, 1 - Math.abs(m.amount - amount) / amount) : 0
+          const refDate = m.dueDate ?? m.paymentDate
+          const days = lineDate && refDate ? Math.abs((new Date(lineDate).getTime() - new Date(refDate).getTime()) / 86400000) : 30
+          const dateScore = Math.max(0, 1 - days / 30)
+          return {
+            movement: m,
+            invoice: m.invoiceId ? store.invoices.find((i) => i.id === m.invoiceId) : undefined,
+            score: round2(0.7 * amtScore + 0.3 * dateScore),
+          }
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 25)
+    },
+
+    async reconcileMovement(input) {
+      const line = store.movements.find((m) => m.id === input.bankMovementId)
+      if (line) { line.reconciledAt = now(); line.matchedMovementId = input.matchedMovementId; line.updatedAt = now() }
+      if (input.matchedMovementId) {
+        const internal = store.movements.find((m) => m.id === input.matchedMovementId)
+        if (internal) { internal.reconciledAt = now(); internal.updatedAt = now() }
+      }
+    },
+
+    async unreconcileMovement(bankMovementId) {
+      const line = store.movements.find((m) => m.id === bankMovementId)
+      if (!line) return
+      const matchedId = line.matchedMovementId
+      line.reconciledAt = undefined; line.matchedMovementId = undefined; line.updatedAt = now()
+      if (matchedId) {
+        const internal = store.movements.find((m) => m.id === matchedId)
+        if (internal) { internal.reconciledAt = undefined; internal.updatedAt = now() }
       }
     },
   }

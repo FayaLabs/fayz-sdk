@@ -104,6 +104,38 @@ Copy its shape. The gate ratchets: as each plugin reaches the bar it is added to
 `ENFORCED` in `scripts/check-plugin-capability.mjs` (never removed). Background:
 `docs/discovery/PLUGIN-MODEL.md`.
 
+## Integrity + capability tests (the deploy gate)
+
+A plugin is deploy-ready only when two test kinds pass — they are required, not optional:
+
+1. **Integrity** — does the plugin conform to the platform contract so it mounts without
+   breaking the host? Use the shared assertions from `@fayz-ai/core/testing`:
+   - `assertPluginManifestContract(manifest)` — identity, nav↔route wiring, settings-tab
+     shape, id uniqueness, "contributes something mountable". Reference:
+     `plugins/plugin-financial/src/contract.test.ts`.
+   - `assertConnectorContract(connector)` — for integrations: identity, auth kind, and at
+     least one valid capability (entity + direction + triggers).
+   These are pure (type-only deps); call them from a `*.test.ts`. Real manifests pull the
+   plugin's UI bundle, so assert them either with inline manifests (as in the reference) or
+   in an app-level/jsdom test where the UI loads — keep capability tests provider-only.
+
+2. **Capability** — does the plugin actually do its job? Prove the data slice end-to-end
+   against the **mock provider** (no live backend needed — create rows manually). The ⚖️
+   reconciliation slice is the worked example:
+   `plugins/plugin-financial/src/data/capability.test.ts` (import lines → list unreconciled →
+   suggest → reconcile → assert it leaves the pending set; re-import asserts idempotency).
+
+### Integrations & TDD
+
+An integration's job lives mostly in a backend edge function, so write its contract **before**
+that code exists (TDD): test the **pure** parts now — the connector descriptor
+(`assertConnectorContract`) and the booking↔record **mapping** functions — and write the
+data-plane behaviors as `it.todo(...)` so the intended contract is documented and pending,
+not silently missing. Reference:
+`plugins/plugin-agenda/src/integrations/google-calendar/integration.test.ts`.
+
+Run a plugin's suite with `pnpm --filter @fayz-ai/plugin-<name> test`.
+
 ## Verify
 
 `pnpm typecheck` · `pnpm check:plugin-patterns` · `pnpm check:plugin-capability` · `pnpm check:generated-app` · `pnpm check:generated-dogfood`.

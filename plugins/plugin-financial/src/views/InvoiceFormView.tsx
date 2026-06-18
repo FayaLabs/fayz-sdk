@@ -122,7 +122,7 @@ interface FormItem extends CreateInvoiceItemInput {
   _id: string
 }
 
-function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdate, onRemove, entityLookups }: {
+function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdate, onRemove, entityLookups, showTypeSelector }: {
   item: FormItem
   index: number
   itemTypes: Array<{ value: string; label: string; icon?: string }>
@@ -132,12 +132,22 @@ function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdat
   onUpdate: (data: Partial<FormItem>) => void
   onRemove: () => void
   entityLookups: EntityLookupMap
+  /** Whether to show the per-row Service/Product/Other type pills. Hidden when no item type is lookup-backed. */
+  showTypeSelector: boolean
 }) {
   const t = useTranslation()
   const total = item.quantity * item.unitPrice - (item.discount ?? 0) + (item.surcharge ?? 0)
   const kindLabel = itemTypes.find((tp) => tp.value === item.itemKind)?.label ?? item.itemKind
   const hasAdjustments = (item.discount ?? 0) > 0 || (item.surcharge ?? 0) > 0
   const [showAdjustments, setShowAdjustments] = useState(hasAdjustments)
+
+  // Enter in any of the row's edit fields commits the row (same as "Done").
+  function handleFieldKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      onToggle()
+    }
+  }
 
   return (
     <div className="border-b last:border-0">
@@ -166,22 +176,24 @@ function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdat
       {/* Expanded detail — edit fields */}
       {expanded && (
         <div className="px-4 pb-4 pt-1 ml-8 space-y-3 bg-muted/10">
-          {/* Type selector */}
-          <div className="flex gap-1.5">
-            {itemTypes.map((tp) => (
-              <button
-                key={tp.value}
-                onClick={() => onUpdate({ itemKind: tp.value })}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
-                  item.itemKind === tp.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                {tp.label}
-              </button>
-            ))}
-          </div>
+          {/* Type selector — hidden when no item type is lookup-backed (manual-only entry) */}
+          {showTypeSelector && (
+            <div className="flex gap-1.5">
+              {itemTypes.map((tp) => (
+                <button
+                  key={tp.value}
+                  onClick={() => onUpdate({ itemKind: tp.value })}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                    item.itemKind === tp.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {tp.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Main fields */}
           <div className="grid gap-3 grid-cols-12">
@@ -225,6 +237,7 @@ function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdat
                     type="text"
                     value={item.description}
                     onChange={(e) => onUpdate({ description: e.target.value })}
+                    onKeyDown={handleFieldKeyDown}
                     placeholder={t('financial.invoiceForm.itemDescription')}
                     autoFocus
                     className="w-full mt-0.5 rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -239,10 +252,11 @@ function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdat
                 min={1}
                 value={item.quantity}
                 onChange={(e) => onUpdate({ quantity: Number(e.target.value) || 1 })}
+                onKeyDown={handleFieldKeyDown}
                 className="w-full mt-0.5 rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <div className="col-span-4">
+            <div className="col-span-4" onKeyDown={handleFieldKeyDown}>
               <CurrencyInput
                 label={t('financial.invoiceForm.unitPrice')}
                 value={item.unitPrice}
@@ -274,6 +288,7 @@ function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdat
                     step={0.01}
                     value={item.discount ?? 0}
                     onChange={(e) => onUpdate({ discount: Number(e.target.value) || 0 })}
+                    onKeyDown={handleFieldKeyDown}
                     className="flex-1 bg-transparent px-2 py-1 text-xs outline-none"
                   />
                 </div>
@@ -288,6 +303,7 @@ function ItemRow({ item, index, itemTypes, currency, expanded, onToggle, onUpdat
                     step={0.01}
                     value={item.surcharge ?? 0}
                     onChange={(e) => onUpdate({ surcharge: Number(e.target.value) || 0 })}
+                    onKeyDown={handleFieldKeyDown}
                     className="flex-1 bg-transparent px-2 py-1 text-xs outline-none"
                   />
                 </div>
@@ -374,6 +390,16 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
   const config = useFinancialConfig()
   const { currency, itemTypes, locations } = config
   const provider = useFinancialProvider()
+
+  // Whether any item type is backed by an entity lookup (product/service catalog).
+  // When none are, item entry is manual-only: skip the type-select step and add
+  // an "Other" line directly so the user can type the description right away.
+  const hasItemLookups = itemTypes.some((tp) => config.entityLookups[tp.value])
+  const defaultItemKind =
+    itemTypes.find((tp) => tp.value === 'other')?.value ??
+    itemTypes.find((tp) => !config.entityLookups[tp.value])?.value ??
+    itemTypes[0]?.value ??
+    'other'
   const createInvoice = useFinancialStore((s) => s.createInvoice)
   const hasLocations = locations.length > 0
   const isEdit = !!editId
@@ -502,6 +528,14 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
     setItems([...items, newItem])
     setExpandedItemId(newItem._id)
     setAddingItem(false)
+  }
+
+  // Entry point for the "Add Item" / "Add your first item" buttons. With
+  // lookup-backed types we ask which type first; otherwise we add an "Other"
+  // line straight away so the user types directly.
+  function startAddItem() {
+    if (hasItemLookups) setAddingItem(true)
+    else addItemOfKind(defaultItemKind)
   }
 
   function updateItem(id: string, data: Partial<FormItem>) {
@@ -737,7 +771,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
               <h3 className="text-sm font-semibold">{t('financial.invoiceForm.items')}</h3>
             </div>
             <button
-              onClick={() => setAddingItem(true)}
+              onClick={startAddItem}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset transition-colors"
             >
               <Plus className="h-3 w-3" /> {t('financial.invoiceForm.addItem')}
@@ -760,7 +794,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
               <div className="py-10 text-center">
                 <LayoutList className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">{t('financial.invoiceForm.noItems')}</p>
-                <button onClick={() => setAddingItem(true)} className="text-xs text-primary hover:underline mt-1">
+                <button onClick={startAddItem} className="text-xs text-primary hover:underline mt-1">
                   {t('financial.invoiceForm.addFirstItem')}
                 </button>
               </div>
@@ -777,6 +811,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
                   onUpdate={(data) => updateItem(item._id, data)}
                   onRemove={() => { removeItem(item._id); if (expandedItemId === item._id) setExpandedItemId(null) }}
                   entityLookups={config.entityLookups}
+                  showTypeSelector={hasItemLookups}
                 />
               ))
             )}

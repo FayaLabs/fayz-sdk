@@ -20,15 +20,19 @@ const STATUS_COLORS: Record<string, { bg: string; icon: React.ElementType; label
   cancelled: { bg: 'bg-muted text-muted-foreground', icon: Ban, labelKey: 'financial.invoice.statusCancelled' },
 }
 
-export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
+export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit, backLabel }: {
   invoiceId: string
   direction: TransactionDirection
   onBack: () => void
   onEdit: () => void
+  /** Label for the back link — defaults to the invoice's parent list (payables/receivables). */
+  backLabel?: string
 }) {
   const t = useTranslation()
   const config = useFinancialConfig()
   const { currency } = config
+  // Back link target: where the user actually came from, else the parent list.
+  const parentLabel = backLabel ?? (direction === 'debit' ? t('financial.nav.payables') : t('financial.nav.receivables'))
   const provider = useFinancialProvider()
   const paymentMethods = useFinancialStore((s) => s.paymentMethods)
   const paymentMethodTypes = useFinancialStore((s) => s.paymentMethodTypes)
@@ -41,6 +45,7 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [items, setItems] = useState<InvoiceItem[]>([])
   const [movements, setMovements] = useState<FinancialMovement[]>([])
+  const [payments, setPayments] = useState<FinancialMovement[]>([])
   const [loading, setLoading] = useState(true)
   const [payingMovement, setPayingMovement] = useState<FinancialMovement | null>(null)
   const [expandedMovId, setExpandedMovId] = useState<string | null>(null)
@@ -63,6 +68,12 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
       movResult.data
         .filter((m) => m.invoiceId === invoiceId && m.movementKind === 'bill')
         .sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0))
+    )
+    // Individual cash events (one row per payment) — listed under each installment.
+    setPayments(
+      movResult.data
+        .filter((m) => m.invoiceId === invoiceId && m.movementKind === 'payment')
+        .sort((a, b) => (a.paymentDate ?? '').localeCompare(b.paymentDate ?? ''))
     )
     setLoading(false)
   }
@@ -110,7 +121,7 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
   if (loading) {
     return (
       <div className="space-y-5">
-        <SubpageHeader title="" onBack={onBack} parentLabel={direction === 'debit' ? t('financial.nav.payables') : t('financial.nav.receivables')} />
+        <SubpageHeader title="" onBack={onBack} parentLabel={parentLabel} />
 
         {/* Invoice card skeleton */}
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -187,7 +198,7 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
   if (!invoice) {
     return (
       <div className="space-y-6">
-        <SubpageHeader title={t('financial.invoice.notFound')} onBack={onBack} parentLabel={direction === 'debit' ? t('financial.nav.payables') : t('financial.nav.receivables')} />
+        <SubpageHeader title={t('financial.invoice.notFound')} onBack={onBack} parentLabel={parentLabel} />
         <p className="text-sm text-muted-foreground">{t('financial.invoice.notFoundDesc')}</p>
       </div>
     )
@@ -234,7 +245,7 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
       <SubpageHeader
         title={invoice.fiscalNumber ? `#${invoice.fiscalNumber}` : invoice.contactName ?? invoice.invoiceDate}
         onBack={onBack}
-        parentLabel={direction === 'debit' ? t('financial.nav.payables') : t('financial.nav.receivables')}
+        parentLabel={parentLabel}
         actions={
           <div className="flex items-center gap-1.5">
             {invoice.status !== 'cancelled' && invoice.status !== 'paid' && (
@@ -410,10 +421,8 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
                 const movStatus = STATUS_COLORS[mov.status] ?? STATUS_COLORS.pending
                 const MovIcon = movStatus.icon
 
-                // Resolve names for payment details
-                const method = paymentMethods.find((m) => m.id === mov.paymentMethodId)
-                const methodType = paymentMethodTypes.find((t) => t.id === (method?.paymentMethodTypeId ?? mov.paymentMethodTypeId))
-                const account = bankAccounts.find((a) => a.id === mov.bankAccountId)
+                // Cash events recorded against this installment (one per payment).
+                const instPayments = payments.filter((p) => (p.installmentNumber ?? null) === (mov.installmentNumber ?? null))
 
                 return (
                   <div key={mov.id}>
@@ -471,50 +480,60 @@ export function InvoiceDetailView({ invoiceId, direction, onBack, onEdit }: {
                               <div className="h-3 w-16 rounded bg-muted/30 animate-pulse" />
                               <div className="h-3 w-24 rounded bg-muted/40 animate-pulse" />
                             </div>
+                          ) : instPayments.length === 0 ? (
+                            <div className="text-[11px] text-muted-foreground">{t('financial.invoice.noDetails')}</div>
                           ) : (
-                            <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[11px] text-muted-foreground">
-                              {methodType && (
-                                <>
-                                  <span className="font-medium text-foreground">{methodType.name}</span>
-                                  {method && <span>({method.name})</span>}
-                                </>
-                              )}
-                              {mov.cardBrand && (
-                                <>
-                                  {methodType && <span>&middot;</span>}
-                                  <CreditCard className="h-3 w-3 shrink-0" />
-                                  <span className="font-medium text-foreground">{mov.cardBrand}</span>
-                                  {mov.cardInstallments && <span>{mov.cardInstallments}x</span>}
-                                </>
-                              )}
-                              {account && (
-                                <>
-                                  {(methodType || mov.cardBrand) && <span>&middot;</span>}
-                                  <Building2 className="h-3 w-3 shrink-0" />
-                                  <span>{account.name}</span>
-                                </>
-                              )}
-                              {mov.paidAmount > 0 && (
-                                <>
-                                  <span>&middot;</span>
-                                  <span className="font-medium text-success">{formatCurrency(mov.paidAmount, currency)}</span>
-                                </>
-                              )}
-                              {mov.paymentDate && (
-                                <>
-                                  <span>&middot;</span>
-                                  <span>{mov.paymentDate}</span>
-                                </>
-                              )}
-                              {mov.notes && (
-                                <>
-                                  <span>&middot;</span>
-                                  <span className="italic truncate max-w-[200px]">{mov.notes}</span>
-                                </>
-                              )}
-                              {!methodType && !mov.cardBrand && !account && !mov.notes && (
-                                <span>{t('financial.invoice.noDetails')}</span>
-                              )}
+                            <div className="space-y-1">
+                              {instPayments.map((p) => {
+                                const pMethod = paymentMethods.find((m) => m.id === p.paymentMethodId)
+                                const pType = paymentMethodTypes.find((tp) => tp.id === (pMethod?.paymentMethodTypeId ?? p.paymentMethodTypeId))
+                                const pAccount = bankAccounts.find((a) => a.id === p.bankAccountId)
+                                return (
+                                  <div key={p.id} className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[11px] text-muted-foreground">
+                                    <span className="font-medium text-success">{formatCurrency(p.paidAmount, currency)}</span>
+                                    {pType && (
+                                      <>
+                                        <span>&middot;</span>
+                                        <span className="font-medium text-foreground">{pType.name}</span>
+                                        {pMethod && <span>({pMethod.name})</span>}
+                                      </>
+                                    )}
+                                    {p.cardBrand && (
+                                      <>
+                                        <span>&middot;</span>
+                                        <CreditCard className="h-3 w-3 shrink-0" />
+                                        <span className="font-medium text-foreground">{p.cardBrand}</span>
+                                        {p.cardInstallments && <span>{p.cardInstallments}x</span>}
+                                      </>
+                                    )}
+                                    {pAccount && (
+                                      <>
+                                        <span>&middot;</span>
+                                        <Building2 className="h-3 w-3 shrink-0" />
+                                        <span>{pAccount.name}</span>
+                                      </>
+                                    )}
+                                    {(p.feeAmount ?? 0) > 0 && (
+                                      <>
+                                        <span>&middot;</span>
+                                        <span className="text-warning">{t('financial.statements.columnFee')} {formatCurrency(p.feeAmount ?? 0, currency)}</span>
+                                      </>
+                                    )}
+                                    {p.paymentDate && (
+                                      <>
+                                        <span>&middot;</span>
+                                        <span>{p.paymentDate}</span>
+                                      </>
+                                    )}
+                                    {p.notes && (
+                                      <>
+                                        <span>&middot;</span>
+                                        <span className="italic truncate max-w-[200px]">{p.notes}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                )
+                              })}
                             </div>
                           )}
                         </div>

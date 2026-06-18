@@ -471,9 +471,6 @@ importers:
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
-      react-dom:
-        specifier: ^18.0.0 || ^19.0.0
-        version: 18.3.1(react@18.3.1)
       zustand:
         specifier: ^4.5.0
         version: 4.5.7(@types/react@18.3.31)(react@18.3.1)
@@ -487,12 +484,18 @@ importers:
       react:
         specifier: ^18.3.0
         version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.2.0
         version: 8.5.1(jiti@1.21.7)(postcss@8.5.15)(typescript@5.9.3)
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.43)
 
   plugins/plugin-automations:
     dependencies:
@@ -598,9 +601,6 @@ importers:
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../../packages/core
-      '@fayz-ai/db':
-        specifier: workspace:^
-        version: link:../../packages/db
       '@fayz-ai/saas':
         specifier: workspace:^
         version: link:../../packages/saas
@@ -610,9 +610,6 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.20.0
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      drizzle-orm:
-        specifier: ^0.36.4
-        version: 0.36.4(@types/react@18.3.31)(react@18.3.1)
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
@@ -687,9 +684,6 @@ importers:
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
-      react-dom:
-        specifier: ^18.0.0 || ^19.0.0
-        version: 18.3.1(react@18.3.1)
       zustand:
         specifier: ^4.5.0
         version: 4.5.7(@types/react@18.3.31)(react@18.3.1)
@@ -703,12 +697,18 @@ importers:
       react:
         specifier: ^18.3.0
         version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.2.0
         version: 8.5.1(jiti@1.21.7)(postcss@8.5.15)(typescript@5.9.3)
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.43)
 
   plugins/plugin-forms:
     dependencies:

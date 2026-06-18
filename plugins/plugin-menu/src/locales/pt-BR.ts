@@ -53,4 +53,12 @@ export const ptBR: Record<string, string> = {
   'menu.settings.general': 'Geral',
   'menu.settings.taxRate': 'Taxa padrão',
   'menu.settings.currency': 'Moeda',
+  'menu.form.categoryName': 'Nome da categoria',
+  'menu.form.itemName': 'Nome do item',
+  'menu.form.description': 'Descrição',
+  'menu.form.category': 'Categoria',
+  'menu.form.uncategorized': 'Sem categoria',
+  'menu.form.optional': 'opcional',
+  'menu.form.save': 'Salvar',
+  'menu.form.cancel': 'Cancelar',
 }

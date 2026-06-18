@@ -71,6 +71,9 @@ export interface DetailTab {
   componentId?: string
   visibleFor?: string[]
   props?: Record<string, unknown>
+  /** Only show this tab when a plugin has contributed a widget to this zone (e.g. a
+   *  financial plugin enabling a per-person statement tab). Hidden when no widget. */
+  requiresWidgetZone?: string
 }
 
 export type FormLayout = 'person' | 'product' | 'service' | 'location' | 'order' | 'subject' | 'generic'

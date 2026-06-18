@@ -37,6 +37,22 @@ export type {
   RuntimePluginOAuthGrant,
 } from './runtime'
 
+// Plugin contract assertions (integrity half of the deploy gate)
+export { assertPluginManifestContract, assertConnectorContract, PluginContractError } from './testing'
+
+// Integration connector spine (shared contract for external-provider sync)
+export { withAfterHooks } from './integrations'
+export type {
+  Connector,
+  ConnectorCapability,
+  ConnectionConfig,
+  SyncRun,
+  SyncDirection,
+  SyncTrigger,
+  IntegrationAuthKind,
+  TestConnectionResult,
+} from './integrations'
+
 // Shared utilities
 export { formatCurrency, formatDate, formatDateTime, getActiveLocale, getDefaultCurrency, setDefaultCurrency } from './lib/format'
 export { exportCSV, buildCSV, downloadCSV } from './lib/csv'
@@ -130,3 +146,13 @@ export { I18nProvider, useI18nConfig, useTranslation, coreTranslations, mergeTra
 // Router
 export { hashRouterAdapter, windowRouterAdapter } from './router/index'
 export type { RouterAdapter } from './router/index'
+
+// Global cross-module navigation history (context-aware back buttons)
+export {
+  useNavHistoryStore,
+  recordNavigation,
+  useNavReferrer,
+  navHistoryBack,
+  routeModule,
+} from './router/history'
+export type { NavHistoryEntry } from './router/history'

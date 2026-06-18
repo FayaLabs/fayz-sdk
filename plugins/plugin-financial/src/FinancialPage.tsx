@@ -6,7 +6,7 @@ import { FinancialContextProvider, type ResolvedFinancialConfig } from './Financ
 import type { FinancialDataProvider } from './data/types'
 import type { FinancialUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
-import { useModuleNavigation, ModuleActionBar, parseViewId } from '@fayz-ai/saas'
+import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
 import { PayablesView } from './views/PayablesView'
 import { ReceivablesView } from './views/ReceivablesView'
@@ -14,6 +14,7 @@ import { CashRegistersView } from './views/CashRegistersView'
 import { StatementsView } from './views/StatementsView'
 import { CommissionsView } from './views/CommissionsView'
 import { CardsView } from './views/CardsView'
+import { ReconciliationView } from './views/ReconciliationView'
 import { FinancialGeneralSettings } from './components/FinancialGeneralSettings'
 import { FinancialOnboarding } from './components/FinancialOnboarding'
 
@@ -92,13 +93,22 @@ function buildNav(
     })
   }
 
-  if (config.modules.statements) {
+  // Statements (extract) is core to the financial module — always shown, not gated per app.
+  items.push({
+    id: 'statements',
+    label: t('financial.nav.statements'),
+    icon: 'Receipt',
+    active: activeView === 'statements',
+    onClick: () => navigate('statements'),
+  })
+
+  if (config.modules.reconciliation) {
     items.push({
-      id: 'statements',
-      label: t('financial.nav.statements'),
-      icon: 'Receipt',
-      active: activeView === 'statements',
-      onClick: () => navigate('statements'),
+      id: 'reconciliation',
+      label: t('financial.nav.reconciliation'),
+      icon: 'ArrowLeftRight',
+      active: activeView === 'reconciliation',
+      onClick: () => navigate('reconciliation'),
     })
   }
 
@@ -139,10 +149,10 @@ export function FinancialPage({ config, provider, store, registries }: {
   store: StoreApi<FinancialUIState>
   registries?: PluginRegistryDef[]
 }) {
-  const { view, direction, navigate } = useModuleNavigation('/financial', {
+  const { view, direction, navigate, previousView, back } = useModuleNavigation('/financial', {
     summary: 0,
     'payables-list': 0, 'payables-new': 1, 'receivables-list': 0, 'receivables-new': 1,
-    'cash-registers': 0, statements: 0, commissions: 0, cards: 0,
+    'cash-registers': 0, statements: 0, reconciliation: 0, commissions: 0, cards: 0,
     settings: 1,
   })
 
@@ -207,11 +217,13 @@ export function FinancialPage({ config, provider, store, registries }: {
       <FinancialContextProvider config={config} provider={provider} store={store}>
         <PageTransition transitionKey="settings" direction={direction}>
           <div style={{ padding: '24px' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{t('financial.settingsPage.title')}</h1>
-              <p style={{ color: 'var(--muted-foreground, #6b7280)', margin: '4px 0 0', fontSize: '14px' }}>{t('financial.settingsPage.subtitle')}</p>
-            </div>
-            <FinancialGeneralSettings />
+            <PluginSettingsPanel
+              title={t('financial.settingsPage.title')}
+              subtitle={t('financial.settingsPage.subtitle')}
+              generalSettings={<FinancialGeneralSettings />}
+              registries={registries}
+              routeBase="/settings/financial"
+            />
           </div>
         </PageTransition>
       </FinancialContextProvider>
@@ -221,13 +233,15 @@ export function FinancialPage({ config, provider, store, registries }: {
   function renderView() {
     switch (intent.view) {
       case 'payables':
-        return <PayablesView intent={intent} onNavigate={navigate} />
+        return <PayablesView intent={intent} onNavigate={navigate} previousView={previousView} back={back} />
       case 'receivables':
-        return <ReceivablesView intent={intent} onNavigate={navigate} />
+        return <ReceivablesView intent={intent} onNavigate={navigate} previousView={previousView} back={back} />
       case 'cash-registers':
         return <CashRegistersView />
       case 'statements':
-        return <StatementsView />
+        return <StatementsView onNavigate={navigate} />
+      case 'reconciliation':
+        return <ReconciliationView />
       case 'commissions':
         return <CommissionsView />
       case 'cards':

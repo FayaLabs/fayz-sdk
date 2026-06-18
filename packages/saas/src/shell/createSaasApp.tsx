@@ -60,7 +60,7 @@ import { usePermission } from './hooks/usePermission'
 import { useTenantPlugins } from './hooks/useTenantPlugins'
 import { I18nProvider, builtInLocales } from './lib/i18n'
 import { useLocaleStore } from './stores/locale.store'
-import { setDefaultCurrency, setCurrentLocale, registerTranslations } from '@fayz-ai/core'
+import { setDefaultCurrency, setCurrentLocale, registerTranslations, recordNavigation } from '@fayz-ai/core'
 import { useTranslation } from './hooks/useTranslation'
 
 // ---------------------------------------------------------------------------
@@ -567,6 +567,16 @@ export function createSaasApp(config: SaasAppConfig): React.FC {
       if (toAdd.length > 0) store.setFeatures([...store.features, ...toAdd])
     }, [])
 
+    // Record every route change into the global navigation history so shared
+    // headers (SubpageHeader / Breadcrumb) can render a context-aware back link
+    // that returns to the actual previous page across module boundaries. The
+    // label resolver is filled in below once `navigation` is built; we read it
+    // via a ref so this effect can live before the early return.
+    const navLabelRef = React.useRef<(path: string) => string>(() => '')
+    React.useEffect(() => {
+      recordNavigation(route, navLabelRef.current(route))
+    }, [route])
+
     // If we're on the login route, render login page
     if (route === '/login') {
       return React.createElement(LoginPageWrapper)
@@ -632,6 +642,17 @@ export function createSaasApp(config: SaasAppConfig): React.FC {
         plugin: pluginRoute.plugin as any,
         fullBleed: pluginRoute.fullBleed,
       })
+    }
+
+    // Module-level label for a route, used by the global navigation history.
+    // Exact nav match first, then prefix match (e.g. '/clients/{id}' → 'Clientes').
+    navLabelRef.current = (path: string): string => {
+      const exact = navigation.find((n) => n.route === path)?.label
+      if (exact) return exact
+      for (const n of navigation) {
+        if (n.route !== '/' && path.startsWith(n.route + '/')) return n.label
+      }
+      return ''
     }
 
     // Resolve page: exact match first, then prefix match for CRUD sub-routes and plugin routes

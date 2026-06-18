@@ -15,6 +15,7 @@ import { SERVICE_DETAIL_TABS } from './archetypes/ServiceDetailTabs'
 import { LOCATION_DETAIL_TABS } from './archetypes/LocationDetailTabs'
 import { SUBJECT_DETAIL_TABS } from './archetypes/SubjectDetailTabs'
 import { useTranslation } from '@fayz-ai/core'
+import { usePluginRuntimeOptional, getWidgetsForZone } from '@fayz-ai/core'
 import type { EntityDef, FieldDef, FieldGroup, FormLayout, DetailTab } from '@fayz-ai/core'
 
 interface CrudDetailPageProps {
@@ -246,8 +247,12 @@ export function CrudDetailPage({
   const initial = typeof displayValue === 'string' ? displayValue.charAt(0).toUpperCase() : '?'
 
   // Merge archetype tabs + custom entity tabs
+  const runtime = usePluginRuntimeOptional()
   const archetypeTabs = getArchetypeTabs(entityDef.layout, entityDef.data?.archetypeKind)
   const customTabs = [...archetypeTabs, ...(entityDef.detailTabs ?? [])]
+    // Drop tabs that require a plugin-contributed widget when none is registered
+    // (e.g. the financial statement tab only appears when the financial plugin is active).
+    .filter((tab) => !tab.requiresWidgetZone || (runtime ? getWidgetsForZone(runtime, tab.requiresWidgetZone).length > 0 : false))
   const entityId = entityDef.name.toLowerCase().replace(/\s+/g, '-')
   const widgetZone = `${entityId}.detail.tabs`
 

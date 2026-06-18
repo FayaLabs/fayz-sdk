@@ -66,6 +66,25 @@ export function DocumentsTab({ item }: { item?: any }) {
   )
 }
 
+export function FinancialTab({ item }: { item?: any }) {
+  const runtime = usePluginsOptional()
+  const widgets = runtime ? getWidgetsForZone(runtime, 'person.detail.financial') : []
+  if (widgets.length > 0 && item) {
+    const w = widgets[0]
+    const Widget = w.component as React.ComponentType<any>
+    return (
+      <Widget
+        item={item}
+        config={w.config}
+        runtime={runtime?.context}
+        plugin={w.plugin}
+        widget={w}
+      />
+    )
+  }
+  return null
+}
+
 export function ScheduleTab({ item }: { item: any }) {
   const t = useTranslation()
   if (!item?.id) {
@@ -83,5 +102,8 @@ export function ScheduleTab({ item }: { item: any }) {
 export const PERSON_DETAIL_TABS = [
   { id: 'schedule', label: 'Schedule', icon: 'CalendarDays', component: ScheduleTab, visibleFor: ['staff'] },
   { id: 'documents', label: 'Documents', icon: 'FileText', component: DocumentsTab },
+  // Per-person financial statement — only shown when the financial plugin contributes
+  // its widget (see requiresWidgetZone). Clients = paid invoices; staff = commissions.
+  { id: 'financial', label: 'Statement', icon: 'DollarSign', component: FinancialTab, requiresWidgetZone: 'person.detail.financial' },
   { id: 'activity', label: 'Activity', icon: 'Clock', component: ActivityTab },
 ]

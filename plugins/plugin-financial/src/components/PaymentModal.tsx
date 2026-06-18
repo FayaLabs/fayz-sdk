@@ -6,7 +6,20 @@ import { useTranslation } from '@fayz-ai/core'
 import { CurrencyInput } from '@fayz-ai/ui'
 import { DatePicker } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
-import type { FinancialMovement, PaymentMethodType } from '../types'
+import type { FinancialMovement, PaymentMethodType, BankAccountType } from '../types'
+
+// Which bank-account types make sense for each payment type — mirrors beautyplace's
+// payment_method_types.allowed_account_types. Used to filter + default the destination
+// account so every payment lands in a real account (and shows up in that account's extract).
+const ACCOUNT_TYPES_FOR_TX: Record<string, BankAccountType[]> = {
+  cash: ['cash_register'],
+  credit_card: ['credit_card', 'bank_account'],
+  debit_card: ['bank_account', 'cash_register'],
+  pix: ['bank_account', 'digital_wallet'],
+  bank_transfer: ['bank_account'],
+  check: ['bank_account'],
+  voucher: ['bank_account', 'digital_wallet'],
+}
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   cash: Banknote,
@@ -80,9 +93,26 @@ export function PaymentModal({ movement, onClose, onPaid }: {
     [paymentMethods, selectedTypeId]
   )
 
-  const needsBankAccount = txType === 'bank_transfer' || txType === 'pix' || txType === 'check'
   const needsCard = txType === 'credit_card' || txType === 'debit_card'
   const needsCardInstallments = txType === 'credit_card'
+
+  // Accounts eligible for the selected payment type. Prefer the type's configured
+  // allowedAccountTypes, else the tx-type mapping, else all active accounts.
+  const eligibleAccounts = useMemo(() => {
+    const allowed = (selectedType?.allowedAccountTypes && selectedType.allowedAccountTypes.length)
+      ? selectedType.allowedAccountTypes
+      : ACCOUNT_TYPES_FOR_TX[txType]
+    if (!allowed || !allowed.length) return bankAccounts
+    const filtered = bankAccounts.filter((a) => allowed.includes(a.accountType))
+    return filtered.length ? filtered : bankAccounts
+  }, [bankAccounts, selectedType, txType])
+
+  // Auto-pick a sensible destination account so the payment is always linked to one.
+  useEffect(() => {
+    if (selectedTypeId && !bankAccountId && eligibleAccounts.length) {
+      setBankAccountId(eligibleAccounts[0].id)
+    }
+  }, [selectedTypeId, eligibleAccounts])
 
   function handleSelectType(typeId: string) {
     setSelectedTypeId(typeId)
@@ -98,8 +128,16 @@ export function PaymentModal({ movement, onClose, onPaid }: {
     setTimeout(onClose, 200)
   }
 
+  // Enter anywhere in the modal submits (unless typing in a textarea / Shift+Enter).
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key !== 'Enter' || e.shiftKey) return
+    if ((e.target as HTMLElement).tagName === 'TEXTAREA') return
+    e.preventDefault()
+    if (amount > 0 && selectedTypeId && bankAccountId && !saving) void handlePay()
+  }
+
   async function handlePay() {
-    if (amount <= 0 || !selectedTypeId) return
+    if (amount <= 0 || !selectedTypeId || !bankAccountId) return
     setSaving(true)
     try {
       await payMovement({
@@ -111,6 +149,7 @@ export function PaymentModal({ movement, onClose, onPaid }: {
         bankAccountId: bankAccountId || undefined,
         cardBrand: needsCard ? cardBrand || undefined : undefined,
         cardInstallments: needsCardInstallments ? cardInstallments : undefined,
+        notes: notes.trim() || undefined,
       })
       setVisible(false)
       setTimeout(onPaid, 200)
@@ -136,6 +175,7 @@ export function PaymentModal({ movement, onClose, onPaid }: {
           transform: visible ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(8px)',
         }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-card z-10">
@@ -269,16 +309,23 @@ export function PaymentModal({ movement, onClose, onPaid }: {
                 </div>
               )}
 
-              {/* Bank account */}
-              {needsBankAccount && bankAccounts.length > 0 && (
-                <div className="stagger-field" style={{ animationDelay: '100ms' }}>
-                  <label className="text-xs font-medium text-muted-foreground">{t('financial.payment.bankAccount')}</label>
+              {/* Destination account — always shown so every payment links to an account */}
+              <div className="stagger-field" style={{ animationDelay: '100ms' }}>
+                <label className="text-xs font-medium text-muted-foreground">{t('financial.payment.bankAccount')}</label>
+                {eligibleAccounts.length === 0 ? (
+                  <div className="mt-1 rounded-lg border border-dashed border-input bg-muted/30 px-3 py-2.5 text-center">
+                    <p className="text-xs text-muted-foreground">{t('financial.payment.noAccounts')}</p>
+                    <a href="#/settings/financial/bank-accounts" className="mt-1 inline-block text-xs font-medium text-primary hover:underline">
+                      {t('financial.payment.configureAccounts')} →
+                    </a>
+                  </div>
+                ) : (
                   <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)} className="w-full mt-1 rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-3 py-2 text-sm">
                     <option value="">{t('financial.payment.selectAccount')}</option>
-                    {bankAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    {eligibleAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Notes */}
               <div className="stagger-field" style={{ animationDelay: '150ms' }}>
@@ -309,7 +356,7 @@ export function PaymentModal({ movement, onClose, onPaid }: {
             variant="default"
             size="sm"
             onClick={handlePay}
-            disabled={amount <= 0 || !selectedTypeId || saving}
+            disabled={amount <= 0 || !selectedTypeId || !bankAccountId || saving}
           >
             <Check className="h-3.5 w-3.5" />
             {saving ? t('financial.payment.processing') : t('financial.payment.payAmount', { amount: formatCurrency(amount, currency) })}

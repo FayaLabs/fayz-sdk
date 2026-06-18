@@ -100,10 +100,21 @@ export interface FinancialMovement {
   cashSessionId?: string
   cardBrand?: string
   cardInstallments?: number
+  /** Processing/MDR fee deducted at settlement (net cash = paidAmount - feeAmount for credits) */
+  feeAmount?: number
   debitAccountId?: string
   creditAccountId?: string
   notes?: string
   metadata?: Record<string, unknown>
+  // --- Reconciliation (conciliação) ---
+  /** Provider of an imported bank-statement line (set on imported movements only) */
+  externalSource?: string
+  /** Provider-unique id of the imported bank line (idempotency key with externalSource) */
+  externalId?: string
+  /** When this movement was reconciled — matched or accepted (undefined = pending) */
+  reconciledAt?: string
+  /** For an imported bank line: the internal movement it was matched to */
+  matchedMovementId?: string
   tenantId: string
   createdAt: string
   updatedAt: string
@@ -258,6 +269,8 @@ export interface PayMovementInput {
   cashSessionId?: string
   cardBrand?: string
   cardInstallments?: number
+  /** Free-text payment description / memo shown in the extract */
+  notes?: string
 }
 
 export interface OpenCashSessionInput {
@@ -320,8 +333,25 @@ export interface MovementQuery {
 }
 
 export interface StatementQuery {
-  bankAccountId: string
+  /** Omit (or pass undefined) for a consolidated "All accounts" statement */
+  bankAccountId?: string
   dateRange: DateRange
+}
+
+export interface CreateTransferInput {
+  fromAccountId: string
+  toAccountId: string
+  amount: number
+  /** YYYY-MM-DD — becomes payment_date on both ledger legs */
+  date: string
+  notes?: string
+}
+
+export interface TransferResult {
+  /** Shared correlation id stored in both legs' metadata */
+  transferId: string
+  debitMovementId: string
+  creditMovementId: string
 }
 
 export interface PaginatedResult<T> {
@@ -345,10 +375,53 @@ export interface FinancialSummary {
   overduePayableAmount: number
 }
 
+/** What a statement row represents — a normal movement or one leg of a transfer */
+export type StatementEntryKind = 'movement' | 'transfer-in' | 'transfer-out'
+
 export interface StatementEntry {
   movement: FinancialMovement
   invoice?: Invoice
+  /** NET cash running balance after this row */
   runningBalance: number
+  /** Amount that settled the receivable/payable (= paidAmount) */
+  gross: number
+  /** Processing/MDR fee deducted (>= 0) */
+  fee: number
+  /** Cash impact: gross - fee for credit; gross for debit */
+  net: number
+  entryKind: StatementEntryKind
+  /** For transfers: the other side's account */
+  counterAccountId?: string
+  counterAccountName?: string
+  /** When this row is a reconciled bank line, the internal movement it was matched to. */
+  reconciledWith?: {
+    movementId: string
+    description?: string
+    invoiceId?: string
+    fiscalNumber?: string
+    contactName?: string
+  }
+}
+
+/** Full statement result with header context (opening/closing balance + period totals) */
+export interface StatementResult {
+  entries: StatementEntry[]
+  /** Balance as of start-of-day dateFrom (excludes in-range rows) */
+  openingBalance: number
+  /** openingBalance + net of all in-range rows */
+  closingBalance: number
+  /** Sum of NET credits in range */
+  totalCredits: number
+  /** Sum of NET debits (cash out) in range */
+  totalDebits: number
+  /** Sum of fees in range */
+  totalFees: number
+  /** totalCredits - totalDebits */
+  net: number
+  /** Echo of the queried account; undefined for consolidated */
+  accountId?: string
+  /** Ledger-computed current balance of the selected account (as of today) */
+  accountCurrentBalance?: number
 }
 
 export interface CashSessionSummary {
@@ -356,4 +429,56 @@ export interface CashSessionSummary {
   movementCount: number
   totalInflow: number
   totalOutflow: number
+}
+
+// ============================================================
+// RECONCILIATION (conciliação)
+// ============================================================
+
+/** A normalized bank-statement line, ready to import as a financial movement. */
+export interface BankStatementLine {
+  /** Provider-unique transaction id (idempotency key with externalSource) */
+  externalId: string
+  /** Provider that produced the line (e.g. 'plugbank', 'inter') */
+  externalSource: string
+  /** credit = money in, debit = money out */
+  direction: TransactionDirection
+  amount: number
+  /** YYYY-MM-DD settlement date */
+  date: string
+  description: string
+  /** Account the line belongs to; falls back to the import's bankAccountId */
+  bankAccountId?: string
+}
+
+export interface ImportBankTransactionsInput {
+  /** Default account for lines that don't carry their own */
+  bankAccountId?: string
+  lines: BankStatementLine[]
+}
+
+export interface ImportBankTransactionsResult {
+  imported: number
+  /** Lines skipped because they were already imported (idempotency) */
+  duplicates: number
+}
+
+export interface UnreconciledQuery {
+  bankAccountId?: string
+  dateRange?: DateRange
+}
+
+/** A candidate internal movement to reconcile an imported bank line against. */
+export interface ReconciliationCandidate {
+  movement: FinancialMovement
+  invoice?: Invoice
+  /** 0..1 confidence from amount + date proximity */
+  score: number
+}
+
+export interface ReconcileInput {
+  /** The imported bank-line movement (externalSource set) */
+  bankMovementId: string
+  /** Internal movement to link; omit to accept the line standalone */
+  matchedMovementId?: string
 }

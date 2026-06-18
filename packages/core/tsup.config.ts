@@ -10,6 +10,8 @@ export default defineConfig({
     'router/index': 'src/router/index.ts',
     'runtime/index': 'src/runtime/index.ts',
     'types/index': 'src/types/index.ts',
+    'integrations/index': 'src/integrations/index.ts',
+    'testing/index': 'src/testing/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: false,

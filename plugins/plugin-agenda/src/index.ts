@@ -178,3 +178,6 @@ export type { ResolvedAgendaConfig } from './config'
 export type { AgendaDataProvider } from './data/types'
 export type { AgendaFinancialBridge, BookingPaymentStatus, BookingPaymentSummary, BookingPaymentDetail } from './financial-bridge'
 export { createFinancialBridge, computeCommissionAmount } from './bridges/create-financial-bridge'
+
+// Google Calendar integration (official addon) — settings-only plugin + helpers
+export { createGoogleCalendarPlugin, createGoogleCalendarProvider, googleCalendarConnector, bookingToEvent, eventToBookingPatch } from './integrations/google-calendar'

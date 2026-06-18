@@ -59,6 +59,7 @@ import {
   Ruler,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeftRight,
   UserPlus,
   TreePalm,
   PartyPopper,
@@ -176,7 +177,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   ClipboardList, Briefcase, UserCog, BookOpen, MessageCircle, Globe,
   Percent, Tag, Camera, UtensilsCrossed, Search, MapPin, Handshake,
   Contact, Building2, ChevronDown, Filter, Plus, List, Dog, Cat, PawPrint, Heart, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
-  ArrowDownCircle, ArrowUpCircle, Landmark, Receipt, TrendingUp, CircleDollarSign, Clock, AlertTriangle, Sparkles, Wallet, Warehouse, Ruler, ArrowUpRight, ArrowDownRight, UserPlus, TreePalm,
+  ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, Landmark, Receipt, TrendingUp, CircleDollarSign, Clock, AlertTriangle, Sparkles, Wallet, Warehouse, Ruler, ArrowUpRight, ArrowDownRight, UserPlus, TreePalm,
   PartyPopper, Radio, CalendarDays, Banknote, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
 }
 
