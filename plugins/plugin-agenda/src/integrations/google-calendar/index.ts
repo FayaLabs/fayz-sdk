@@ -8,15 +8,18 @@
 // on saas_core.bookings.metadata.googleCalendarEventId.
 //
 // Graduation path: extract to its own `@fayz-ai/plugin-google-calendar` package.
-import React from 'react'
 import type { PluginManifest } from '@fayz-ai/core'
-import { GoogleCalendarSettings } from './GoogleCalendarSettings'
+import { googleCalendarConnectorDef } from './connectorDef'
 
 export { createGoogleCalendarProvider } from './data/supabase'
 export { googleCalendarConnector } from './connector'
+export { googleCalendarConnectorDef } from './connectorDef'
 export { bookingToEvent, eventToBookingPatch, bookingSummary } from './mapping'
 export * from './types'
 
+// Addon plugin: contributes the Google Calendar connector into its host
+// (plugin-agenda). It appears in Agenda settings → Integrations — no top-level
+// settings tab of its own. See packages/saas ConnectorsHub.
 export function createGoogleCalendarPlugin(): PluginManifest {
   return {
     id: 'google-calendar',
@@ -28,14 +31,6 @@ export function createGoogleCalendarPlugin(): PluginManifest {
     dependencies: ['agenda'],
     navigation: [],
     routes: [],
-    settings: [
-      {
-        id: 'google-calendar',
-        label: 'Google Calendar',
-        icon: 'Calendar',
-        component: GoogleCalendarSettings as React.ComponentType<any>,
-        order: 40,
-      },
-    ],
+    connectors: [googleCalendarConnectorDef],
   }
 }

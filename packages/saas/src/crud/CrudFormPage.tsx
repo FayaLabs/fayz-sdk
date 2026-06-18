@@ -15,6 +15,7 @@ import { SubjectFormLayout } from './archetypes/SubjectFormLayout'
 import { useTranslation } from '@fayz-ai/core'
 import type { FieldDef, FieldGroup, EntityDef } from '@fayz-ai/core'
 import type { FormLayout } from '@fayz-ai/core'
+import { RelationSelect } from './relation-field'
 
 interface CrudFormPageProps {
   entityDef: EntityDef
@@ -131,6 +132,17 @@ function renderField(field: FieldDef, value: any, onChange: (val: any) => void, 
           required={field.required}
           rows={2}
           className={`${baseClass} min-h-[60px] py-1.5`}
+        />
+      )
+    case 'relation':
+      return (
+        <RelationSelect
+          relation={field.relation}
+          value={value}
+          onChange={onChange}
+          className={baseClass}
+          required={field.required}
+          placeholder={field.placeholder ?? `Select ${field.label.toLowerCase()}...`}
         />
       )
     case 'select': {

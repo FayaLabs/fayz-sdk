@@ -5,9 +5,29 @@ export type FieldType =
   | 'text' | 'email' | 'phone' | 'url' | 'image'
   | 'number' | 'currency'
   | 'select' | 'multiselect' | 'segmented'
+  | 'relation'
   | 'date' | 'datetime' | 'time'
   | 'boolean' | 'textarea'
   | 'color' | 'computed'
+
+/** Foreign-key source for a `relation` field: the option list is loaded from a
+ *  table at runtime ({value→label}) so the stored value is a real id (e.g. a
+ *  uuid), not a static string. Use for FK columns the user must pick from a
+ *  seeded/managed table (e.g. payment_method_type_id → payment_method_types). */
+export interface FieldRelation {
+  /** Table to read options from (e.g. 'payment_method_types'). */
+  table: string
+  /** Column stored as the field value. Default 'id'. */
+  valueField?: string
+  /** Column shown as the option label. Default 'name'. */
+  labelField?: string
+  /** Scope options to the active tenant via tenant_id. Default true. */
+  tenantScoped?: boolean
+  /** Schema the table lives in (e.g. 'saas_core'). Default public. */
+  schema?: string
+  /** Extra equality filters applied to the option query. */
+  filter?: Record<string, unknown>
+}
 
 /** Read-only display produced by a `computed` field's `compute()`. */
 export interface ComputedFieldValue {
@@ -27,6 +47,8 @@ export interface FieldDef {
   /** Options for `select` / `multiselect` / `segmented`. The optional
    *  `description` is shown under the label on `segmented` radio-cards. */
   options?: string[] | { label: string; value: string; description?: string }[]
+  /** Required for `relation` fields — where to load the option list from. */
+  relation?: FieldRelation
   min?: number
   max?: number
   /** ISO currency code for `currency` fields (e.g. 'BRL'). */

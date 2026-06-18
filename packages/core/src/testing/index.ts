@@ -75,8 +75,14 @@ export function assertPluginManifestContract(manifest: PluginManifest): void {
   }
 
   // A plugin that contributes nothing mountable is almost always a mistake.
-  if (manifest.navigation.length === 0 && manifest.routes.length === 0 && (manifest.settings ?? []).length === 0) {
-    fail(scope, 'plugin contributes no navigation, routes, or settings — it would mount but do nothing')
+  // (Connector-only addon plugins contribute via `connectors` instead.)
+  if (
+    manifest.navigation.length === 0 &&
+    manifest.routes.length === 0 &&
+    (manifest.settings ?? []).length === 0 &&
+    (manifest.connectors ?? []).length === 0
+  ) {
+    fail(scope, 'plugin contributes no navigation, routes, settings, or connectors — it would mount but do nothing')
   }
 }
 

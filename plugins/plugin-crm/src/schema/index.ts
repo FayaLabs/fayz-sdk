@@ -1,7 +1,9 @@
+// Builders come from @fayz-ai/db (single drizzle-orm instance) — never import
+// pgTable/uuid directly from drizzle-orm/pg-core. See MIGRATION-ARCHITECTURE §6.
 import {
   pgTable, uuid, text, boolean, integer, numeric, date, timestamp, index,
-} from 'drizzle-orm/pg-core'
-import { tenantId, timestamps, createdAt, persons, orders } from '@fayz-ai/db'
+  tenantId, timestamps, createdAt, persons, orders,
+} from '@fayz-ai/db'
 
 // ---------------------------------------------------------------------------
 // CRM plugin — Ring-1 schema (schema-as-code).

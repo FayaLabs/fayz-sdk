@@ -222,6 +222,7 @@ export function FinancialPage({ config, provider, store, registries }: {
               subtitle={t('financial.settingsPage.subtitle')}
               generalSettings={<FinancialGeneralSettings />}
               registries={registries}
+              hostPluginId="financial"
               routeBase="/settings/financial"
             />
           </div>

@@ -1,6 +1,7 @@
 import type React from 'react'
 import type { EntityDef } from './crud'
 import type { FeatureDeclaration, PermissionAction } from './permissions'
+import type { ConnectorDefinition } from '../integrations'
 
 export type VerticalId = 'beauty' | 'food' | 'health' | 'services' | 'retail' | 'education' | (string & {})
 export type PluginScope = 'core' | 'vertical' | 'universal' | 'addon' | 'tenant'
@@ -291,6 +292,12 @@ export interface PluginManifest {
   permissions?: string[]
   declaredFeatures?: FeatureDeclaration[]
   registries?: PluginRegistryDef[]
+  /**
+   * Connectors this plugin contributes. An ADDON plugin declares its connector(s)
+   * here, each naming the `hostPluginId` it extends; the runtime groups them by
+   * host and the host plugin's settings render them in a unified Integrations tab.
+   */
+  connectors?: ConnectorDefinition[]
   migrations?: PluginMigration[]
   onboarding?: PluginOnboarding
   locales?: Record<string, Record<string, string>>
@@ -359,5 +366,7 @@ export interface PluginRuntime {
   aiTools: PluginAITool[]
   issues: PluginRuntimeIssue[]
   registries: Map<string, PluginRegistryDef[]>
+  /** Connectors contributed by active plugins, grouped by the host plugin they extend. */
+  connectorsByHost: Map<string, ConnectorDefinition[]>
   pluginFeatures: FeatureDeclaration[]
 }

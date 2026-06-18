@@ -31,7 +31,9 @@ const paymentMethodEntity: EntityDef = {
   defaultSort: 'name',
   fields: [
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
-    { key: 'paymentMethodTypeId', label: 'Type', type: 'select', options: ['cash', 'credit_card', 'debit_card', 'pix', 'bank_transfer', 'check'], showInTable: true, required: true },
+    // FK to the seeded payment_method_types catalog — load real ids at runtime
+    // (a static enum select would write the string into the uuid column).
+    { key: 'paymentMethodTypeId', label: 'Type', type: 'relation', relation: { table: 'payment_method_types', labelField: 'name' }, showInTable: true, required: true },
     { key: 'discountValue', label: 'Discount %', type: 'number', showInTable: true },
     { key: 'interestValue', label: 'Interest %', type: 'number', showInTable: true },
     { key: 'minInstallments', label: 'Min Installments', type: 'number', defaultValue: 1 },

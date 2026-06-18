@@ -20,6 +20,7 @@ import type {
   DashboardSurface,
 } from '../types/plugins'
 import type { FeatureDeclaration } from '../types/permissions'
+import type { ConnectorDefinition } from '../integrations'
 import { getComponent } from '../registry'
 
 /** The plugin contract version this runtime understands. A plugin declaring a
@@ -107,6 +108,7 @@ function createEmptyRuntime(context: PluginRuntimeContext = EMPTY_CONTEXT): Plug
     capabilities: [],
     aiTools: [],
     registries: new Map(),
+    connectorsByHost: new Map(),
     pluginFeatures: [],
     issues: [],
   }
@@ -238,6 +240,7 @@ export function resolvePluginRuntime({
   const capabilities: PluginCapability[] = []
   const aiTools: PluginAITool[] = []
   const registries = new Map<string, PluginRegistryDef[]>()
+  const connectorsByHost = new Map<string, ConnectorDefinition[]>()
   const pluginFeatures: FeatureDeclaration[] = []
 
   for (const plugin of activePlugins) {
@@ -251,6 +254,12 @@ export function resolvePluginRuntime({
     capabilities.push(...(plugin.capabilities ?? []))
     aiTools.push(...plugin.resolvedAITools)
     if (plugin.resolvedRegistries.length > 0) registries.set(plugin.id, plugin.resolvedRegistries)
+    // Group each addon's connectors under the host plugin they extend.
+    for (const connector of plugin.connectors ?? []) {
+      const list = connectorsByHost.get(connector.hostPluginId) ?? []
+      list.push(connector)
+      connectorsByHost.set(connector.hostPluginId, list)
+    }
     if (plugin.declaredFeatures) pluginFeatures.push(...plugin.declaredFeatures)
     widgets.push(...plugin.widgets.map((w, i) => ({
       ...w,
@@ -274,7 +283,7 @@ export function resolvePluginRuntime({
   widgets.sort((a, b) => a.zone !== b.zone ? a.zone.localeCompare(b.zone) : a.order - b.order)
   dashboardWidgets.sort((a, b) => a.order - b.order)
 
-  return { context, plugins: resolvedPlugins, activePlugins, routes, navigation, settingsTabs, widgets, dashboardWidgets, capabilities, aiTools, issues, registries, pluginFeatures }
+  return { context, plugins: resolvedPlugins, activePlugins, routes, navigation, settingsTabs, widgets, dashboardWidgets, capabilities, aiTools, issues, registries, connectorsByHost, pluginFeatures }
 }
 
 export function getWidgetsForZone(
@@ -310,4 +319,9 @@ export function usePluginRuntime(): PluginRuntime {
 
 export function usePluginRuntimeOptional(): PluginRuntime | null {
   return React.useContext(PluginRuntimeContext)
+}
+
+/** Connectors contributed by addon plugins that extend the given host plugin. */
+export function useConnectorsForPlugin(hostPluginId: string): ConnectorDefinition[] {
+  return usePluginRuntime().connectorsByHost.get(hostPluginId) ?? []
 }

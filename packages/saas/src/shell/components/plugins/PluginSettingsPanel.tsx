@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react'
-import { ChevronLeft, Settings } from 'lucide-react'
+import { ChevronLeft, Settings, Plug, TableProperties } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useTranslation } from '../../hooks/useTranslation'
 import { ICON_MAP } from '@fayz-ai/ui'
 import type { PluginRegistryDef } from '../../types/plugins'
 import type { EntityDef } from '../../types/crud'
 import { createCrudStore } from '../../../stores/createCrudStore'
-import { resolveDataProvider } from '@fayz-ai/core'
+import { resolveDataProvider, useConnectorsForPlugin } from '@fayz-ai/core'
 import { CrudPage } from '../../../crud/CrudPage'
+import { ConnectorsHub } from './ConnectorsHub'
 
 // ---------------------------------------------------------------------------
 // Settings tab definition — General, custom tabs, and registry tabs all unified
@@ -43,24 +44,100 @@ function RegistryCrudView({ registry, basePath }: { registry: PluginRegistryDef;
 }
 
 // ---------------------------------------------------------------------------
+// Properties tab — the plugin's CRUD registries as an inner (pill) tab strip.
+// Sub-routes at `${routeBase}/_properties/<registryId>`; also accepts the legacy
+// flat `${routeBase}/<registryId>` deep links.
+// ---------------------------------------------------------------------------
+
+function PropertiesTab({ registries, routeBase, regLabel }: {
+  registries: PluginRegistryDef[]
+  routeBase: string
+  regLabel: (id: string, fallback: string) => string
+}) {
+  function getActive(): string {
+    const hash = window.location.hash.slice(1)
+    const nested = `${routeBase}/_properties/`
+    if (hash.startsWith(nested)) {
+      const id = hash.slice(nested.length).split('/')[0]
+      if (registries.find((r) => r.id === id)) return id
+    }
+    const flat = `${routeBase}/`
+    if (hash.startsWith(flat)) {
+      const id = hash.slice(flat.length).split('/')[0]
+      if (registries.find((r) => r.id === id)) return id // legacy deep link
+    }
+    return registries[0]?.id ?? ''
+  }
+
+  const [active, setActive] = useState(getActive)
+  React.useEffect(() => {
+    const handler = () => setActive(getActive())
+    window.addEventListener('hashchange', handler)
+    return () => window.removeEventListener('hashchange', handler)
+  }, [routeBase, registries])
+
+  function select(id: string) {
+    setActive(id)
+    window.location.hash = `${routeBase}/_properties/${id}`
+  }
+
+  const activeReg = registries.find((r) => r.id === active) ?? registries[0]
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1.5 flex-wrap">
+        {registries.map((r) => {
+          const Icon = r.icon ? (ICON_MAP[r.icon] ?? null) : null
+          const on = r.id === activeReg?.id
+          return (
+            <button
+              key={r.id}
+              onClick={() => select(r.id)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                on ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70',
+              )}
+            >
+              {Icon && <Icon className="h-3.5 w-3.5" />}
+              {regLabel(r.id, r.entity.name)}
+            </button>
+          )
+        })}
+      </div>
+      {activeReg?.description && (
+        <p className="text-xs text-muted-foreground">{regLabel(activeReg.id + '.description', activeReg.description)}</p>
+      )}
+      {activeReg && (
+        <RegistryCrudView key={activeReg.id} registry={activeReg} basePath={`${routeBase}/_properties/${activeReg.id}`} />
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Plugin settings panel
 // ---------------------------------------------------------------------------
 
-export function PluginSettingsPanel({ title, subtitle, generalSettings, registries, customTabs, routeBase, onClose }: {
+export function PluginSettingsPanel({ title, subtitle, generalSettings, registries, customTabs, routeBase, hostPluginId, onClose }: {
   title: string
   subtitle?: string
   /** General preferences component */
   generalSettings?: React.ReactNode
-  /** CRUD registries — each becomes its own tab */
+  /** CRUD registries — grouped under a "Properties" tab */
   registries?: PluginRegistryDef[]
   /** Additional custom tabs (e.g., Pipeline config for CRM) */
   customTabs?: SettingsPanelTab[]
   /** Hash route base for CRUD sub-routing */
   routeBase: string
+  /** This plugin's id — used to surface connectors addons registered for it in an Integrations tab. */
+  hostPluginId?: string
   /** Called when back button is clicked. If not provided, back button is hidden. */
   onClose?: () => void
 }) {
   const { t } = useTranslation()
+
+  // Connectors that addon plugins registered against this host plugin.
+  const connectors = useConnectorsForPlugin(hostPluginId ?? '')
 
   // Translate registry entity name: try t('registry.{id}'), fallback to raw name
   const regLabel = (id: string, fallback: string) => {
@@ -69,28 +146,33 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
     return translated === key ? fallback : translated
   }
 
-  // Build unified tab list: General → custom tabs → registry tabs
-  const tabs = useMemo(() => {
-    const list: { id: string; label: string; icon?: string; type: 'general' | 'custom' | 'registry'; registryDef?: PluginRegistryDef }[] = []
+  // Standard tab list: General → custom tabs → Integrations → Properties.
+  // Standard tabs carry their lucide component directly (IconComp) so they render
+  // regardless of ICON_MAP; custom tabs still resolve their string icon via ICON_MAP.
+  type Tab = {
+    id: string; label: string; type: 'general' | 'custom' | 'integrations' | 'properties'
+    icon?: string; IconComp?: React.ComponentType<{ className?: string }>
+  }
+  const tabs = useMemo<Tab[]>(() => {
+    const list: Tab[] = []
 
     if (generalSettings) {
-      list.push({ id: '_general', label: t('settings.general'), icon: 'Settings', type: 'general' })
+      list.push({ id: '_general', label: t('settings.general'), IconComp: Settings, type: 'general' })
     }
-
     if (customTabs) {
       for (const tab of customTabs) {
         list.push({ id: `_custom_${tab.id}`, label: tab.label, icon: tab.icon, type: 'custom' })
       }
     }
-
-    if (registries) {
-      for (const reg of registries) {
-        list.push({ id: reg.id, label: regLabel(reg.id, reg.entity.name), icon: reg.icon, type: 'registry', registryDef: reg })
-      }
+    if (connectors.length > 0) {
+      list.push({ id: '_integrations', label: t('connectors.title'), IconComp: Plug, type: 'integrations' })
+    }
+    if (registries && registries.length > 0) {
+      list.push({ id: '_properties', label: t('settings.properties'), IconComp: TableProperties, type: 'properties' })
     }
 
     return list
-  }, [generalSettings, customTabs, registries, t])
+  }, [generalSettings, customTabs, connectors.length, registries, t])
 
   // Always use hash routing — the app router now prefix-matches /settings/*
   const useHashRouting = true
@@ -102,6 +184,8 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
       const rest = hash.slice(routeBase.length + 1).split('/')[0]
       const match = tabs.find((t) => t.id === rest)
       if (match) return match.id
+      // Legacy/nested: a registry id (flat or under _properties) → Properties tab.
+      if (registries?.some((r) => r.id === rest) && tabs.some((t) => t.id === '_properties')) return '_properties'
     }
     return tabs[0]?.id ?? ''
   }
@@ -143,7 +227,7 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
       {/* Unified tabs — underline style */}
       <div className="flex gap-0.5 overflow-x-auto border-b scrollbar-none" style={{ scrollbarWidth: 'none' }}>
         {tabs.map((tab) => {
-          const Icon = tab.icon ? (ICON_MAP[tab.icon] ?? null) : null
+          const Icon = tab.IconComp ?? (tab.icon ? (ICON_MAP[tab.icon] ?? null) : null)
           const active = tab.id === activeTab
           return (
             <button
@@ -163,11 +247,6 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
         })}
       </div>
 
-      {/* Description for registry tabs */}
-      {activeTabDef?.type === 'registry' && activeTabDef.registryDef?.description && (
-        <p className="text-xs text-muted-foreground">{regLabel(activeTabDef.id + '.description', activeTabDef.registryDef.description)}</p>
-      )}
-
       {/* Content */}
       {activeTabDef?.type === 'general' && generalSettings && (
         <div>{generalSettings}</div>
@@ -177,12 +256,12 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
         <div>{customTabContent.content}</div>
       )}
 
-      {activeTabDef?.type === 'registry' && activeTabDef.registryDef && (
-        <RegistryCrudView
-          key={activeTabDef.id}
-          registry={activeTabDef.registryDef}
-          basePath={`${routeBase}/${activeTabDef.id}`}
-        />
+      {activeTabDef?.type === 'integrations' && (
+        <ConnectorsHub connectors={connectors} />
+      )}
+
+      {activeTabDef?.type === 'properties' && registries && registries.length > 0 && (
+        <PropertiesTab registries={registries} routeBase={routeBase} regLabel={regLabel} />
       )}
     </div>
   )

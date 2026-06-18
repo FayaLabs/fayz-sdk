@@ -11,6 +11,7 @@
 // Design notes live in docs/bling-integration-brief.md. Proven precedents:
 // the Fayz runtime OAuth broker (packages/core/src/runtime/oauth.ts) and the
 // bank-statement edge functions in the predecessor app.
+import type * as React from 'react'
 
 /** How a connector authenticates to its provider. */
 export type IntegrationAuthKind = 'oauth' | 'api-key' | 'mtls'
@@ -81,6 +82,60 @@ export interface Connector {
   testConnection?(config: ConnectionConfig): Promise<TestConnectionResult>
   /** Run a sync for the given direction; returns the audit record. */
   sync?(input: { config: ConnectionConfig; direction: SyncDirection; trigger: SyncTrigger }): Promise<SyncRun>
+}
+
+// ---------------------------------------------------------------------------
+// Connector UI contract — how an addon plugin EXTENDS a host plugin's settings
+// ---------------------------------------------------------------------------
+// An addon plugin declares one or more ConnectorDefinitions on its manifest
+// (`connectors: [...]`). The runtime groups them by `hostPluginId`, and the host
+// plugin's settings panel renders them in a unified "Integrations" tab — the
+// same connect/credentials experience for every connector. The connector-
+// specific bits (import a statement, sync now, history) live in `ExtraPanel`.
+
+/** A credential input the unified setup form renders for an api-key/mtls connector. */
+export interface ConnectorField {
+  key: string
+  label: string
+  type: 'text' | 'password'
+  placeholder?: string
+}
+
+export interface ConnectorStatus {
+  connected: boolean
+  detail?: string
+}
+
+/**
+ * UI-facing connector descriptor. Built on the data-plane `Connector` concept
+ * (`pluginId` → `hostPluginId`), plus the control-plane hooks the unified
+ * Integrations hub calls. Lives in core so `PluginManifest.connectors` can type
+ * it; the rendering hub lives in `@fayz-ai/saas`.
+ */
+export interface ConnectorDefinition {
+  /** Stable connector id, e.g. 'google-calendar', 'plugbank'. */
+  id: string
+  /** The plugin this connector extends, e.g. 'financial', 'agenda'. */
+  hostPluginId: string
+  name: string
+  description?: string
+  /** Lucide icon name. */
+  icon?: string
+  authKind: IntegrationAuthKind
+  /** Declarative credentials — the unified form renders these (api-key / mtls). */
+  fields?: ConnectorField[]
+  /** Current connection state for the status badge. */
+  getStatus(): Promise<ConnectorStatus>
+  /** Validate credentials without persisting (api-key / mtls). */
+  testConnection?(values: Record<string, string>): Promise<TestConnectionResult>
+  /** Persist the connection (api-key / mtls). */
+  saveConnection?(values: Record<string, string>): Promise<void>
+  /** Begin an OAuth connect flow — returns the consent URL to redirect to. */
+  startOAuth?(redirectTo?: string): Promise<string>
+  /** Tear down the connection. */
+  disconnect?(): Promise<void>
+  /** Optional connector-specific UI below the connect panel (import / sync / history). */
+  ExtraPanel?: React.ComponentType
 }
 
 /**

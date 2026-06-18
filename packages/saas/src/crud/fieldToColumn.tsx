@@ -1,6 +1,7 @@
 import React from 'react'
 import type { FieldDef } from '@fayz-ai/core'
 import { Badge } from '@fayz-ai/ui'
+import { RelationCell } from './relation-field'
 import {
   formatCurrency as formatCurrencyLocale,
   formatDate as formatDateLocale,
@@ -95,6 +96,8 @@ export function fieldToColumns(fields: FieldDef[], options?: FieldToColumnsOptio
                 <span className="text-xs text-muted-foreground">{String(value)}</span>
               </span>
             )
+          case 'relation':
+            return <RelationCell relation={field.relation} value={value} />
           case 'select':
             return <Badge variant="secondary">{String(value)}</Badge>
           case 'number':

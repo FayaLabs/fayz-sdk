@@ -5,9 +5,20 @@ export type FieldType =
   | 'text' | 'email' | 'phone' | 'url' | 'image'
   | 'number' | 'currency'
   | 'select' | 'multiselect' | 'segmented'
+  | 'relation'
   | 'date' | 'datetime' | 'time'
   | 'boolean' | 'textarea'
   | 'color' | 'computed'
+
+/** Foreign-key source for a `relation` field (options loaded from a table). */
+export interface FieldRelation {
+  table: string
+  valueField?: string
+  labelField?: string
+  tenantScoped?: boolean
+  schema?: string
+  filter?: Record<string, unknown>
+}
 
 /** Read-only display produced by a `computed` field's `compute()`. */
 export interface ComputedFieldValue {
@@ -24,6 +35,8 @@ export interface FieldDef {
   /** Small helper text shown under the field input. */
   hint?: string
   options?: string[] | { label: string; value: string; description?: string }[]
+  /** Required for `relation` fields — where to load the option list from. */
+  relation?: FieldRelation
   min?: number
   max?: number
   currency?: string

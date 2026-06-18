@@ -11,7 +11,7 @@ import { createAgendaStore } from './store'
 import { agendaRegistries } from './registries'
 import { AgendaGeneralSettings } from './components/AgendaGeneralSettings'
 import { agendaLocales } from './locales'
-import { setScheduleBlockConfig, getScheduleBlockConfig } from '@fayz-ai/saas'
+import { setScheduleBlockConfig, getScheduleBlockConfig, PluginSettingsPanel } from '@fayz-ai/saas'
 
 // ---------------------------------------------------------------------------
 // Factory
@@ -159,8 +159,15 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
         id: 'agenda',
         label: 'Agenda',
         icon: 'Calendar',
+        // Standard layout: General | Integrations (Google Calendar addon) | Properties (holidays).
         component: (() => {
-          const AgendaSettingsTab: React.FC = () => React.createElement(AgendaGeneralSettings)
+          const AgendaSettingsTab: React.FC = () => React.createElement(PluginSettingsPanel, {
+            title: 'Agenda',
+            generalSettings: React.createElement(AgendaGeneralSettings),
+            registries: agendaRegistries,
+            hostPluginId: 'agenda',
+            routeBase: '/settings/agenda',
+          })
           AgendaSettingsTab.displayName = 'AgendaSettingsTab'
           return AgendaSettingsTab as unknown as React.ComponentType<unknown>
         })(),

@@ -314,6 +314,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
               subtitle: 'Payment methods, accounts, and configurations',
               generalSettings: React.createElement(FinancialGeneralSettings),
               registries: financialRegistries,
+              hostPluginId: 'financial',
               routeBase: '/settings/financial',
             })
           FinancialSettingsTab.displayName = 'FinancialSettingsTab'

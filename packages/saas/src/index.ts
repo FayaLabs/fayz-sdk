@@ -159,6 +159,7 @@ export { setScheduleBlockConfig, getScheduleBlockConfig, subscribeScheduleBlockC
 
 // Shell plugin-settings panel + dedup util (used by vertical plugins)
 export { PluginSettingsPanel } from './shell/components/plugins/PluginSettingsPanel'
+export { ConnectorsHub } from './shell/components/plugins/ConnectorsHub'
 export { dedup } from './shell/lib/dedup'
 
 // Full admin theme type (the shell's theme system, richer than @fayz-ai/core's).
