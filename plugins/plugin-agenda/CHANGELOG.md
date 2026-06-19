@@ -1,5 +1,19 @@
 # @fayz-ai/plugin-agenda
 
+## 0.1.4
+
+### Patch Changes
+
+- Financial ERP extract: bill vs payment split (each payment is its own ledger row),
+  real bank-style extract with opening/closing balance + transfers + card net settlement,
+  account-linked payments, and a per-person statement tab (DetailTab.requiresWidgetZone +
+  person.detail.financial widget zone). Includes supporting core/saas detail-tab wiring.
+- Updated dependencies
+  - @fayz-ai/core@0.1.8
+  - @fayz-ai/saas@0.1.8
+  - @fayz-ai/ui@0.1.8
+  - @fayz-ai/plugin-financial@0.1.3
+
 ## 0.1.3
 
 ### Patch Changes

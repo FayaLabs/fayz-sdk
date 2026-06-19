@@ -1,0 +1,40 @@
+{
+  "surfaceVersion": 1,
+  "description": "Packages a generated Fayz app may depend on. fayz doctor warns on any app dependency outside this list. See docs/architecture-boundaries.md §3.",
+  "tiers": {
+    "stable": "semver-tracked, supported public API"
+  },
+  "supported": {
+    "@fayz-ai/auth": "stable",
+    "@fayz-ai/core": "stable",
+    "@fayz-ai/courses": "stable",
+    "@fayz-ai/db": "stable",
+    "@fayz-ai/saas": "stable",
+    "@fayz-ai/sdk": "stable",
+    "@fayz-ai/shop": "stable",
+    "@fayz-ai/storefront": "stable",
+    "@fayz-ai/ui": "stable",
+    "@fayz-ai/plugin-agenda": "stable",
+    "@fayz-ai/plugin-automations": "stable",
+    "@fayz-ai/plugin-conversations": "stable",
+    "@fayz-ai/plugin-courses": "stable",
+    "@fayz-ai/plugin-crm": "stable",
+    "@fayz-ai/plugin-dashboard": "stable",
+    "@fayz-ai/plugin-financial": "stable",
+    "@fayz-ai/plugin-forms": "stable",
+    "@fayz-ai/plugin-inventory": "stable",
+    "@fayz-ai/plugin-marketing": "stable",
+    "@fayz-ai/plugin-menu": "stable",
+    "@fayz-ai/plugin-orders": "stable",
+    "@fayz-ai/plugin-reports": "stable",
+    "@fayz-ai/plugin-reputation": "stable",
+    "@fayz-ai/plugin-shop": "stable",
+    "@fayz-ai/plugin-sites": "stable",
+    "@fayz-ai/plugin-tables": "stable",
+    "@fayz-ai/plugin-tasks": "stable"
+  },
+  "internal": [
+    "@fayz-ai/app-runtime",
+    "@fayz-ai/portal"
+  ]
+}

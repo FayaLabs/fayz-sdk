@@ -43,5 +43,7 @@
     "education",
     "lms"
   ],
-  "private": true
+  "publishConfig": {
+    "access": "public"
+  }
 }

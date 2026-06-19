@@ -92,7 +92,7 @@ One mechanism, several namespaces. Plugin and SDK contributions are prefixed by 
 
 ```tsx
 // src/registry.tsx — the ONLY app-side code file a customized app needs
-import { registerBlock, registerPage, registerComponent, registerMetric } from '@fayz/core/registry'
+import { registerBlock, registerPage, registerComponent, registerMetric } from '@fayz-ai/core'
 
 registerBlock('tannat.wineStory', WineStorySection, { schema: wineStoryPropsSchema })
 registerPage('tannat.HarvestBoard', HarvestBoardPage)
@@ -105,7 +105,7 @@ registerMetric('tannat.bottles-aging', { compute, format: 'number' })
 
 ### 2.3 Scaffolds
 
-A scaffold = a renderer for one surface of the manifest. `admin` (today's SaaS shell), `storefront` (today's `@fayz/storefront` — its template/section system is the proof-of-concept being generalized), `portal` (external actors over share tokens, BP §4.4), `headless` (no UI: the manifest + aiTools exposed as callable tools for fayz.ai agents/MCP).
+A scaffold = a renderer for one surface of the manifest. `admin` (today's SaaS shell), `storefront` (today's `@fayz-ai/storefront` — its template/section system is the proof-of-concept being generalized), `portal` (external actors over share tokens, BP §4.4), `headless` (no UI: the manifest + aiTools exposed as callable tools for fayz.ai agents/MCP).
 
 **One app, N surfaces.** beauty-saas adds a `storefront` surface for public booking; tannat-store adds an `admin` surface for inventory. This is the unification of the product line: *every fayz app is one manifest with one or more surfaces*, instead of "SaaS apps" and "store apps" being different species.
 
@@ -191,7 +191,7 @@ Compat guarantees: `createSaasApp(config)` / `createStorefrontApp(config)` signa
 | 1 | **Manifest core** | `AppManifest` types + JSON Schema, `defineApp`, registries, `manifestVersion` runner; `create*` become sugar | shopfront (config is already data) |
 | 2 | **Block system** | generalize storefront sections → SDK blocks; plugin block contributions; admin pages as block trees | tannat + pulse via `fayz extract` |
 | 3 | **De-functionalize plugin config** | lookups-by-convention, event bus (BP §4.1) replaces bridges, metric registry (BP §4.5) | beauty-saas migration |
-| 4 | **Override registry + ladder docs** | enumerate component ids across `@fayz/ui` + plugins; typed override props | one real custom page in resto-saas |
+| 4 | **Override registry + ladder docs** | enumerate component ids across `@fayz-ai/ui` + plugins; typed override props | one real custom page in resto-saas |
 | 5 | **CLI + golden templates + conformance** | `fayz create/doctor/extract/migrate/upgrade`; admin + storefront templates from the migrated apps | a brand-new generated app, end-to-end |
 | 6 | **De-bridge saas-core** (BP §7, parallel from #3) | behind frozen `apiVersion: 1` | resto-saas dual-consumer rule |
 

@@ -38,6 +38,19 @@
       "require": "./dist/release-channels.cjs"
     },
     "./release-channels.json": "./src/release-channels.json",
+    "./supported-surface": {
+      "source": "./src/supported-surface.ts",
+      "types": "./dist/supported-surface.d.ts",
+      "import": "./dist/supported-surface.js",
+      "require": "./dist/supported-surface.cjs"
+    },
+    "./supported-surface.json": "./src/supported-surface.json",
+    "./ai-builder": {
+      "source": "./src/ai-builder.ts",
+      "types": "./dist/ai-builder.d.ts",
+      "import": "./dist/ai-builder.js",
+      "require": "./dist/ai-builder.cjs"
+    },
     "./runtime": {
       "source": "./src/runtime.ts",
       "types": "./dist/runtime.d.ts",

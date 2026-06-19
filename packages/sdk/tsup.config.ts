@@ -7,6 +7,8 @@ export default defineConfig({
     client: 'src/client.ts',
     shop: 'src/shop.ts',
     'release-channels': 'src/release-channels.ts',
+    'supported-surface': 'src/supported-surface.ts',
+    'ai-builder': 'src/ai-builder.ts',
     runtime: 'src/runtime.ts',
     types: 'src/types.ts',
   },

@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -21,7 +19,7 @@ jobs:
       - name: Build all packages (JS + declarations)
         run: pnpm -r --filter './packages/*' --filter './plugins/*' build
       - name: Build CLI
-        run: pnpm --filter @fayz/cli build
+        run: pnpm --filter @fayz-ai/cli build
       - name: CLI smoke (create → doctor)
         run: node scripts/cli-smoke.mjs
       - name: Typecheck
@@ -35,8 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20

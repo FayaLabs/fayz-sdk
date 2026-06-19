@@ -1,7 +1,7 @@
 # Fayz Micro-SaaS Generator — Architecture Blueprint
 
 > **Status:** Founding document, v1 (2026-06-11).
-> **Companion docs:** `agent-guide.md` (how to *consume* the SDK), `migration-from-saas-core.md` (legacy exit), `../../beauty-saas/docs/roadmap/gap-analysis.md` (first-vertical gap map), `../../beauty-saas/docs/roadmap/backlog.md` (app backlog).
+> **Companion docs:** `architecture-boundaries.md` (the ownership contract), `architecture-v2.md` (manifest-first design), `agent-guide.md` (how to *consume* the SDK).
 > **Inputs:** full code exploration of `beautyplace` (legacy prototype, ~48 routes), `beauty-saas` (first SDK consumer), `fayz-sdk` (this repo), plus a live Playwright validation session of beauty-saas on 2026-06-11.
 
 ---
@@ -24,7 +24,7 @@ The proof of the thesis is structural, not rhetorical: **a capability counts as 
 
 The scopes already exist as types (`PluginScope` in `packages/core/src/types/plugins.ts`); this section gives them **placement criteria** so every future concept has a deterministic home.
 
-### L0 — `@fayz/core` (headless kernel)
+### L0 — `@fayz-ai/core` (headless kernel)
 Contracts and runtime only: `EntityDef`/`FieldDef`, archetypes, `DataProvider`, `PluginManifest` + runtime, router, i18n, widget zones, aiTools — plus the new primitives in §4.
 
 **Litmus tests:**
@@ -33,10 +33,10 @@ Contracts and runtime only: `EntityDef`/`FieldDef`, archetypes, `DataProvider`, 
 - It is a *contract*, not a feature.
 - **Negative test:** if it names a business noun, it does not belong here. Core knows `schedule`, never "appointment"; `person`, never "client".
 
-### L1 — `@fayz/auth`, `@fayz/saas`, `@fayz/ui` + shared service packages (`@fayz/shop`, future `@fayz/messaging`)
-- `@fayz/saas`: anything whose removal breaks the **app shell itself**, not a feature — `createSaasApp`, `createCrudPage`, OrgAdapter/tenancy, RBAC, billing, the settings hub (live-verified: the SDK already ships a full settings shell — Geral, Perfil, Segurança, Marca, Equipe, Permissões, Locais, Regras de Campos + per-plugin tabs).
-- `@fayz/ui`: pure presentation. Test: could a landing page use this component with zero providers mounted?
-- Shared service packages follow the `@fayz/shop` pattern (provider + tenant resolver, no UI) when a domain service layer is consumed by 2+ scaffolds or plugins.
+### L1 — `@fayz-ai/auth`, `@fayz-ai/saas`, `@fayz-ai/ui` + shared service packages (`@fayz-ai/shop`, future `@fayz-ai/messaging`)
+- `@fayz-ai/saas`: anything whose removal breaks the **app shell itself**, not a feature — `createSaasApp`, `createCrudPage`, OrgAdapter/tenancy, RBAC, billing, the settings hub (live-verified: the SDK already ships a full settings shell — Geral, Perfil, Segurança, Marca, Equipe, Permissões, Locais, Regras de Campos + per-plugin tabs).
+- `@fayz-ai/ui`: pure presentation. Test: could a landing page use this component with zero providers mounted?
+- Shared service packages follow the `@fayz-ai/shop` pattern (provider + tenant resolver, no UI) when a domain service layer is consumed by 2+ scaffolds or plugins.
 - **Rule:** a DB table with identical shape across verticals consumed by 2+ plugins → `saas_core` archetype table or an L1 service package — never plugin-private.
 
 ### L2 — Universal plugins (`scope: 'universal'`)
@@ -69,8 +69,8 @@ Labels, lookups, theme, KPI selection, permission profiles, registries with `see
 
 | Question (first "yes" wins, top-down) | Layer |
 |---|---|
-| Is it a contract every layer above needs? | L0 `@fayz/core` |
-| Does removing it break the app shell, not a feature? | L1 `@fayz/saas` / `@fayz/ui` |
+| Is it a contract every layer above needs? | L0 `@fayz-ai/core` |
+| Does removing it break the app shell, not a feature? | L1 `@fayz-ai/saas` / `@fayz-ai/ui` |
 | DB table identical across verticals, consumed by 2+ plugins? | `saas_core` archetype / L1 service package |
 | Driver for an external system or jurisdiction? | L4 addon |
 | Workflow shape unique to one vertical? | L3 vertical plugin |
@@ -103,7 +103,7 @@ Everything below was repeatedly reinvented in beautyplace as one-off features. E
 `PluginManifest.events?: PluginEventDefinition[]` (sibling of `aiTools`); plugins emit (`booking.confirmed`, `order.paid`, `stock.below_minimum`), subscribers bind `{ event, condition?, action }`. The substrate for message triggers, commission accrual, waitlist offers, campaign automation. The existing `createFinancialBridge` and the `window.dispatchEvent('agenda:open-booking')` hack in beauty-saas are evidence this is overdue — both become ordinary event subscriptions.
 
 ### 4.2 Entity attachments & media
-`saas_core.attachments` (`entity_archetype`, `entity_id`, `kind`, storage path, metadata, folder) + `AttachmentProvider` + a generic attachments `DetailTab` in `@fayz/ui`. Absorbs beautyplace's client photos/folders, client files, NF-e XMLs, form captures, contract PDFs. The client detail page already has a "Documentos" tab slot (live-verified) — this primitive fills it for every entity, every vertical.
+`saas_core.attachments` (`entity_archetype`, `entity_id`, `kind`, storage path, metadata, folder) + `AttachmentProvider` + a generic attachments `DetailTab` in `@fayz-ai/ui`. Absorbs beautyplace's client photos/folders, client files, NF-e XMLs, form captures, contract PDFs. The client detail page already has a "Documentos" tab slot (live-verified) — this primitive fills it for every entity, every vertical.
 
 ### 4.3 Document/template engine
 Template (merge fields bound to `EntityDef` paths) → rendered HTML/PDF → stored as attachment. One merge-field resolver shared by: contracts, quotes, receipts, **and message templates** (§4.4 of the messaging stack). Absorbs beautyplace's contract templates + generation.
@@ -162,20 +162,20 @@ Every beautyplace capability, mapped once. Status: **EXISTS** (SDK native, verif
 | Bank integrations/reconciliation | Statement ingestion + matching | addon plugin-banking-br + financial reconciliation UI ("Extratos"/"Conciliação" navs exist) | NEW | A |
 | Chart of accounts / cost centers | Hierarchical accounting dimensions | plugin-financial tree registries | NEW | U |
 | Marketing campaigns | Audience segmentation + scheduled outbound | new plugin-marketing → [messaging, crm] | NEW | U |
-| WhatsApp/email/SMS templates + dispatch log + triggers | Messaging service (templates, channels, outbox, trigger bindings) | new `@fayz/messaging` L1 + plugin-messaging + channel addons | NEW | U+A |
+| WhatsApp/email/SMS templates + dispatch log + triggers | Messaging service (templates, channels, outbox, trigger bindings) | new `@fayz-ai/messaging` L1 + plugin-messaging + channel addons | NEW | U+A |
 | Dynamic form builder | Schema-as-data forms (runtime FieldDef[]) | plugin-forms (template UI live-verified in settings) | PARTIAL | U |
 | Stencil/camera overlay forms (recent) | Annotated-capture field type (`image-annotation`) | new FieldType in core + renderer in ui | NEW | U |
 | Contract templates + generation | Document/template engine | core §4.3; plugin-forms grows into forms+documents | NEW | U |
 | Custom KPI panels (150+ metrics) | Metric registry + panel composer | core §4.5 + dashboard plugin | NEW | U |
 | Public TV-panel share links | Share-token public surface | core §4.4 | NEW | U |
 | Public booking wizard (`/booking/:configId`) | Unauthenticated booking flow over agenda availability | new plugin-booking → [agenda, messaging] + §4.4 | NEW | U |
-| Public digital menu | Unauthenticated catalog (live-verified working in beautyplace) | plugin-menu + §4.4; overlaps `@fayz/storefront` | PARTIAL | V:food |
+| Public digital menu | Unauthenticated catalog (live-verified working in beautyplace) | plugin-menu + §4.4; overlaps `@fayz-ai/storefront` | PARTIAL | V:food |
 | Waiter app / kitchen queue / table POS | Role-scoped operational sub-apps over orders | plugin-tables + new plugin-kitchen | PARTIAL/NEW | V:food |
 | Price tables/variations, discount & cancellation rules | Policy resolution | core §4.6 | NEW | U |
 | Super-admin license management | Cross-tenant control plane | separate `fayz-admin` scaffold (`ScaffoldType` is extensible) | NEW | P |
-| RBAC permission rules | Feature grants + profiles | `@fayz/saas` permissions (settings UI live-verified) | EXISTS | U |
+| RBAC permission rules | Feature grants + profiles | `@fayz-ai/saas` permissions (settings UI live-verified) | EXISTS | U |
 | Required fields / field visibility | Tenant EntityDef patches | core §4.11 ("Regras de Campos" partially exists) | PARTIAL | U |
-| Global search | Cross-archetype search | `@fayz/saas` (⌘K shell exists) | PARTIAL | U |
+| Global search | Cross-archetype search | `@fayz-ai/saas` (⌘K shell exists) | PARTIAL | U |
 | Onboarding wizards per module | Plugin onboarding steps | EXISTS (live-verified in inventory/CRM/financial) | U |
 | AI assistant + plugin aiTools | aiTools manifest + chat surface | EXISTS (live-verified: contextual suggestions per page) | U |
 
@@ -184,20 +184,20 @@ Every beautyplace capability, mapped once. Status: **EXISTS** (SDK native, verif
 ## 6. Plugin Catalog & Dependency Graph (target state)
 
 ```
-@fayz/core ── @fayz/auth ── @fayz/saas ── @fayz/ui
+@fayz-ai/core ── @fayz-ai/auth ── @fayz-ai/saas ── @fayz-ai/ui
                    │
-        L1 services: @fayz/shop · @fayz/messaging (new)
+        L1 services: @fayz-ai/shop · @fayz-ai/messaging (new)
                    │
  universal:  dashboard · crm · agenda · inventory · financial · tasks · reports
              forms+documents (forms ⊕ §4.3)
-             messaging-ui            → [@fayz/messaging]
+             messaging-ui            → [@fayz-ai/messaging]
              marketing               → [messaging, crm]
              booking (public wizard) → [agenda, messaging]
              portal (external actor) → [crm]
  vertical:   menu (food) → [inventory]
              tables (food) → [menu, financial]
              kitchen (food, new) → [tables]
-             shop (retail) → [@fayz/shop]
+             shop (retail) → [@fayz-ai/shop]
  addons:     fiscal-br → [inventory, financial]
              banking-br → [financial]
              channel-whatsapp / channel-sms / channel-email → [messaging]
@@ -230,7 +230,7 @@ Each step: move code + migrations into the plugin package, keep API frozen, vali
 |---|---|---|---|
 | 0 | **De-bridge** | §7 order | everything |
 | 1 | **Core primitives wave 1** | event bus (§4.1), attachments (§4.2), public surface + share tokens (§4.4), entity relations (§4.9) | most NEW concepts |
-| 2 | **Messaging stack** | `@fayz/messaging`, template engine (§4.3 shared), channel addons, jobs contract (§4.10) | booking, marketing, reminders |
+| 2 | **Messaging stack** | `@fayz-ai/messaging`, template engine (§4.3 shared), channel addons, jobs contract (§4.10) | booking, marketing, reminders |
 | 3 | **Public-facing plugins** | plugin-booking, plugin-portal, panel share links | beautyplace's flagship commercial features |
 | 4 | **Policy & money depth** | policy engine (§4.6) → price/discount/cancellation UIs, commissions on policies, installments, chart of accounts/cost centers, cash-register hardening | financial parity |
 | 5 | **Compliance & integration addons** | connector framework (§4.7), fiscal-br (DANFE import first), banking-br reconciliation | BR enterprise readiness |

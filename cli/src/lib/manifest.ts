@@ -23,9 +23,14 @@ interface ManifestPage {
 }
 
 export function loadManifest(dir: string): { manifest: ManifestLike; path: string } | null {
-  const path = resolve(dir, 'app.manifest.json')
-  if (!existsSync(path)) return null
-  return { manifest: JSON.parse(readFileSync(path, 'utf8')) as ManifestLike, path }
+  // app.manifest.json lives at the repo root or under src/ depending on the template.
+  for (const candidate of ['app.manifest.json', 'src/app.manifest.json']) {
+    const path = resolve(dir, candidate)
+    if (existsSync(path)) {
+      return { manifest: JSON.parse(readFileSync(path, 'utf8')) as ManifestLike, path }
+    }
+  }
+  return null
 }
 
 export function validateManifestStructure(m: ManifestLike): string[] {
