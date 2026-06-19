@@ -1,5 +1,12 @@
 # @fayz-ai/auth
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [bd8e8cd]
+  - @fayz-ai/core@0.2.0
+
 ## 0.1.7
 
 ### Patch Changes
