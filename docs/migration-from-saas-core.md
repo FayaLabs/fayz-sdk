@@ -10,28 +10,28 @@ This guide covers moving an existing app from `@fayz/saas-core` to the fayz-sdk 
 
 | saas-core import | fayz-sdk package | Notes |
 |---|---|---|
-| `createSaasApp` | `@fayz/saas` | Same API |
-| `createCrudPage` | `@fayz/saas` | Same API |
-| `createArchetypeLookup` | `@fayz/saas` | Same API |
-| `EntityDef`, `FieldDef` | `@fayz/core` | Same shape |
-| `PluginManifest` | `@fayz/core` | Same shape |
-| `definePlugin` | `@fayz/core` | Same API |
-| `DataProvider` | `@fayz/core` | Same interface |
-| `createSupabaseProvider` | `@fayz/core` | Same API |
-| `@fayz/saas-core/plugins/crm` | `@fayz/plugin-crm` | Individual package |
-| `@fayz/saas-core/plugins/agenda` | `@fayz/plugin-agenda` | Individual package |
-| `@fayz/saas-core/plugins/financial` | `@fayz/plugin-financial` | Individual package |
-| `@fayz/saas-core/plugins/inventory` | `@fayz/plugin-inventory` | Individual package |
-| `@fayz/saas-core/plugins/dashboard` | `@fayz/plugin-dashboard` | Individual package |
-| `@fayz/saas-core/plugins/tasks` | `@fayz/plugin-tasks` | Individual package |
-| `@fayz/saas-core/plugins/reports` | `@fayz/plugin-reports` | Individual package |
-| `@fayz/saas-core/plugins/forms` | `@fayz/plugin-forms` | Individual package |
+| `createSaasApp` | `@fayz-ai/saas` | Same API |
+| `createCrudPage` | `@fayz-ai/saas` | Same API |
+| `createArchetypeLookup` | `@fayz-ai/saas` | Same API |
+| `EntityDef`, `FieldDef` | `@fayz-ai/core` | Same shape |
+| `PluginManifest` | `@fayz-ai/core` | Same shape |
+| `definePlugin` | `@fayz-ai/core` | Same API |
+| `DataProvider` | `@fayz-ai/core` | Same interface |
+| `createSupabaseProvider` | `@fayz-ai/core` | Same API |
+| `@fayz/saas-core/plugins/crm` | `@fayz-ai/plugin-crm` | Individual package |
+| `@fayz/saas-core/plugins/agenda` | `@fayz-ai/plugin-agenda` | Individual package |
+| `@fayz/saas-core/plugins/financial` | `@fayz-ai/plugin-financial` | Individual package |
+| `@fayz/saas-core/plugins/inventory` | `@fayz-ai/plugin-inventory` | Individual package |
+| `@fayz/saas-core/plugins/dashboard` | `@fayz-ai/plugin-dashboard` | Individual package |
+| `@fayz/saas-core/plugins/tasks` | `@fayz-ai/plugin-tasks` | Individual package |
+| `@fayz/saas-core/plugins/reports` | `@fayz-ai/plugin-reports` | Individual package |
+| `@fayz/saas-core/plugins/forms` | `@fayz-ai/plugin-forms` | Individual package |
 
 ## Step 1 — Install new packages
 
 ```bash
-npm install @fayz/core @fayz/auth @fayz/ui @fayz/saas
-npm install @fayz/plugin-crm @fayz/plugin-agenda   # add only plugins you use
+npm install @fayz-ai/core @fayz-ai/auth @fayz-ai/ui @fayz-ai/saas
+npm install @fayz-ai/plugin-crm @fayz-ai/plugin-agenda   # add only plugins you use
 npm uninstall @fayz/saas-core
 ```
 
@@ -43,17 +43,17 @@ npm uninstall @fayz/saas-core
 - import { createAgendaPlugin, createFinancialBridge } from '@fayz/saas-core/plugins/agenda'
 - import { createFinancialPlugin, createSafeFinancialProvider } from '@fayz/saas-core/plugins/financial'
 
-+ import { createSaasApp, createCrudPage, createArchetypeLookup } from '@fayz/saas'
-+ import { createCrmPlugin } from '@fayz/plugin-crm'
-+ import { createAgendaPlugin, createFinancialBridge } from '@fayz/plugin-agenda'
-+ import { createFinancialPlugin, createSafeFinancialProvider } from '@fayz/plugin-financial'
++ import { createSaasApp, createCrudPage, createArchetypeLookup } from '@fayz-ai/saas'
++ import { createCrmPlugin } from '@fayz-ai/plugin-crm'
++ import { createAgendaPlugin, createFinancialBridge } from '@fayz-ai/plugin-agenda'
++ import { createFinancialPlugin, createSafeFinancialProvider } from '@fayz-ai/plugin-financial'
 ```
 
-Entity definitions (`EntityDef`) still import from `@fayz/saas-core` if you prefer, or switch to `@fayz/core`:
+Entity definitions (`EntityDef`) still import from `@fayz/saas-core` if you prefer, or switch to `@fayz-ai/core`:
 
 ```diff
 - import type { EntityDef } from '@fayz/saas-core'
-+ import type { EntityDef } from '@fayz/core'
++ import type { EntityDef } from '@fayz-ai/core'
 ```
 
 ## Step 3 — Update vite.config.ts for local development
@@ -71,11 +71,11 @@ export default defineConfig({
   resolve: {
     alias: {
       ...(useLocalSdk ? {
-        '@fayz/core': resolve(fayzSdk, 'packages/core/src'),
-        '@fayz/auth': resolve(fayzSdk, 'packages/auth/src'),
-        '@fayz/ui':   resolve(fayzSdk, 'packages/ui/src'),
-        '@fayz/saas': resolve(fayzSdk, 'packages/saas/src'),
-        '@fayz/plugin-crm': resolve(fayzSdk, 'plugins/plugin-crm/src'),
+        '@fayz-ai/core': resolve(fayzSdk, 'packages/core/src'),
+        '@fayz-ai/auth': resolve(fayzSdk, 'packages/auth/src'),
+        '@fayz-ai/ui':   resolve(fayzSdk, 'packages/ui/src'),
+        '@fayz-ai/saas': resolve(fayzSdk, 'packages/saas/src'),
+        '@fayz-ai/plugin-crm': resolve(fayzSdk, 'plugins/plugin-crm/src'),
         // ... add other plugins
       } : {}),
     },
@@ -83,7 +83,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: useLocalSdk
-      ? ['@fayz/core', '@fayz/auth', '@fayz/ui', '@fayz/saas', '@fayz/plugin-crm']
+      ? ['@fayz-ai/core', '@fayz-ai/auth', '@fayz-ai/ui', '@fayz-ai/saas', '@fayz-ai/plugin-crm']
       : [],
   },
 })
@@ -98,7 +98,7 @@ npm run dev
 
 ## No breaking changes in the config
 
-`createSaasApp` in `@fayz/saas` accepts the exact same config object as `createSaasApp` from `@fayz/saas-core`. No changes needed to your app config, plugins array, permissions, or theme.
+`createSaasApp` in `@fayz-ai/saas` accepts the exact same config object as `createSaasApp` from `@fayz/saas-core`. No changes needed to your app config, plugins array, permissions, or theme.
 
 ## Notes on workspace development
 

@@ -6,7 +6,7 @@ engines. Read it before scaffolding or changing any generated app.
 
 Operational source of truth:
 
-- `docs/discovery/30-sdk-app-operating-contract.md`
+- `docs/architecture-boundaries.md`
 
 ## Current Operating Status — 2026-06-15
 

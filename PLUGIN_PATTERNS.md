@@ -102,7 +102,33 @@ governed capability instead of a showcase card. A plugin is **capability-complet
 `plugin-tasks` is the reference implementation (smallest plugin that satisfies all six).
 Copy its shape. The gate ratchets: as each plugin reaches the bar it is added to
 `ENFORCED` in `scripts/check-plugin-capability.mjs` (never removed). Background:
-`docs/discovery/PLUGIN-MODEL.md`.
+`docs/plugin-model.md`.
+
+## Extension seams (the contract surface)
+
+A plugin extends the platform **only** through `PluginManifest` seams — never by editing
+another plugin or the SDK. This is what lets a private/partner plugin (layer C) do
+everything an official plugin (layer D) can. The full seam set (`packages/core/src/types/plugins.ts`):
+
+| Seam | Field | What it adds |
+|---|---|---|
+| Config | `PluginRef.config` (manifest data) | normal domain customization, resolved by the factory |
+| Events | `events` + the event bus | typed pub/sub; bind event→action as data |
+| UI slots | `widgets` + `WidgetZone` | render into named zones (topbar, sidebar, page, floating) |
+| Routes / nav | `routes`, `navigation` | pages + menu entries |
+| Settings | `settings` | tabs in the SDK settings area |
+| Dashboard | `dashboardWidgets` | cards in the dashboard registry |
+| AI tools | `aiTools` | host-callable read/persist tools |
+| Connectors | `connectors` | external-provider integrations (control + data plane) |
+| Migrations | `migrations` | schema, wired into the manifest |
+| **Server actions** | `serverActions` | server-side actions/workflows behind the Fayz boundary (edge fn / RPC) |
+| **Custom fields** | `customFields` | fields added to an entity the plugin doesn't own |
+| **Diagnostics** | `diagnostics` | backend prerequisites surfaced by `fayz doctor` |
+| API version | `apiVersion` | contract gate; runtime refuses newer-than-supported |
+
+`serverActions`, `customFields`, and `diagnostics` are declarative reservations — the
+contract shape is locked; implementation wiring is lazy. See
+`docs/architecture-boundaries.md` §5 for the ownership rules around each seam.
 
 ## Integrity + capability tests (the deploy gate)
 

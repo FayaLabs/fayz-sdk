@@ -14,20 +14,20 @@ pnpm build         # build all packages
 Run a specific package in watch mode:
 
 ```bash
-pnpm -F @fayz/plugin-crm dev
+pnpm -F @fayz-ai/plugin-crm dev
 ```
 
 ## Repository layout
 
 ```
 packages/
-  core/       @fayz/core     — pure TS foundation (no React)
-  auth/       @fayz/auth     — auth adapters + React hooks
-  ui/         @fayz/ui       — Radix + Tailwind components
-  saas/       @fayz/saas     — tenancy, billing, permissions
+  core/       @fayz-ai/core     — pure TS foundation (no React)
+  auth/       @fayz-ai/auth     — auth adapters + React hooks
+  ui/         @fayz-ai/ui       — Radix + Tailwind components
+  saas/       @fayz-ai/saas     — tenancy, billing, permissions
 plugins/
-  plugin-*/   @fayz/plugin-* — vertical feature plugins
-cli/          @fayz/cli      — scaffold tooling
+  plugin-*/   @fayz-ai/plugin-* — vertical feature plugins
+cli/          @fayz-ai/cli      — scaffold tooling
 docs/                        — this directory
 examples/
   beauty/                    — canonical beauty SaaS reference
@@ -39,9 +39,9 @@ examples/
 Scaffold a new plugin with the CLI:
 
 ```bash
-pnpm create @fayz/plugin my-plugin
+pnpm create @fayz-ai/plugin my-plugin
 # or inside the monorepo:
-pnpm -F @fayz/cli scaffold plugin my-plugin
+pnpm -F @fayz-ai/cli scaffold plugin my-plugin
 ```
 
 ### Plugin structure
@@ -66,7 +66,7 @@ plugins/plugin-my-plugin/
 ### Plugin manifest contract
 
 ```typescript
-import { definePlugin } from '@fayz/core'
+import { definePlugin } from '@fayz-ai/core'
 
 export function createMyPlugin(options?: MyPluginOptions) {
   return definePlugin({
@@ -107,7 +107,7 @@ export function createMyPlugin(options?: MyPluginOptions) {
   "name": "@scope/fayz-plugin-my-plugin",
   "keywords": ["fayz-plugin", "fayz"],
   "peerDependencies": {
-    "@fayz/core": ">=1.0.0",
+    "@fayz-ai/core": ">=1.0.0",
     "react": ">=18.0.0"
   }
 }
@@ -133,7 +133,7 @@ A plugin with no `scaffolds` field works in all contexts.
 Use `WidgetZone` constants instead of magic strings:
 
 ```typescript
-import { WidgetZone } from '@fayz/core'
+import { WidgetZone } from '@fayz-ai/core'
 
 widgets: [
   {
@@ -151,7 +151,7 @@ Available zones: `SIDEBAR_BEFORE_NAV`, `SIDEBAR_FOOTER`, `TOPBAR_START`, `TOPBAR
 Every user-facing string must have both `en` and `pt-BR` translations. Use the `useTranslation` hook inside components:
 
 ```typescript
-import { useTranslation } from '@fayz/core'
+import { useTranslation } from '@fayz-ai/core'
 
 const { t } = useTranslation()
 // t('my-plugin.title') → 'My Plugin' or 'Meu Plugin'
@@ -164,7 +164,7 @@ Keys must be namespaced by plugin id: `my-plugin.something`.
 For CRUD entities, bind a data provider in the entity definition:
 
 ```typescript
-import { createSupabaseProvider } from '@fayz/core'
+import { createSupabaseProvider } from '@fayz-ai/core'
 
 export const myEntity: EntityDef<MyType> = {
   name: 'Item',
@@ -184,7 +184,7 @@ In mock/test mode `createMockProvider()` is automatically used when no Supabase 
 Run typecheck for a single package:
 
 ```bash
-pnpm -F @fayz/plugin-my-plugin typecheck
+pnpm -F @fayz-ai/plugin-my-plugin typecheck
 ```
 
 Build all packages to catch cross-package issues:
@@ -228,7 +228,7 @@ const App = createSaasApp({
 - [ ] No hardcoded strings outside locale files
 - [ ] Widget zones use `WidgetZone.*` constants
 - [ ] `scaffolds` declared if plugin is scaffold-specific
-- [ ] `peerDependencies` lists `@fayz/core` with a semver range
+- [ ] `peerDependencies` lists `@fayz-ai/core` with a semver range
 - [ ] README explains config options and setup
 - [ ] Changeset file included if modifying an existing package
 
@@ -241,4 +241,4 @@ fayz-sdk uses [Changesets](https://github.com/changesets/changesets) for indepen
 - Bug fix → patch bump
 - A deprecated API must stay for at least one minor release with a `console.warn` before removal
 
-Generated apps pin with `^` (`"@fayz/core": "^1.0.0"`) and receive non-breaking updates automatically.
+Generated apps pin with `^` (`"@fayz-ai/core": "^1.0.0"`) and receive non-breaking updates automatically.

@@ -129,7 +129,7 @@ export function migrateManifest(input: AnyManifest): AppManifest {
   let version = typeof m.manifestVersion === 'number' ? m.manifestVersion : 1
   if (version > CURRENT_MANIFEST_VERSION) {
     throw new Error(
-      `Manifest version ${version} is newer than this SDK supports (${CURRENT_MANIFEST_VERSION}). Upgrade @fayz-ai/app-runtime.`,
+      `Manifest version ${version} is newer than this SDK supports (${CURRENT_MANIFEST_VERSION}). Upgrade @fayz-ai/core.`,
     )
   }
   while (version < CURRENT_MANIFEST_VERSION) {

@@ -95,7 +95,7 @@ async function sweepOverdue() {
 // S2 (data-model refactor): paid amount, balance and status are DERIVED from the
 // append-only ledger via v_invoice_balances — the single source of truth — not
 // from stored order.stage / metadata.paidAmount (which drift). See
-// docs/dogfood-sprint/DATA-MODEL-REFACTOR.md.
+// docs/data-model-refactor.md.
 async function fetchInvoiceBalances(
   pub: any,
   ids: string[],

@@ -11,10 +11,9 @@ describe('release channels', () => {
   it('keeps stable as the default channel', () => {
     expect(resolveFayzPackageVersions()).toEqual({
       channel: 'stable',
-      packages: {
-        '@fayz-ai/sdk': '^0.1.5',
-      },
+      packages: releaseChannels.channels.stable,
     })
+    expect(resolveFayzPackageVersions().packages['@fayz-ai/sdk']).toBe('^0.1.5')
   })
 
   it('returns a copy of package dependencies', () => {

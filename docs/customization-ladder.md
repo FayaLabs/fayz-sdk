@@ -1,6 +1,6 @@
 # The Customization Ladder ("nada engessado")
 
-> How a generated Fayz app goes from pure-config to fully bespoke **without ever forking SDK code**. Each level is strictly additive: a client at level 6 still receives SDK upgrades for everything they didn't touch. Companion: `architecture-v2.md` (§4 defines the ladder; this doc is the concrete how-to). All mechanisms below are implemented in `@fayz/core` and verified.
+> How a generated Fayz app goes from pure-config to fully bespoke **without ever forking SDK code**. Each level is strictly additive: a client at level 6 still receives SDK upgrades for everything they didn't touch. Companion: `architecture-v2.md` (§4 defines the ladder; this doc is the concrete how-to). All mechanisms below are implemented in `@fayz-ai/core` and verified.
 
 The product rule: **defaults everywhere, dead-ends nowhere, and no eject path.** If a client needs to eject, that's an SDK gap to fix — file it.
 
@@ -56,7 +56,7 @@ Every SDK component that renders a domain concept has a **registry id**. Re-regi
 
 ```tsx
 // src/registry.tsx
-import { registerComponent, registerBlock } from '@fayz/runtime'
+import { registerComponent, registerBlock } from '@fayz-ai/core'
 import { BrandedDetailHeader } from './components/BrandedDetailHeader'
 import { FancyHero } from './components/FancyHero'
 
@@ -70,7 +70,7 @@ Bespoke React, namespaced `custom:` (the platform never generates `custom:` ids 
 
 ```tsx
 // src/registry.tsx
-import { registerBlock, registerPage } from '@fayz/runtime'
+import { registerBlock, registerPage } from '@fayz-ai/core'
 import { WineStory } from './blocks/WineStory'
 import { HarvestBoard } from './pages/HarvestBoard'
 
@@ -95,5 +95,5 @@ When customization is a reusable capability (its own entities, migrations, nav, 
 ## Why upgrades stay safe
 
 - Overrides are keyed by id and receive the original's typed props → SDK internals change without breaking you.
-- Custom code is confined to `src/registry.tsx` + your components + your plugins; you never copy an SDK page, so `fayz upgrade` (bump `@fayz/runtime` + run manifest migrations) touches everything you *didn't* customize and leaves your overrides intact.
+- Custom code is confined to `src/registry.tsx` + your components + your plugins; you never copy an SDK page, so `fayz upgrade` (bump `@fayz-ai/core` + run manifest migrations) touches everything you *didn't* customize and leaves your overrides intact.
 - The registry is introspectable (`listBlocks`, `listComponents`, `listMetrics`, `listPluginFactories`), so the platform always knows exactly what a given app overrides — which is also how `fayz doctor` reports drift.

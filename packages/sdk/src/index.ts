@@ -21,6 +21,23 @@ export {
 } from './release-channels'
 export type { FayzPackageChannel, FayzPackageVersionSet } from './release-channels'
 export {
+  getSupportedPackages,
+  getInternalPackages,
+  isSupportedPackage,
+  fayzSupportedSurface,
+} from './supported-surface'
+export type { FayzPackageTier, FayzSupportedSurface } from './supported-surface'
+export {
+  AI_BUILDER_REQUEST_CLASSES,
+  AI_BUILDER_REQUEST_CLASS_IDS,
+  isAllowedRequestClass,
+} from './ai-builder'
+export type {
+  FayzLayer,
+  AiBuilderRequestClass,
+  AiBuilderRequestClassDef,
+} from './ai-builder'
+export {
   createFayzRuntimeClient,
   FayzRuntimeError,
 } from './runtime'
