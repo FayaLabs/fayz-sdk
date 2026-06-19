@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/ui",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Fayz SDK UI — Radix + Tailwind component library with CRUD engine and layout shells",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -18,12 +18,6 @@
       "types": "./dist/primitives/index.d.ts",
       "import": "./dist/primitives/index.js",
       "require": "./dist/primitives/index.cjs"
-    },
-    "./crud": {
-      "source": "./src/crud/index.ts",
-      "types": "./dist/crud/index.d.ts",
-      "import": "./dist/crud/index.js",
-      "require": "./dist/crud/index.cjs"
     },
     "./layout": {
       "source": "./src/layout/index.ts",
@@ -43,7 +37,13 @@
       "import": "./dist/dashboard/index.js",
       "require": "./dist/dashboard/index.cjs"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./preset": {
+      "source": "./src/theme/preset.ts",
+      "types": "./dist/preset.d.ts",
+      "import": "./dist/preset.js",
+      "require": "./dist/preset.cjs"
+    }
   },
   "files": [
     "dist",
