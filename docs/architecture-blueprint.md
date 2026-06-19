@@ -1,7 +1,7 @@
 # Fayz Micro-SaaS Generator — Architecture Blueprint
 
 > **Status:** Founding document, v1 (2026-06-11).
-> **Companion docs:** `agent-guide.md` (how to *consume* the SDK), `migration-from-saas-core.md` (legacy exit), `../../beauty-saas/docs/roadmap/gap-analysis.md` (first-vertical gap map), `../../beauty-saas/docs/roadmap/backlog.md` (app backlog).
+> **Companion docs:** `architecture-boundaries.md` (the ownership contract), `architecture-v2.md` (manifest-first design), `agent-guide.md` (how to *consume* the SDK).
 > **Inputs:** full code exploration of `beautyplace` (legacy prototype, ~48 routes), `beauty-saas` (first SDK consumer), `fayz-sdk` (this repo), plus a live Playwright validation session of beauty-saas on 2026-06-11.
 
 ---
