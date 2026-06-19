@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/portal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fayz SDK member/learner portal scaffold — authenticated 'my courses' + player surface",
   "type": "module",
   "main": "./dist/index.cjs",

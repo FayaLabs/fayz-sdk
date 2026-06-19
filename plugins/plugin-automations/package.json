@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-automations",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fayz SDK — workflows & automations plugin",
   "type": "module",
   "main": "./dist/index.cjs",
