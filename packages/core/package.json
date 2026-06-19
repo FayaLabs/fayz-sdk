@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/core",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Fayz SDK core — data providers, entity system, plugin runtime, i18n, routing",
   "type": "module",
   "main": "./dist/index.cjs",

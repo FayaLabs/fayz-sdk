@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/saas",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Fayz SDK SaaS layer — multi-tenancy, billing, permissions, org management",
   "type": "module",
   "main": "./dist/index.cjs",
