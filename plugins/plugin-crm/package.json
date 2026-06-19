@@ -41,7 +41,9 @@
     "react": "^18.3.0",
     "tsup": "^8.2.0",
     "typescript": "^5.5.0",
-    "@types/react-dom": "^18.3.0"
+    "@types/react-dom": "^18.3.0",
+    "@fayz-ai/db": "workspace:^",
+    "drizzle-orm": "^0.36.4"
   },
   "license": "MIT",
   "keywords": [

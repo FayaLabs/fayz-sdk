@@ -13,6 +13,7 @@
 "@fayz-ai/plugin-automations": minor
 "@fayz-ai/sdk": minor
 "@fayz-ai/core": patch
+"@fayz-ai/plugin-crm": patch
 ---
 
 Lock SDK/plugin architecture boundaries (FAY-1217).
@@ -33,3 +34,5 @@ Lock SDK/plugin architecture boundaries (FAY-1217).
   `diagnostics`) on `@fayz-ai/core` — contract shape locked, implementation lazy.
 - Point manifest/plugin version-mismatch errors at `@fayz-ai/core` (the package that
   carries the runtime) instead of the deprecated `@fayz-ai/app-runtime` umbrella.
+- Fix plugin-crm typecheck: declare the missing `@fayz-ai/db` + `drizzle-orm`
+  devDependencies its drizzle schema needs, so repo-wide typecheck/build is green.
