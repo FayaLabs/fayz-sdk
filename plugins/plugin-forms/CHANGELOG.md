@@ -1,5 +1,13 @@
 # @fayz-ai/plugin-forms
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/core@0.5.0
+  - @fayz-ai/ui@0.5.0
+
 ## 0.1.3
 
 ### Patch Changes

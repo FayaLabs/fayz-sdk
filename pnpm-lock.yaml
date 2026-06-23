@@ -197,6 +197,12 @@ importers:
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../core
+      '@fayz-ai/db':
+        specifier: workspace:^
+        version: link:../db
+      '@fayz-ai/sdk':
+        specifier: workspace:^
+        version: link:../sdk
       '@fayz-ai/ui':
         specifier: workspace:^
         version: link:../ui
@@ -301,6 +307,9 @@ importers:
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../core
+      '@fayz-ai/sdk':
+        specifier: workspace:^
+        version: link:../sdk
       '@fayz-ai/shop':
         specifier: workspace:^
         version: link:../shop
@@ -601,6 +610,9 @@ importers:
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@fayz-ai/db':
+        specifier: workspace:^
+        version: link:../../packages/db
       '@fayz-ai/saas':
         specifier: workspace:^
         version: link:../../packages/saas
@@ -620,9 +632,6 @@ importers:
         specifier: ^4.5.0
         version: 4.5.7(@types/react@18.3.31)(react@18.3.1)
     devDependencies:
-      '@fayz-ai/db':
-        specifier: workspace:^
-        version: link:../../packages/db
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.31

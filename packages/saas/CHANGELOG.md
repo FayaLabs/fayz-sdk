@@ -1,5 +1,31 @@
 # @fayz-ai/saas
 
+## 0.5.0
+
+### Minor Changes
+
+- Re-align the whole SDK suite onto a single version line (0.5.0). The linked group had drifted across separate release runs (sdk 0.2.0 … storefront 0.4.0); this bumps every suite package together so "the SDK" has one coherent version. `@fayz-ai/portal` and `@fayz-ai/courses` are added to the linked group. No behavioural changes — version hygiene only.
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/sdk@0.5.0
+  - @fayz-ai/core@0.5.0
+  - @fayz-ai/auth@0.5.0
+  - @fayz-ai/ui@0.5.0
+
+## 0.3.0
+
+### Minor Changes
+
+- saas: become the single app front door so apps can depend on `@fayz-ai/saas` alone.
+
+  - Main entry re-exports curated `@fayz-ai/core` runtime (`renderApp`, `getSupabaseClientOptional`, `getActiveTenantId`, `setCurrentLocale`) plus `EntityDef`/`ConnectorDefinition` types, and `fayz` + `FayzTableFilter` from `@fayz-ai/sdk`.
+  - New subpath exports `@fayz-ai/saas/ui` (re-exports `@fayz-ai/ui`) and `@fayz-ai/saas/db` (re-exports `@fayz-ai/db`), kept on their own module graphs to protect tree-shaking.
+  - Adds `@fayz-ai/sdk` and `@fayz-ai/db` as dependencies.
+
+  This is a facade over the existing package boundaries — no consolidation; the internal saas→ui→core edges are unchanged.
+
 ## 0.2.0
 
 ### Patch Changes

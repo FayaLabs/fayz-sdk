@@ -1,5 +1,33 @@
 # @fayz-ai/plugin-crm
 
+## 0.2.2
+
+### Patch Changes
+
+- Fix the `./schema` export's `types` path — point it at `./dist/schema/index.d.ts` (where tsc emits the declaration for the nested `src/schema/index.ts`) instead of the non-existent flat `./dist/schema.d.ts`. Without this, consumers got TS7016 (implicit any) on `@fayz-ai/plugin-crm/schema` in published mode.
+
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/core@0.5.0
+  - @fayz-ai/ui@0.5.0
+  - @fayz-ai/saas@0.5.0
+
+## 0.2.0
+
+### Minor Changes
+
+- Expose the CRM Drizzle schema on a `@fayz-ai/plugin-crm/schema` subpath so apps can `export * from '@fayz-ai/plugin-crm/schema'` in published (npm) mode, not just via local-source aliases. Adds the `./schema` export + tsup entry and moves `@fayz-ai/db` to a runtime dependency (kept external so there's a single drizzle-orm instance).
+
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/saas@0.3.0
+
 ## 0.1.3
 
 ### Patch Changes

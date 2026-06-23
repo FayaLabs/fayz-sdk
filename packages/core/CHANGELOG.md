@@ -1,5 +1,16 @@
 # @fayz-ai/core
 
+## 0.5.0
+
+### Minor Changes
+
+- Re-align the whole SDK suite onto a single version line (0.5.0). The linked group had drifted across separate release runs (sdk 0.2.0 … storefront 0.4.0); this bumps every suite package together so "the SDK" has one coherent version. `@fayz-ai/portal` and `@fayz-ai/courses` are added to the linked group. No behavioural changes — version hygiene only.
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/sdk@0.5.0
+
 ## 0.2.0
 
 ### Patch Changes

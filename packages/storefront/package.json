@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/storefront",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "description": "Fayz SDK storefront kit — Shopify-style customer-facing ecommerce template components",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -12,6 +12,24 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./ui": {
+      "source": "./src/ui.ts",
+      "types": "./dist/ui.d.ts",
+      "import": "./dist/ui.js",
+      "require": "./dist/ui.cjs"
+    },
+    "./catalog": {
+      "source": "./src/catalog.ts",
+      "types": "./dist/catalog.d.ts",
+      "import": "./dist/catalog.js",
+      "require": "./dist/catalog.cjs"
+    },
+    "./shop": {
+      "source": "./src/shop.ts",
+      "types": "./dist/shop.d.ts",
+      "import": "./dist/shop.js",
+      "require": "./dist/shop.cjs"
     }
   },
   "files": [
@@ -27,6 +45,7 @@
   "dependencies": {
     "@fayz-ai/auth": "workspace:^",
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/sdk": "workspace:^",
     "@fayz-ai/shop": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
     "@supabase/supabase-js": "^2.45.0",

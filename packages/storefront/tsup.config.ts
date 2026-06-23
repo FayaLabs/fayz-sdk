@@ -1,6 +1,11 @@
 import { defineConfig } from 'tsup'
 export default defineConfig({
-  entry: { index: 'src/index.ts' },
+  entry: {
+    index: 'src/index.ts',
+    ui: 'src/ui.ts',
+    catalog: 'src/catalog.ts',
+    shop: 'src/shop.ts',
+  },
   format: ['esm', 'cjs'],
   dts: false,
   splitting: true,
@@ -14,9 +19,12 @@ export default defineConfig({
     'lucide-react',
     '@fayz-ai/core',
     '@fayz-ai/auth',
+    '@fayz-ai/sdk',
+    '@fayz-ai/sdk/shop',
     '@fayz-ai/shop',
     '@fayz-ai/shop/runtime',
     '@fayz-ai/shop/mock',
+    '@fayz-ai/shop/catalog',
     '@fayz-ai/ui',
   ],
 })

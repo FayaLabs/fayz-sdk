@@ -1,5 +1,21 @@
 # @fayz-ai/plugin-orders
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/sdk@0.5.0
+  - @fayz-ai/core@0.5.0
+  - @fayz-ai/saas@0.5.0
+
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/saas@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

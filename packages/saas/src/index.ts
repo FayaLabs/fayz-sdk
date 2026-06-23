@@ -136,7 +136,23 @@ export type {
   // Billing
   BillingConfig,
   Plan,
+  // Entities / connectors
+  EntityDef,
+  ConnectorDefinition,
 } from '@fayz-ai/core'
+
+// Commonly needed @fayz-ai/core *runtime* helpers, re-exported so apps built on
+// top of @fayz-ai/saas can import them from the single front-door package.
+export {
+  renderApp,
+  getSupabaseClientOptional,
+  getActiveTenantId,
+  setCurrentLocale,
+} from '@fayz-ai/core'
+
+// Base SDK client + table-query contracts, surfaced through the saas front door.
+export { fayz } from '@fayz-ai/sdk'
+export type { FayzTableFilter } from '@fayz-ai/sdk'
 
 // ---------------------------------------------------------------------------
 // Page helpers

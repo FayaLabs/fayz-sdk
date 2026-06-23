@@ -130,3 +130,11 @@ export {
   storefrontSlotContracts,
 } from './slot-contracts'
 export type { ProductCardSlotContract } from './slot-contracts'
+
+// ---------------------------------------------------------------------------
+// Front-door re-exports: storefront apps depend on @fayz-ai/storefront alone.
+// Runtime helpers come from @fayz-ai/core; UI / shop catalog / shop provider
+// live on their own subpaths (./ui, ./catalog, ./shop) to keep module graphs
+// separate. Mirrors the @fayz-ai/saas front door.
+// ---------------------------------------------------------------------------
+export { renderApp, getSupabaseClientOptional } from '@fayz-ai/core'

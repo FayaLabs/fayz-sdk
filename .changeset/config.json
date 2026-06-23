@@ -12,6 +12,8 @@
       "@fayz-ai/saas",
       "@fayz-ai/shop",
       "@fayz-ai/storefront",
+      "@fayz-ai/portal",
+      "@fayz-ai/courses",
       "@fayz-ai/app-runtime"
     ]
   ],
