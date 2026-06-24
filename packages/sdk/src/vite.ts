@@ -1,6 +1,5 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import react from '@vitejs/plugin-react'
 import type { UserConfig, PluginOption, AliasOptions } from 'vite'
 
 // All publishable @fayz-ai/* packages (root src). Subpaths (e.g.
@@ -38,8 +37,13 @@ export interface FayzViteOptions {
  * npm). Apps no longer hand-maintain alias maps or the local-vs-npm guard.
  *
  *     import { defineConfig } from 'vite'
+ *     import react from '@vitejs/plugin-react'
  *     import { fayzVite } from '@fayz-ai/sdk/vite'
- *     export default defineConfig(fayzVite({ port: 5185, strictPort: true }))
+ *     export default defineConfig(fayzVite({ port: 5185, plugins: [react()] }))
+ *
+ * The app passes its own `@vitejs/plugin-react` so `@fayz-ai/sdk` carries no
+ * build-tool peer deps (which otherwise choke npm's peer resolution, since sdk
+ * sits in every dependency path).
  */
 export function fayzVite(opts: FayzViteOptions = {}): UserConfig {
   const root = opts.root ?? process.cwd()
@@ -55,7 +59,7 @@ export function fayzVite(opts: FayzViteOptions = {}): UserConfig {
   }
 
   return {
-    plugins: [react(), ...(opts.plugins ?? [])],
+    plugins: [...(opts.plugins ?? [])],
     envPrefix: ['VITE_', 'PUBLIC_'],
     resolve: {
       alias: {

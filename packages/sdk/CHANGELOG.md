@@ -1,5 +1,11 @@
 # @fayz-ai/sdk
 
+## 0.6.1
+
+### Patch Changes
+
+- fix(vite): remove `vite` + `@vitejs/plugin-react` peer dependencies from `@fayz-ai/sdk`. Since sdk sits in every dependency path (app → plugins → core → sdk), declaring build-tool peers made npm's peer resolution explode and the editor install hang. `fayzVite` no longer bundles the React plugin — apps pass their own via `plugins: [react()]`, so sdk carries no build-tool deps.
+
 ## 0.6.0
 
 ### Minor Changes

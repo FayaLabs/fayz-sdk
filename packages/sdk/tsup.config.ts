@@ -19,5 +19,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
-  external: ['vite', '@vitejs/plugin-react'],
+  external: ['vite'],
 })
