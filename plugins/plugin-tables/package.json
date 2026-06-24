@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-tables",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Fayz SDK — plugin-tables plugin",
   "type": "module",
   "main": "./dist/index.cjs",

@@ -1,5 +1,11 @@
 # @fayz-ai/auth
 
+## 0.6.0
+
+### Patch Changes
+
+- @fayz-ai/core@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes

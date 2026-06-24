@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/sdk",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Fayz SDK — API client, app params, runtime broker helpers, and shared types for generated Fayz projects",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -62,6 +62,12 @@
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
       "require": "./dist/types.cjs"
+    },
+    "./vite": {
+      "source": "./src/vite.ts",
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js",
+      "require": "./dist/vite.cjs"
     }
   },
   "files": [
@@ -76,9 +82,23 @@
     "test": "vitest run",
     "clean": "rm -rf dist"
   },
+  "peerDependencies": {
+    "vite": "^5.0.0 || ^6.0.0",
+    "@vitejs/plugin-react": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    },
+    "@vitejs/plugin-react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
     "tsup": "^8.2.0",
     "typescript": "^5.5.0",
+    "vite": "^5.4.0",
     "vitest": "^2.1.9"
   },
   "license": "MIT",

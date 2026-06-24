@@ -1,5 +1,14 @@
 # @fayz-ai/plugin-conversations
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/ui@0.6.0
+  - @fayz-ai/core@0.6.0
+  - @fayz-ai/saas@0.6.0
+
 ## 0.2.2
 
 ### Patch Changes

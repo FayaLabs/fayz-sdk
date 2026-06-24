@@ -1,5 +1,14 @@
 # @fayz-ai/plugin-courses
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/ui@0.6.0
+  - @fayz-ai/core@0.6.0
+  - @fayz-ai/courses@0.6.0
+
 ## 0.2.1
 
 ### Patch Changes
