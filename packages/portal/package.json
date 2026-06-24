@@ -48,7 +48,5 @@
     "courses",
     "lms"
   ],
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }
