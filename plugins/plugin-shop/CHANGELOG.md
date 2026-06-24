@@ -1,5 +1,11 @@
 # @fayz-ai/plugin-shop
 
+## 0.2.3
+
+### Patch Changes
+
+- 14ff307: Replace the near-empty shop settings stub with a real config UI (ShopSettings): Store (currency, locale), Catalog (show out-of-stock, track inventory, require SKU), Checkout (guest checkout, discount codes) and Notifications groups — using SettingsGroup/ToggleRow/SelectRow. Fixes the blank `settings/shop` page.
+
 ## 0.2.2
 
 ### Patch Changes
