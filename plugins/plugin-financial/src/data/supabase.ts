@@ -710,15 +710,21 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       const overdueDebit = unpaidDebit.filter((m: any) => m.status === 'overdue' || m.due_date < today)
 
       const monthStart = today.slice(0, 7) + '-01'
-      // Monthly cash flow = payment cash events (one row per payment), never bills.
-      const monthPaid = allMovs.filter((m: any) => m.movement_kind === 'payment' && m.payment_date >= monthStart)
+      const [year, month] = today.slice(0, 7).split('-').map(Number)
+      const monthEnd = new Date(year, month, 0).toISOString().slice(0, 10)
+      const periodFrom = dateRange?.from ?? monthStart
+      const periodTo = dateRange?.to ?? monthEnd
+      // Selected cash flow = payment cash events (one row per payment), never bills.
+      const periodPaid = allMovs.filter((m: any) =>
+        m.movement_kind === 'payment' && m.payment_date >= periodFrom && m.payment_date <= periodTo,
+      )
 
       return {
         totalBalance,
         totalReceivable: unpaidCredit.reduce((s: number, m: any) => s + m.amount - m.paid_amount, 0),
         totalPayable: unpaidDebit.reduce((s: number, m: any) => s + m.amount - m.paid_amount, 0),
-        monthlyInflow: monthPaid.filter((m: any) => m.direction === 'credit').reduce((s: number, m: any) => s + m.paid_amount, 0),
-        monthlyOutflow: monthPaid.filter((m: any) => m.direction === 'debit').reduce((s: number, m: any) => s + m.paid_amount, 0),
+        monthlyInflow: periodPaid.filter((m: any) => m.direction === 'credit').reduce((s: number, m: any) => s + m.paid_amount, 0),
+        monthlyOutflow: periodPaid.filter((m: any) => m.direction === 'debit').reduce((s: number, m: any) => s + m.paid_amount, 0),
         overdueReceivableCount: overdueCredit.length,
         overdueReceivableAmount: overdueCredit.reduce((s: number, m: any) => s + m.amount - m.paid_amount, 0),
         overduePayableCount: overdueDebit.length,

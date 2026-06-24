@@ -11,11 +11,41 @@ import {
 import { FinancialContextProvider, useFinancialConfig, useFinancialStore, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
 import type { FinancialDataProvider } from '../data/types'
 import type { FinancialUIState } from '../store'
-import type { Invoice } from '../types'
+import type { DateRange, Invoice } from '../types'
+
+type SummaryPeriod = 'week' | 'month' | 'total'
+
+function formatDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function rangeForPeriod(period: SummaryPeriod): DateRange {
+  const today = new Date()
+  if (period === 'total') return { from: '0001-01-01', to: '9999-12-31' }
+  if (period === 'week') {
+    const monday = new Date(today)
+    const day = monday.getDay()
+    monday.setDate(monday.getDate() - (day === 0 ? 6 : day - 1))
+    const sunday = new Date(monday)
+    sunday.setDate(sunday.getDate() + 6)
+    return { from: formatDateKey(monday), to: formatDateKey(sunday) }
+  }
+  return {
+    from: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`,
+    to: formatDateKey(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
+  }
+}
+
+function periodLabel(t: ReturnType<typeof useTranslation>, period: SummaryPeriod): string {
+  if (period === 'week') return t('financial.summary.weeklyFlow')
+  if (period === 'total') return t('financial.summary.totalFlow')
+  return t('financial.summary.monthlyFlow')
+}
 
 function useEnsureSummary() {
   const fetchSummary = useFinancialStore((s) => s.fetchSummary)
-  useEffect(() => { void fetchSummary() }, [])
+  const period = useFinancialStore((s) => s.summaryPeriod)
+  useEffect(() => { void fetchSummary(rangeForPeriod(period)) }, [fetchSummary, period])
 }
 
 // ---------------------------------------------------------------------------
@@ -51,10 +81,11 @@ function MonthlyFlowKpi() {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
   const summary = useFinancialStore((s) => s.summary)
+  const period = useFinancialStore((s) => s.summaryPeriod)
   useEnsureSummary()
   const inflow = summary?.monthlyInflow ?? 0
   const outflow = summary?.monthlyOutflow ?? 0
-  return <KpiCard label={t('financial.summary.monthlyFlow')} icon="BarChart3" value={formatCurrency(inflow - outflow, currency)} sub={inflow >= outflow ? t('financial.summary.positiveBalance') : t('financial.summary.negativeBalance')} />
+  return <KpiCard label={periodLabel(t, period)} icon="BarChart3" value={formatCurrency(inflow - outflow, currency)} sub={inflow >= outflow ? t('financial.summary.positiveBalance') : t('financial.summary.negativeBalance')} />
 }
 
 // ---------------------------------------------------------------------------
@@ -64,16 +95,32 @@ function MonthlyFlowKpi() {
 function CashFlowChart() {
   const t = useTranslation()
   const summary = useFinancialStore((s) => s.summary)
+  const period = useFinancialStore((s) => s.summaryPeriod)
+  const setPeriod = useFinancialStore((s) => s.setSummaryPeriod)
   useEnsureSummary()
-  const data = [{ name: t('financial.summary.cashFlow'), income: summary?.monthlyInflow ?? 0, expenses: summary?.monthlyOutflow ?? 0 }]
+  const data = [{ name: periodLabel(t, period), income: summary?.monthlyInflow ?? 0, expenses: summary?.monthlyOutflow ?? 0 }]
   return (
-    <ChartWidget
-      type="bar" title={t('financial.summary.cashFlow')} icon="BarChart3" categoryKey="name" data={data}
-      series={[
-        { dataKey: 'income', label: t('financial.summary.income'), color: 'hsl(var(--success))' },
-        { dataKey: 'expenses', label: t('financial.summary.expenses'), color: 'hsl(var(--destructive))' },
-      ]}
-    />
+    <div className="space-y-2">
+      <div className="flex justify-end gap-1" role="group" aria-label={t('financial.summary.flowPeriod')}>
+        {(['week', 'month', 'total'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setPeriod(option)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${period === option ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+          >
+            {t(`financial.summary.period.${option}`)}
+          </button>
+        ))}
+      </div>
+      <ChartWidget
+        type="bar" title={t('financial.summary.cashFlow')} icon="BarChart3" categoryKey="name" data={data}
+        series={[
+          { dataKey: 'income', label: t('financial.summary.income'), color: 'hsl(var(--success))' },
+          { dataKey: 'expenses', label: t('financial.summary.expenses'), color: 'hsl(var(--destructive))' },
+        ]}
+      />
+    </div>
   )
 }
 
