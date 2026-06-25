@@ -338,6 +338,12 @@ export interface StatementQuery {
   dateRange: DateRange
 }
 
+export interface SummaryQuery {
+  dateRange?: DateRange
+  /** Omit (or pass undefined) for consolidated "All accounts" totals */
+  bankAccountId?: string
+}
+
 export interface CreateTransferInput {
   fromAccountId: string
   toAccountId: string

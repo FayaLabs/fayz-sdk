@@ -44,8 +44,47 @@ function periodLabel(t: ReturnType<typeof useTranslation>, period: SummaryPeriod
 
 function useEnsureSummary() {
   const fetchSummary = useFinancialStore((s) => s.fetchSummary)
+  const fetchBankAccounts = useFinancialStore((s) => s.fetchBankAccounts)
   const period = useFinancialStore((s) => s.summaryPeriod)
-  useEffect(() => { void fetchSummary(rangeForPeriod(period)) }, [fetchSummary, period])
+  const bankAccountId = useFinancialStore((s) => s.summaryBankAccountId)
+  useEffect(() => { void fetchBankAccounts() }, [fetchBankAccounts])
+  useEffect(() => { void fetchSummary(rangeForPeriod(period)) }, [fetchSummary, period, bankAccountId])
+}
+
+function SummaryControls() {
+  const t = useTranslation()
+  const period = useFinancialStore((s) => s.summaryPeriod)
+  const setPeriod = useFinancialStore((s) => s.setSummaryPeriod)
+  const bankAccounts = useFinancialStore((s) => s.bankAccounts)
+  const bankAccountId = useFinancialStore((s) => s.summaryBankAccountId)
+  const setBankAccountId = useFinancialStore((s) => s.setSummaryBankAccountId)
+  const activeAccount = bankAccounts.find((account) => account.id === bankAccountId)
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <select
+        className="rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-muted"
+        value={bankAccountId ?? ''}
+        onChange={(event) => setBankAccountId(event.target.value || undefined)}
+        aria-label={t('financial.summary.accountFilter')}
+      >
+        <option value="">{t('financial.summary.allAccounts')}</option>
+        {bankAccounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+      </select>
+      <div className="flex gap-1" role="group" aria-label={t('financial.summary.flowPeriod')}>
+        {(['week', 'month', 'total'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setPeriod(option)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${period === option ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+          >
+            {t(`financial.summary.period.${option}`)}
+          </button>
+        ))}
+      </div>
+      {activeAccount && <span className="w-full text-right text-[11px] text-muted-foreground">{t('financial.summary.filteredBy', { account: activeAccount.name })}</span>}
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -56,9 +95,12 @@ function TotalBalanceKpi() {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
   const summary = useFinancialStore((s) => s.summary)
+  const bankAccountId = useFinancialStore((s) => s.summaryBankAccountId)
+  const bankAccounts = useFinancialStore((s) => s.bankAccounts)
   const loading = useFinancialStore((s) => s.summaryLoading)
   useEnsureSummary()
-  return <KpiCard label={t('financial.summary.totalBalance')} icon="Wallet" value={formatCurrency(summary?.totalBalance ?? 0, currency)} sub={loading ? undefined : t('financial.summary.allAccounts')} />
+  const account = bankAccounts.find((item) => item.id === bankAccountId)
+  return <KpiCard label={t('financial.summary.totalBalance')} icon="Wallet" value={formatCurrency(summary?.totalBalance ?? 0, currency)} sub={loading ? undefined : (account?.name ?? t('financial.summary.allAccounts'))} />
 }
 
 function ReceivableKpi() {
@@ -96,23 +138,11 @@ function CashFlowChart() {
   const t = useTranslation()
   const summary = useFinancialStore((s) => s.summary)
   const period = useFinancialStore((s) => s.summaryPeriod)
-  const setPeriod = useFinancialStore((s) => s.setSummaryPeriod)
   useEnsureSummary()
   const data = [{ name: periodLabel(t, period), income: summary?.monthlyInflow ?? 0, expenses: summary?.monthlyOutflow ?? 0 }]
   return (
     <div className="space-y-2">
-      <div className="flex justify-end gap-1" role="group" aria-label={t('financial.summary.flowPeriod')}>
-        {(['week', 'month', 'total'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => setPeriod(option)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${period === option ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
-          >
-            {t(`financial.summary.period.${option}`)}
-          </button>
-        ))}
-      </div>
+      <SummaryControls />
       <ChartWidget
         type="bar" title={t('financial.summary.cashFlow')} icon="BarChart3" categoryKey="name" data={data}
         series={[

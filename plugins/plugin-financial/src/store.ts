@@ -39,6 +39,7 @@ export interface FinancialUIState {
   summary: FinancialSummary | null
   summaryLoading: boolean
   summaryPeriod: 'week' | 'month' | 'total'
+  summaryBankAccountId?: string
 
   statement: StatementResult | null
   statementLoading: boolean
@@ -50,6 +51,7 @@ export interface FinancialUIState {
   // Actions
   fetchSummary(dateRange?: DateRange): Promise<void>
   setSummaryPeriod(period: 'week' | 'month' | 'total'): void
+  setSummaryBankAccountId(bankAccountId?: string): void
   fetchInvoices(query: InvoiceQuery): Promise<void>
   fetchBankAccounts(): Promise<void>
   fetchCashSessions(bankAccountId?: string): Promise<void>
@@ -91,6 +93,7 @@ export function createFinancialStore(provider: FinancialDataProvider): StoreApi<
     summary: null,
     summaryLoading: false,
     summaryPeriod: 'month',
+    summaryBankAccountId: undefined,
 
     statement: null,
     statementLoading: false,
@@ -100,15 +103,20 @@ export function createFinancialStore(provider: FinancialDataProvider): StoreApi<
     cardsLoading: false,
 
     async fetchSummary(dateRange) {
-      return dedup('fin:summary:' + JSON.stringify(dateRange ?? null), async () => {
+      const bankAccountId = get().summaryBankAccountId
+      return dedup('fin:summary:' + JSON.stringify({ dateRange: dateRange ?? null, bankAccountId: bankAccountId ?? null }), async () => {
         set({ summaryLoading: true })
-        const summary = await provider.getSummary(dateRange)
+        const summary = await provider.getSummary({ dateRange, bankAccountId })
         set({ summary, summaryLoading: false })
       })
     },
 
     setSummaryPeriod(period) {
       set({ summaryPeriod: period })
+    },
+
+    setSummaryBankAccountId(bankAccountId) {
+      set({ summaryBankAccountId: bankAccountId })
     },
 
     async fetchInvoices(query) {

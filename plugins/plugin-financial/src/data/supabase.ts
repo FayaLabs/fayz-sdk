@@ -7,7 +7,7 @@ import type {
   OpenCashSessionInput, CloseCashSessionInput, CreateBankAccountInput,
   InvoiceQuery, MovementQuery, StatementQuery,
   PaginatedResult, FinancialSummary, StatementEntry, StatementResult, CashSessionSummary,
-  DateRange, ReconciliationCandidate,
+  DateRange, SummaryQuery, ReconciliationCandidate,
 } from '../types'
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getFinancialTenantId } from '../lib/tenant'
@@ -114,6 +114,12 @@ async function fetchInvoiceBalances(
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100
+}
+
+function normalizeSummaryQuery(query?: DateRange | SummaryQuery): SummaryQuery {
+  if (!query) return {}
+  if ('from' in query || 'to' in query) return { dateRange: query as DateRange }
+  return query
 }
 
 /** Card/MDR fee percent for a configured payment method (0 when none / not a fee method). */
@@ -692,14 +698,19 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
     },
 
     // --- Summary ---
-    async getSummary(dateRange?: DateRange): Promise<FinancialSummary> {
+    async getSummary(query?: DateRange | SummaryQuery): Promise<FinancialSummary> {
       // Sweep overdue on first load (background, non-blocking)
       sweepOverdue()
+      const { dateRange, bankAccountId } = normalizeSummaryQuery(query)
       const { core, pub } = getClients()
-      const { data: accounts } = await pub.from('bank_accounts').select('current_balance').eq('is_active', true)
+      let accountsQuery = pub.from('bank_accounts').select('current_balance').eq('is_active', true)
+      if (bankAccountId) accountsQuery = accountsQuery.eq('id', bankAccountId)
+      const { data: accounts } = await accountsQuery
       const totalBalance = (accounts ?? []).reduce((s: number, a: any) => s + (a.current_balance ?? 0), 0)
 
-      const { data: movs } = await pub.from('financial_movements').select('direction, movement_kind, amount, paid_amount, status, due_date, payment_date')
+      let movsQuery = pub.from('financial_movements').select('direction, movement_kind, amount, paid_amount, status, due_date, payment_date, bank_account_id')
+      if (bankAccountId) movsQuery = movsQuery.eq('bank_account_id', bankAccountId)
+      const { data: movs } = await movsQuery
       const allMovs = movs ?? []
       const unpaid = allMovs.filter((m: any) => ['pending', 'partial', 'overdue'].includes(m.status))
       const today = new Date().toISOString().slice(0, 10)
