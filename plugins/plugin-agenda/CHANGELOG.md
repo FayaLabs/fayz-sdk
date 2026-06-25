@@ -1,5 +1,15 @@
 # @fayz-ai/plugin-agenda
 
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/ui@0.6.0
+  - @fayz-ai/core@0.6.0
+  - @fayz-ai/saas@0.6.0
+  - @fayz-ai/plugin-financial@0.1.7
+
 ## 0.1.7
 
 ### Patch Changes

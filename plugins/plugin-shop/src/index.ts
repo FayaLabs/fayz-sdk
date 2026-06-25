@@ -3,6 +3,7 @@ import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import { setShopTenantResolver } from '@fayz-ai/shop'
 import { useOrganizationStore } from '@fayz-ai/saas'
 import type { ShopProviderResolver } from './ShopPage'
+import { ShopSettings } from './components/ShopSettings'
 
 const ShopPage = React.lazy(() => import('./ShopPage').then((m) => ({ default: m.ShopPage })))
 
@@ -113,12 +114,7 @@ export function createShopPlugin(options?: ShopPluginOptions): PluginManifest {
         icon: 'ShoppingBag',
         component: (() => {
           const ShopSettingsTab: React.ComponentType<unknown> = () =>
-            React.createElement('div', { className: 'p-4 space-y-2' },
-              React.createElement('h2', { className: 'text-lg font-semibold' }, 'Configurações da Loja'),
-              React.createElement('p', { className: 'text-sm text-muted-foreground' },
-                `Moeda: ${curr.symbol} (${curr.code})`
-              )
-            )
+            React.createElement(ShopSettings, { currency: curr })
           ShopSettingsTab.displayName = 'ShopSettingsTab'
           return ShopSettingsTab
         })(),

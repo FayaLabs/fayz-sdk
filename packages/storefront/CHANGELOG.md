@@ -1,5 +1,16 @@
 # @fayz-ai/storefront
 
+## 0.6.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @fayz-ai/sdk@0.6.0
+  - @fayz-ai/ui@0.6.0
+  - @fayz-ai/core@0.6.0
+  - @fayz-ai/shop@0.6.0
+  - @fayz-ai/auth@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes

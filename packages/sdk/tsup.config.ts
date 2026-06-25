@@ -11,6 +11,7 @@ export default defineConfig({
     'ai-builder': 'src/ai-builder.ts',
     runtime: 'src/runtime.ts',
     types: 'src/types.ts',
+    vite: 'src/vite.ts',
   },
   format: ['esm', 'cjs'],
   dts: false,
@@ -18,4 +19,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
+  external: ['vite'],
 })

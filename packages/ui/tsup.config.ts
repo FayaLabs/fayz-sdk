@@ -12,6 +12,7 @@ export default defineConfig({
     'dashboard/index': 'src/dashboard/index.ts',
     // Pure Tailwind preset (no React) — safe to import from a postcss/tailwind config.
     preset: 'src/theme/preset.ts',
+    tailwind: 'src/tailwind.ts',
   },
   format: ['esm', 'cjs'],
   dts: false,

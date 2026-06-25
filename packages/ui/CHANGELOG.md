@@ -1,5 +1,21 @@
 # @fayz-ai/ui
 
+## 0.6.0
+
+### Minor Changes
+
+- Add shared build-config helpers so apps stop hand-maintaining vite/tailwind SDK wiring:
+
+  - `@fayz-ai/sdk/vite` exports `fayzVite(opts)` — resolves `@fayz-ai/*` from local SDK source when checked out next to the app (and `FAYZ_SDK_SOURCE !== 'published'`), else from node_modules (Fayz sandbox / published). Encapsulates the alias map, dedupe, conditions, optimizeDeps and `server.fs` once.
+  - `@fayz-ai/ui/tailwind` exports `fayzTailwind(opts)` — the Fayz UI preset + SDK content globs (node_modules + sibling checkout) in one call.
+
+  Eliminates the per-app existsSync guard, alias lists and content globs (and the drift that caused sandbox resolution failures).
+
+### Patch Changes
+
+- @fayz-ai/core@0.6.0
+- @fayz-ai/auth@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes

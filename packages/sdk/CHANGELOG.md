@@ -1,5 +1,22 @@
 # @fayz-ai/sdk
 
+## 0.6.1
+
+### Patch Changes
+
+- fix(vite): remove `vite` + `@vitejs/plugin-react` peer dependencies from `@fayz-ai/sdk`. Since sdk sits in every dependency path (app → plugins → core → sdk), declaring build-tool peers made npm's peer resolution explode and the editor install hang. `fayzVite` no longer bundles the React plugin — apps pass their own via `plugins: [react()]`, so sdk carries no build-tool deps.
+
+## 0.6.0
+
+### Minor Changes
+
+- Add shared build-config helpers so apps stop hand-maintaining vite/tailwind SDK wiring:
+
+  - `@fayz-ai/sdk/vite` exports `fayzVite(opts)` — resolves `@fayz-ai/*` from local SDK source when checked out next to the app (and `FAYZ_SDK_SOURCE !== 'published'`), else from node_modules (Fayz sandbox / published). Encapsulates the alias map, dedupe, conditions, optimizeDeps and `server.fs` once.
+  - `@fayz-ai/ui/tailwind` exports `fayzTailwind(opts)` — the Fayz UI preset + SDK content globs (node_modules + sibling checkout) in one call.
+
+  Eliminates the per-app existsSync guard, alias lists and content globs (and the drift that caused sandbox resolution failures).
+
 ## 0.5.0
 
 ### Minor Changes
