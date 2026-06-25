@@ -86,10 +86,21 @@ export function fayzVite(opts: FayzViteOptions = {}): UserConfig {
         ...(opts.aliases ?? {}),
         ...((userAlias as Record<string, string> | undefined) ?? {}),
       } as AliasOptions,
-      dedupe: userDedupe ?? ['react', 'react-dom', 'zustand'],
+      // lucide-react + @tanstack/react-table are pulled by both the app and
+      // every @fayz-ai/* package; without dedupe a version skew installs two
+      // copies and esbuild pre-bundles each barrel separately (lucide alone is
+      // ~1,500 icon modules). Collapsing to one copy is the single biggest cut
+      // to the editor-container optimize RAM/CPU spike.
+      dedupe: userDedupe ?? ['react', 'react-dom', 'zustand', 'lucide-react', '@tanstack/react-table'],
       conditions: useLocal ? ['source', 'browser', 'module', 'jsnext:main', 'jsnext'] : undefined,
     },
-    optimizeDeps: { exclude: useLocal ? Object.keys(localAliases) : [] },
+    // Pre-bundle the wide barrel deps up front so the first page load runs one
+    // deterministic esbuild pass instead of discovering them lazily and
+    // triggering repeated "re-optimizing dependencies" full-page reloads.
+    optimizeDeps: {
+      exclude: useLocal ? Object.keys(localAliases) : [],
+      include: ['lucide-react', '@tanstack/react-table'],
+    },
     // The preview-container runtime contract: Vite 5.4 host-check 403s any
     // non-local Host (browser iframe via Caddy, health probe via
     // host.docker.internal) unless allowedHosts is set. host/cors/headers keep

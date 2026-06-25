@@ -1,5 +1,11 @@
 # @fayz-ai/sdk
 
+## 0.6.3
+
+### Patch Changes
+
+- fayzVite: dedupe `lucide-react` + `@tanstack/react-table` and pre-`include` them in `optimizeDeps`. Collapses the dual `lucide-react` copies (~1,500 icon modules each) that a version skew between apps and `@fayz-ai/*` packages installed, cutting the editor preview-container install/optimize RAM peak.
+
 ## 0.6.2
 
 ### Patch Changes
