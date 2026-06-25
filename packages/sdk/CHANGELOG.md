@@ -1,5 +1,21 @@
 # @fayz-ai/sdk
 
+## 0.6.2
+
+### Patch Changes
+
+- fix(sdk): restore preview-container server contract in `fayzVite()`
+
+  The 0.6.0 `fayzVite()` helper stripped the dev-server hardening that the Fayz
+  editor's preview containers depend on, so every migrated app returned
+  `403 "Blocked request. This host is not allowed."` when reached via the real
+  preview hostname (browser iframe through Caddy) or the Docker health probe.
+
+  `fayzVite()` now emits the full template-equivalent `server` block —
+  `allowedHosts: true`, `cors: true`, `host: true`, and CORS `headers` — and
+  adds `server` / `resolve` override options (previously silently ignored) that
+  merge over the SDK defaults without dropping the contract.
+
 ## 0.6.1
 
 ### Patch Changes
