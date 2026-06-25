@@ -94,13 +94,7 @@ export function fayzVite(opts: FayzViteOptions = {}): UserConfig {
       dedupe: userDedupe ?? ['react', 'react-dom', 'zustand', 'lucide-react', '@tanstack/react-table'],
       conditions: useLocal ? ['source', 'browser', 'module', 'jsnext:main', 'jsnext'] : undefined,
     },
-    // Pre-bundle the wide barrel deps up front so the first page load runs one
-    // deterministic esbuild pass instead of discovering them lazily and
-    // triggering repeated "re-optimizing dependencies" full-page reloads.
-    optimizeDeps: {
-      exclude: useLocal ? Object.keys(localAliases) : [],
-      include: ['lucide-react', '@tanstack/react-table'],
-    },
+    optimizeDeps: { exclude: useLocal ? Object.keys(localAliases) : [] },
     // The preview-container runtime contract: Vite 5.4 host-check 403s any
     // non-local Host (browser iframe via Caddy, health probe via
     // host.docker.internal) unless allowedHosts is set. host/cors/headers keep

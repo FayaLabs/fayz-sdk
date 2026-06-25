@@ -1,5 +1,11 @@
 # @fayz-ai/sdk
 
+## 0.6.4
+
+### Patch Changes
+
+- fayzVite: drop the `optimizeDeps.include` added in 0.6.3. Forcing `@tanstack/react-table` (a transitive dep of the `@fayz-ai/*` plugins, not a direct app dep) into `include` made Vite fail to resolve it and 500 any page using the data-table primitive. The `dedupe` of `lucide-react` + `@tanstack/react-table` — which is what actually collapses the duplicate copies and cuts the preview-container RAM peak — is kept.
+
 ## 0.6.3
 
 ### Patch Changes
