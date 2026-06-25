@@ -1,5 +1,11 @@
 # @fayz-ai/sdk
 
+## 0.6.5
+
+### Patch Changes
+
+- fayzVite: drop `@tanstack/react-table` from `dedupe`. It's a transitive dep of the `@fayz-ai/*` plugins, not a direct app dep, so it isn't hoisted to the app's root `node_modules`; deduping it made Vite resolve it from the app root and 500 the aliased UI source (data-table) in local-source mode. Keep `lucide-react` dedupe (a direct dep) — that's what collapses the duplicate icon barrels and cuts the preview-container RAM peak.
+
 ## 0.6.4
 
 ### Patch Changes

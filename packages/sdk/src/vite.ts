@@ -86,12 +86,15 @@ export function fayzVite(opts: FayzViteOptions = {}): UserConfig {
         ...(opts.aliases ?? {}),
         ...((userAlias as Record<string, string> | undefined) ?? {}),
       } as AliasOptions,
-      // lucide-react + @tanstack/react-table are pulled by both the app and
-      // every @fayz-ai/* package; without dedupe a version skew installs two
-      // copies and esbuild pre-bundles each barrel separately (lucide alone is
-      // ~1,500 icon modules). Collapsing to one copy is the single biggest cut
-      // to the editor-container optimize RAM/CPU spike.
-      dedupe: userDedupe ?? ['react', 'react-dom', 'zustand', 'lucide-react', '@tanstack/react-table'],
+      // lucide-react is a direct dep of both the app and every @fayz-ai/*
+      // package; without dedupe a version skew installs two copies and esbuild
+      // pre-bundles each barrel separately (~1,500 icon modules each).
+      // Collapsing to one copy is the single biggest cut to the editor-container
+      // optimize RAM/CPU spike. Only dedupe deps the *app* directly depends on
+      // (so they're hoisted to its root node_modules) — deduping a transitive
+      // like @tanstack/react-table makes Vite resolve it from the app root,
+      // which fails in local-source mode and 500s the aliased UI source.
+      dedupe: userDedupe ?? ['react', 'react-dom', 'zustand', 'lucide-react'],
       conditions: useLocal ? ['source', 'browser', 'module', 'jsnext:main', 'jsnext'] : undefined,
     },
     optimizeDeps: { exclude: useLocal ? Object.keys(localAliases) : [] },
