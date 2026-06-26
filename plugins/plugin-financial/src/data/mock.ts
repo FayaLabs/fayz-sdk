@@ -7,7 +7,7 @@ import type {
   OpenCashSessionInput, CloseCashSessionInput, CreateBankAccountInput,
   InvoiceQuery, MovementQuery, StatementQuery,
   PaginatedResult, FinancialSummary, StatementEntry, StatementResult, CashSessionSummary,
-  DateRange, InvoiceStatus, MovementStatus,
+  DateRange, SummaryQuery, InvoiceStatus, MovementStatus,
 } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -29,6 +29,12 @@ function today(): string {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100
+}
+
+function normalizeSummaryQuery(query?: DateRange | SummaryQuery): SummaryQuery {
+  if (!query) return {}
+  if ('from' in query || 'to' in query) return { dateRange: query as DateRange }
+  return query
 }
 
 function matchesDateRange(dateStr: string | undefined, range?: DateRange): boolean {
@@ -614,16 +620,19 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
     },
 
     // --- Summary ---
-    async getSummary(dateRange?: DateRange): Promise<FinancialSummary> {
+    async getSummary(query?: DateRange | SummaryQuery): Promise<FinancialSummary> {
+      const { dateRange, bankAccountId } = normalizeSummaryQuery(query)
       const totalBalance = store.bankAccounts
-        .filter((a) => a.isActive)
+        .filter((a) => a.isActive && (!bankAccountId || a.id === bankAccountId))
         .reduce((sum, a) => sum + a.currentBalance, 0)
 
       const pendingReceivable = store.movements.filter((m) =>
         m.direction === 'credit' && m.movementKind === 'bill' && ['pending', 'partial'].includes(m.status)
+        && (!bankAccountId || m.bankAccountId === bankAccountId)
       )
       const pendingPayable = store.movements.filter((m) =>
         m.direction === 'debit' && m.movementKind === 'bill' && ['pending', 'partial'].includes(m.status)
+        && (!bankAccountId || m.bankAccountId === bankAccountId)
       )
 
       const todayStr = today()
@@ -632,6 +641,7 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
 
       const monthMovements = store.movements.filter((m) =>
         m.movementKind === 'payment' && matchesDateRange(m.paymentDate, dateRange ?? { from: monthStart, to: monthEnd })
+        && (!bankAccountId || m.bankAccountId === bankAccountId)
       )
 
       const overdueReceivable = pendingReceivable.filter((m) => m.dueDate < todayStr)

@@ -6,7 +6,7 @@ import type {
   OpenCashSessionInput, CloseCashSessionInput, CreateBankAccountInput,
   InvoiceQuery, MovementQuery, StatementQuery,
   PaginatedResult, FinancialSummary, StatementResult, CashSessionSummary,
-  DateRange,
+  DateRange, SummaryQuery,
   ImportBankTransactionsInput, ImportBankTransactionsResult,
   UnreconciledQuery, ReconciliationCandidate, ReconcileInput,
 } from '../types'
@@ -54,7 +54,7 @@ export interface FinancialDataProvider {
   getStatement(query: StatementQuery): Promise<StatementResult>
 
   // --- Summary / Dashboard ---
-  getSummary(dateRange?: DateRange): Promise<FinancialSummary>
+  getSummary(query?: DateRange | SummaryQuery): Promise<FinancialSummary>
 
   // --- Reconciliation (conciliação) ---
   // Optional: implemented by providers that back the matching UI. A bank

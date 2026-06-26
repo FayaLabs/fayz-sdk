@@ -156,7 +156,7 @@ export function ConnectorsHub({ connectors }: { connectors: ConnectorDefinition[
     return <p className="text-sm text-muted-foreground py-8 text-center">{t('connectors.empty')}</p>
   }
   return (
-    <div className="space-y-3 max-w-3xl">
+    <div className="w-full space-y-3">
       {connectors.map((c) => <ConnectorCard key={c.id} connector={c} />)}
     </div>
   )

@@ -11,11 +11,80 @@ import {
 import { FinancialContextProvider, useFinancialConfig, useFinancialStore, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
 import type { FinancialDataProvider } from '../data/types'
 import type { FinancialUIState } from '../store'
-import type { Invoice } from '../types'
+import type { DateRange, Invoice } from '../types'
+
+type SummaryPeriod = 'week' | 'month' | 'total'
+
+function formatDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function rangeForPeriod(period: SummaryPeriod): DateRange {
+  const today = new Date()
+  if (period === 'total') return { from: '0001-01-01', to: '9999-12-31' }
+  if (period === 'week') {
+    const monday = new Date(today)
+    const day = monday.getDay()
+    monday.setDate(monday.getDate() - (day === 0 ? 6 : day - 1))
+    const sunday = new Date(monday)
+    sunday.setDate(sunday.getDate() + 6)
+    return { from: formatDateKey(monday), to: formatDateKey(sunday) }
+  }
+  return {
+    from: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`,
+    to: formatDateKey(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
+  }
+}
+
+function periodLabel(t: ReturnType<typeof useTranslation>, period: SummaryPeriod): string {
+  if (period === 'week') return t('financial.summary.weeklyFlow')
+  if (period === 'total') return t('financial.summary.totalFlow')
+  return t('financial.summary.monthlyFlow')
+}
 
 function useEnsureSummary() {
   const fetchSummary = useFinancialStore((s) => s.fetchSummary)
-  useEffect(() => { void fetchSummary() }, [])
+  const fetchBankAccounts = useFinancialStore((s) => s.fetchBankAccounts)
+  const period = useFinancialStore((s) => s.summaryPeriod)
+  const bankAccountId = useFinancialStore((s) => s.summaryBankAccountId)
+  useEffect(() => { void fetchBankAccounts() }, [fetchBankAccounts])
+  useEffect(() => { void fetchSummary(rangeForPeriod(period)) }, [fetchSummary, period, bankAccountId])
+}
+
+function SummaryControls() {
+  const t = useTranslation()
+  const period = useFinancialStore((s) => s.summaryPeriod)
+  const setPeriod = useFinancialStore((s) => s.setSummaryPeriod)
+  const bankAccounts = useFinancialStore((s) => s.bankAccounts)
+  const bankAccountId = useFinancialStore((s) => s.summaryBankAccountId)
+  const setBankAccountId = useFinancialStore((s) => s.setSummaryBankAccountId)
+  const activeAccount = bankAccounts.find((account) => account.id === bankAccountId)
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <select
+        className="rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-muted"
+        value={bankAccountId ?? ''}
+        onChange={(event) => setBankAccountId(event.target.value || undefined)}
+        aria-label={t('financial.summary.accountFilter')}
+      >
+        <option value="">{t('financial.summary.allAccounts')}</option>
+        {bankAccounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+      </select>
+      <div className="flex gap-1" role="group" aria-label={t('financial.summary.flowPeriod')}>
+        {(['week', 'month', 'total'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setPeriod(option)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${period === option ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+          >
+            {t(`financial.summary.period.${option}`)}
+          </button>
+        ))}
+      </div>
+      {activeAccount && <span className="w-full text-right text-[11px] text-muted-foreground">{t('financial.summary.filteredBy', { account: activeAccount.name })}</span>}
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -26,9 +95,12 @@ function TotalBalanceKpi() {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
   const summary = useFinancialStore((s) => s.summary)
+  const bankAccountId = useFinancialStore((s) => s.summaryBankAccountId)
+  const bankAccounts = useFinancialStore((s) => s.bankAccounts)
   const loading = useFinancialStore((s) => s.summaryLoading)
   useEnsureSummary()
-  return <KpiCard label={t('financial.summary.totalBalance')} icon="Wallet" value={formatCurrency(summary?.totalBalance ?? 0, currency)} sub={loading ? undefined : t('financial.summary.allAccounts')} />
+  const account = bankAccounts.find((item) => item.id === bankAccountId)
+  return <KpiCard label={t('financial.summary.totalBalance')} icon="Wallet" value={formatCurrency(summary?.totalBalance ?? 0, currency)} sub={loading ? undefined : (account?.name ?? t('financial.summary.allAccounts'))} />
 }
 
 function ReceivableKpi() {
@@ -51,10 +123,11 @@ function MonthlyFlowKpi() {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
   const summary = useFinancialStore((s) => s.summary)
+  const period = useFinancialStore((s) => s.summaryPeriod)
   useEnsureSummary()
   const inflow = summary?.monthlyInflow ?? 0
   const outflow = summary?.monthlyOutflow ?? 0
-  return <KpiCard label={t('financial.summary.monthlyFlow')} icon="BarChart3" value={formatCurrency(inflow - outflow, currency)} sub={inflow >= outflow ? t('financial.summary.positiveBalance') : t('financial.summary.negativeBalance')} />
+  return <KpiCard label={periodLabel(t, period)} icon="BarChart3" value={formatCurrency(inflow - outflow, currency)} sub={inflow >= outflow ? t('financial.summary.positiveBalance') : t('financial.summary.negativeBalance')} />
 }
 
 // ---------------------------------------------------------------------------
@@ -64,16 +137,20 @@ function MonthlyFlowKpi() {
 function CashFlowChart() {
   const t = useTranslation()
   const summary = useFinancialStore((s) => s.summary)
+  const period = useFinancialStore((s) => s.summaryPeriod)
   useEnsureSummary()
-  const data = [{ name: t('financial.summary.cashFlow'), income: summary?.monthlyInflow ?? 0, expenses: summary?.monthlyOutflow ?? 0 }]
+  const data = [{ name: periodLabel(t, period), income: summary?.monthlyInflow ?? 0, expenses: summary?.monthlyOutflow ?? 0 }]
   return (
-    <ChartWidget
-      type="bar" title={t('financial.summary.cashFlow')} icon="BarChart3" categoryKey="name" data={data}
-      series={[
-        { dataKey: 'income', label: t('financial.summary.income'), color: 'hsl(var(--success))' },
-        { dataKey: 'expenses', label: t('financial.summary.expenses'), color: 'hsl(var(--destructive))' },
-      ]}
-    />
+    <div className="space-y-2">
+      <SummaryControls />
+      <ChartWidget
+        type="bar" title={t('financial.summary.cashFlow')} icon="BarChart3" categoryKey="name" data={data}
+        series={[
+          { dataKey: 'income', label: t('financial.summary.income'), color: 'hsl(var(--success))' },
+          { dataKey: 'expenses', label: t('financial.summary.expenses'), color: 'hsl(var(--destructive))' },
+        ]}
+      />
+    </div>
   )
 }
 
