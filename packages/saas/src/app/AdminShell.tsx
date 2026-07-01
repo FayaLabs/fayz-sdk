@@ -441,7 +441,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
         >
           {match?.route.fullBleed
             ? <div className="h-full min-h-0 overflow-hidden">{activeContent}</div>
-            : <div className="space-y-6 p-6">{activeContent}</div>}
+            : <div className="space-y-4 p-3 md:space-y-6 md:p-6">{activeContent}</div>}
         </PageTransition>
       ) : (
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">

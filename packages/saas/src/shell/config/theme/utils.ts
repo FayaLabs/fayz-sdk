@@ -117,6 +117,20 @@ export function resolveTheme(theme: SaasTheme): CreateThemeOptions {
     if (sidebar.muted) colors.sidebarMuted = sidebar.muted
   }
 
+  // Brand shorthand — derive primary/ring/accent here so a `{ brand, sidebar }` SaasTheme
+  // still gets the branded primary, not just the preset's neutral one (regression fix).
+  if (theme.brand) {
+    colors.primary = theme.brand
+    colors.primaryForeground = '0 0% 100%'
+    colors.ring = theme.brand
+    const bp = theme.brand.split(' ')
+    if (bp.length >= 3) {
+      const hue = (parseFloat(bp[0]) - 50 + 360) % 360
+      colors.accent = `${hue} ${bp[1]} ${bp[2]}`
+      colors.accentForeground = '0 0% 100%'
+    }
+  }
+
   // --- Dark mode colors (only sidebar + brand — let darkTheme handle the rest) ---
   const darkColors: Partial<SemanticColors> = {}
 
