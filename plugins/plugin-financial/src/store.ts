@@ -189,11 +189,16 @@ export function createFinancialStore(provider: FinancialDataProvider): StoreApi<
           const direction: 'debit' | 'credit' = input.type === 'income' ? 'credit' : 'debit'
           const desc = input.description?.trim() || (input.type === 'income' ? 'Receita' : 'Despesa')
           // 1. The obligation (invoice + bill movement).
+          // Persist the recurring flag + the snapped-receipt data URL (FAY-1226)
+          // on the invoice metadata so the transaction feed can indicate/preview it.
+          const invoiceMeta: Record<string, unknown> = {}
+          if (input.recurring) invoiceMeta.recurring = true
+          if (input.receiptUrl) invoiceMeta.receiptUrl = input.receiptUrl
           const invoice = await provider.createInvoice({
             direction,
             invoiceDate: input.date,
             contactName: desc,
-            metadata: input.recurring ? { recurring: true } : undefined,
+            metadata: Object.keys(invoiceMeta).length > 0 ? invoiceMeta : undefined,
             items: [{
               itemKind: 'other',
               description: desc,

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react'
 import {
   ShoppingCart, Car, Home, Utensils, Zap, Film, HeartPulse, Dumbbell,
-  Music, ShoppingBag, Landmark, Wallet, CircleDollarSign,
+  Music, ShoppingBag, Landmark, Wallet, CircleDollarSign, Paperclip,
 } from 'lucide-react'
 import { DashboardCanvas } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
@@ -158,6 +158,8 @@ function MobileSummary() {
                   const category = isCredit ? t('financial.summary.income') : t('financial.summary.expenses')
                   const acct = accountName(e.movement.bankAccountId)
                   const subtitle = acct ? `${category} · ${acct}` : category
+                  // FAY-1226: a snapped receipt lives on the invoice metadata.
+                  const receiptUrl = (e.invoice?.metadata as { receiptUrl?: string } | undefined)?.receiptUrl
                   return (
                     <div key={e.movement.id} className="flex items-center gap-3 px-3 py-2.5">
                       <span
@@ -170,9 +172,21 @@ function MobileSummary() {
                         <Icon className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{title}</p>
+                        <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                          {title}
+                          {receiptUrl && (
+                            <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" aria-label={t('financial.quickTx.receiptAttached')} />
+                          )}
+                        </p>
                         <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
                       </div>
+                      {receiptUrl && (
+                        <img
+                          src={receiptUrl}
+                          alt={t('financial.quickTx.receiptAttached')}
+                          className="h-9 w-9 shrink-0 rounded-md border object-cover"
+                        />
+                      )}
                       <span className={`shrink-0 text-sm font-semibold ${isCredit ? 'text-success' : 'text-destructive'}`}>
                         {isCredit ? '+' : '-'}{fmt(e.net)}
                       </span>

@@ -10,7 +10,7 @@ import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel 
 import { SummaryView } from './views/SummaryView'
 import { QuickTransactionForm } from './views/QuickTransactionForm'
 import type { QuickTransactionType } from './types'
-import { Plus } from 'lucide-react'
+import { Plus, Camera } from 'lucide-react'
 import { Button } from '@fayz-ai/ui'
 import { PayablesView } from './views/PayablesView'
 import { ReceivablesView } from './views/ReceivablesView'
@@ -186,8 +186,18 @@ export function FinancialPage({ config, provider, store, registries }: {
   // button on desktop + a thumb-reachable FAB on mobile.
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [quickAddType, setQuickAddType] = useState<QuickTransactionType>('expense')
+  // FAY-1226 "snap a receipt": when true, the sheet foregrounds the attachment
+  // step + auto-opens the camera/gallery picker.
+  const [quickAddReceipt, setQuickAddReceipt] = useState(false)
   const openQuickAdd = useCallback((type: QuickTransactionType = 'expense') => {
     setQuickAddType(type)
+    setQuickAddReceipt(false)
+    setQuickAddOpen(true)
+  }, [])
+  // Start straight from a receipt → it becomes an expense with the image attached.
+  const openReceiptCapture = useCallback(() => {
+    setQuickAddType('expense')
+    setQuickAddReceipt(true)
     setQuickAddOpen(true)
   }, [])
 
@@ -291,6 +301,15 @@ export function FinancialPage({ config, provider, store, registries }: {
           <div className="flex items-center gap-2">
             <Button
               size="sm"
+              variant="outline"
+              className="hidden md:inline-flex"
+              onClick={openReceiptCapture}
+            >
+              <Camera className="h-4 w-4" />
+              {t('financial.quickTx.sendReceipt')}
+            </Button>
+            <Button
+              size="sm"
               className="hidden md:inline-flex"
               onClick={() => openQuickAdd('expense')}
             >
@@ -307,19 +326,30 @@ export function FinancialPage({ config, provider, store, registries }: {
       >
         {renderView()}
 
-        {/* Mobile FAB — thumb-reachable, sits above the app bottom-nav */}
-        <button
-          onClick={() => openQuickAdd('expense')}
-          aria-label={t('financial.quickTx.newTransaction')}
-          className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95 md:hidden"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+        {/* Mobile FABs — thumb-reachable, stacked above the app bottom-nav.
+            Secondary "Enviar recibo" (camera) sits above the primary quick-add. */}
+        <div className="fixed bottom-20 right-4 z-40 flex flex-col items-center gap-3 md:hidden">
+          <button
+            onClick={openReceiptCapture}
+            aria-label={t('financial.quickTx.sendReceipt')}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-primary shadow-lg ring-1 ring-border transition-transform active:scale-95"
+          >
+            <Camera className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => openQuickAdd('expense')}
+            aria-label={t('financial.quickTx.newTransaction')}
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        </div>
 
         <QuickTransactionForm
           open={quickAddOpen}
           onOpenChange={setQuickAddOpen}
           defaultType={quickAddType}
+          focusReceipt={quickAddReceipt}
         />
       </ModulePage>
     </FinancialContextProvider>

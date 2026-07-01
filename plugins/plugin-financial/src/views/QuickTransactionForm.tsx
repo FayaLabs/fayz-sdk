@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Check, ChevronDown,
-  Tag, Wallet, Repeat, Paperclip, CalendarDays, X,
+  Tag, Wallet, Repeat, Paperclip, CalendarDays, X, Camera,
 } from 'lucide-react'
 import {
   Modal, ModalContent, Button, DatePicker, toast,
@@ -140,12 +140,18 @@ function TogglePill({ icon: Icon, label, checked, onChange, accent }: {
 // Quick transaction form — responsive (mobile fullscreen sheet / desktop modal)
 // ---------------------------------------------------------------------------
 
-export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expense', defaultAccountId }: {
+export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expense', defaultAccountId, focusReceipt = false }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultType?: QuickTransactionType
   /** Preselect an account (e.g. opening from a specific card tile → log an expense against it). */
   defaultAccountId?: string
+  /**
+   * FAY-1226 "snap a receipt": open with the attachment step foregrounded — a
+   * prominent capture card at the top of the sheet + auto-open the image picker
+   * (mobile offers the camera). Used by the "Enviar recibo" entry point.
+   */
+  focusReceipt?: boolean
 }) {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
@@ -163,6 +169,9 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
   const [toAccountId, setToAccountId] = useState<string | undefined>()
   const [recurring, setRecurring] = useState(false)
   const [saving, setSaving] = useState(false)
+  // FAY-1226: the snapped receipt image, held in-memory as a data URL.
+  const [receiptUrl, setReceiptUrl] = useState<string | undefined>()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [categories, setCategories] = useState<ChartOfAccountsNode[]>([])
@@ -180,7 +189,37 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
     setAccountId(defaultAccountId)
     setToAccountId(undefined)
     setRecurring(false)
+    setReceiptUrl(undefined)
   }, [open, defaultType, defaultAccountId])
+
+  // "Enviar recibo" flow: auto-open the picker so the user goes straight to the
+  // camera/gallery. Fires once per open; harmless if the browser needs a tap.
+  useEffect(() => {
+    if (open && focusReceipt) {
+      const id = window.setTimeout(() => fileInputRef.current?.click(), 250)
+      return () => window.clearTimeout(id)
+    }
+  }, [open, focusReceipt])
+
+  // Read the selected image into a data URL (mock has no Supabase bucket).
+  function onPickReceipt(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    // Reset the input so re-picking the same file still fires onChange.
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('financial.quickTx.receiptInvalid'))
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setReceiptUrl(typeof reader.result === 'string' ? reader.result : undefined)
+      // TODO(FAY-1230): Claude-vision OCR auto-fill from the receipt image —
+      // prefill amount / merchant (description) / category from `reader.result`.
+    }
+    reader.onerror = () => toast.error(t('financial.quickTx.receiptInvalid'))
+    reader.readAsDataURL(file)
+  }
 
   // Load pickers once when opened.
   useEffect(() => {
@@ -245,6 +284,7 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
         bankAccountId: accountId,
         toAccountId: type === 'transfer' ? toAccountId : undefined,
         recurring: type === 'transfer' ? false : recurring,
+        receiptUrl: type === 'transfer' ? undefined : receiptUrl,
       })
       onOpenChange(false)
     } catch {
@@ -356,6 +396,61 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
             />
           </div>
 
+          {/* FAY-1226 receipt attachment — snap/attach an image (data URL in mock).
+              Hidden picker; `capture=environment` makes mobile offer the camera. */}
+          {type !== 'transfer' && (
+            <div>
+              <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Paperclip className="h-3.5 w-3.5" /> {t('financial.quickTx.receipt')}
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={onPickReceipt}
+              />
+              {receiptUrl ? (
+                <div className="flex items-center gap-3 rounded-input border border-input bg-card p-2 shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)]">
+                  <img
+                    src={receiptUrl}
+                    alt={t('financial.quickTx.receipt')}
+                    className="h-16 w-16 shrink-0 rounded-md border object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{t('financial.quickTx.receiptAttached')}</p>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {t('financial.quickTx.receiptReplace')}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReceiptUrl(undefined)}
+                    aria-label={t('financial.quickTx.receiptRemove')}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex w-full items-center justify-center gap-2 rounded-input border border-dashed px-3 py-3 text-sm font-medium transition-colors hover:bg-muted/30 ${
+                    focusReceipt ? 'border-primary text-primary ring-1 ring-primary/30' : 'border-input text-muted-foreground'
+                  }`}
+                >
+                  <Camera className="h-4 w-4" /> {t('financial.quickTx.receiptCapture')}
+                </button>
+              )}
+            </div>
+          )}
+
           {type === 'transfer' ? (
             <div className="grid grid-cols-1 gap-3">
               <ChipSelect
@@ -396,7 +491,7 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
             </div>
           )}
 
-          {/* Recurring + attachment (attachment is a stub — receipts are FAY-1226) */}
+          {/* Recurring + attachment (Anexo now opens the receipt picker — FAY-1226) */}
           {type !== 'transfer' && (
             <div className="flex flex-wrap gap-2">
               <TogglePill
@@ -407,11 +502,16 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
               />
               <button
                 type="button"
-                disabled
-                title={t('financial.quickTx.attachmentSoon')}
-                className="flex items-center gap-2 rounded-full border border-dashed border-input px-3 py-2 text-xs font-medium text-muted-foreground opacity-60"
+                onClick={() => fileInputRef.current?.click()}
+                title={t('financial.quickTx.attachment')}
+                className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
+                  receiptUrl
+                    ? 'border-transparent bg-primary text-primary-foreground'
+                    : 'border-input bg-card text-muted-foreground hover:bg-muted/40'
+                }`}
               >
                 <Paperclip className="h-3.5 w-3.5" /> {t('financial.quickTx.attachment')}
+                {receiptUrl && <Check className="h-3.5 w-3.5" />}
               </button>
             </div>
           )}

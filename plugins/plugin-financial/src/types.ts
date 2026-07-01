@@ -384,6 +384,12 @@ export interface QuickTransactionInput {
   toAccountId?: string
   /** Marks the transaction as recurring (stored in metadata; UI affordance). */
   recurring?: boolean
+  /**
+   * FAY-1226 "snap a receipt": a captured/attached receipt image as a data URL
+   * (mock mode has no Supabase bucket). Persisted on the created invoice's
+   * metadata so the transaction feed can show a 📎 indicator + preview.
+   */
+  receiptUrl?: string
 }
 
 export interface TransferResult {
