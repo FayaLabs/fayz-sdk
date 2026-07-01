@@ -133,10 +133,26 @@ function createSampleSchedules(): Schedule[] {
 // Mock provider factory
 // ---------------------------------------------------------------------------
 
-export function createMockAgendaProvider(): AgendaDataProvider {
-  const bookings: CalendarBooking[] = createSampleBookings()
-  const schedules: Schedule[] = createSampleSchedules()
-  const professionals: Professional[] = [...SAMPLE_PROFESSIONALS]
+/**
+ * Pre-populated agenda data. Any omitted collection falls back to the built-in
+ * salon-style sample. Pass `bookings` (and optionally an empty `professionals`)
+ * to render a calendar seeded with app-specific events.
+ */
+export interface MockAgendaSeed {
+  bookings?: CalendarBooking[]
+  professionals?: Professional[]
+  schedules?: Schedule[]
+}
+
+export interface MockAgendaProviderOptions {
+  seed?: MockAgendaSeed
+}
+
+export function createMockAgendaProvider(options?: MockAgendaProviderOptions): AgendaDataProvider {
+  const seed = options?.seed
+  const bookings: CalendarBooking[] = seed?.bookings ? [...seed.bookings] : createSampleBookings()
+  const schedules: Schedule[] = seed?.schedules ? [...seed.schedules] : createSampleSchedules()
+  const professionals: Professional[] = seed?.professionals ? [...seed.professionals] : [...SAMPLE_PROFESSIONALS]
 
   return {
     async getLocations(): Promise<Array<{ id: string; name: string }>> {

@@ -1,5 +1,5 @@
 import React from 'react'
-import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
+import type { PluginManifest, PluginRegistryDef, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { EntityLookupMap } from '@fayz-ai/saas'
 import { FinancialPage } from './FinancialPage'
 import { createFinancialDashboardWidgets } from './views/dashboardWidgets'
@@ -109,6 +109,9 @@ export interface FinancialPluginOptions {
   /** Contact/person lookup for "Pay to" / "Receive from" fields. Queries persons archetype. */
   contactLookup?: import('@fayz-ai/saas').EntityLookup
 
+  /** App-owned registries shown under /settings/financial Properties. */
+  settingsRegistries?: PluginRegistryDef[]
+
   /** Callback when user clicks a booking link on an invoice. Receives the order ID. */
   onBookingClick?: (orderId: string) => void
 }
@@ -188,6 +191,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
   const provider = options?.dataProvider ?? createSafeFinancialProvider()
   const store = createFinancialStore(provider)
   const dashboardWidgets = createFinancialDashboardWidgets({ config, provider, store })
+  const registries = [...financialRegistries, ...(options?.settingsRegistries ?? [])]
 
   // Per-person statement tab (account_central-style): bound to this plugin's provider.
   const PersonStatementBound: React.FC<any> = (props) =>
@@ -195,7 +199,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
   PersonStatementBound.displayName = 'FinancialPersonStatement'
 
   const PageComponent: React.FC<any> = () =>
-    React.createElement(FinancialPage, { config, provider, store, registries: financialRegistries })
+    React.createElement(FinancialPage, { config, provider, store, registries })
 
   return {
     id: 'financial',
@@ -301,7 +305,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
         ],
       },
     ],
-    registries: financialRegistries,
+    registries,
     settings: [
       {
         id: 'financial',
@@ -313,7 +317,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
               title: 'Financial Settings',
               subtitle: 'Payment methods, accounts, and configurations',
               generalSettings: React.createElement(FinancialGeneralSettings),
-              registries: financialRegistries,
+              registries,
               hostPluginId: 'financial',
               routeBase: '/settings/financial',
             })
@@ -331,3 +335,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
 // Re-export types and factories for consumers
 export type { FinancialDataProvider } from './data/types'
 export type { ResolvedFinancialConfig } from './FinancialContext'
+// Seedable in-memory provider — apps pass a seed to render the module populated
+// (demo/dogfood data) instead of the empty onboarding state.
+export { createMockFinancialProvider } from './data/mock'
+export type { MockFinancialSeed, MockFinancialProviderOptions } from './data/mock'

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import { useTranslation } from '@fayz-ai/core'
 import { ModulePage, PageTransition, type ModuleNavItem } from '@fayz-ai/ui'
@@ -159,6 +159,18 @@ export function FinancialPage({ config, provider, store, registries }: {
   const [onboardingComplete, setOnboardingComplete] = useState(() => {
     try { return localStorage.getItem('saas-core:financial-onboarded') === 'true' } catch { return false }
   })
+
+  // Skip the welcome wizard when the provider already has transactions — a user
+  // (or a seeded demo/dogfood provider) with existing data should land on the
+  // populated Summary, not a "let's get started" flow.
+  useEffect(() => {
+    if (onboardingComplete) return
+    let cancelled = false
+    void provider.getMovements({ pageSize: 1 })
+      .then((res) => { if (!cancelled && res.total > 0) setOnboardingComplete(true) })
+      .catch(() => { /* leave onboarding as-is on error */ })
+    return () => { cancelled = true }
+  }, [onboardingComplete, provider])
 
   const t = useTranslation()
   const intent = parseIntent(view)
