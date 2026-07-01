@@ -288,8 +288,12 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   const storeLocations = useAgendaStore((s) => s.locations)
 
   // --- State ---
+  // Default to the first configured booking type (e.g. 'event' in simple mode,
+  // 'appointment' otherwise) so single-type agendas resolve their type cleanly.
+  const defaultBookingType = (config.bookingTypes[0]?.id ?? 'appointment') as BookingTypeId
   const [loading, setLoading] = useState(mode === 'edit')
-  const [bookingType, setBookingType] = useState<BookingTypeId>(prefill?.kind ?? 'appointment')
+  const [bookingType, setBookingType] = useState<BookingTypeId>(prefill?.kind ?? defaultBookingType)
+  const [title, setTitle] = useState('')
   const [clientId, setClientId] = useState(prefill?.clientId ?? '')
   const [clientSearch, setClientSearch] = useState('')
   const [clientPhone, setClientPhone] = useState('')
@@ -350,7 +354,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
     setServiceSearch(''); setNotes(''); setStatus('scheduled'); setShowNotes(false)
     setConflict(false); setLoading(mode === 'edit')
     setQuickCreate(false); setNewClientName(''); setNewClientPhone(''); setNewClientEmail(''); setCreatingClient(false)
-    setBookingType(prefill?.kind ?? 'appointment')
+    setBookingType(prefill?.kind ?? defaultBookingType); setTitle('')
     setEditingDate(false); setEditingTime(false); setConfirmingDelete(false); setDeleting(false)
     setEditOrderId(null); setEditOrderTotal(0); setEditPaymentStatus('none'); setPaymentStatusLoading(false)
     setClientData(null); setClientDataLoading(false); setClientEditing(false)
@@ -376,7 +380,8 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
     setLoading(true)
     provider.getBookingById(bookingId).then((b) => {
       if (!b) { setLoading(false); return }
-      setBookingType((b.kind as BookingTypeId) ?? 'appointment')
+      setBookingType((b.kind as BookingTypeId) ?? defaultBookingType)
+      setTitle(b.clientName ?? '')
       setClientId(b.clientId ?? ''); setClientSearch(b.clientName ?? '')
       setProfessionalId(b.professionalId ?? ''); setLocationId(b.locationId ?? '')
       setDate(b.startsAt.slice(0, 10))
@@ -393,6 +398,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
       // Save initial snapshot for dirty check
       const svcSnap = b.services ? b.services.map((s: any) => ({ id: s.serviceId ?? '', dur: s.durationMinutes, price: s.price })) : []
       initialSnapshot.current = JSON.stringify({
+        title: b.clientName ?? '',
         clientId: b.clientId ?? '', professionalId: b.professionalId ?? '', locationId: b.locationId ?? '',
         date: b.startsAt.slice(0, 10),
         startTime: `${String(new Date(b.startsAt).getHours()).padStart(2, '0')}:${String(new Date(b.startsAt).getMinutes()).padStart(2, '0')}`,
@@ -514,12 +520,14 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
       const startsAt = new Date(`${date}T${startTime}:00`).toISOString()
       if (mode === 'create') {
         const newBooking = await createBooking({ kind: bookingType, clientId, professionalId, locationId: locationId || undefined, startsAt, notes: notes || undefined,
+          title: activeType.fields.title ? title.trim() : undefined,
           services: services.map((s: any) => ({ serviceId: s.serviceId, name: s.name, durationMinutes: s.durationMinutes, price: s.price })) })
         onClose()
         onCreated?.(newBooking.id, externalSource)
       } else if (bookingId) {
         await updateBooking(bookingId, {
           clientId, professionalId, locationId: locationId || undefined, startsAt, notes: notes || undefined, status: status as any,
+          title: activeType.fields.title ? title.trim() : undefined,
           services: services.map((s: any) => ({ serviceId: s.serviceId, name: s.name, durationMinutes: s.durationMinutes, price: s.price })),
         })
         if (status === 'cancelled' && config.cancellationDetails && cancellationReasonId) {
@@ -550,12 +558,13 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
 
   // Dirty check — only enable Update when something changed
   const formSnapshot = useMemo(() =>
-    JSON.stringify({ clientId, professionalId, locationId, date, startTime, status, notes, cancellationReasonId, cancellationNotes, services: services.map((s: any) => ({ id: s.serviceId, dur: s.durationMinutes, price: s.price })) }),
-    [clientId, professionalId, locationId, date, startTime, status, notes, cancellationReasonId, cancellationNotes, services]
+    JSON.stringify({ title, clientId, professionalId, locationId, date, startTime, status, notes, cancellationReasonId, cancellationNotes, services: services.map((s: any) => ({ id: s.serviceId, dur: s.durationMinutes, price: s.price })) }),
+    [title, clientId, professionalId, locationId, date, startTime, status, notes, cancellationReasonId, cancellationNotes, services]
   )
   const isDirty = mode === 'create' || formSnapshot !== initialSnapshot.current
 
   const canSubmit = (
+    (!activeType.fields.title || title.trim()) &&
     (!activeType.requiresClient || clientId) &&
     (!activeType.fields.professional || professionalId) &&
     (!activeType.requiresServices || services.length > 0) &&
@@ -777,6 +786,16 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
             )}
 
             {!loading && <>
+
+            {/* Title — free-text event name (simple / Google-Calendar-style events) */}
+            {activeType.fields.title && (
+              <div className="flex items-center gap-3 py-1">
+                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t('agenda.appointment.addTitle')} autoFocus={mode === 'create'}
+                  className="w-full flex-1 rounded-input border border-input bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2.5 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+            )}
 
             {/* Client */}
             {activeType.fields.client && (

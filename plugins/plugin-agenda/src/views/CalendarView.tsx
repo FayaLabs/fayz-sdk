@@ -237,9 +237,9 @@ const RESOURCE_VIEW_OPTIONS = [
 // resource columns and drops events that have no resourceId, so those apps fall
 // back to a plain month/day/week calendar.
 const PLAIN_VIEW_OPTIONS = [
-  { key: 'timeGridDay', labelKey: 'agenda.calendar.viewDay' },
-  { key: 'timeGridWeek', labelKey: 'agenda.calendar.viewWeek' },
   { key: 'dayGridMonth', labelKey: 'agenda.calendar.viewMonth' },
+  { key: 'timeGridWeek', labelKey: 'agenda.calendar.viewWeek' },
+  { key: 'listMonth', labelKey: 'agenda.calendar.viewList' },
 ] as const
 
 /** Collapse a resource view to a plain month calendar when there are no resources. */

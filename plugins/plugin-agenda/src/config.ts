@@ -82,6 +82,14 @@ export interface AgendaPluginOptions {
   /** Booking type tabs shown in the appointment modal */
   bookingTypes?: BookingTypeConfig[]
 
+  /**
+   * Simplifies the agenda to Google-Calendar-style events (no client /
+   * professional / service). When set to 'simple', the plugin exposes a single
+   * "Evento" booking type whose modal shows only title / date-time / notes.
+   * Ignored when an explicit `bookingTypes` override is provided.
+   */
+  eventMode?: 'simple'
+
   /** Booking status options */
   statuses?: StatusConfig[]
 
@@ -203,6 +211,17 @@ const DEFAULT_BOOKING_TYPES: BookingTypeConfig[] = [
   },
 ]
 
+// Simple / Google-Calendar-style event — a single "Evento" type with just a
+// free-text title, date-time and notes. No client / professional / service.
+// Used by personal-finance-style agendas (see eventMode: 'simple').
+const SIMPLE_EVENT_BOOKING_TYPES: BookingTypeConfig[] = [
+  {
+    id: 'event', label: 'Event', icon: 'Calendar', color: '#6366f1',
+    fields: { title: true, client: false, professional: false, services: false, location: false, status: false },
+    requiresServices: false, requiresClient: false,
+  },
+]
+
 // ---------------------------------------------------------------------------
 // Resolved config — fully merged, no optionals
 // ---------------------------------------------------------------------------
@@ -276,7 +295,8 @@ export function resolveConfig(options?: AgendaPluginOptions): ResolvedAgendaConf
     orderKind: options?.orderKind ?? 'service_order',
     scheduleKind: options?.scheduleKind ?? 'working_hours',
     statuses: options?.statuses ?? DEFAULT_STATUSES,
-    bookingTypes: options?.bookingTypes ?? DEFAULT_BOOKING_TYPES,
+    bookingTypes: options?.bookingTypes
+      ?? (options?.eventMode === 'simple' ? SIMPLE_EVENT_BOOKING_TYPES : DEFAULT_BOOKING_TYPES),
     businessHours: options?.businessHours ?? { startTime: '07:00', endTime: '21:00' },
     slotDuration: options?.slotDuration ?? 30,
     professionalKind: options?.professionalKind ?? 'staff',
