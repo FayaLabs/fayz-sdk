@@ -93,7 +93,5 @@
     "supabase"
   ],
   "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }

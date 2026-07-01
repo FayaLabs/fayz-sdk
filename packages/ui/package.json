@@ -102,7 +102,5 @@
     "typescript": "^5.5.0"
   },
   "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }

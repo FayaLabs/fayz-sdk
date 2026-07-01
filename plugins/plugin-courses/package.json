@@ -47,7 +47,5 @@
     "fayz-sdk",
     "courses"
   ],
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }
