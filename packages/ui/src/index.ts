@@ -179,6 +179,8 @@ export {
   DashboardGrid,
   type DashboardGridItem,
   type DashboardGridProps,
+  GoldCard,
+  type GoldCardProps,
   DashboardRangeProvider,
   DashboardRangeControl,
   useDashboardRange,

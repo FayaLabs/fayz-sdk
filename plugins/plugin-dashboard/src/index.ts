@@ -47,6 +47,9 @@ export interface DashboardPluginOptions {
   /** Render the in-content title/subtitle. Set false when the app shell owns the
    *  page title (sidebar/GHL-style layouts). Default: true. */
   showHeader?: boolean
+  /** Show the "Customize" menu (choose which widgets appear). Set false for a
+   *  clean, chrome-free B2C home. Default: true. */
+  customizable?: boolean
   /** App-level curation of the home surface — which widgets show, order, span.
    *  Applied on top of every plugin's registered defaults. */
   layout?: DashboardLayoutConfig
@@ -97,6 +100,7 @@ export function createDashboardPlugin(options?: DashboardPluginOptions): PluginM
       title: labels.pageTitle,
       subtitle: labels.pageSubtitle,
       showHeader: options?.showHeader,
+      customizable: options?.customizable,
       appLayout: options?.layout,
       range: options?.range,
     })

@@ -1,17 +1,17 @@
 import React, { useEffect } from 'react'
-import { ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, AlertTriangle, CreditCard as CreditCardIcon, Eye, EyeOff } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { StoreApi } from 'zustand'
 import type { DashboardWidgetDef } from '@fayz-ai/core'
 import { useTranslation } from '@fayz-ai/core'
 import {
-  KpiCard, ChartWidget, TableWidget, Card, CardHeader, CardTitle, CardContent,
+  KpiCard, ChartWidget, TableWidget, Card, CardHeader, CardTitle, CardContent, GoldCard,
   defineKpiWidget, defineChartWidget, defineCustomWidget, defineTableWidget,
 } from '@fayz-ai/ui'
-import { FinancialContextProvider, useFinancialConfig, useFinancialStore, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
+import { FinancialContextProvider, useFinancialConfig, useFinancialProvider, useFinancialStore, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
 import type { FinancialDataProvider } from '../data/types'
 import type { FinancialUIState } from '../store'
-import type { Invoice } from '../types'
+import type { Invoice, FinancialMovement } from '../types'
 
 function useEnsureSummary() {
   const fetchSummary = useFinancialStore((s) => s.fetchSummary)
@@ -158,6 +158,159 @@ function RecentTransactions() {
 }
 
 // ---------------------------------------------------------------------------
+// HOME surface (B2C) — a phone-first money dashboard that reflows into cells on
+// desktop. These render on surface="home" only; the plugin-home Resumo widgets
+// above are untouched. Same store/provider, so figures match the Financeiro
+// module (FAY-1233 mobile-summary logic, generalized into reusable widgets).
+// ---------------------------------------------------------------------------
+
+/** Human "due in N days" label from a YYYY-MM-DD due date. */
+function useDueLabel() {
+  const t = useTranslation()
+  return (dueDate: string): string => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const due = new Date(`${dueDate}T00:00:00`)
+    const days = Math.round((due.getTime() - today.getTime()) / 86_400_000)
+    if (days < 0) return t('financial.home.overdueDays', { count: String(Math.abs(days)) })
+    if (days === 0) return t('financial.home.dueToday')
+    if (days === 1) return t('financial.home.dueTomorrow')
+    return t('financial.home.dueInDays', { count: String(days) })
+  }
+}
+
+/** Branded balance hero — big Saldo + eye-toggle + Entradas/Saídas pills. */
+function BalanceHero() {
+  const t = useTranslation()
+  const { currency } = useFinancialConfig()
+  const summary = useFinancialStore((s) => s.summary)
+  useEnsureSummary()
+  const [hidden, setHidden] = React.useState(false)
+  const money = (v: number | null | undefined) => (hidden ? '••••••' : formatCurrency(v ?? 0, currency))
+  const inflow = summary?.monthlyInflow ?? 0
+  const outflow = summary?.monthlyOutflow ?? 0
+  return (
+    <GoldCard branded className="px-6 py-7 text-center md:px-10 md:py-9">
+      <p className="text-sm font-medium opacity-80">{t('financial.home.balance')}</p>
+      <div className="mt-1 flex items-center justify-center gap-3">
+        <span className="text-4xl font-bold tracking-tight tabular-nums md:text-5xl">{money(summary?.totalBalance)}</span>
+        <button
+          type="button"
+          onClick={() => setHidden((h) => !h)}
+          aria-label={hidden ? t('financial.home.showBalance') : t('financial.home.hideBalance')}
+          className="rounded-full p-1.5 text-primary-foreground/80 transition-colors hover:bg-white/10"
+        >
+          {hidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+        </button>
+      </div>
+      <div className="mx-auto mt-5 grid max-w-lg grid-cols-2 gap-3">
+        <div className="flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2.5 text-left">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/90">
+            <ArrowUpRight className="h-4 w-4 text-white" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[11px] uppercase tracking-wide opacity-70">{t('financial.home.inflow')}</span>
+            <span className="block truncate text-sm font-semibold tabular-nums">{money(inflow)}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2.5 text-left">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/90">
+            <ArrowDownRight className="h-4 w-4 text-white" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[11px] uppercase tracking-wide opacity-70">{t('financial.home.outflow')}</span>
+            <span className="block truncate text-sm font-semibold tabular-nums">{money(outflow)}</span>
+          </span>
+        </div>
+      </div>
+    </GoldCard>
+  )
+}
+
+/** "Próximas contas" — pending payable bills, soonest due first. */
+function UpcomingBills() {
+  const t = useTranslation()
+  const { currency } = useFinancialConfig()
+  const provider = useFinancialProvider()
+  const dueLabel = useDueLabel()
+  const [bills, setBills] = React.useState<FinancialMovement[]>([])
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const pending = await provider.getMovements({ status: 'pending' })
+      if (!alive) return
+      setBills(
+        pending.data
+          .filter((m) => m.direction === 'debit' && m.movementKind === 'bill')
+          .sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
+      )
+    })()
+    return () => { alive = false }
+  }, [provider])
+  return (
+    <GoldCard className="p-0 overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-4">
+        <h2 className="text-sm font-semibold text-foreground">{t('financial.home.upcomingBills')}</h2>
+      </div>
+      <div className="mt-3">
+        {bills.length === 0 ? (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">{t('financial.home.noBills')}</div>
+        ) : (
+          bills.map((bill, i) => (
+            <div key={bill.id} className={'flex items-center justify-between px-4 py-3.5' + (i > 0 ? ' border-t border-border' : '')}>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">{bill.notes ?? t('financial.home.bill')}</p>
+                <p className="text-xs text-muted-foreground">{dueLabel(bill.dueDate)}</p>
+              </div>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+                {formatCurrency(bill.amount - bill.paidAmount, currency)}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </GoldCard>
+  )
+}
+
+/** "Cartões" — credit-card accounts with current bill + available limit. */
+function CreditCards() {
+  const t = useTranslation()
+  const { currency } = useFinancialConfig()
+  const bankAccounts = useFinancialStore((s) => s.bankAccounts)
+  const fetchBankAccounts = useFinancialStore((s) => s.fetchBankAccounts)
+  useEffect(() => { void fetchBankAccounts() }, [])
+  const cards = bankAccounts.filter((a) => a.accountType === 'credit_card')
+  return (
+    <GoldCard className="bg-transparent border-0 p-0 shadow-none">
+      <h2 className="mb-3 text-sm font-semibold text-foreground">{t('financial.home.cards')}</h2>
+      <div className="space-y-3">
+        {cards.map((card) => {
+          const fatura = Math.abs(Math.min(0, card.currentBalance))
+          const limite = Math.max(0, (card.creditLimit ?? 0) - fatura)
+          return (
+            <div key={card.id} className="rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 p-4 text-white shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">{card.bankName ?? card.name}</span>
+                <CreditCardIcon className="h-5 w-5 opacity-80" />
+              </div>
+              <p className="mt-6 text-[11px] uppercase tracking-wide opacity-70">{t('financial.home.currentBill')}</p>
+              <p className="text-xl font-bold tabular-nums">{formatCurrency(fatura, currency)}</p>
+              <p className="mt-2 text-[11px] opacity-70">{t('financial.home.availableLimit')} {formatCurrency(limite, currency)}</p>
+            </div>
+          )
+        })}
+        {cards.length === 0 ? (
+          <div className="flex items-center justify-center rounded-2xl border border-dashed border-border py-6 text-sm font-medium text-muted-foreground">
+            + {t('financial.home.addCard')}
+          </div>
+        ) : null}
+      </div>
+    </GoldCard>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Registry builder
 // ---------------------------------------------------------------------------
 
@@ -187,5 +340,11 @@ export function createFinancialDashboardWidgets(ctx: {
     defineCustomWidget({ id: 'financial.panel.breakdown', title: 'financial.summary.cashFlowBreakdown', domain: 'financial', span: 1, defaultOrder: 11, surfaces: ['plugin-home'], component: withCtx(CashFlowBreakdown) }),
     defineCustomWidget({ id: 'financial.panel.overdue', title: 'financial.summary.overdueTitle', domain: 'financial', span: 1, defaultOrder: 12, surfaces: ['plugin-home'], component: withCtx(OverdueAlerts) }),
     defineTableWidget({ id: 'financial.table.recent', title: 'financial.summary.recentTransactions', domain: 'financial', span: 4, defaultOrder: 20, surfaces: ['plugin-home'], component: withCtx(RecentTransactions) }),
+
+    // HOME surface (B2C phone-first dashboard). Only these three appear on the
+    // global home; they reflow into cells on desktop via the responsive grid.
+    defineCustomWidget({ id: 'financial.hero.balance', title: 'financial.home.balance', domain: 'financial', span: 4, defaultOrder: 0, surfaces: ['home'], component: withCtx(BalanceHero) }),
+    defineCustomWidget({ id: 'financial.list.upcoming-bills', title: 'financial.home.upcomingBills', domain: 'financial', span: 2, defaultOrder: 2, surfaces: ['home'], component: withCtx(UpcomingBills) }),
+    defineCustomWidget({ id: 'financial.cards', title: 'financial.home.cards', domain: 'financial', span: 2, defaultOrder: 3, surfaces: ['home'], component: withCtx(CreditCards) }),
   ]
 }
