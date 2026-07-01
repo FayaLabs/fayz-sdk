@@ -113,10 +113,22 @@ export function CardsView() {
             {visibleCards.map((card) => {
               const { limit, used, available, pct } = cardMath(card)
               const over = pct >= 90
+              // Per-brand color so cards match the bank (and the Home card), not a uniform gold.
+              const brand = `${card.bankName ?? ''} ${card.name ?? ''}`.toLowerCase()
+              const headerGrad =
+                brand.includes('nubank') || brand.includes('nu ') ? 'from-purple-500 via-purple-600 to-indigo-700'
+                : brand.includes('ita') ? 'from-orange-400 via-orange-500 to-amber-600'
+                : brand.includes('inter') ? 'from-orange-500 via-orange-600 to-orange-700'
+                : 'from-indigo-500 via-indigo-600 to-violet-700'
+              const barGrad =
+                brand.includes('nubank') || brand.includes('nu ') ? 'from-purple-500 to-indigo-600'
+                : brand.includes('ita') ? 'from-orange-400 to-amber-500'
+                : brand.includes('inter') ? 'from-orange-500 to-orange-600'
+                : 'from-indigo-500 to-violet-600'
               return (
                 <div key={card.id} className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-                  {/* Gold brand header */}
-                  <div className="bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-600 px-4 py-4 text-white">
+                  {/* Per-brand header */}
+                  <div className={`bg-gradient-to-br ${headerGrad} px-4 py-4 text-white`}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <CreditCard className="h-5 w-5" />
@@ -149,7 +161,7 @@ export function CardsView() {
                       <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
                         <div
                           className={`h-full rounded-full ${
-                            over ? 'bg-destructive' : 'bg-gradient-to-r from-amber-400 to-yellow-600'
+                            over ? 'bg-destructive' : `bg-gradient-to-r ${barGrad}`
                           }`}
                           style={{ width: `${pct}%` }}
                         />
