@@ -8,6 +8,10 @@ import type { FinancialUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
 import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
+import { QuickTransactionForm } from './views/QuickTransactionForm'
+import type { QuickTransactionType } from './types'
+import { Plus } from 'lucide-react'
+import { Button } from '@fayz-ai/ui'
 import { PayablesView } from './views/PayablesView'
 import { ReceivablesView } from './views/ReceivablesView'
 import { CashRegistersView } from './views/CashRegistersView'
@@ -177,6 +181,16 @@ export function FinancialPage({ config, provider, store, registries }: {
   const isSettings = view === 'settings'
   const nav = buildNav(config, view, navigate, t)
 
+  // FAY-1225 "log money in a few taps": a reachable quick-add that opens the
+  // Mobills-grade transaction sheet (default = expense). Prominent primary
+  // button on desktop + a thumb-reachable FAB on mobile.
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [quickAddType, setQuickAddType] = useState<QuickTransactionType>('expense')
+  const openQuickAdd = useCallback((type: QuickTransactionType = 'expense') => {
+    setQuickAddType(type)
+    setQuickAddOpen(true)
+  }, [])
+
   const quickActions = useMemo<PluginQuickAction[]>(() => {
     const actions: PluginQuickAction[] = []
     if (config.modules.payables) {
@@ -274,14 +288,39 @@ export function FinancialPage({ config, provider, store, registries }: {
         viewKey={view}
         direction={direction}
         headerAction={
-          <ModuleActionBar
-            quickActions={quickActions}
-            settingsPath={registries && registries.length > 0 ? '/settings/financial' : undefined}
-            settingsLabel={t('financial.settingsPage.title')}
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="hidden md:inline-flex"
+              onClick={() => openQuickAdd('expense')}
+            >
+              <Plus className="h-4 w-4" />
+              {t('financial.quickTx.newTransaction')}
+            </Button>
+            <ModuleActionBar
+              quickActions={quickActions}
+              settingsPath={registries && registries.length > 0 ? '/settings/financial' : undefined}
+              settingsLabel={t('financial.settingsPage.title')}
+            />
+          </div>
         }
       >
         {renderView()}
+
+        {/* Mobile FAB — thumb-reachable, sits above the app bottom-nav */}
+        <button
+          onClick={() => openQuickAdd('expense')}
+          aria-label={t('financial.quickTx.newTransaction')}
+          className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95 md:hidden"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+
+        <QuickTransactionForm
+          open={quickAddOpen}
+          onOpenChange={setQuickAddOpen}
+          defaultType={quickAddType}
+        />
       </ModulePage>
     </FinancialContextProvider>
   )
