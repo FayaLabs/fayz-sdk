@@ -19,6 +19,7 @@ import { AppointmentModal } from '../components/AppointmentModal'
 import { AppointmentPopover } from '../components/AppointmentPopover'
 import { PersonLink } from '@fayz-ai/saas'
 import { EventContextMenu } from '../components/EventContextMenu'
+import { AgendaMobileList } from '../components/AgendaMobileList'
 import { ConfirmDialog } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import type { CalendarBooking, Schedule } from '../types'
@@ -224,11 +225,48 @@ function CalendarSkeleton({ profCount = 2 }: { profCount?: number }) {
   )
 }
 
-const VIEW_OPTIONS = [
+// Resource views — one column per professional. Used when the app has staff.
+const RESOURCE_VIEW_OPTIONS = [
   { key: 'resourceTimeGridDay', labelKey: 'agenda.calendar.viewDay' },
   { key: 'resourceTimeGridWeek', labelKey: 'agenda.calendar.viewWeek' },
   { key: 'dayGridMonth', labelKey: 'agenda.calendar.viewMonth' },
 ] as const
+
+// Non-resource variants — used when there are no professionals/resources (e.g. a
+// personal-finance agenda). A resource timegrid renders an EMPTY grid with zero
+// resource columns and drops events that have no resourceId, so those apps fall
+// back to a plain month/day/week calendar.
+const PLAIN_VIEW_OPTIONS = [
+  { key: 'timeGridDay', labelKey: 'agenda.calendar.viewDay' },
+  { key: 'timeGridWeek', labelKey: 'agenda.calendar.viewWeek' },
+  { key: 'dayGridMonth', labelKey: 'agenda.calendar.viewMonth' },
+] as const
+
+/** Collapse a resource view to a plain month calendar when there are no resources. */
+function viewForNoResources(view: string): string {
+  return view.startsWith('resource') ? 'dayGridMonth' : view
+}
+
+/** Promote a plain timegrid to its resource variant when the app has resources. */
+function viewForResources(view: string): string {
+  if (view === 'timeGridWeek') return 'resourceTimeGridWeek'
+  if (view === 'timeGridDay') return 'resourceTimeGridDay'
+  return view
+}
+
+/** Small viewport (<md) → render the thumb-friendly agenda list instead of the grid. */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 767px)')
+    const onChange = () => setIsMobile(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return isMobile
+}
 
 // ---------------------------------------------------------------------------
 // Calendar View
@@ -268,6 +306,13 @@ export function CalendarView() {
   const closeModal = useAgendaStore((s) => s.closeAppointmentModal)
   const modalState = useAgendaStore((s) => s.appointmentModal)
 
+  // Resource-capable = the app has professionals/staff. When it doesn't (e.g. a
+  // personal-finance agenda), resource views render empty, so we force plain
+  // (non-resource) views and default to a month calendar.
+  const isMobile = useIsMobile()
+  const resourceCapable = professionals.length > 0
+  const viewOptions = resourceCapable ? RESOURCE_VIEW_OPTIONS : PLAIN_VIEW_OPTIONS
+
   const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null)
   const [popoverAnchor, setPopoverAnchor] = useState<{ x: number; y: number } | null>(null)
   const [popoverVisible, _setPopoverVisible] = useState(false)
@@ -302,6 +347,30 @@ export function CalendarView() {
     if (config.modules.locationSelection) fetchLocations()
   }, [])
 
+  // Keep the view consistent with resource-capability, in case a stale/shared
+  // pref selected the wrong variant. No resources → a resource view is an empty
+  // grid that drops the seeded events; resources → a plain timegrid loses the
+  // per-professional columns.
+  useEffect(() => {
+    const api = calendarRef.current?.getApi()
+    if (!api) return
+    if (!resourceCapable && currentView.startsWith('resource')) {
+      api.changeView('dayGridMonth')
+    } else if (resourceCapable && (currentView === 'timeGridWeek' || currentView === 'timeGridDay')) {
+      api.changeView(viewForResources(currentView))
+    }
+  }, [resourceCapable, currentView])
+
+  // Mobile renders the agenda list (no FullCalendar), so the grid's datesSet —
+  // which normally drives fetchBookings — never fires. Fetch a wide upcoming
+  // window directly so the list has data.
+  useEffect(() => {
+    if (!isMobile) return
+    const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - 1)
+    const end = new Date(start); end.setDate(end.getDate() + 91)
+    fetchBookings({ start: start.toISOString(), end: end.toISOString() })
+  }, [isMobile, fetchBookings])
+
   const resources = useMemo(() => {
     const filtered = selectedProfIds.length > 0
       ? professionals.filter((p) => selectedProfIds.includes(p.id))
@@ -334,6 +403,9 @@ export function CalendarView() {
 
   const events = useMemo(() =>
     [...bookingEvents, ...availabilityEvents], [bookingEvents, availabilityEvents])
+
+  const storedView = prefs.get('calendarView')
+  const effectiveInitialView = resourceCapable ? viewForResources(storedView) : viewForNoResources(storedView)
 
   // ── Calendar handlers ──
   const handleDatesSet = useCallback((arg: { startStr: string; endStr: string; view: { title: string; type: string } }) => {
@@ -587,8 +659,23 @@ export function CalendarView() {
   // Listen for cross-plugin booking open requests (e.g., from financial invoice detail)
   useEffect(() => {
     function handleOpenBooking(e: Event) {
-      const bookingId = (e as CustomEvent).detail?.bookingId
-      if (bookingId) openModal('edit', { bookingId })
+      const detail = (e as CustomEvent).detail ?? {}
+      const externalSource = detail.source
+        ? { type: String(detail.source), id: detail.waitlistId, waitlistId: detail.waitlistId }
+        : undefined
+      if (detail.bookingId) {
+        openModal('edit', { bookingId: detail.bookingId, externalSource })
+        return
+      }
+      openModal('create', {
+        prefill: detail.prefill ?? {
+          clientId: detail.clientId,
+          professionalId: detail.professionalId,
+          locationId: detail.locationId,
+          startsAt: detail.startsAt,
+        },
+        externalSource,
+      })
     }
     window.addEventListener('agenda:open-booking', handleOpenBooking)
     return () => window.removeEventListener('agenda:open-booking', handleOpenBooking)
@@ -749,24 +836,28 @@ export function CalendarView() {
               <Plus className="h-4 w-4" />
             </button>
 
-            <button onClick={handleToday}
-              className="rounded-md border px-3 py-1 text-sm font-medium hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors">
-              {t('agenda.toolbar.today')}
-            </button>
-            <div className="flex items-center gap-0.5">
-              <button onClick={handlePrev} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted transition-colors">
-                <ChevronLeft className="h-4 w-4" />
+            {/* Date navigation drives the FullCalendar api — hidden on the mobile
+                list, where there is no grid to page through. */}
+            <div className="hidden md:flex items-center gap-3">
+              <button onClick={handleToday}
+                className="rounded-md border px-3 py-1 text-sm font-medium hover:bg-muted bg-card shadow-button active:shadow-button-inset transition-colors">
+                {t('agenda.toolbar.today')}
               </button>
-              <button onClick={handleNext} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted transition-colors">
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-0.5">
+                <button onClick={handlePrev} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted transition-colors">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button onClick={handleNext} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted transition-colors">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <h1 className="text-base sm:text-lg font-normal truncate">{calendarTitle}</h1>
+            <h1 className="text-base sm:text-lg font-normal truncate">{isMobile ? t('agenda.calendar.viewAgenda') : calendarTitle}</h1>
           </div>
 
           <div className="flex items-center gap-1">
             <div className="hidden sm:flex items-center gap-1">
-              {VIEW_OPTIONS.map((opt) => (
+              {viewOptions.map((opt) => (
                 <button key={opt.key} onClick={() => handleViewChange(opt.key)}
                   className={`rounded-md px-3 py-1 text-sm transition-colors ${
                     currentView === opt.key
@@ -789,17 +880,24 @@ export function CalendarView() {
           </div>
         </div>
 
-        {/* Calendar */}
-        {professionalsLoading && professionals.length === 0 ? (
+        {/* Mobile → thumb-friendly agenda list; Desktop → FullCalendar grid */}
+        {isMobile ? (
+          <AgendaMobileList
+            bookings={bookings}
+            statusColors={statusColors}
+            currencyCode={config.currency.code}
+            onSelect={(b) => openModal('edit', { bookingId: b.id })}
+          />
+        ) : professionalsLoading && professionals.length === 0 ? (
           <CalendarSkeleton profCount={2} />
         ) : (
         <div ref={wrapperRef} className="flex-1 overflow-hidden agenda-calendar">
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, resourceTimeGridPlugin, interactionPlugin, listPlugin]}
-            initialView={prefs.get('calendarView') === 'timeGridWeek' ? 'resourceTimeGridWeek' : prefs.get('calendarView')}
+            initialView={effectiveInitialView}
             schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-            resources={resources}
+            resources={resourceCapable ? resources : undefined}
             events={events}
             headerToolbar={false}
             locale={fcLocale}
@@ -878,8 +976,14 @@ export function CalendarView() {
         bookingId={modalState.bookingId}
         prefill={modalState.prefill}
         initialTab={modalState.initialTab}
+        externalSource={modalState.externalSource}
         onClose={closeModal}
-        onCreated={(newId) => {
+        onCreated={(newId, source) => {
+          if (config.onBookingCreated) {
+            void Promise.resolve(config.onBookingCreated({ bookingId: newId, source })).catch((error: unknown) => {
+              console.error('Failed to run agenda booking-created bridge', error)
+            })
+          }
           // After a short delay (let calendar re-render), find the event and show popover
           setTimeout(() => {
             const booking = bookings.find((b: CalendarBooking) => b.id === newId)

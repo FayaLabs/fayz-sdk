@@ -1,4 +1,4 @@
-import type { PluginScope, VerticalId } from '@fayz-ai/core'
+import type { PluginRegistryDef, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { EntityLookup } from '@fayz-ai/saas'
 import type { AgendaDataProvider } from './data/types'
 import type { StatusConfig, BookingTypeConfig } from './types'
@@ -27,6 +27,28 @@ export interface ConfirmationChannelOption {
   id: string
   label: string
   icon: string
+}
+
+export interface CancellationReasonOption {
+  id: string
+  label: string
+  requiresNotes?: boolean
+}
+
+export interface CancellationDetailsProvider {
+  listReasons(): Promise<CancellationReasonOption[]>
+  saveCancellationDetails(input: {
+    bookingId: string
+    reasonId: string
+    notes?: string
+    cancelledAt?: string
+  }): Promise<void>
+}
+
+export interface ExternalBookingSource {
+  type: string
+  id?: string
+  [key: string]: unknown
 }
 
 export interface LocationOption {
@@ -104,6 +126,15 @@ export interface AgendaPluginOptions {
 
   /** Confirmation channel options */
   confirmationChannels?: ConfirmationChannelOption[]
+
+  /** Optional app/plugin bridge for cancel-time reason capture. */
+  cancellationDetails?: CancellationDetailsProvider
+
+  /** Called after a booking is created from an external operational source. */
+  onBookingCreated?: (input: { bookingId: string; source?: ExternalBookingSource }) => void | Promise<void>
+
+  /** App-owned registries shown under /settings/agenda Properties. */
+  settingsRegistries?: PluginRegistryDef[]
 
   /** Financial bridge for agenda × financial cross-plugin integration */
   financialBridge?: AgendaFinancialBridge
@@ -207,6 +238,8 @@ export interface ResolvedAgendaConfig {
   autoCreateOrder: boolean
   locations: LocationOption[]
   confirmationChannels: ConfirmationChannelOption[]
+  cancellationDetails?: CancellationDetailsProvider
+  onBookingCreated?: (input: { bookingId: string; source?: ExternalBookingSource }) => void | Promise<void>
   contactLookup?: EntityLookup
   clientEntityDef?: EntityDef
   serviceLookup?: EntityLookup
@@ -251,6 +284,8 @@ export function resolveConfig(options?: AgendaPluginOptions): ResolvedAgendaConf
     autoCreateOrder: options?.autoCreateOrder !== false,
     locations: options?.locations ?? [],
     confirmationChannels: options?.confirmationChannels ?? [],
+    cancellationDetails: options?.cancellationDetails,
+    onBookingCreated: options?.onBookingCreated,
     contactLookup: options?.contactLookup,
     clientEntityDef: options?.clientEntityDef,
     serviceLookup: options?.serviceLookup,
