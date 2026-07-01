@@ -2,7 +2,7 @@ import type { FinancialDataProvider } from './types'
 import type {
   Invoice, InvoiceItem, FinancialMovement, BankAccount,
   CashSession, PaymentMethod, PaymentMethodType, ChartOfAccountsNode,
-  CardTransaction,
+  CostCenter, CardTransaction,
   CreateInvoiceInput, PayMovementInput, CreateTransferInput, TransferResult,
   OpenCashSessionInput, CloseCashSessionInput, CreateBankAccountInput,
   InvoiceQuery, MovementQuery, StatementQuery,
@@ -116,6 +116,24 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+async function findOrderIdsByItemMetadata(
+  core: any,
+  filters: { accountId?: string; costCenterId?: string },
+): Promise<string[] | undefined> {
+  if (!filters.accountId && !filters.costCenterId) return undefined
+
+  let qb = core.from('order_items').select('order_id')
+  if (filters.accountId) qb = qb.filter('metadata->>accountId', 'eq', filters.accountId)
+  if (filters.costCenterId) qb = qb.filter('metadata->>costCenterId', 'eq', filters.costCenterId)
+
+  const { data } = await qb
+  const ids: string[] = []
+  for (const row of (data ?? []) as Array<{ order_id?: unknown }>) {
+    if (typeof row.order_id === 'string' && row.order_id.length > 0) ids.push(row.order_id)
+  }
+  return Array.from(new Set(ids))
+}
+
 /** Card/MDR fee percent for a configured payment method (0 when none / not a fee method). */
 async function getMethodFeePct(pub: any, paymentMethodId?: string): Promise<number> {
   if (!paymentMethodId) return 0
@@ -150,6 +168,14 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       if (query.status) {
         const statuses = Array.isArray(query.status) ? query.status : [query.status]
         qb = qb.in('status', statuses)
+      }
+      const itemScopedOrderIds = await findOrderIdsByItemMetadata(core, {
+        accountId: query.accountId,
+        costCenterId: query.costCenterId,
+      })
+      if (itemScopedOrderIds) {
+        if (itemScopedOrderIds.length === 0) return { data: [], total: 0 }
+        qb = qb.in('id', itemScopedOrderIds)
       }
       if (query.contactId) qb = qb.eq('party_id', query.contactId)
       if (query.search) qb = qb.ilike('notes', `%${query.search}%`)
@@ -224,6 +250,8 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
           unitPrice: i.unitPrice ?? 0, totalAmount: i.total ?? 0,
           discount: i.discount ?? 0, surcharge: 0,
           referenceId: i.productId ?? i.serviceId,
+          accountId: i.metadata?.accountId,
+          costCenterId: i.metadata?.costCenterId,
           createdAt: i.createdAt,
         } as InvoiceItem
       })
@@ -263,7 +291,12 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
             discount: item.discount ?? 0,
             total: item.quantity * item.unitPrice - (item.discount ?? 0) + (item.surcharge ?? 0),
             sort_order: i,
-            metadata: { itemKind: item.itemKind, referenceId: item.referenceId },
+            metadata: {
+              itemKind: item.itemKind,
+              referenceId: item.referenceId,
+              accountId: item.accountId,
+              costCenterId: item.costCenterId,
+            },
           }))
         )
       }
@@ -547,6 +580,12 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as ChartOfAccountsNode)
     },
 
+    async getCostCenters(): Promise<CostCenter[]> {
+      const { core, pub } = getClients()
+      const { data } = await pub.from('cost_centers').select('*').eq('is_active', true).order('code')
+      return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as CostCenter)
+    },
+
     // --- Card Transactions ---
     async getCardTransactions(dateRange?: DateRange): Promise<CardTransaction[]> {
       const { core, pub } = getClients()
@@ -709,7 +748,11 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       const overdueCredit = unpaidCredit.filter((m: any) => m.status === 'overdue' || m.due_date < today)
       const overdueDebit = unpaidDebit.filter((m: any) => m.status === 'overdue' || m.due_date < today)
 
-      const monthStart = today.slice(0, 7) + '-01'
+      // Monthly cash flow = a trailing 30-day rolling window (not calendar
+      // month-to-date, which reads empty in the first days of a month).
+      const monthAgo = new Date()
+      monthAgo.setDate(monthAgo.getDate() - 30)
+      const monthStart = monthAgo.toISOString().slice(0, 10)
       // Monthly cash flow = payment cash events (one row per payment), never bills.
       const monthPaid = allMovs.filter((m: any) => m.movement_kind === 'payment' && m.payment_date >= monthStart)
 

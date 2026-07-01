@@ -660,7 +660,14 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
       )
 
       const todayStr = today()
-      const monthStart = todayStr.slice(0, 7) + '-01'
+      // "Monthly" cash flow uses a trailing 30-day window (rolling month), not
+      // calendar month-to-date. Month-to-date collapses to near-empty in the
+      // first days of a month — on the 1st it's a single day — so the cash-flow
+      // chart and Fluxo Mensal KPI read empty even with a full month of realized
+      // activity. A rolling window stays representative on every day of the month.
+      const monthAgo = new Date()
+      monthAgo.setDate(monthAgo.getDate() - 30)
+      const monthStart = monthAgo.toISOString().slice(0, 10)
       const monthEnd = todayStr
 
       const monthMovements = store.movements.filter((m) =>
