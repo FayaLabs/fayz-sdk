@@ -12,7 +12,7 @@ import type {
   PermissionsConfig,
   BillingConfig as ManifestBillingConfig,
 } from '@fayz-ai/core'
-import { AdminProviders } from './createFayzApp'
+import { AdminProviders, getAuthShellProps } from './admin-app'
 import { AdminShell } from './AdminShell'
 import type { FayzAppConfig, CustomPage } from './config'
 import { createSaasApp, type SaasAppConfig } from '../shell/createSaasApp'
@@ -35,7 +35,9 @@ const liveConfigOption = '__fayzLiveConfigRef'
 const liveSaasConfigs = new Map<string, FayzAppConfig | SaasAppConfig>()
 
 function hasLegacyShellConfig(config: FayzAppConfig | SaasAppConfig): config is SaasAppConfig {
-  return 'organization' in config || 'settingsTabs' in config || 'bottomNav' in config || 'pluginRuntime' in config
+  // NB: bottomNav is now a shared FayzAppConfig field, so it can't discriminate
+  // the legacy SaasAppConfig — rely on the legacy-only fields instead.
+  return 'organization' in config || 'settingsTabs' in config || 'pluginRuntime' in config
 }
 
 function getAuthRequireAuth(config: FayzAppConfig | SaasAppConfig): boolean {
@@ -145,6 +147,7 @@ export function AdminScaffold({ manifest, surface }: { manifest: AppManifest; su
     return createSaasApp(liveConfig)
   }, [liveConfig])
   const config = React.useMemo(() => manifestToFayzConfig(manifest, surface), [manifest, surface])
+  const authShellProps = React.useMemo(() => getAuthShellProps(config.auth), [config.auth])
 
   if (LegacyApp) return <LegacyApp />
 
@@ -154,14 +157,9 @@ export function AdminScaffold({ manifest, surface }: { manifest: AppManifest; su
         appName={config.name}
         logo={config.logo}
         layout={config.layout}
+        bottomNav={config.bottomNav}
         pages={config.pages}
-        requireAuth={config.auth?.requireAuth}
-        loginTagline={config.auth?.loginTagline}
-        loginDescription={config.auth?.loginDescription}
-        loginLogo={config.auth?.loginLogo}
-        loginLayout={config.auth?.loginLayout}
-        showOAuth={config.auth?.showOAuth}
-        oauthProviders={config.auth?.oauthProviders}
+        {...authShellProps}
         showSettings
         showOrgSettings={Boolean(config.org)}
       />

@@ -8,6 +8,7 @@ import type {
   LocaleConfig,
   PermissionsConfig,
 } from '@fayz-ai/core'
+import type { AuthPluginOptions, ResolvedAuthPlugin } from '@fayz-ai/plugin-auth'
 import type { SaasTheme } from '../shell/config/theme/tokens'
 import type { CreateThemeOptions } from '../shell/config/theme/utils'
 import type { PlanConfig } from '../shell/types/billing'
@@ -39,9 +40,19 @@ export interface CustomPage {
 
 export interface AuthConfig {
   /** 'supabase' | 'mock' or bring your own AuthAdapter */
-  adapter?: 'supabase' | 'mock' | AuthAdapter
+  adapter?: AuthPluginOptions['adapter']
+  /** New plugin-auth provider selector. Existing apps may keep using adapter. */
+  provider?: AuthPluginOptions['provider']
   /** Redirect to login when no session is found (default: true) */
   requireAuth?: boolean
+  /** New plugin-auth route and provider options. */
+  routes?: AuthPluginOptions['routes']
+  supabase?: AuthPluginOptions['supabase']
+  oauth?: AuthPluginOptions['oauth']
+  layout?: AuthPluginOptions['layout']
+  logo?: ReactNode
+  tagline?: string
+  description?: string
   loginLogo?: ReactNode
   loginLayout?: 'split' | 'centered'
   loginTagline?: string
@@ -49,6 +60,8 @@ export interface AuthConfig {
   showOAuth?: boolean
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
 }
+
+export type AppAuthConfig = AuthConfig | ResolvedAuthPlugin
 
 export interface OrgConfig {
   /** 'supabase' | 'mock' or bring your own OrgAdapter */
@@ -90,7 +103,7 @@ export interface FayzAppConfig {
   // -------------------------------------------------------------------------
   // Auth
   // -------------------------------------------------------------------------
-  auth?: AuthConfig
+  auth?: AppAuthConfig
 
   // -------------------------------------------------------------------------
   // Organization / multi-tenancy
@@ -114,6 +127,9 @@ export interface FayzAppConfig {
   defaultThemeMode?: ThemeMode
   /** Shell layout variant (default: 'sidebar') */
   layout?: 'sidebar' | 'topbar' | 'minimal'
+  /** Mobile bottom tab bar. Rendered by AppShell on small screens (md:hidden)
+   *  for every layout variant. Each item maps a lucide icon name to a route. */
+  bottomNav?: Array<{ label: string; icon: string; route: string }>
   /** Wrap the main content in an inset "framed" card (default: true). The
    *  sidebar itself is always flush/full-height. */
   contentFrame?: boolean

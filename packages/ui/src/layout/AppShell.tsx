@@ -1,5 +1,18 @@
 import * as React from 'react'
-import { Menu } from 'lucide-react'
+import {
+  Menu,
+  Home,
+  Receipt,
+  ArrowLeftRight,
+  Calendar,
+  CreditCard,
+  Settings,
+  MessageCircle,
+  Wallet,
+  PiggyBank,
+  Plus,
+  type LucideIcon,
+} from 'lucide-react'
 import { Sidebar, type NavigationItem, type SidebarUser, type SidebarProps } from './Sidebar'
 import { Topbar } from './Topbar'
 import { SaveBar, SaveBarProvider } from './SaveBar'
@@ -181,7 +194,7 @@ function SidebarLayout({
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
           {children}
         </main>
 
@@ -274,7 +287,7 @@ function TopbarLayout({
         onMenuClick={() => setMobileMenuOpen(true)}
       />
       {/* Frame inset/border only from md up, so mobile stays edge-to-edge. */}
-      <main className={cn('flex-1 overflow-y-auto', frame && 'md:p-2')}>
+      <main className={cn('flex-1 overflow-y-auto pb-16 md:pb-0', frame && 'md:p-2')}>
         <div className={cn('min-h-full', frame && 'md:rounded-xl md:border md:border-border md:bg-card')}>
           {children}
         </div>
@@ -345,7 +358,7 @@ function MinimalLayout({
         </div>
         {headerEnd && <div className="flex items-center gap-2">{headerEnd}</div>}
       </header>
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {children}
       </main>
     </div>
@@ -427,6 +440,64 @@ function MobileOverlay({ onClose, onNavigate, ...sidebarProps }: MobileOverlayPr
 }
 
 // ---------------------------------------------------------------------------
+// Mobile bottom tab bar — rendered for every variant on small screens.
+// ui must NOT import from saas, so the icon lookup is a small local map (a
+// mirror of the saas icon convention). Unknown icon names fall back to Home.
+// ---------------------------------------------------------------------------
+
+const BOTTOM_NAV_ICONS: Record<string, LucideIcon> = {
+  Home,
+  Receipt,
+  ArrowLeftRight,
+  Calendar,
+  CreditCard,
+  Settings,
+  Menu,
+  MessageCircle,
+  Wallet,
+  PiggyBank,
+  Plus,
+}
+
+function MobileBottomNav({
+  items,
+  currentPath,
+  onNavigate,
+}: {
+  items: NonNullable<AppShellProps['bottomNav']>
+  currentPath?: string
+  onNavigate?: (route: string) => void
+}) {
+  const path = currentPath ?? ''
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t border-border bg-background md:hidden">
+      {items.map((item) => {
+        const isActive =
+          item.route === '/'
+            ? path === '/' || path === ''
+            : path === item.route || path.startsWith(item.route + '/')
+        const Icon = BOTTOM_NAV_ICONS[item.icon] ?? Home
+        return (
+          <button
+            key={item.route}
+            type="button"
+            onClick={() => onNavigate?.(item.route)}
+            className={cn(
+              'flex flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 transition-colors',
+              isActive ? 'text-primary' : 'text-muted-foreground',
+            )}
+            aria-current={isActive ? 'page' : undefined}
+          >
+            <Icon className="h-5 w-5" />
+            <span className="text-xs">{item.label}</span>
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // AppShell — main entry point
 // ---------------------------------------------------------------------------
 
@@ -450,13 +521,19 @@ export function AppShell({
   topbarEnd,
   sidebarTopContent,
   sidebarFooterContent,
+  bottomNav,
   userMenuSlot,
   notificationSlot,
   unreadCount = 0,
 }: AppShellProps) {
+  const bottomBar = bottomNav?.length ? (
+    <MobileBottomNav items={bottomNav} currentPath={currentPath} onNavigate={onNavigate} />
+  ) : null
+
+  let layoutElement: React.ReactNode
   switch (variant) {
     case 'sidebar':
-      return (
+      layoutElement = (
         <SidebarLayout
           navigation={navigation}
           logo={logo}
@@ -482,9 +559,10 @@ export function AppShell({
           {children}
         </SidebarLayout>
       )
+      break
 
     case 'topbar':
-      return (
+      layoutElement = (
         <TopbarLayout
           navigation={navigation}
           logo={logo}
@@ -503,17 +581,26 @@ export function AppShell({
           {children}
         </TopbarLayout>
       )
+      break
 
     case 'minimal':
-      return (
+      layoutElement = (
         <MinimalLayout logo={logo} user={user} headerEnd={topbarEnd}>
           {children}
         </MinimalLayout>
       )
+      break
 
     default: {
       const _exhaustive: never = variant
       return null
     }
   }
+
+  return (
+    <>
+      {layoutElement}
+      {bottomBar}
+    </>
+  )
 }

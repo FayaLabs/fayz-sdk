@@ -17,10 +17,10 @@ import {
 } from '@fayz-ai/ui'
 import { useOrganizationStore } from '../org/store'
 import { useAuth } from '@fayz-ai/auth'
+import { AuthGate } from '@fayz-ai/plugin-auth'
 import { usePluginRuntime, resolvePluginComponent, useTranslation } from '@fayz-ai/core'
 import type { PermissionAction, PluginNavigationEntry, PluginRouteDefinition, PluginSettingsTab } from '@fayz-ai/core'
 import { useAdminPath, navigateTo, matchRoute, routeScore } from './routing'
-import { LoginPage } from './LoginPage'
 import type { CustomPage } from './config'
 import type { AuthProvider } from '@fayz-ai/core'
 import { setEntityRouteMap } from '../lib/entity-routes'
@@ -61,6 +61,8 @@ export interface AdminShellProps {
   /** How module-internal navigation renders. Defaults to 'tabs' for the
    *  'sidebar' layout and 'rail' for 'topbar'. */
   moduleNav?: ModuleNavVariant
+  /** Mobile bottom tab bar, passed straight through to AppShell. */
+  bottomNav?: Array<{ label: string; icon: string; route: string }>
 }
 
 // ---------------------------------------------------------------------------
@@ -196,10 +198,25 @@ function sectionOrder(section: NavigationItem['section']): number {
   return section === 'main' ? 0 : section === 'secondary' ? 1 : 2
 }
 
-function compareNavigation(a: OrderedNavigationItem, b: OrderedNavigationItem): number {
+function compareNavigation(a: NavigationItem & { position?: number }, b: NavigationItem & { position?: number }): number {
   const sectionDelta = sectionOrder(a.section) - sectionOrder(b.section)
   if (sectionDelta !== 0) return sectionDelta
-  return a.position - b.position
+  return (a.position ?? 0) - (b.position ?? 0)
+}
+
+function findModuleParent(
+  item: OrderedNavigationItem,
+  items: OrderedNavigationItem[],
+): OrderedNavigationItem | null {
+  const candidates = items
+    .filter((candidate) =>
+      candidate.section === item.section &&
+      candidate.route !== item.route &&
+      item.route.startsWith(`${candidate.route}/`)
+    )
+    .sort((a, b) => b.route.length - a.route.length)
+
+  return candidates[0] ?? null
 }
 
 function pageToNavigationItem(page: CustomPage, fallbackPosition: number): OrderedNavigationItem | null {
@@ -275,7 +292,7 @@ function buildSettingsTabs(
   return settingsTabs
 }
 
-function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, contentFrame = true, moduleNav }: AdminShellProps) {
+function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, contentFrame = true, moduleNav, bottomNav }: AdminShellProps) {
   const runtime = usePluginRuntime()
   const t = useTranslation()
   const can = usePermissionOptional()
@@ -294,7 +311,23 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     }))
     for (const [index, page] of pages.entries()) {
       const item = pageToNavigationItem(page, index + 1000)
-      if (item) items.push(item)
+      if (!item) continue
+
+      const parent = findModuleParent(item, items)
+      if (parent) {
+        const children = parent.children ?? [{
+          ...parent,
+          id: `${parent.id}:index`,
+          children: undefined,
+          position: -1,
+        }]
+        if (!children.some((child) => child.route === item.route)) {
+          parent.children = [...children, item].sort(compareNavigation)
+        }
+        continue
+      }
+
+      items.push(item)
     }
     return items.sort(compareNavigation)
   }, [runtime.navigation, pages])
@@ -376,6 +409,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       user={shellUser}
       pageTitle={activePageTitle}
       currentPath={path}
+      bottomNav={bottomNav}
       onNavigate={(route) => navigateTo(route)}
       onSignOut={() => { void signOut() }}
       onSettings={() => navigateTo('/settings')}
@@ -419,31 +453,20 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
 
 /** The shell + an auth gate in front of it. */
 export function AdminShell(props: AdminShellProps) {
-  const { isAuthenticated, isLoading } = useAuth()
-  const requireAuth = props.requireAuth ?? true
-
-  if (requireAuth && !isAuthenticated) {
-    if (isLoading) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <span className="text-sm text-muted-foreground">Loading…</span>
-        </div>
-      )
-    }
-    return (
-      <LoginPage
-        appName={props.appName}
-        logo={props.logo}
-        loginLogo={props.loginLogo}
-        layout={props.loginLayout}
-        tagline={props.loginTagline}
-        description={props.loginDescription}
-        showOAuth={props.showOAuth}
-        oauthProviders={props.oauthProviders}
-      />
-    )
-  }
-
-  return <AdminShellInner {...props} />
+  return (
+    <AuthGate
+      requireAuth={props.requireAuth ?? true}
+      appName={props.appName}
+      logo={props.logo}
+      loginLogo={props.loginLogo}
+      layout={props.loginLayout}
+      tagline={props.loginTagline}
+      description={props.loginDescription}
+      showOAuth={props.showOAuth}
+      oauthProviders={props.oauthProviders}
+    >
+      <AdminShellInner {...props} />
+    </AuthGate>
+  )
 }
 AdminShell.displayName = 'AdminShell'
