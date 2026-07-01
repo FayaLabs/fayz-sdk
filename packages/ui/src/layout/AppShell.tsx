@@ -48,6 +48,41 @@ export interface AppShellUser {
   email: string
 }
 
+// ---------------------------------------------------------------------------
+// Bottom-nav item model
+//
+// Two kinds share the mobile tab bar:
+//  - route  (default): a normal tab that navigates to `route`.
+//  - action: a NON-route item rendered as a raised, elevated circular center
+//    button (Mobills style). It fires `onBottomNavAction(id)` instead of
+//    navigating — e.g. a global quick-add "+".
+// ---------------------------------------------------------------------------
+
+export interface BottomNavRouteItem {
+  kind?: 'route'
+  label: string
+  icon: string
+  route: string
+}
+
+export interface BottomNavActionItem {
+  kind: 'action'
+  /** Identifier passed to onBottomNavAction. */
+  id: string
+  icon: string
+  /** Optional accessible label. */
+  label?: string
+}
+
+export type BottomNavItem = BottomNavRouteItem | BottomNavActionItem
+
+/** Mobile header treatment (small screens, <md). Desktop is unaffected.
+ *  - 'minimal'     : a small top header bar (the default / today's behavior).
+ *  - 'transparent' : NO header bar; content is edge-to-edge with a floating
+ *                    profile avatar pinned top-right (calls onProfile).
+ *  - 'hidden'      : no header bar and no floating avatar. */
+export type MobileHeaderVariant = 'transparent' | 'minimal' | 'hidden'
+
 export interface AppShellProps {
   /** Layout variant */
   variant: 'sidebar' | 'topbar' | 'minimal'
@@ -71,7 +106,11 @@ export interface AppShellProps {
   topbarEnd?: React.ReactNode
   sidebarTopContent?: React.ReactNode
   sidebarFooterContent?: React.ReactNode
-  bottomNav?: Array<{ label: string; icon: string; route: string }>
+  bottomNav?: BottomNavItem[]
+  /** Fired when a bottom-nav `action` item (e.g. the center "+") is tapped. */
+  onBottomNavAction?: (id: string) => void
+  /** Mobile header treatment (<md). Default: 'minimal'. Desktop unaffected. */
+  mobileHeader?: MobileHeaderVariant
   /** Rendered in sidebar bottom user slot */
   userMenuSlot?: React.ReactNode
   /** Rendered in sidebar bottom notification slot */
@@ -107,6 +146,7 @@ function SidebarLayout({
   notificationSlot,
   unreadCount = 0,
   hasBottomNav = false,
+  mobileHeader = 'minimal',
 }: {
   navigation?: NavigationItem[]
   logo?: React.ReactNode
@@ -132,6 +172,8 @@ function SidebarLayout({
   /** When a mobile bottom-nav bar is present, the mobile hamburger is
    *  suppressed so the bottom nav is the primary mobile navigation. */
   hasBottomNav?: boolean
+  /** Mobile header treatment (<md). Desktop keeps its top bar untouched. */
+  mobileHeader?: MobileHeaderVariant
 }) {
   const sidebarCollapsed = useLayoutStore((s) => s.sidebarCollapsed)
   const setSidebarCollapsed = useLayoutStore((s) => s.setSidebarCollapsed)
@@ -175,8 +217,15 @@ function SidebarLayout({
         'relative flex flex-1 flex-col overflow-hidden',
         frame && 'md:m-2 md:rounded-xl md:border md:border-border md:bg-card'
       )}>
-        {/* Top bar — mobile hamburger + module header slot (title + sub-nav) + actions */}
-        <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-2">
+        {/* Top bar — mobile hamburger + module header slot (title + sub-nav) + actions.
+            On mobile the bar is suppressed for the 'transparent' / 'hidden' header
+            treatments (content goes edge-to-edge); desktop keeps it always. The
+            portal targets below stay mounted (display:none on mobile) so module
+            pages can still portal their sub-nav on desktop without crashing. */}
+        <div className={cn(
+          'flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-2',
+          mobileHeader !== 'minimal' && 'hidden md:flex',
+        )}>
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {/* Mobile hamburger — suppressed when a bottom-nav bar owns mobile
                 navigation (mobile-first apps). Desktop sidebar is untouched. */}
@@ -471,19 +520,66 @@ const BOTTOM_NAV_ICONS: Record<string, LucideIcon> = {
   Plus,
 }
 
+// Floating profile avatar — mobile-only (md:hidden), pinned top-right over the
+// content. Used with the 'transparent' mobile header treatment so there is no
+// header bar but the user still has a one-tap route into their profile.
+function FloatingProfileAvatar({ user, onClick }: { user?: AppShellUser; onClick?: () => void }) {
+  if (!user) return null
+  const label = user.fullName || user.email
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Profile"
+      className="fixed right-3 top-3 z-40 md:hidden"
+    >
+      {user.avatarUrl ? (
+        <img
+          src={user.avatarUrl}
+          alt=""
+          className="h-9 w-9 rounded-full object-cover shadow-md ring-2 ring-background"
+        />
+      ) : (
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-md ring-2 ring-background">
+          {(label || '?').charAt(0).toUpperCase()}
+        </span>
+      )}
+    </button>
+  )
+}
+
 function MobileBottomNav({
   items,
   currentPath,
   onNavigate,
+  onAction,
 }: {
   items: NonNullable<AppShellProps['bottomNav']>
   currentPath?: string
   onNavigate?: (route: string) => void
+  onAction?: (id: string) => void
 }) {
   const path = currentPath ?? ''
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t border-border bg-background md:hidden">
       {items.map((item) => {
+        // Elevated center ACTION button (Mobills style) — raised above the bar,
+        // circular, primary-filled; fires onBottomNavAction instead of routing.
+        if (item.kind === 'action') {
+          const ActionIcon = BOTTOM_NAV_ICONS[item.icon] ?? Plus
+          return (
+            <div key={item.id} className="flex flex-1 items-start justify-center">
+              <button
+                type="button"
+                onClick={() => onAction?.(item.id)}
+                aria-label={item.label ?? 'Add'}
+                className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-transform active:scale-95"
+              >
+                <ActionIcon className="h-6 w-6" />
+              </button>
+            </div>
+          )
+        }
         const isActive =
           item.route === '/'
             ? path === '/' || path === ''
@@ -534,14 +630,26 @@ export function AppShell({
   sidebarTopContent,
   sidebarFooterContent,
   bottomNav,
+  onBottomNavAction,
+  mobileHeader = 'minimal',
   userMenuSlot,
   notificationSlot,
   unreadCount = 0,
 }: AppShellProps) {
   const hasBottomNav = !!bottomNav?.length
   const bottomBar = hasBottomNav ? (
-    <MobileBottomNav items={bottomNav!} currentPath={currentPath} onNavigate={onNavigate} />
+    <MobileBottomNav
+      items={bottomNav!}
+      currentPath={currentPath}
+      onNavigate={onNavigate}
+      onAction={onBottomNavAction}
+    />
   ) : null
+  // Transparent mobile header → no bar, a floating avatar top-right instead.
+  const floatingAvatar =
+    mobileHeader === 'transparent' && user ? (
+      <FloatingProfileAvatar user={user} onClick={onProfile} />
+    ) : null
 
   let layoutElement: React.ReactNode
   switch (variant) {
@@ -569,6 +677,7 @@ export function AppShell({
           notificationSlot={notificationSlot}
           unreadCount={unreadCount}
           hasBottomNav={hasBottomNav}
+          mobileHeader={mobileHeader}
         >
           {children}
         </SidebarLayout>
@@ -615,6 +724,7 @@ export function AppShell({
   return (
     <>
       {layoutElement}
+      {floatingAvatar}
       {bottomBar}
     </>
   )

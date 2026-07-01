@@ -11,6 +11,11 @@ export { AdminShell } from './app/AdminShell'
 export { LoginPage } from './app/LoginPage'
 export { navigateTo as adminNavigateTo, useAdminPath } from './app/routing'
 
+// Auth hook re-exported through the saas front-door so app screens (e.g. a
+// Profile page) can read the current user + signOut without depending on
+// @fayz-ai/auth directly.
+export { useAuth } from '@fayz-ai/auth'
+
 // ---------------------------------------------------------------------------
 // CRUD engine — NATIVE code is now in ./crud (de-bridged from saas-core: the
 // full list/form/detail engine, archetype layouts, providers and store).

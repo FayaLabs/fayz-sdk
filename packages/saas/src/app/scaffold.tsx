@@ -158,6 +158,8 @@ export function AdminScaffold({ manifest, surface }: { manifest: AppManifest; su
         logo={config.logo}
         layout={config.layout}
         bottomNav={config.bottomNav}
+        onBottomNavAction={config.onBottomNavAction}
+        mobileHeader={config.mobileHeader}
         pages={config.pages}
         {...authShellProps}
         showSettings

@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import type { StoreApi } from 'zustand/vanilla'
 import { useTranslation } from '@fayz-ai/core'
 import { ModulePage, PageTransition, type ModuleNavItem } from '@fayz-ai/ui'
@@ -10,6 +9,7 @@ import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
 import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
 import { QuickTransactionForm } from './views/QuickTransactionForm'
+import { usePendingQuickAdd, consumeQuickAdd } from './quick-add'
 import type { QuickTransactionType } from './types'
 import { Plus, Camera } from 'lucide-react'
 import { Button } from '@fayz-ai/ui'
@@ -202,6 +202,18 @@ export function FinancialPage({ config, provider, store, registries }: {
     setQuickAddOpen(true)
   }, [])
 
+  // FAY-1242: open the sheet on a global quick-add request (the app shell's
+  // elevated center "+" button). One-shot — consumed so it never re-fires.
+  const pendingQuickAdd = usePendingQuickAdd()
+  useEffect(() => {
+    if (!pendingQuickAdd) return
+    const req = consumeQuickAdd()
+    if (!req) return
+    setQuickAddType(req.type)
+    setQuickAddReceipt(req.receipt)
+    setQuickAddOpen(true)
+  }, [pendingQuickAdd])
+
   const quickActions = useMemo<PluginQuickAction[]>(() => {
     const actions: PluginQuickAction[] = []
     if (config.modules.payables) {
@@ -327,30 +339,10 @@ export function FinancialPage({ config, provider, store, registries }: {
       >
         {renderView()}
 
-        {/* Mobile FABs — portaled to <body> so `position: fixed` stays viewport-relative.
-            The module content lives inside a transformed PageTransition ancestor, which
-            otherwise re-anchors fixed elements to the tall scroll container (pushing the
-            FABs off-screen on long pages). Stacked above the app bottom-nav. */}
-        {typeof document !== 'undefined' &&
-          createPortal(
-            <div className="fixed bottom-20 right-4 z-40 flex flex-col items-center gap-3 md:hidden">
-              <button
-                onClick={openReceiptCapture}
-                aria-label={t('financial.quickTx.sendReceipt')}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-primary shadow-lg ring-1 ring-border transition-transform active:scale-95"
-              >
-                <Camera className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => openQuickAdd('expense')}
-                aria-label={t('financial.quickTx.newTransaction')}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95"
-              >
-                <Plus className="h-6 w-6" />
-              </button>
-            </div>,
-            document.body,
-          )}
+        {/* FAY-1242: the mobile quick-add + receipt FAB stack was removed — the
+            app shell's elevated center "+" bottom-nav button now owns global
+            quick-add (via openQuickAdd), and receipts stay reachable through the
+            form's Anexo step. Desktop keeps its header buttons above. */}
 
         <QuickTransactionForm
           open={quickAddOpen}

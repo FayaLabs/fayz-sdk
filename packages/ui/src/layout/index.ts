@@ -1,4 +1,12 @@
-export { AppShell, type AppShellProps, type AppShellUser } from './AppShell'
+export {
+  AppShell,
+  type AppShellProps,
+  type AppShellUser,
+  type BottomNavItem,
+  type BottomNavRouteItem,
+  type BottomNavActionItem,
+  type MobileHeaderVariant,
+} from './AppShell'
 export { Sidebar, type SidebarProps, type SidebarUser, type NavigationItem, ICON_MAP } from './Sidebar'
 export { Topbar, type TopbarProps } from './Topbar'
 export {

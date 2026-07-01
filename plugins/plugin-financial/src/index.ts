@@ -339,3 +339,6 @@ export type { ResolvedFinancialConfig } from './FinancialContext'
 // (demo/dogfood data) instead of the empty onboarding state.
 export { createMockFinancialProvider } from './data/mock'
 export type { MockFinancialSeed, MockFinancialProviderOptions } from './data/mock'
+// FAY-1242: global quick-add trigger — apps wire this to a shell action (e.g.
+// the bottom-nav center "+") to open the transaction sheet from anywhere.
+export { openQuickAdd } from './quick-add'

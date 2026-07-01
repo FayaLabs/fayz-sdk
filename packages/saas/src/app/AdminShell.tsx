@@ -2,6 +2,8 @@ import * as React from 'react'
 import {
   AppShell,
   type NavigationItem,
+  type BottomNavItem,
+  type MobileHeaderVariant,
   ModuleLayoutProvider,
   PageTransition,
   type ModuleNavVariant,
@@ -62,7 +64,11 @@ export interface AdminShellProps {
    *  'sidebar' layout and 'rail' for 'topbar'. */
   moduleNav?: ModuleNavVariant
   /** Mobile bottom tab bar, passed straight through to AppShell. */
-  bottomNav?: Array<{ label: string; icon: string; route: string }>
+  bottomNav?: BottomNavItem[]
+  /** Fired when a bottom-nav `action` item (e.g. the center "+") is tapped. */
+  onBottomNavAction?: (id: string) => void
+  /** Mobile header treatment (<md), passed straight through to AppShell. */
+  mobileHeader?: MobileHeaderVariant
 }
 
 // ---------------------------------------------------------------------------
@@ -292,7 +298,7 @@ function buildSettingsTabs(
   return settingsTabs
 }
 
-function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, contentFrame = true, moduleNav, bottomNav }: AdminShellProps) {
+function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, contentFrame = true, moduleNav, bottomNav, onBottomNavAction, mobileHeader }: AdminShellProps) {
   const runtime = usePluginRuntime()
   const t = useTranslation()
   const can = usePermissionOptional()
@@ -410,8 +416,11 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       pageTitle={activePageTitle}
       currentPath={path}
       bottomNav={bottomNav}
+      onBottomNavAction={onBottomNavAction}
+      mobileHeader={mobileHeader}
       onNavigate={(route) => navigateTo(route)}
       onSignOut={() => { void signOut() }}
+      onProfile={() => navigateTo('/perfil')}
       onSettings={() => navigateTo('/settings')}
       sidebarTopContent={<WorkspaceSwitcher />}
       userMenuSlot={

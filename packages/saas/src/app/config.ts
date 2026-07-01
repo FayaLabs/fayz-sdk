@@ -9,6 +9,7 @@ import type {
   PermissionsConfig,
 } from '@fayz-ai/core'
 import type { AuthPluginOptions, ResolvedAuthPlugin } from '@fayz-ai/plugin-auth'
+import type { BottomNavItem, MobileHeaderVariant } from '@fayz-ai/ui'
 import type { SaasTheme } from '../shell/config/theme/tokens'
 import type { CreateThemeOptions } from '../shell/config/theme/utils'
 import type { PlanConfig } from '../shell/types/billing'
@@ -128,8 +129,16 @@ export interface FayzAppConfig {
   /** Shell layout variant (default: 'sidebar') */
   layout?: 'sidebar' | 'topbar' | 'minimal'
   /** Mobile bottom tab bar. Rendered by AppShell on small screens (md:hidden)
-   *  for every layout variant. Each item maps a lucide icon name to a route. */
-  bottomNav?: Array<{ label: string; icon: string; route: string }>
+   *  for every layout variant. Route items map a lucide icon name to a route; an
+   *  `{ kind: 'action', id, icon }` item renders as a raised center button
+   *  (Mobills style) that fires `onBottomNavAction(id)` instead of navigating. */
+  bottomNav?: BottomNavItem[]
+  /** Fired when a bottom-nav `action` item (e.g. the center "+") is tapped. */
+  onBottomNavAction?: (id: string) => void
+  /** Mobile header treatment (<md), default 'minimal'. 'transparent' renders no
+   *  header bar (edge-to-edge content) with a floating profile avatar top-right;
+   *  'hidden' renders neither. Desktop keeps its sidebar + user menu. */
+  mobileHeader?: MobileHeaderVariant
   /** Wrap the main content in an inset "framed" card (default: true). The
    *  sidebar itself is always flush/full-height. */
   contentFrame?: boolean
