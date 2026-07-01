@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // App factory (main entry point)
 // ---------------------------------------------------------------------------
-export { createFayzApp, AdminProviders } from './app/createFayzApp'
+export { createFayzApp, AdminProviders } from './app/admin-app'
 export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, CustomPage, PageSection } from './app/config'
 
 // Native admin scaffold — manifest-first entry. Importing this registers the
@@ -172,6 +172,12 @@ export { PersonLink } from './components/shared/PersonLink'
 export { resolveEntityHref } from './lib/entity-routes'
 export { usePluginPrefs } from './hooks/usePluginPrefs'
 export { setScheduleBlockConfig, getScheduleBlockConfig, subscribeScheduleBlockConfig } from './lib/schedule-config'
+
+// Assistant chat store — lets apps drive the shell's chat panel imperatively
+// (e.g. an "Ask the assistant" CTA calling useChatStore().setOpen(true)). The
+// store is a shared zustand singleton, so app + shell read the same instance.
+export { useChatStore } from './shell/stores/chat.store'
+export type { ChatMessage } from './shell/stores/chat.store'
 
 // Shell plugin-settings panel + dedup util (used by vertical plugins)
 export { PluginSettingsPanel } from './shell/components/plugins/PluginSettingsPanel'
