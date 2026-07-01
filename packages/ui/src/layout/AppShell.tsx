@@ -106,6 +106,7 @@ function SidebarLayout({
   userMenuSlot,
   notificationSlot,
   unreadCount = 0,
+  hasBottomNav = false,
 }: {
   navigation?: NavigationItem[]
   logo?: React.ReactNode
@@ -128,6 +129,9 @@ function SidebarLayout({
   userMenuSlot?: React.ReactNode
   notificationSlot?: React.ReactNode
   unreadCount?: number
+  /** When a mobile bottom-nav bar is present, the mobile hamburger is
+   *  suppressed so the bottom nav is the primary mobile navigation. */
+  hasBottomNav?: boolean
 }) {
   const sidebarCollapsed = useLayoutStore((s) => s.sidebarCollapsed)
   const setSidebarCollapsed = useLayoutStore((s) => s.setSidebarCollapsed)
@@ -174,13 +178,17 @@ function SidebarLayout({
         {/* Top bar — mobile hamburger + module header slot (title + sub-nav) + actions */}
         <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-2">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent md:hidden"
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+            {/* Mobile hamburger — suppressed when a bottom-nav bar owns mobile
+                navigation (mobile-first apps). Desktop sidebar is untouched. */}
+            {!hasBottomNav && (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent md:hidden"
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
             {pageTitle && <h2 className="font-semibold text-lg">{pageTitle}</h2>}
             {topbarStart}
             {/* Module pages (tabs variant) portal their sub-nav here */}
@@ -249,6 +257,7 @@ function TopbarLayout({
   currentPath,
   topbarStart,
   topbarEnd,
+  hasBottomNav = false,
 }: {
   navigation?: NavigationItem[]
   logo?: React.ReactNode
@@ -264,6 +273,9 @@ function TopbarLayout({
   currentPath?: string
   topbarStart?: React.ReactNode
   topbarEnd?: React.ReactNode
+  /** When a mobile bottom-nav bar is present, the mobile hamburger is
+   *  suppressed so the bottom nav is the primary mobile navigation. */
+  hasBottomNav?: boolean
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
@@ -284,7 +296,7 @@ function TopbarLayout({
         userMenuExtras={userMenuExtras}
         leftContent={topbarStart}
         rightContent={topbarEnd}
-        onMenuClick={() => setMobileMenuOpen(true)}
+        onMenuClick={hasBottomNav ? undefined : () => setMobileMenuOpen(true)}
       />
       {/* Frame inset/border only from md up, so mobile stays edge-to-edge. */}
       <main className={cn('flex-1 overflow-y-auto pb-16 md:pb-0', frame && 'md:p-2')}>
@@ -526,8 +538,9 @@ export function AppShell({
   notificationSlot,
   unreadCount = 0,
 }: AppShellProps) {
-  const bottomBar = bottomNav?.length ? (
-    <MobileBottomNav items={bottomNav} currentPath={currentPath} onNavigate={onNavigate} />
+  const hasBottomNav = !!bottomNav?.length
+  const bottomBar = hasBottomNav ? (
+    <MobileBottomNav items={bottomNav!} currentPath={currentPath} onNavigate={onNavigate} />
   ) : null
 
   let layoutElement: React.ReactNode
@@ -555,6 +568,7 @@ export function AppShell({
           userMenuSlot={userMenuSlot}
           notificationSlot={notificationSlot}
           unreadCount={unreadCount}
+          hasBottomNav={hasBottomNav}
         >
           {children}
         </SidebarLayout>
@@ -577,6 +591,7 @@ export function AppShell({
           currentPath={currentPath}
           topbarStart={topbarStart}
           topbarEnd={topbarEnd}
+          hasBottomNav={hasBottomNav}
         >
           {children}
         </TopbarLayout>
