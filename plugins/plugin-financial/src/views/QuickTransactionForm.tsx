@@ -140,10 +140,12 @@ function TogglePill({ icon: Icon, label, checked, onChange, accent }: {
 // Quick transaction form — responsive (mobile fullscreen sheet / desktop modal)
 // ---------------------------------------------------------------------------
 
-export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expense' }: {
+export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expense', defaultAccountId }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultType?: QuickTransactionType
+  /** Preselect an account (e.g. opening from a specific card tile → log an expense against it). */
+  defaultAccountId?: string
 }) {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
@@ -175,9 +177,10 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
     setDate(new Date().toISOString().slice(0, 10))
     setDescription('')
     setCategoryId(undefined)
+    setAccountId(defaultAccountId)
     setToAccountId(undefined)
     setRecurring(false)
-  }, [open, defaultType])
+  }, [open, defaultType, defaultAccountId])
 
   // Load pickers once when opened.
   useEffect(() => {

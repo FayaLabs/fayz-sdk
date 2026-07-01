@@ -1,7 +1,17 @@
 // financial.* — merged plugin-own + saas-core central i18n
 export const ptBR: Record<string, string> = {
+  "financial.cards.addExpense": "Adicionar despesa",
+  "financial.cards.allBillsValue": "Total das faturas",
+  "financial.cards.availableLimit": "Limite disponível",
+  "financial.cards.currentBill": "Fatura atual",
+  "financial.cards.dueOn": "Vence dia {{day}}",
   "financial.cards.installment": "Parcela {{current}}/{{total}}",
+  "financial.cards.noCards": "Nenhum cartão cadastrado",
+  "financial.cards.noCardsHint": "Adicione um cartão de crédito nas configurações para acompanhar suas faturas aqui",
   "financial.cards.noTransactions": "Nenhuma transação com cartão",
+  "financial.cards.tabClosed": "Fechados",
+  "financial.cards.tabOpen": "Abertos",
+  "financial.cards.usedOfLimit": "{{percent}}% do limite usado",
   "financial.cards.pending": "Pendente",
   "financial.cards.received": "Recebido",
   "financial.cards.subtitle": "Transações de cartão de crédito e débito",
