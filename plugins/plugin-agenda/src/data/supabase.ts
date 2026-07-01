@@ -150,7 +150,11 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
       locationId: booking.location_id,
       metadata: booking.metadata ?? {},
       clientId: booking.party_id,
-      clientName: client?.name ?? null,
+      clientName: client?.name ?? (
+        booking.kind === 'appointment'
+          ? null
+          : booking.notes || booking.metadata?.title || (booking.kind === 'task' ? 'Tarefa' : 'Bloqueio')
+      ),
       clientPhone: client?.phone ?? null,
       clientEmail: client?.email ?? null,
       clientAvatarUrl: client?.avatar_url ?? null,
