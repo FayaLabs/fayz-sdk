@@ -6,7 +6,7 @@ import type { DashboardWidgetDef } from '@fayz-ai/core'
 import { useTranslation } from '@fayz-ai/core'
 import {
   KpiCard, ChartWidget, TableWidget, Card, CardHeader, CardTitle, CardContent, GoldCard,
-  defineKpiWidget, defineChartWidget, defineCustomWidget, defineTableWidget,
+  defineKpiWidget, defineChartWidget, defineCustomWidget, defineTableWidget, useDashboardNavigate,
 } from '@fayz-ai/ui'
 import { FinancialContextProvider, useFinancialConfig, useFinancialProvider, useFinancialStore, formatCurrency, type ResolvedFinancialConfig } from '../FinancialContext'
 import type { FinancialDataProvider } from '../data/types'
@@ -179,21 +179,24 @@ function useDueLabel() {
   }
 }
 
-/** Branded balance hero — big Saldo + eye-toggle + Entradas/Saídas pills. */
+/** Branded balance hero — Saldo + eye-toggle + clickable Entradas/Saídas pills.
+ *  Compact band (span-4): tight padding so it never becomes a tall empty block on
+ *  desktop. Pills deep-link into the Financeiro module (receivables / payables). */
 function BalanceHero() {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
   const summary = useFinancialStore((s) => s.summary)
+  const navigate = useDashboardNavigate()
   useEnsureSummary()
   const [hidden, setHidden] = React.useState(false)
   const money = (v: number | null | undefined) => (hidden ? '••••••' : formatCurrency(v ?? 0, currency))
   const inflow = summary?.monthlyInflow ?? 0
   const outflow = summary?.monthlyOutflow ?? 0
   return (
-    <GoldCard branded className="px-6 py-7 text-center md:px-10 md:py-9">
-      <p className="text-sm font-medium opacity-80">{t('financial.home.balance')}</p>
-      <div className="mt-1 flex items-center justify-center gap-3">
-        <span className="text-4xl font-bold tracking-tight tabular-nums md:text-5xl">{money(summary?.totalBalance)}</span>
+    <GoldCard branded className="px-5 py-4 text-center md:px-8 md:py-5">
+      <p className="text-xs font-medium uppercase tracking-wide opacity-75">{t('financial.home.balance')}</p>
+      <div className="mt-0.5 flex items-center justify-center gap-2.5">
+        <span className="text-3xl font-bold tracking-tight tabular-nums md:text-4xl">{money(summary?.totalBalance)}</span>
         <button
           type="button"
           onClick={() => setHidden((h) => !h)}
@@ -203,8 +206,13 @@ function BalanceHero() {
           {hidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
       </div>
-      <div className="mx-auto mt-5 grid max-w-lg grid-cols-2 gap-3">
-        <div className="flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2.5 text-left">
+      <div className="mx-auto mt-3 grid max-w-lg grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/financial/receivables-list')}
+          aria-label={t('financial.home.inflow')}
+          className="flex cursor-pointer items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-left transition-colors hover:bg-white/20"
+        >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/90">
             <ArrowUpRight className="h-4 w-4 text-white" />
           </span>
@@ -212,8 +220,13 @@ function BalanceHero() {
             <span className="block text-[11px] uppercase tracking-wide opacity-70">{t('financial.home.inflow')}</span>
             <span className="block truncate text-sm font-semibold tabular-nums">{money(inflow)}</span>
           </span>
-        </div>
-        <div className="flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2.5 text-left">
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/financial/payables-list')}
+          aria-label={t('financial.home.outflow')}
+          className="flex cursor-pointer items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-left transition-colors hover:bg-white/20"
+        >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/90">
             <ArrowDownRight className="h-4 w-4 text-white" />
           </span>
@@ -221,9 +234,76 @@ function BalanceHero() {
             <span className="block text-[11px] uppercase tracking-wide opacity-70">{t('financial.home.outflow')}</span>
             <span className="block truncate text-sm font-semibold tabular-nums">{money(outflow)}</span>
           </span>
-        </div>
+        </button>
       </div>
     </GoldCard>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// HOME charts — spend-by-category (donut) + cash-flow (in vs out). Both read the
+// same provider/store as the module, so figures stay coherent. surface 'home'
+// only (the plugin-home Resumo keeps its own cash-flow chart untouched).
+// ---------------------------------------------------------------------------
+
+/** Provider-agnostic expense classifier: maps a movement's label to a spend
+ *  bucket by keyword (pt-BR + en). Checked in priority order; first hit wins. */
+const SPEND_CATEGORIES: Array<{ key: string; keywords: string[] }> = [
+  { key: 'subscriptions', keywords: ['netflix', 'spotify', 'prime video', 'disney', 'hbo', ' max', 'youtube', 'apple', 'assinatura', 'subscription'] },
+  { key: 'groceries', keywords: ['supermercado', 'mercado', 'padaria', 'hortifruti', 'feira', 'açougue', 'grocery', 'market'] },
+  { key: 'transport', keywords: ['uber', '99', 'taxi', 'posto', 'shell', 'ipiranga', 'combustível', 'gasolina', 'metrô', 'ônibus', 'transport', 'fuel'] },
+  { key: 'dining', keywords: ['ifood', 'rappi', 'restaurante', 'outback', 'lanchonete', 'pizzaria', 'café', 'cafeteria', 'mcdonald', 'burger', 'food'] },
+  { key: 'home', keywords: ['aluguel', 'condomínio', 'luz', 'enel', 'água', 'sabesp', 'internet', 'vivo', 'claro', 'gás', 'iptu', 'rent', 'utilit'] },
+  { key: 'health', keywords: ['farmácia', 'farmacia', 'drogasil', 'drogaria', 'academia', 'smartfit', 'clínica', 'hospital', 'médico', 'saúde', 'gym', 'fitness', 'health', 'pharmac'] },
+  { key: 'leisure', keywords: ['cinema', 'cinemark', 'ingresso', 'show', 'teatro', 'viagem', 'hotel', 'steam', 'leisure'] },
+  { key: 'shopping', keywords: ['amazon', 'magalu', 'shopee', 'aliexpress', 'loja', 'shopping', 'zara', 'renner', 'store'] },
+]
+
+function categorizeSpend(notes: string | undefined): string {
+  const s = (notes ?? '').toLowerCase()
+  for (const c of SPEND_CATEGORIES) if (c.keywords.some((k) => s.includes(k))) return c.key
+  return 'other'
+}
+
+/** "Gastos por categoria" — realized expenses grouped into a donut. */
+function SpendByCategoryChart() {
+  const t = useTranslation()
+  const provider = useFinancialProvider()
+  const [rows, setRows] = React.useState<Array<{ name: string; value: number }>>([])
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const res = await provider.getMovements({ status: 'paid', direction: 'debit' })
+      if (!alive) return
+      const totals = new Map<string, number>()
+      for (const m of res.data) {
+        if (m.movementKind === 'transfer') continue
+        const key = categorizeSpend(m.notes)
+        totals.set(key, (totals.get(key) ?? 0) + (m.paidAmount || m.amount))
+      }
+      setRows(
+        [...totals.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([key, value]) => ({ name: t(`financial.home.category.${key}`), value: Math.round(value * 100) / 100 })),
+      )
+    })()
+    return () => { alive = false }
+  }, [provider])
+  if (rows.length === 0) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>{t('financial.home.spendByCategory')}</CardTitle></CardHeader>
+        <CardContent className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+          {t('financial.home.noSpend')}
+        </CardContent>
+      </Card>
+    )
+  }
+  return (
+    <ChartWidget
+      type="pie" title={t('financial.home.spendByCategory')} icon="PieChart" categoryKey="name" data={rows}
+      series={[{ dataKey: 'value', label: t('financial.home.spendByCategory') }]}
+    />
   )
 }
 
@@ -341,10 +421,13 @@ export function createFinancialDashboardWidgets(ctx: {
     defineCustomWidget({ id: 'financial.panel.overdue', title: 'financial.summary.overdueTitle', domain: 'financial', span: 1, defaultOrder: 12, surfaces: ['plugin-home'], component: withCtx(OverdueAlerts) }),
     defineTableWidget({ id: 'financial.table.recent', title: 'financial.summary.recentTransactions', domain: 'financial', span: 4, defaultOrder: 20, surfaces: ['plugin-home'], component: withCtx(RecentTransactions) }),
 
-    // HOME surface (B2C phone-first dashboard). Only these three appear on the
-    // global home; they reflow into cells on desktop via the responsive grid.
+    // HOME surface (B2C phone-first dashboard) — a compact analytical layout:
+    // hero band → charts row (spend-by-category + cash-flow) → bills + cards.
+    // They reflow into cells on desktop via the responsive 4-col grid.
     defineCustomWidget({ id: 'financial.hero.balance', title: 'financial.home.balance', domain: 'financial', span: 4, defaultOrder: 0, surfaces: ['home'], component: withCtx(BalanceHero) }),
-    defineCustomWidget({ id: 'financial.list.upcoming-bills', title: 'financial.home.upcomingBills', domain: 'financial', span: 2, defaultOrder: 2, surfaces: ['home'], component: withCtx(UpcomingBills) }),
-    defineCustomWidget({ id: 'financial.cards', title: 'financial.home.cards', domain: 'financial', span: 2, defaultOrder: 3, surfaces: ['home'], component: withCtx(CreditCards) }),
+    defineChartWidget({ id: 'financial.chart.spend-by-category', title: 'financial.home.spendByCategory', domain: 'financial', span: 2, defaultOrder: 1, surfaces: ['home'], component: withCtx(SpendByCategoryChart) }),
+    defineChartWidget({ id: 'financial.chart.cash-flow-home', title: 'financial.summary.cashFlow', domain: 'financial', span: 2, defaultOrder: 2, surfaces: ['home'], component: withCtx(CashFlowChart) }),
+    defineCustomWidget({ id: 'financial.list.upcoming-bills', title: 'financial.home.upcomingBills', domain: 'financial', span: 2, defaultOrder: 3, surfaces: ['home'], component: withCtx(UpcomingBills) }),
+    defineCustomWidget({ id: 'financial.cards', title: 'financial.home.cards', domain: 'financial', span: 2, defaultOrder: 4, surfaces: ['home'], component: withCtx(CreditCards) }),
   ]
 }
