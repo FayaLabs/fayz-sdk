@@ -155,6 +155,18 @@ export interface FayzAppConfig {
   locale?: LocaleConfig
 
   // -------------------------------------------------------------------------
+  // Settings surface
+  // -------------------------------------------------------------------------
+  /** Show org-level settings tabs (Equipe/Permissões/Localizações/Regras).
+   *  Defaults to `Boolean(org)` for back-compat. B2C/personal apps that still
+   *  need an org for the workspace can set `false` to hide these ERP tabs. */
+  orgSettings?: boolean
+  /** Show the branding ("Identidade Visual") + company "Geral" settings tabs.
+   *  Default: `true`. B2C apps set `false` to drop org-identity settings, leaving
+   *  Perfil + Segurança + plugin settings only. */
+  branding?: boolean
+
+  // -------------------------------------------------------------------------
   // Permissions
   // -------------------------------------------------------------------------
   permissions?: PermissionsConfig

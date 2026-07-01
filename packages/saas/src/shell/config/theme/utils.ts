@@ -7,6 +7,39 @@ import type {
   ThemeShadow,
   ThemeFont,
 } from './tokens'
+
+type SidebarTokens = Exclude<SaasTheme['sidebar'], string | undefined>
+
+/**
+ * Derive a colored ("brand") sidebar palette from a single brand HSL string
+ * (e.g. "243 75% 59%"). Keeps the brand hue/saturation and shifts lightness for
+ * the border/active surfaces so text stays readable (light foreground on the
+ * saturated rail). Falls back to undefined (→ neutral) if the value isn't HSL.
+ */
+function deriveBrandSidebar(brand: string): SidebarTokens | undefined {
+  const parts = brand.trim().split(/\s+/)
+  if (parts.length < 3) return undefined
+  const [h, s, lRaw] = parts
+  const l = parseFloat(lRaw)
+  if (Number.isNaN(l)) return undefined
+  const shiftL = (delta: number) => `${h} ${s} ${Math.max(0, Math.min(100, l + delta))}%`
+  return {
+    background: brand,          // the brand color fills the rail
+    foreground: '0 0% 100%',    // white primary text — readable on the saturated rail
+    border: shiftL(-12),        // slightly darker hairline
+    accent: shiftL(-15),        // active item — a deeper shade that reads as selected
+    accentForeground: '0 0% 100%',
+    muted: `${h} 35% 82%`,      // dimmed icons / secondary labels
+  }
+}
+
+/** Resolve SaasTheme.sidebar (string preset or explicit tokens) into tokens. */
+function resolveSidebar(theme: SaasTheme): SidebarTokens | undefined {
+  const sidebar = theme.sidebar
+  if (sidebar === 'neutral') return undefined // keep the default light rail
+  if (sidebar === 'brand') return deriveBrandSidebar(theme.brand)
+  return sidebar
+}
 import { lightTheme } from './light'
 import { createFayzTheme } from '@fayz-ai/ui'
 
@@ -72,27 +105,29 @@ export function resolveTheme(theme: SaasTheme): CreateThemeOptions {
     colors.content = theme.content.background
   }
 
-  // Sidebar colors apply in both modes (sidebar has its own palette)
-  if (theme.sidebar) {
-    colors.sidebar = theme.sidebar.background
-    colors.sidebarForeground = theme.sidebar.foreground
-    colors.sidebarAccent = theme.sidebar.accent
-    colors.sidebarAccentForeground = theme.sidebar.accentForeground
-    if (theme.sidebar.border) colors.sidebarBorder = theme.sidebar.border
-    if (theme.sidebar.muted) colors.sidebarMuted = theme.sidebar.muted
+  // Sidebar colors apply in both modes (sidebar has its own palette). Resolve the
+  // 'brand' | 'neutral' preset or explicit tokens first; neutral → keep defaults.
+  const sidebar = resolveSidebar(theme)
+  if (sidebar) {
+    colors.sidebar = sidebar.background
+    colors.sidebarForeground = sidebar.foreground
+    colors.sidebarAccent = sidebar.accent
+    colors.sidebarAccentForeground = sidebar.accentForeground
+    if (sidebar.border) colors.sidebarBorder = sidebar.border
+    if (sidebar.muted) colors.sidebarMuted = sidebar.muted
   }
 
   // --- Dark mode colors (only sidebar + brand — let darkTheme handle the rest) ---
   const darkColors: Partial<SemanticColors> = {}
 
   // Sidebar keeps same palette in dark mode
-  if (theme.sidebar) {
-    darkColors.sidebar = theme.sidebar.background
-    darkColors.sidebarForeground = theme.sidebar.foreground
-    darkColors.sidebarAccent = theme.sidebar.accent
-    darkColors.sidebarAccentForeground = theme.sidebar.accentForeground
-    if (theme.sidebar.border) darkColors.sidebarBorder = theme.sidebar.border
-    if (theme.sidebar.muted) darkColors.sidebarMuted = theme.sidebar.muted
+  if (sidebar) {
+    darkColors.sidebar = sidebar.background
+    darkColors.sidebarForeground = sidebar.foreground
+    darkColors.sidebarAccent = sidebar.accent
+    darkColors.sidebarAccentForeground = sidebar.accentForeground
+    if (sidebar.border) darkColors.sidebarBorder = sidebar.border
+    if (sidebar.muted) darkColors.sidebarMuted = sidebar.muted
   }
 
   return {

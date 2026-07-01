@@ -163,7 +163,8 @@ export function AdminScaffold({ manifest, surface }: { manifest: AppManifest; su
         pages={config.pages}
         {...authShellProps}
         showSettings
-        showOrgSettings={Boolean(config.org)}
+        showOrgSettings={config.orgSettings ?? Boolean(config.org)}
+        showBranding={config.branding ?? true}
       />
     </AdminProviders>
   )

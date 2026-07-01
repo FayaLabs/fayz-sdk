@@ -203,7 +203,6 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
       createFayzSupabaseClient(config.supabaseUrl, config.supabaseAnonKey)
     }
     const i18n = buildI18nConfig(config)
-    setCurrentLocale(i18n.defaultLocale)
     return {
       authRuntime: resolveAuthRuntime(config),
       orgAdapter: resolveOrgAdapter(config),
@@ -212,6 +211,10 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config])
+
+  React.useEffect(() => {
+    setCurrentLocale(resolved.i18n.defaultLocale)
+  }, [resolved.i18n.defaultLocale])
 
   // Recompute the plugin runtime when the hash path or tenant changes
   // (route-scoped visibility + tenant-scoped plugin data providers).
@@ -290,7 +293,8 @@ export function createFayzApp(config: FayzAppConfig): React.ComponentType {
             pages={config.pages}
             {...authShellProps}
             showSettings
-            showOrgSettings={Boolean(config.org)}
+            showOrgSettings={config.orgSettings ?? Boolean(config.org)}
+            showBranding={config.branding ?? true}
           />
         )}
       </AdminProviders>

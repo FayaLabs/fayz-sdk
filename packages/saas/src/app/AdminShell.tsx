@@ -57,6 +57,9 @@ export interface AdminShellProps {
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
   showSettings?: boolean
   showOrgSettings?: boolean
+  /** Show the branding ("Identidade Visual") + company "Geral" settings tabs.
+   *  Default: true. B2C apps pass false to hide org-identity settings. */
+  showBranding?: boolean
   /** Wrap the main content in an inset "framed" card (default: true). The
    *  sidebar is always flush/full-height. */
   contentFrame?: boolean
@@ -298,7 +301,7 @@ function buildSettingsTabs(
   return settingsTabs
 }
 
-function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, contentFrame = true, moduleNav, bottomNav, onBottomNavAction, mobileHeader }: AdminShellProps) {
+function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, showBranding = true, contentFrame = true, moduleNav, bottomNav, onBottomNavAction, mobileHeader }: AdminShellProps) {
   const runtime = usePluginRuntime()
   const t = useTranslation()
   const can = usePermissionOptional()
@@ -401,7 +404,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
 
   const activeContent = ActiveComponent ? (
     match.route.path === '/settings' || match.route.path === '/settings/*'
-      ? <SettingsPage extraTabs={settingsTabs} />
+      ? <SettingsPage extraTabs={settingsTabs} showCompany={showBranding} showBranding={showBranding} />
       : <ActiveComponent {...activeParams} />
   ) : null
 
