@@ -1,31 +1,31 @@
 import React from 'react'
 import { ShoppingBag } from 'lucide-react'
-import type { Product } from '@fayz-ai/shop/types'
-import { useCartStore } from '../stores/cart.store'
 import { useStorefrontConfig } from '../config'
 import { Link, navigateTo } from '../router'
 import { getProductOptionGroups } from '../product-options'
 import { Price } from './Price'
 import { TID } from '../testids'
-import { productCardSlotContract } from '../slot-contracts'
+import { productCardComponentContract } from '../component-selectors'
+import { useStorefrontActions } from '../hooks/useStorefront'
+import type { ProductCardProps } from '../component-contracts'
+import { SmoothImage } from './SmoothImage'
 
-export interface ProductCardProps {
-  product: Product
-}
-
-export function ProductCard({ product }: ProductCardProps) {
-  const config = useStorefrontConfig()
-  const addItem = useCartStore((s) => s.addItem)
+export function ProductCard({ product, config: providedConfig, actions: providedActions }: ProductCardProps) {
+  const runtimeConfig = useStorefrontConfig()
+  const runtimeActions = useStorefrontActions()
+  const config = providedConfig ?? runtimeConfig
+  const actions = providedActions ?? runtimeActions
   const hasOptions = getProductOptionGroups(product).length > 0
   const soldOut = product.inventoryCount <= 0
   const onSale = product.compareAtPrice != null && product.compareAtPrice > product.price
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0]
   const cardStyle = config.theme?.productCard?.style ?? 'card'
   const aspect = config.theme?.productCard?.imageAspect === 'portrait' ? 'aspect-[3/4]' : 'aspect-square'
+  const purchaseMode = config.commerceMode === 'checkout'
 
   return (
     <div
-      {...productCardSlotContract.root}
+      {...productCardComponentContract.root}
       data-slug={product.slug}
       className={`group flex flex-col overflow-hidden transition-all duration-300 ${
         cardStyle === 'editorial'
@@ -36,7 +36,7 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       <Link to={`/product/${product.slug}`} className={`relative block ${aspect} overflow-hidden bg-muted`} style={{ borderRadius: cardStyle === 'editorial' ? 'var(--sf-radius-card)' : undefined }}>
         {image && (
-          <img
+          <SmoothImage
             src={image.url}
             alt={image.altText ?? product.name}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -67,23 +67,39 @@ export function ProductCard({ product }: ProductCardProps) {
         <span className="text-xs text-muted-foreground">{product.categoryName}</span>
         <Link
           to={`/product/${product.slug}`}
-          {...productCardSlotContract.name}
+          {...productCardComponentContract.name}
           className="font-medium leading-snug hover:underline"
         >
           {product.name}
         </Link>
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <Price
-            value={product.price}
-            compareAt={product.compareAtPrice}
-            testId={productCardSlotContract.priceTestId}
-          />
+        <div className="mt-auto flex items-center justify-between gap-3 pt-2">
+          {purchaseMode ? (
+            <Price
+              value={product.price}
+              compareAt={product.compareAtPrice}
+              testId={productCardComponentContract.priceTestId}
+            />
+          ) : (
+            <span data-testid={productCardComponentContract.priceTestId} className="text-sm text-muted-foreground">
+              {config.commerceMode === 'enquiry' ? config.enquiry.label : 'Ver detalhes'}
+            </span>
+          )}
           <button
             type="button"
-            {...productCardSlotContract.addButton}
-            disabled={soldOut}
-            aria-label={hasOptions ? `Escolher opções de ${product.name}` : `Adicionar ${product.name} ao carrinho`}
+            {...productCardComponentContract.addButton}
+            disabled={purchaseMode && soldOut}
+            aria-label={
+              purchaseMode
+                ? hasOptions
+                  ? `Escolher opções de ${product.name}`
+                  : `Adicionar ${product.name} ao carrinho`
+                : `${config.enquiry.label} ${product.name}`
+            }
             onClick={() => {
+              if (!purchaseMode) {
+                navigateTo(`/product/${product.slug}`)
+                return
+              }
               // Products with variants (size/color) must pick an option on the PDP
               // — quick-adding would create an option-less line. Others add inline
               // (addItem auto-opens the cart drawer).
@@ -91,7 +107,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 navigateTo(`/product/${product.slug}`)
                 return
               }
-              addItem(product)
+              actions.addToCart(product)
             }}
             className="rounded-full border bg-background/90 p-2.5 text-foreground shadow-sm transition-all duration-200 hover:scale-110 hover:bg-primary hover:text-primary-foreground hover:shadow disabled:cursor-not-allowed disabled:opacity-40 lg:translate-y-1 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:disabled:opacity-0 lg:group-hover:disabled:opacity-40"
           >

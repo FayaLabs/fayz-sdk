@@ -1,9 +1,11 @@
 import { registerBlock } from '@fayz-ai/core'
 import type { BlockNode } from '@fayz-ai/core'
-import type { HomeSection } from './sections'
+import type { StorefrontSection } from './sections'
 import { HeroSection } from './components/sections/HeroSection'
 import { CategoryShowcase } from './components/sections/CategoryShowcase'
 import { ProductRail } from './components/sections/ProductRail'
+import { MediaCarousel } from './components/sections/MediaCarousel'
+import { ProductSlider } from './components/sections/ProductSlider'
 import {
   BenefitsRow,
   PromoBanner,
@@ -26,8 +28,10 @@ export function registerStorefrontBlocks(): void {
   if (registered) return
   registered = true
   registerBlock('hero', HeroSection, { source: 'sdk', label: 'Hero' })
+  registerBlock('mediaCarousel', MediaCarousel, { source: 'sdk', label: 'Media carousel' })
   registerBlock('categories', CategoryShowcase, { source: 'sdk', label: 'Categories' })
   registerBlock('products', ProductRail, { source: 'sdk', label: 'Product rail' })
+  registerBlock('productSlider', ProductSlider, { source: 'sdk', label: 'Product slider' })
   registerBlock('benefits', BenefitsRow, { source: 'sdk', label: 'Benefits row' })
   registerBlock('banner', PromoBanner, { source: 'sdk', label: 'Promo banner' })
   registerBlock('manifesto', ManifestoBlock, { source: 'sdk', label: 'Manifesto' })
@@ -38,8 +42,8 @@ export function registerStorefrontBlocks(): void {
 // Register on import so any consumer of the storefront package has the blocks.
 registerStorefrontBlocks()
 
-/** Convert the legacy HomeSection[] blueprint into a generic block tree. */
-export function sectionsToBlocks(sections: HomeSection[]): BlockNode[] {
+/** Convert the typed storefront section blueprint into a generic block tree. */
+export function sectionsToBlocks(sections: readonly StorefrontSection[]): BlockNode[] {
   return sections.map((section, i) => {
     const { type, ...props } = section
     return { type, id: `${type}-${i}`, props: props as Record<string, unknown> }

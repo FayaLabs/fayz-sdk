@@ -1,9 +1,10 @@
 export type {
-  Product, ProductImage, Category,
+  Product, ProductImage, Category, ProductEnquiry, ProductEnquiryStatus,
   Order, OrderItem, OrderStatus, FinancialStatus, FulfillmentStatus,
   ShopCustomer, Discount, DiscountType, DiscountMethod, DiscountStatus,
   ProductStatus,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
+  CreateProductEnquiryInput, ListProductEnquiriesOptions,
   CreateCategoryInput, UpdateCategoryInput,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions,
   CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,

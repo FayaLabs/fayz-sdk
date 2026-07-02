@@ -12,6 +12,7 @@ import { CustomerAccountShell, type AccountSection } from '../components/Custome
 import { OrderTrackingTimeline } from '../components/OrderTrackingTimeline'
 import { financialStatusBadge } from '../order-status'
 import { useStorefrontHead } from '../hooks/useStorefrontHead'
+import { SmoothImage } from '../components/SmoothImage'
 
 function AuthForm() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
@@ -155,7 +156,7 @@ function OrdersPanel() {
           <ul className="mt-3 flex flex-wrap gap-2">
             {order.items.map((item) => (
               <li key={item.id} className="flex items-center gap-2 rounded-lg border px-2 py-1 text-xs">
-                {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="h-6 w-6 rounded object-cover" />}
+                {item.imageUrl && <SmoothImage src={item.imageUrl} alt={item.name} className="h-6 w-6 rounded object-cover" />}
                 {item.name} × {item.quantity}
               </li>
             ))}

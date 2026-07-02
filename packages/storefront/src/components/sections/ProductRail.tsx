@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { useProducts } from '../../hooks/useProducts'
-import { useStorefrontConfig } from '../../config'
+import { getStorefrontComponents, useStorefrontConfig } from '../../config'
+import { useStorefrontActions } from '../../hooks/useStorefront'
 import { ProductCard } from '../ProductCard'
 import { Reveal } from '../../motion'
 import { Link } from '../../router'
@@ -20,7 +21,9 @@ export function ProductRail({
   limit?: number
 }) {
   const config = useStorefrontConfig()
-  const ProductCardComponent = config.slots?.ProductCard ?? ProductCard
+  const actions = useStorefrontActions()
+  const components = getStorefrontComponents(config)
+  const ProductCardComponent = components.ProductCard ?? ProductCard
   const { products, loading } = useProducts(
     filter === 'new'
       ? { status: 'active', orderBy: 'created_at', order: 'desc' }
@@ -54,7 +57,12 @@ export function ProductRail({
         <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
           {visible.map((p, i) => (
             <Reveal key={p.id} delay={i * 90}>
-              <ProductCardComponent product={p} />
+              <ProductCardComponent
+                product={p}
+                config={config}
+                commerceMode={config.commerceMode}
+                actions={actions}
+              />
             </Reveal>
           ))}
         </div>

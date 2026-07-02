@@ -14,6 +14,7 @@ import { navigateTo } from '../router'
 import { formatMoney } from '../format'
 import { QuantityInput } from './QuantityInput'
 import { TID } from '../testids'
+import { SmoothImage } from './SmoothImage'
 
 export function CartDrawer() {
   const config = useStorefrontConfig()
@@ -127,7 +128,7 @@ export function CartDrawer() {
                   }`}
                 >
                   {line.imageUrl && (
-                    <img src={line.imageUrl} alt={line.name} className="h-20 w-20 shrink-0 rounded-lg border object-cover" />
+                    <SmoothImage src={line.imageUrl} alt={line.name} className="h-20 w-20 shrink-0 rounded-lg border object-cover" />
                   )}
                   <div className="flex flex-1 flex-col">
                     <div className="flex items-start justify-between gap-2">

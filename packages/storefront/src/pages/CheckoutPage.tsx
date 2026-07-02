@@ -18,6 +18,7 @@ import { useDiscountValidator } from '../hooks/useDiscountValidator'
 import { toast } from '../stores/toast.store'
 import { useStorefrontHead } from '../hooks/useStorefrontHead'
 import { SignInModal } from '../components/SignInModal'
+import { SmoothImage } from '../components/SmoothImage'
 
 interface CheckoutForm {
   email: string
@@ -471,7 +472,7 @@ export function CheckoutPage() {
             {cart.lines.map((line) => (
               <li key={line.lineId ?? line.productId} className="flex gap-3 text-sm">
                 <div className="relative h-16 w-16 flex-none overflow-hidden rounded-lg border bg-background">
-                  {line.imageUrl && <img src={line.imageUrl} alt={line.name} className="h-full w-full object-cover" />}
+                  {line.imageUrl && <SmoothImage src={line.imageUrl} alt={line.name} className="h-full w-full object-cover" />}
                   <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-muted-foreground px-1.5 text-[10px] font-bold text-background">
                     {line.quantity}
                   </span>

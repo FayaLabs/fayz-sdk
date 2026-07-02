@@ -3,9 +3,12 @@ import { setShopProvider } from '@fayz-ai/shop/runtime'
 import { createMockShopProvider } from '@fayz-ai/shop/mock'
 import type { MockShopSeed } from '@fayz-ai/shop/mock'
 import type { Discount } from '@fayz-ai/shop/types'
+import type { ShopProvider } from '@fayz-ai/shop/provider'
 import { initCustomerAuth, resolveAuthAdapter } from './auth'
-import { StorefrontConfigProvider, resolveConfig, useStorefrontConfig } from './config'
+import { getStorefrontComponents, StorefrontConfigProvider, resolveConfig, useStorefrontConfig } from './config'
 import type { StorefrontConfig, StorefrontDiscountConfig } from './config'
+import type { StorefrontComponents } from './component-contracts'
+import type { StorefrontSection } from './sections'
 import { useHashPath, matchPath } from './router'
 import { StorefrontThemeStyle } from './theme'
 import { StorefrontHeader } from './components/StorefrontHeader'
@@ -51,8 +54,8 @@ function RouteSwitch({ path }: { path: string }) {
   const order = matchPath('/order/:id', path)
   if (order?.id) return <OrderConfirmationPage orderId={order.id} />
 
-  if (matchPath('/checkout', path)) return <CheckoutPage />
-  if (matchPath('/account', path)) return <MyPurchasesPage />
+  if (matchPath('/checkout', path) && config.features.checkout) return <CheckoutPage />
+  if (matchPath('/account', path) && config.features.accounts) return <MyPurchasesPage />
   if (matchPath('/catalog', path)) return <CatalogPage />
   if (matchPath('/privacy', path)) return <PolicyPage kind="privacy" />
   if (matchPath('/terms', path)) return <PolicyPage kind="terms" />
@@ -112,7 +115,12 @@ function buildMockSeed(config: StorefrontConfig): MockShopSeed | undefined {
 }
 
 export function initStorefrontRuntime(config: StorefrontConfig): void {
-  initCustomerAuth(resolveAuthAdapter(config.auth?.adapter))
+  if (resolveConfig(config).features.accounts) {
+    initCustomerAuth(resolveAuthAdapter(config.auth, {
+      supabaseUrl: config.supabaseUrl,
+      supabaseAnonKey: config.supabaseAnonKey,
+    }))
+  }
 
   if (config.provider) {
     setShopProvider(config.provider)
@@ -133,16 +141,34 @@ export function StorefrontShell() {
   const config = useStorefrontConfig()
   const path = useHashPath()
   const focused = isFocusedRoute(config, path)
-  return (
-    <div className="min-h-screen bg-background text-foreground">
+  const components = getStorefrontComponents(config)
+  const chromeProps = { config, commerceMode: config.commerceMode }
+  const body = (
+    <>
       {config.theme && <StorefrontThemeStyle theme={config.theme} />}
-      {!focused && <StorefrontHeader />}
+      {!focused &&
+        (components.Header ? <components.Header {...chromeProps} /> : <StorefrontHeader />)}
       <StorefrontErrorBoundary key={path}>
         <RouteSwitch path={path} />
       </StorefrontErrorBoundary>
-      {!focused && <CartDrawer />}
-      {!focused && <StorefrontFooter />}
+      {!focused && config.features.cart && <CartDrawer />}
+      {!focused &&
+        (components.Footer ? <components.Footer {...chromeProps} /> : <StorefrontFooter />)}
       <Toaster />
+    </>
+  )
+
+  if (components.Shell) {
+    return (
+      <components.Shell {...chromeProps}>
+        {body}
+      </components.Shell>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {body}
     </div>
   )
 }
@@ -168,4 +194,31 @@ export function createStorefrontApp(config: StorefrontConfig): React.ComponentTy
   }
   StorefrontApp.displayName = 'StorefrontApp'
   return StorefrontApp
+}
+
+export interface CreateStorefrontOptions {
+  config: StorefrontConfig
+  provider?: ShopProvider
+  components?: StorefrontComponents
+  routes?: StorefrontConfig['routes']
+  pages?: StorefrontConfig['routes']
+  sections?: readonly StorefrontSection[]
+}
+
+export function createStorefront(options: CreateStorefrontOptions): React.ComponentType {
+  const routes = [...(options.pages ?? []), ...(options.routes ?? [])]
+  const config: StorefrontConfig = {
+    ...options.config,
+    provider: options.provider ?? options.config.provider,
+    components: {
+      ...options.config.components,
+      ...options.components,
+    },
+    routes: routes.length > 0 ? routes : options.config.routes,
+    home: options.sections
+      ? { ...(options.config.home ?? { sections: [] }), sections: options.sections }
+      : options.config.home,
+  }
+
+  return createStorefrontApp(config)
 }

@@ -1,7 +1,8 @@
 import type { ShopProvider } from './provider'
 import type {
-  Product, ProductImage, Category, Order, ShopCustomer, Discount,
+  Product, ProductImage, Category, Order, ShopCustomer, Discount, ProductEnquiry,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
+  CreateProductEnquiryInput, ListProductEnquiriesOptions,
   CreateCategoryInput, UpdateCategoryInput,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions, PlaceOrderInput,
   CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
@@ -17,6 +18,7 @@ function now() { return new Date().toISOString() }
 // the storefront sees a deterministic catalog on every load.
 const ORDERS_KEY = 'fayz.shop.mock.orders.v1'
 const CUSTOMERS_KEY = 'fayz.shop.mock.customers.v1'
+const ENQUIRIES_KEY = 'fayz.shop.mock.enquiries.v1'
 
 function loadStored<T>(key: string): T[] {
   try {
@@ -49,6 +51,7 @@ export class MockShopProvider implements ShopProvider {
   private discounts: Discount[]
   private orders: Order[] = loadStored<Order>(ORDERS_KEY)
   private customers: ShopCustomer[] = loadStored<ShopCustomer>(CUSTOMERS_KEY)
+  private enquiries: ProductEnquiry[] = loadStored<ProductEnquiry>(ENQUIRIES_KEY)
 
   constructor(seed?: MockShopSeed) {
     this.products = (seed?.products ?? MOCK_PRODUCTS).map(p => ({ ...p }))
@@ -60,8 +63,10 @@ export class MockShopProvider implements ShopProvider {
   // and a stale in-memory copy must not clobber persisted records.
   private syncOrders() { this.orders = loadStored<Order>(ORDERS_KEY) }
   private syncCustomers() { this.customers = loadStored<ShopCustomer>(CUSTOMERS_KEY) }
+  private syncEnquiries() { this.enquiries = loadStored<ProductEnquiry>(ENQUIRIES_KEY) }
   private persistOrders() { store(ORDERS_KEY, this.orders) }
   private persistCustomers() { store(CUSTOMERS_KEY, this.customers) }
+  private persistEnquiries() { store(ENQUIRIES_KEY, this.enquiries) }
 
   // ---------------------------------------------------------------------------
   // Products
@@ -112,6 +117,46 @@ export class MockShopProvider implements ShopProvider {
   async deleteProduct(id: string) { this.products = this.products.filter(p => p.id !== id) }
   async uploadProductImage(_productId: string, _file: File): Promise<ProductImage> { throw new Error('Image upload not available in mock mode') }
   async deleteProductImage(_imageId: string) {}
+
+  async createProductEnquiry(input: CreateProductEnquiryInput): Promise<ProductEnquiry> {
+    this.syncEnquiries()
+    const ts = now()
+    const enquiry: ProductEnquiry = {
+      id: uid(),
+      tenantId: 'mock',
+      productId: input.productId ?? null,
+      productName: input.productName,
+      productSlug: input.productSlug ?? null,
+      customerName: input.customerName,
+      customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone ?? null,
+      subject: input.subject ?? null,
+      message: input.message,
+      sourceUrl: input.sourceUrl ?? null,
+      status: 'new',
+      metadata: input.metadata ?? {},
+      createdAt: ts,
+      updatedAt: ts,
+    }
+    this.enquiries.unshift(enquiry)
+    this.persistEnquiries()
+    return enquiry
+  }
+
+  async listProductEnquiries(opts?: ListProductEnquiriesOptions): Promise<ProductEnquiry[]> {
+    this.syncEnquiries()
+    let list = [...this.enquiries]
+    if (opts?.productId) list = list.filter((e) => e.productId === opts.productId)
+    if (opts?.customerEmail) {
+      const email = opts.customerEmail.toLowerCase()
+      list = list.filter((e) => e.customerEmail.toLowerCase() === email)
+    }
+    if (opts?.status) list = list.filter((e) => e.status === opts.status)
+    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    const offset = opts?.offset ?? 0
+    if (offset || opts?.limit) list = list.slice(offset, opts?.limit ? offset + opts.limit : undefined)
+    return list
+  }
 
   // ---------------------------------------------------------------------------
   // Categories

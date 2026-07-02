@@ -206,25 +206,27 @@ function HeaderActions() {
           )}
         </div>
       )}
-      <button
-        type="button"
-        data-testid={TID.cartButton}
-        aria-label="Carrinho"
-        onClick={openDrawer}
-        className="relative rounded-full p-2.5 transition-opacity hover:opacity-70"
-      >
-        <ShoppingBag className="h-5 w-5" />
-        {count > 0 && (
-          <span
-            data-testid={TID.cartCount}
-            className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground ${
-              pop ? 'animate-badge-pop' : ''
-            }`}
-          >
-            {count}
-          </span>
-        )}
-      </button>
+      {config.features.cart && (
+        <button
+          type="button"
+          data-testid={TID.cartButton}
+          aria-label="Carrinho"
+          onClick={openDrawer}
+          className="relative rounded-full p-2.5 transition-opacity hover:opacity-70"
+        >
+          <ShoppingBag className="h-5 w-5" />
+          {count > 0 && (
+            <span
+              data-testid={TID.cartCount}
+              className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground ${
+                pop ? 'animate-badge-pop' : ''
+              }`}
+            >
+              {count}
+            </span>
+          )}
+        </button>
+      )}
     </nav>
   )
 }
@@ -233,6 +235,7 @@ function NavLinks({ className }: { className?: string }) {
   const config = useStorefrontConfig()
   const { categories } = useCategories()
   const setCategoryId = useCatalogStore((s) => s.setCategoryId)
+  const showCategories = config.theme?.header?.showCategories !== false
 
   const goCategory = (categoryId: string) => {
     useCatalogStore.getState().reset()
@@ -241,7 +244,7 @@ function NavLinks({ className }: { className?: string }) {
   }
 
   return (
-    <nav className={`flex items-center gap-6 ${className ?? ''}`}>
+    <nav className={`flex min-w-max items-center gap-6 ${className ?? ''}`}>
       {config.nav.map((link) => (
         <Link
           key={link.to}
@@ -252,18 +255,19 @@ function NavLinks({ className }: { className?: string }) {
           {link.label}
         </Link>
       ))}
-      {categories.slice(0, 6).map((c) => (
-        <button
-          key={c.id}
-          type="button"
-          data-testid={TID.navCategory(c.slug)}
-          onClick={() => goCategory(c.id)}
-          className="sf-nav-link group relative hidden text-sm font-medium transition-opacity hover:opacity-80 lg:inline"
-        >
-          {c.name}
-          <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all duration-300 group-hover:w-full" />
-        </button>
-      ))}
+      {showCategories &&
+        categories.slice(0, 6).map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            data-testid={TID.navCategory(c.slug)}
+            onClick={() => goCategory(c.id)}
+            className="sf-nav-link group relative hidden text-sm font-medium transition-opacity hover:opacity-80 lg:inline"
+          >
+            {c.name}
+            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all duration-300 group-hover:w-full" />
+          </button>
+        ))}
     </nav>
   )
 }
@@ -272,6 +276,7 @@ export function StorefrontHeader() {
   const config = useStorefrontConfig()
   const variant = config.theme?.header?.variant ?? 'classic'
   const scrolled = useScrolled()
+  const showSearch = config.theme?.header?.showSearch !== false
   const logo = (
     <Link to="/" className="sf-heading shrink-0 text-xl font-bold tracking-tight">
       {config.logo ?? config.name}
@@ -290,13 +295,13 @@ export function StorefrontHeader() {
         // Rio/Flex pattern: centered logo row, nav row below
         <>
           <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6">
-            <SearchInput className="hidden w-full max-w-xs sm:block" />
+            {showSearch ? <SearchInput className="hidden w-full max-w-xs sm:block" /> : <div />}
             <div className="text-center">{logo}</div>
             <div className="justify-self-end">
               <HeaderActions />
             </div>
           </div>
-          <div className="hidden justify-center border-t py-2.5 sm:flex" style={headerDivider}>
+          <div className="flex overflow-x-auto border-t py-2.5 sm:justify-center" style={headerDivider}>
             <NavLinks />
           </div>
         </>
@@ -304,13 +309,13 @@ export function StorefrontHeader() {
         // Brasília pattern: prominent search left, logo center, actions right; nav row below
         <>
           <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-4 sm:px-6">
-            <SearchInput className="hidden w-full max-w-sm sm:block" />
+            {showSearch ? <SearchInput className="hidden w-full max-w-sm sm:block" /> : <div />}
             <div className="text-center">{logo}</div>
             <div className="justify-self-end">
               <HeaderActions />
             </div>
           </div>
-          <div className="hidden border-t sm:block" style={headerDivider}>
+          <div className="overflow-x-auto border-t" style={headerDivider}>
             <div className="mx-auto max-w-7xl px-4 py-2.5 sm:px-6">
               <NavLinks />
             </div>
@@ -324,7 +329,7 @@ export function StorefrontHeader() {
           </div>
           <div className="text-center">{logo}</div>
           <div className="flex items-center justify-end gap-3">
-            <SearchInput className="hidden w-44 lg:block" />
+            {showSearch && <SearchInput className="hidden w-44 lg:block" />}
             <HeaderActions />
           </div>
         </div>
@@ -333,7 +338,7 @@ export function StorefrontHeader() {
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
           {logo}
           <NavLinks className="hidden md:flex" />
-          <SearchInput className="ml-auto hidden w-full max-w-sm sm:block" />
+          {showSearch && <SearchInput className="ml-auto hidden w-full max-w-sm sm:block" />}
           <HeaderActions />
         </div>
       )}

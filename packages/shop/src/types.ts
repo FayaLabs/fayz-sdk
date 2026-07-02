@@ -87,6 +87,51 @@ export interface ListProductsOptions {
 }
 
 // ---------------------------------------------------------------------------
+// Product enquiry
+// ---------------------------------------------------------------------------
+
+export type ProductEnquiryStatus = 'new' | 'contacted' | 'closed'
+
+export interface ProductEnquiry {
+  id: string
+  tenantId: string
+  productId: string | null
+  productName: string
+  productSlug: string | null
+  customerName: string
+  customerEmail: string
+  customerPhone: string | null
+  subject: string | null
+  message: string
+  sourceUrl: string | null
+  status: ProductEnquiryStatus
+  metadata: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateProductEnquiryInput {
+  productId?: string
+  productName: string
+  productSlug?: string
+  customerName: string
+  customerEmail: string
+  customerPhone?: string
+  subject?: string
+  message: string
+  sourceUrl?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface ListProductEnquiriesOptions {
+  productId?: string
+  customerEmail?: string
+  status?: ProductEnquiryStatus
+  limit?: number
+  offset?: number
+}
+
+// ---------------------------------------------------------------------------
 // Category
 // ---------------------------------------------------------------------------
 

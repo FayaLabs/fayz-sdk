@@ -1,12 +1,15 @@
 import React from 'react'
 import type { Product } from '@fayz-ai/shop/types'
 import { ProductCard } from './ProductCard'
-import { useStorefrontConfig } from '../config'
+import { getStorefrontComponents, useStorefrontConfig } from '../config'
+import { useStorefrontActions } from '../hooks/useStorefront'
 import { TID } from '../testids'
 
 export function ProductGrid({ products, loading }: { products: Product[]; loading: boolean }) {
   const config = useStorefrontConfig()
-  const ProductCardComponent = config.slots?.ProductCard ?? ProductCard
+  const actions = useStorefrontActions()
+  const components = getStorefrontComponents(config)
+  const ProductCardComponent = components.ProductCard ?? ProductCard
 
   if (loading) {
     return (
@@ -27,7 +30,13 @@ export function ProductGrid({ products, loading }: { products: Product[]; loadin
   return (
     <div data-testid={TID.productGrid} className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-4">
       {products.map((p) => (
-        <ProductCardComponent key={p.id} product={p} />
+        <ProductCardComponent
+          key={p.id}
+          product={p}
+          config={config}
+          commerceMode={config.commerceMode}
+          actions={actions}
+        />
       ))}
     </div>
   )

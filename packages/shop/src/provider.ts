@@ -1,7 +1,8 @@
 import type {
   Product, ProductImage, Category,
-  Order, ShopCustomer, Discount,
+  Order, ShopCustomer, Discount, ProductEnquiry,
   CreateProductInput, UpdateProductInput, ListProductsOptions,
+  CreateProductEnquiryInput, ListProductEnquiriesOptions,
   CreateCategoryInput, UpdateCategoryInput,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions, PlaceOrderInput,
   CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
@@ -17,6 +18,10 @@ export interface ShopProvider {
   deleteProduct(id: string): Promise<void>
   uploadProductImage(productId: string, file: File): Promise<ProductImage>
   deleteProductImage(imageId: string): Promise<void>
+
+  // Product enquiries
+  createProductEnquiry?(input: CreateProductEnquiryInput): Promise<ProductEnquiry>
+  listProductEnquiries?(options?: ListProductEnquiriesOptions): Promise<ProductEnquiry[]>
 
   // Categories
   listCategories(): Promise<Category[]>

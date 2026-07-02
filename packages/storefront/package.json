@@ -45,6 +45,7 @@
   "dependencies": {
     "@fayz-ai/auth": "workspace:^",
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/plugin-auth": "workspace:^",
     "@fayz-ai/sdk": "workspace:^",
     "@fayz-ai/shop": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
