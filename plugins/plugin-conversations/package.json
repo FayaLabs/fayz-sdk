@@ -1,7 +1,7 @@
 {
   "name": "@fayz-ai/plugin-conversations",
   "version": "0.2.3",
-  "description": "Fayz SDK — unified conversations / omni-channel inbox plugin",
+  "description": "[experimental] Fayz SDK — unified conversations / omni-channel inbox plugin",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
