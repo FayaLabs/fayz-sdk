@@ -12,7 +12,7 @@ export type { LocaleConfig } from './types/i18n'
 
 // Data providers
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './data/supabase'
-export { createFayzApiProvider } from './data/fayz-api'
+export { createFayzApiProvider } from './data/platform-api'
 export { createMockProvider } from './data/mock'
 export { createArchetypeProvider } from './data/archetype'
 export { withCache } from './data/cached'

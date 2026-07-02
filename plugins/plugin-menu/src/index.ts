@@ -176,8 +176,8 @@ export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
 }
 
 export type { MenuDataProvider } from './data/types'
-export { createFayzMenuProvider } from './data/fayz'
-export type { FayzMenuProviderOptions } from './data/fayz'
+export { createFayzMenuProvider } from './data/platform'
+export type { FayzMenuProviderOptions } from './data/platform'
 export type { ResolvedMenuConfig } from './MenuContext'
 // Domain types — public so any host can implement a MenuDataProvider (e.g. an
 // app-local Supabase provider during plugin incubation).

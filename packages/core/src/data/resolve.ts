@@ -5,7 +5,7 @@ import { getSupabaseClientOptional } from './supabase'
 import { createSupabaseProvider } from './supabase'
 import { createArchetypeProvider } from './archetype'
 import { createMockProvider } from './mock'
-import { createFayzApiProvider, type FayzApiProviderConfig } from './fayz-api'
+import { createFayzApiProvider, type FayzApiProviderConfig } from './platform-api'
 import { withCache } from './cached'
 import { getActiveTenantId } from '../tenant'
 
