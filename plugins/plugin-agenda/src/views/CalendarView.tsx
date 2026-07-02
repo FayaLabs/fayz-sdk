@@ -335,6 +335,16 @@ export function CalendarView() {
   const events = useMemo(() =>
     [...bookingEvents, ...availabilityEvents], [bookingEvents, availabilityEvents])
 
+  // Provider-neutral refresh hook. Host applications may dispatch this after
+  // receiving a database/realtime notification from any integration.
+  useEffect(() => {
+    const refresh = () => {
+      if (visibleRange?.start && visibleRange.end) void fetchBookings(visibleRange)
+    }
+    window.addEventListener('agenda:refresh', refresh)
+    return () => window.removeEventListener('agenda:refresh', refresh)
+  }, [fetchBookings, visibleRange])
+
   // ── Calendar handlers ──
   const handleDatesSet = useCallback((arg: { startStr: string; endStr: string; view: { title: string; type: string } }) => {
     setCalendarTitle(arg.view.title)
