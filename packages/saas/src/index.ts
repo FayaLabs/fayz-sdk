@@ -39,10 +39,6 @@ export { PermissionGate } from './permissions/PermissionGate'
 export { WidgetSlot } from './plugins/WidgetSlot'
 export { useFieldRules } from './hooks/useFieldRules'
 
-// Native admin shell — createSaasApp orchestrator (de-bridged from saas-core
-// into ./shell). The default createCrudPage is the native one.
-export { createSaasApp } from './shell/createSaasApp'
-export type { SaasAppConfig, PageConfig } from './shell/createSaasApp'
 export { createCrudPage } from './crud/createCrudPage'
 // Client-orders archetype (used by beauty-saas client detail tab)
 export { ClientOrdersTab } from './shell/components/crud/archetypes/ClientOrdersTab'

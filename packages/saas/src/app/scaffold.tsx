@@ -15,7 +15,6 @@ import type {
 import { AdminProviders, getAuthShellProps } from './admin-app'
 import { AdminShell } from './AdminShell'
 import type { FayzAppConfig, CustomPage } from './config'
-import { createSaasApp, type SaasAppConfig } from '../shell/createSaasApp'
 
 // ---------------------------------------------------------------------------
 // Admin scaffold — renders an admin app from a pure-data AppManifest. Mirrors
@@ -32,15 +31,9 @@ function slug(name: string): string {
 }
 
 const liveConfigOption = '__fayzLiveConfigRef'
-const liveSaasConfigs = new Map<string, FayzAppConfig | SaasAppConfig>()
+const liveSaasConfigs = new Map<string, FayzAppConfig>()
 
-function hasLegacyShellConfig(config: FayzAppConfig | SaasAppConfig): config is SaasAppConfig {
-  // NB: bottomNav is now a shared FayzAppConfig field, so it can't discriminate
-  // the legacy SaasAppConfig — rely on the legacy-only fields instead.
-  return 'organization' in config || 'settingsTabs' in config || 'pluginRuntime' in config
-}
-
-function getAuthRequireAuth(config: FayzAppConfig | SaasAppConfig): boolean {
+function getAuthRequireAuth(config: FayzAppConfig): boolean {
   return config.auth?.requireAuth ?? true
 }
 
@@ -52,7 +45,7 @@ function getLiveConfigRef(id: string): string {
  * migration, config-authored apps keep a live config ref so renderApp can
  * preserve code-backed plugins and custom pages while the JSON manifest path
  * matures. Serialized manifests still resolve through plugin/page registries. */
-export function defineSaas(config: FayzAppConfig | SaasAppConfig): AppManifest {
+export function defineSaas(config: FayzAppConfig): AppManifest {
   const id = slug(config.name)
   const configRef = getLiveConfigRef(id)
   liveSaasConfigs.set(configRef, config)
@@ -123,7 +116,7 @@ function manifestToFayzConfig(manifest: AppManifest, surfaceName: string): FayzA
   const options = (manifest.surfaces[surfaceName]?.options ?? {}) as Record<string, unknown>
   const liveConfigRef = options[liveConfigOption]
   const liveConfig = typeof liveConfigRef === 'string' ? liveSaasConfigs.get(liveConfigRef) : undefined
-  if (liveConfig && !hasLegacyShellConfig(liveConfig)) return liveConfig
+  if (liveConfig) return liveConfig
 
   return {
     name: manifest.name,
@@ -140,16 +133,8 @@ function manifestToFayzConfig(manifest: AppManifest, surfaceName: string): FayzA
 }
 
 export function AdminScaffold({ manifest, surface }: { manifest: AppManifest; surface: string }) {
-  const liveConfigRef = manifest.surfaces[surface]?.options?.[liveConfigOption]
-  const liveConfig = typeof liveConfigRef === 'string' ? liveSaasConfigs.get(liveConfigRef) : undefined
-  const LegacyApp = React.useMemo(() => {
-    if (!liveConfig || !hasLegacyShellConfig(liveConfig)) return null
-    return createSaasApp(liveConfig)
-  }, [liveConfig])
   const config = React.useMemo(() => manifestToFayzConfig(manifest, surface), [manifest, surface])
   const authShellProps = React.useMemo(() => getAuthShellProps(config.auth), [config.auth])
-
-  if (LegacyApp) return <LegacyApp />
 
   return (
     <AdminProviders config={config}>
