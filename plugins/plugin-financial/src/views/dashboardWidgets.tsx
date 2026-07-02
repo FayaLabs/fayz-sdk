@@ -421,13 +421,17 @@ export function createFinancialDashboardWidgets(ctx: {
     defineCustomWidget({ id: 'financial.panel.overdue', title: 'financial.summary.overdueTitle', domain: 'financial', span: 1, defaultOrder: 12, surfaces: ['plugin-home'], component: withCtx(OverdueAlerts) }),
     defineTableWidget({ id: 'financial.table.recent', title: 'financial.summary.recentTransactions', domain: 'financial', span: 4, defaultOrder: 20, surfaces: ['plugin-home'], component: withCtx(RecentTransactions) }),
 
-    // HOME surface (B2C phone-first dashboard) — a compact analytical layout:
-    // hero band → charts row (spend-by-category + cash-flow) → bills + cards.
-    // They reflow into cells on desktop via the responsive 4-col grid.
-    defineCustomWidget({ id: 'financial.hero.balance', title: 'financial.home.balance', domain: 'financial', span: 4, defaultOrder: 0, surfaces: ['home'], component: withCtx(BalanceHero) }),
-    defineChartWidget({ id: 'financial.chart.spend-by-category', title: 'financial.home.spendByCategory', domain: 'financial', span: 2, defaultOrder: 1, surfaces: ['home'], component: withCtx(SpendByCategoryChart) }),
-    defineChartWidget({ id: 'financial.chart.cash-flow-home', title: 'financial.summary.cashFlow', domain: 'financial', span: 2, defaultOrder: 2, surfaces: ['home'], component: withCtx(CashFlowChart) }),
-    defineCustomWidget({ id: 'financial.list.upcoming-bills', title: 'financial.home.upcomingBills', domain: 'financial', span: 2, defaultOrder: 3, surfaces: ['home'], component: withCtx(UpcomingBills) }),
-    defineCustomWidget({ id: 'financial.cards', title: 'financial.home.cards', domain: 'financial', span: 2, defaultOrder: 4, surfaces: ['home'], component: withCtx(CreditCards) }),
+    // FINANCE-HOME surface (B2C phone-first dashboard) — a compact analytical
+    // layout: hero band → charts row (spend-by-category + cash-flow) → bills +
+    // cards. This is a dedicated consumer surface (norman-ai's money screen), NOT
+    // the universal B2B 'home': a full-bleed balance hero and credit-card tiles
+    // are personal-finance chrome that would leak into every app that merely
+    // enables plugin-financial (e.g. the beauty-saas Painel). Apps that want them
+    // opt in explicitly by rendering <DashboardCanvas surface="finance-home">.
+    defineCustomWidget({ id: 'financial.hero.balance', title: 'financial.home.balance', domain: 'financial', span: 4, defaultOrder: 0, surfaces: ['finance-home'], component: withCtx(BalanceHero) }),
+    defineChartWidget({ id: 'financial.chart.spend-by-category', title: 'financial.home.spendByCategory', domain: 'financial', span: 2, defaultOrder: 1, surfaces: ['finance-home'], component: withCtx(SpendByCategoryChart) }),
+    defineChartWidget({ id: 'financial.chart.cash-flow-home', title: 'financial.summary.cashFlow', domain: 'financial', span: 2, defaultOrder: 2, surfaces: ['finance-home'], component: withCtx(CashFlowChart) }),
+    defineCustomWidget({ id: 'financial.list.upcoming-bills', title: 'financial.home.upcomingBills', domain: 'financial', span: 2, defaultOrder: 3, surfaces: ['finance-home'], component: withCtx(UpcomingBills) }),
+    defineCustomWidget({ id: 'financial.cards', title: 'financial.home.cards', domain: 'financial', span: 2, defaultOrder: 4, surfaces: ['finance-home'], component: withCtx(CreditCards) }),
   ]
 }

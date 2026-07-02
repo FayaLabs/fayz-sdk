@@ -131,9 +131,12 @@ export interface PluginWidgetDefinition<TConfig extends Record<string, unknown> 
 
 export type DashboardWidgetKind = 'kpi' | 'chart' | 'table' | 'onboarding' | 'custom'
 
-/** Surfaces a widget can appear on. 'home' = global app home; 'plugin-home' =
- *  the owning plugin's own overview page. */
-export type DashboardSurface = 'home' | 'plugin-home'
+/** Surfaces a widget can appear on. 'home' = global app home (the universal
+ *  business dashboard every app renders via createDashboardPlugin);
+ *  'plugin-home' = the owning plugin's own overview page; 'finance-home' = a
+ *  dedicated B2C consumer-finance home (norman-ai's phone-first money screen),
+ *  kept separate so its full-bleed hero/cards never leak onto the B2B 'home'. */
+export type DashboardSurface = 'home' | 'plugin-home' | 'finance-home'
 
 export interface DashboardWidgetDef<TProps extends Record<string, unknown> = Record<string, unknown>> {
   /** Globally unique id, e.g. 'crm.kpi.total-leads'. */
