@@ -765,6 +765,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
                       )}
                     </div>
                   ) : !quickCreate ? (
+                    <>
                     <SearchCombobox
                       value={clientSearch}
                       onChange={(v) => { setClientSearch(v); setClientId('') }}
@@ -778,6 +779,12 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
                       minimal
                       inlineLabel={t('agenda.appointment.addClient')}
                     />
+                    {clientSearch.trim() && !clientSearching && (
+                      <p className="mt-1 text-[11px] text-warning">
+                        {t('agenda.appointment.selectClientHint')}
+                      </p>
+                    )}
+                    </>
                   ) : (
                     <div className="rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] p-2.5 space-y-2">
                       <div className="flex items-center gap-2">

@@ -22,6 +22,34 @@ export type ConfirmationStatus = 'pending' | 'sent' | 'confirmed' | 'declined'
 /** Booking type identifier — extensible via string literal union */
 export type BookingTypeId = 'appointment' | 'task' | 'out_of_office' | 'block' | (string & {})
 
+/** Durable events emitted by the canonical booking aggregate. */
+export type BookingDomainEventType =
+  | 'booking.created'
+  | 'booking.updated'
+  | 'booking.status_changed'
+  | 'booking.cancelled'
+  | 'booking.deleted'
+
+export interface BookingCommandContext {
+  /** Stable producer name, e.g. `agenda` or `google-calendar`. */
+  origin: string
+  /** UUID propagated through inbound commands and outbound events. */
+  correlationId: string
+}
+
+export interface BookingDomainEvent {
+  id: string
+  tenantId: string
+  aggregateType: 'booking'
+  aggregateId: string
+  eventType: BookingDomainEventType
+  eventVersion: number
+  origin: string
+  correlationId: string
+  payload: { booking: Record<string, unknown>; previous?: Record<string, unknown> }
+  occurredAt: string
+}
+
 /** Configuration for a booking type (event type) */
 export interface BookingTypeConfig {
   id: BookingTypeId
