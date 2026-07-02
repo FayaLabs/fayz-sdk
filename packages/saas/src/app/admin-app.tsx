@@ -28,8 +28,7 @@ import { useBillingStore } from '../billing/store'
 import type { Plan } from '@fayz-ai/core'
 import type { PlanConfig } from '../shell/types/billing'
 import { useThemeStore } from '../shell/stores/theme.store'
-import { resolveTheme, type CreateThemeOptions } from '../shell/config/theme/utils'
-import type { SaasTheme } from '../shell/config/theme/tokens'
+import { resolveTheme, isSaasTheme } from '../shell/config/theme/utils'
 import { AdminShell } from './AdminShell'
 import { useAdminPath } from './routing'
 import type { FayzAppConfig } from './config'
@@ -167,12 +166,9 @@ function ThemeInitializer({ config }: { config: FayzAppConfig }) {
 
   React.useEffect(() => {
     if (config.theme) {
-      const isSaasTheme = 'brand' in config.theme && (
-        'radius' in config.theme || 'sidebar' in config.theme || 'font' in config.theme
-      )
-      const resolved = isSaasTheme
-        ? resolveTheme(config.theme as SaasTheme)
-        : config.theme as CreateThemeOptions
+      const resolved = isSaasTheme(config.theme)
+        ? resolveTheme(config.theme)
+        : config.theme
       setOverrides(resolved)
     }
     if (config.defaultThemeMode && typeof window !== 'undefined' && !localStorage.getItem('saas-core:theme-mode')) {

@@ -7,7 +7,7 @@ export type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from './types/a
 export type { OrgAdapter, Organization, OrgMember, OrgMembership, Location, Invite, CreateOrgOptions } from './types/org'
 export type { PermissionsConfig, FeatureDeclaration, PermissionAction, PermissionProfile } from './types/permissions'
 export type { Plan, BillingConfig } from './types/billing'
-export type { SaasTheme, ThemeConfig, ThemeBrand, ThemeRadius, ThemeMode } from './types/theme'
+export type { ThemeBrand, ThemeRadius, ThemeMode } from './types/theme'
 export type { LocaleConfig } from './types/i18n'
 
 // Data providers

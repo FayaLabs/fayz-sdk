@@ -88,6 +88,11 @@ export type ThemeFont = 'system' | 'inter' | 'dm-sans' | 'poppins' | 'geist' | '
 export type SidebarStyle = 'brand' | 'neutral'
 
 export interface SaasTheme {
+  /** Explicit discriminator so config code never has to duck-type the theme
+   *  shape (SaasTheme vs CreateThemeOptions share keys like `brand`/`name`).
+   *  Optional for hand-written configs — `isSaasTheme` falls back to a
+   *  structural check — but generated configs should always set it. */
+  __kind?: 'saas-theme'
   name: string
   preset?: FayzThemePresetId
   brand: string

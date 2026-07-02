@@ -53,6 +53,18 @@ export interface CreateThemeOptions {
   brand?: string
 }
 
+/**
+ * Discriminate the two theme shapes a FayzAppConfig can carry. The explicit
+ * `__kind: 'saas-theme'` marker is authoritative; the structural fallback
+ * exists only for hand-written configs that predate the marker. Note the
+ * fallback is ambiguous for a `{ name, brand }`-only SaasTheme (it routes to
+ * the CreateThemeOptions path) — set `__kind` to opt out of the ambiguity.
+ */
+export function isSaasTheme(theme: SaasTheme | CreateThemeOptions): theme is SaasTheme {
+  if ('__kind' in theme && theme.__kind === 'saas-theme') return true
+  return 'brand' in theme && ('radius' in theme || 'sidebar' in theme || 'font' in theme)
+}
+
 // --- Friendly preset maps ---
 
 const RADIUS_MAP: Record<ThemeRadius, { button: string; card: string; input: string; modal: string }> = {
