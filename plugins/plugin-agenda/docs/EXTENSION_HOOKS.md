@@ -20,9 +20,10 @@ timestamp, origin and correlation ID. Payload versions are append-only contracts
 ## Delivery semantics
 
 The in-memory `eventBus` is useful for UI reactions, but it is not a durable
-integration transport. Production extensions require a transactional domain
-event/outbox record written with the booking mutation. Consumers are at-least-
-once and therefore must be idempotent.
+integration transport. Migration `packages/db/migrations/009_booking_domain_events.sql`
+installs `saas_core.domain_events` and the transactional booking trigger.
+Consumers copy relevant events into their own outbox. Delivery is at-least-once,
+so provider operations must be idempotent.
 
 ## Extension contract
 
@@ -30,18 +31,25 @@ An extension declares subscribed event names. Runtime routing must verify that
 the extension is installed and enabled for the tenant before creating work.
 Handlers enqueue provider operations; they do not perform remote calls inline.
 
-Inbound provider changes call public Agenda commands with `origin` metadata.
-Agenda then emits normal events; subscribers must ignore or coalesce events that
-originated from themselves to prevent feedback loops.
+Inbound provider changes call the public commands below with `origin` and a
+correlation ID:
+
+- `saas_core.command_update_booking`;
+- `saas_core.command_import_external_block`;
+- `saas_core.command_delete_external_booking`;
+- `saas_core.command_link_external_event`.
+
+Agenda emits normal events; subscribers ignore events originated from themselves
+to prevent feedback loops.
 
 ## Deletion
 
-Capture the provider link in a tombstone/outbox before deleting the booking.
-Deleting the aggregate first loses the external ID and makes remote cleanup
-impossible.
+The `booking.deleted` snapshot contains the metadata that existed before delete.
+Extension routers copy that snapshot into their outbox before retention removes
+the domain event.
 
 ## Production readiness
 
-Required: durable outbox, retries, dead-letter, versioned payloads, idempotency,
-tenant isolation, observability and contract tests. Polling may exist only as a
-reconciliation fallback.
+The SDK provides the durable producer and commands. Each extension remains
+responsible for workers, retry, dead-letter, idempotency, observability and
+contract tests. Polling may exist only as reconciliation.
