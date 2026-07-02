@@ -312,23 +312,27 @@ export function FinancialPage({ config, provider, store, registries }: {
         direction={direction}
         headerAction={
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="hidden md:inline-flex"
-              onClick={openReceiptCapture}
-            >
-              <Camera className="h-4 w-4" />
-              {t('financial.quickTx.sendReceipt')}
-            </Button>
-            <Button
-              size="sm"
-              className="hidden md:inline-flex"
-              onClick={() => openQuickAdd('expense')}
-            >
-              <Plus className="h-4 w-4" />
-              {t('financial.quickTx.newTransaction')}
-            </Button>
+            {config.quickAdd && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="hidden md:inline-flex"
+                  onClick={openReceiptCapture}
+                >
+                  <Camera className="h-4 w-4" />
+                  {t('financial.quickTx.sendReceipt')}
+                </Button>
+                <Button
+                  size="sm"
+                  className="hidden md:inline-flex"
+                  onClick={() => openQuickAdd('expense')}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('financial.quickTx.newTransaction')}
+                </Button>
+              </>
+            )}
             <ModuleActionBar
               quickActions={quickActions}
               settingsPath={registries && registries.length > 0 ? '/settings/financial' : undefined}

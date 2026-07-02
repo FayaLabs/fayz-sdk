@@ -75,6 +75,13 @@ export interface FinancialPluginOptions {
     locale?: string
     symbol?: string
   }
+  /**
+   * Show the plugin's own quick-add affordances (the "New transaction" + "Send
+   * receipt" header buttons and, on mobile, the FAB). Opt-in (default: false) so
+   * hosts that already surface a "New" menu / global center-action don't render
+   * redundant controls. The shared quick-add sheet still opens via openQuickAdd().
+   */
+  quickAdd?: boolean
   navPosition?: number
   navSection?: 'main' | 'secondary'
   scope?: PluginScope
@@ -165,6 +172,8 @@ function resolveConfig(options?: FinancialPluginOptions): ResolvedFinancialConfi
       // Opt-in: only shown when an app explicitly enables reconciliation (bank connector present).
       reconciliation: options?.modules?.reconciliation === true,
     },
+    // Opt-in: only render the plugin's own quick-add buttons/FAB when the host asks.
+    quickAdd: options?.quickAdd === true,
     labels: { ...DEFAULT_LABELS, ...options?.labels },
     currency: { ...DEFAULT_CURRENCY, ...options?.currency },
     itemTypes: options?.itemTypes ?? DEFAULT_ITEM_TYPES,
