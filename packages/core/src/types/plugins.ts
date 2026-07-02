@@ -1,5 +1,5 @@
 import type React from 'react'
-import type { EntityDef, FieldDef } from './crud'
+import type { EntityDef } from './crud'
 import type { FeatureDeclaration, PermissionAction } from './permissions'
 import type { ConnectorDefinition } from '../integrations'
 
@@ -262,45 +262,6 @@ export interface PluginOnboarding {
 }
 
 /**
- * A server-side action or workflow a plugin exposes. The action runs *behind the
- * Fayz boundary* — a Supabase Edge Function or an RPC, never in the app — so
- * provider credentials stay server-side (see docs/architecture-boundaries.md §4).
- * Declared as data so the AppManifest can bind triggers→actions and the AI can
- * call them safely. Implementation wiring is intentionally lazy; this reserves the
- * contract shape.
- */
-export interface PluginServerAction {
-  id: string
-  name: string
-  description?: string
-  /** How the action is executed behind the Fayz boundary. */
-  kind: 'edge-function' | 'rpc'
-  /** Edge function name or RPC name to invoke. */
-  handler: string
-  /** JSON Schema for the action input (editor / AI / validation). */
-  inputSchema?: Record<string, unknown>
-  /** JSON Schema for the action result. */
-  outputSchema?: Record<string, unknown>
-  permission?: PluginPermissionRequirement
-  /** Event name(s) that trigger this action when emitted on the bus. */
-  triggers?: string[]
-}
-
-/**
- * Custom fields a plugin adds to an entity *without editing that entity's owner*.
- * The fields are persisted on an extension table / JSONB column resolved by the
- * data provider — the declarative seam behind layer-C (private extension) custom
- * fields. See docs/architecture-boundaries.md §5.
- */
-export interface PluginCustomFieldsDef {
-  /** Entity key these fields extend, e.g. 'crm.client'. */
-  entity: string
-  fields: FieldDef[]
-  /** Extension table that stores them; provider convention applies when omitted. */
-  table?: string
-}
-
-/**
  * A health check a plugin contributes to the diagnostics / boot report surfaced by
  * `fayz doctor`. Declared as data so the platform can verify a plugin's backend
  * prerequisites are present without running it.
@@ -358,22 +319,10 @@ export interface PluginManifest {
    */
   connectors?: ConnectorDefinition[]
   migrations?: PluginMigration[]
-  /** Server-side actions/workflows the plugin exposes behind the Fayz boundary. */
-  serverActions?: PluginServerAction[]
-  /** Custom fields this plugin adds to entities it does not own. */
-  customFields?: PluginCustomFieldsDef[]
   /** Backend prerequisites the plugin needs; surfaced by `fayz doctor`. */
   diagnostics?: PluginDiagnostic[]
   onboarding?: PluginOnboarding
   locales?: Record<string, Record<string, string>>
-  /** Marketplace metadata for npm discovery */
-  marketplace?: {
-    category: string
-    tags: string[]
-    author: string
-    license: string
-    repository?: string
-  }
 }
 
 export interface TenantPluginBinding {
