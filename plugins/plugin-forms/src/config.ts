@@ -1,4 +1,4 @@
-import type { PluginScope, VerticalId } from '@fayz-ai/core'
+import type { PluginRegistryDef, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { CustomFormsDataProvider } from './data/types'
 
 export interface CustomFormsPluginOptions {
@@ -8,11 +8,14 @@ export interface CustomFormsPluginOptions {
   navSection?: 'main' | 'secondary' | 'settings'
   navPosition?: number
   labels?: Partial<CustomFormsLabels>
+  /** App-owned registries shown inside Forms & Documents settings. */
+  settingsRegistries?: PluginRegistryDef[]
 }
 
 export interface CustomFormsLabels {
   pageTitle: string
   settingsLabel: string
+  settingsSubtitle: string
   templates: string
   documents: string
   newTemplate: string
@@ -26,6 +29,7 @@ export interface CustomFormsConfig {
 const DEFAULT_LABELS: CustomFormsLabels = {
   pageTitle: 'Custom Forms',
   settingsLabel: 'Forms & Documents',
+  settingsSubtitle: 'Create and manage custom forms for your business',
   templates: 'Templates',
   documents: 'Documents',
   newTemplate: 'New Template',

@@ -35,7 +35,6 @@ export function ReportViewer({ report, onBack }: ReportViewerProps) {
   } = useReportData(report, provider, config.defaultPageSize)
 
   const isAvailable = report.available !== false
-
   const tanstackColumns = useMemo(
     () => reportColumnsToTanstack(report.columns, config.currency.code),
     [report.columns, config.currency.code],

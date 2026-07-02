@@ -11,13 +11,16 @@ import {
   CreditCard,
   Bell,
   Calendar,
+  CalendarClock,
   Package,
+  Activity,
   BarChart3,
   FileText,
   Mail,
   DollarSign,
   Megaphone,
   ShoppingCart,
+  ShoppingBag,
   Target,
   Wrench,
   ClipboardList,
@@ -38,9 +41,11 @@ import {
   Contact,
   Building2,
   Plus,
+  Shield,
   List,
   ListChecks,
   FileCheck2,
+  FolderOpen,
   Dog,
   Cat,
   PawPrint,
@@ -69,6 +74,8 @@ import {
   SlidersHorizontal,
   TableProperties,
   UserPlus,
+  UserCheck,
+  UserX,
   TreePalm,
   Boxes,
   Box,
@@ -90,6 +97,9 @@ import {
   Disc3,
   UsersRound,
   Mic,
+  Inbox,
+  Star,
+  Zap,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '../utils/cn'
@@ -189,14 +199,14 @@ function TopbarUserMenu({
 }
 
 export const ICON_MAP: Record<string, LucideIcon> = {
-  Home, Users, Settings, CreditCard, Bell, Calendar, Package, BarChart3,
-  FileText, Mail, DollarSign, Megaphone, ShoppingCart, Target, Wrench,
+  Home, Users, Settings, CreditCard, Bell, Calendar, CalendarClock, Package, Activity, BarChart3,
+  FileText, Mail, DollarSign, Megaphone, ShoppingCart, ShoppingBag, Target, Wrench,
   ClipboardList, ClipboardCheck, Briefcase, UserCog, BookOpen, MessageCircle, Globe,
   BookOpenCheck, Percent, Tag, Tags, Camera, UtensilsCrossed, Search, MapPin, Handshake,
-  Contact, Building2, ChevronDown, Filter, Plus, List, ListChecks, Dog, Cat, PawPrint, Heart, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
-  ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, Plug, SlidersHorizontal, TableProperties, Landmark, Receipt, TrendingUp, CircleDollarSign, Clock, AlertTriangle, Sparkles, Wallet, Warehouse, Ruler, ArrowUpRight, ArrowDownRight, UserPlus, TreePalm,
+  Contact, Building2, ChevronDown, Filter, Plus, Shield, List, ListChecks, FolderOpen, Dog, Cat, PawPrint, Heart, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
+  ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, Plug, SlidersHorizontal, TableProperties, Landmark, Receipt, TrendingUp, CircleDollarSign, Clock, AlertTriangle, Sparkles, Wallet, Warehouse, Ruler, ArrowUpRight, ArrowDownRight, UserPlus, UserX, TreePalm,
   Boxes, Box, FileCheck2, PartyPopper, Radio, CalendarDays, BadgeDollarSign, Banknote, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
-  CalendarCheck2, CalendarX, ListPlus, Map, Ban, Clock3,
+  CalendarCheck2, CalendarX, ListPlus, Map, Ban, Clock3, Inbox, UserCheck, Star, Zap,
 }
 
 function getIcon(name: string): LucideIcon {

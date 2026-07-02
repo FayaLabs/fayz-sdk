@@ -7,7 +7,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { ListView } from '@fayz-ai/ui'
 import { useTranslation } from '../../../hooks/useTranslation'
 import type { EntityDef } from '../../../types/crud'
-import type { ClientDocument, ClientDocumentStage, ClientOrdersProvider, ClientOrdersNavigator } from '../../../types/client-orders'
+import type { ClientDocument, ClientDocumentStage, ClientOrdersProvider, ClientOrdersNavigator, ClientOrdersStageFilter } from '../../../types/client-orders'
 
 // ---------------------------------------------------------------------------
 // Stage badge config
@@ -146,6 +146,8 @@ export function ClientOrdersTab({
   entityDef,
   provider,
   navigator,
+  initialStage,
+  stageFilters,
   onBookingClick,
   onInvoiceClick,
   currency = { code: 'BRL', locale: 'pt-BR' },
@@ -154,6 +156,8 @@ export function ClientOrdersTab({
   entityDef: EntityDef
   provider: ClientOrdersProvider
   navigator?: ClientOrdersNavigator
+  initialStage?: string
+  stageFilters?: ClientOrdersStageFilter[]
   onBookingClick?: (orderId: string) => void
   onInvoiceClick?: (orderId: string) => void
   currency?: { code: string; locale: string }
@@ -162,7 +166,7 @@ export function ClientOrdersTab({
   const [docs, setDocs] = useState<ClientDocument[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [stageFilter, setStageFilter] = useState<string | undefined>()
+  const [stageFilter, setStageFilter] = useState<string | undefined>(initialStage)
 
   const clientId = item.id as string
 
@@ -185,14 +189,18 @@ export function ClientOrdersTab({
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
+  useEffect(() => {
+    setStageFilter(initialStage)
+  }, [initialStage])
+
   const columns = useColumns(currency, t, onBookingClick, onInvoiceClick)
 
-  const tags = useMemo(() => [
+  const tags = useMemo(() => stageFilters ?? [
     { value: 'booked', label: t('crud.orders.stage.booked') },
     { value: 'invoiced', label: t('crud.orders.stage.invoiced') },
     { value: 'paid', label: t('crud.orders.stage.paid') },
     { value: 'quoted', label: t('crud.orders.stage.quoted') },
-  ], [t])
+  ], [stageFilters, t])
 
   return (
     <ListView<ClientDocument>

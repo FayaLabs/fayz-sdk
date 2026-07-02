@@ -128,6 +128,8 @@ export type {
   ReportQueryState,
   ReportBadge,
   ReportDataSource,
+  ReportGrain,
+  ReportAllowedAction,
   ReportFilterOption,
   ReportsPluginOptions,
   ReportsPluginLabels,

@@ -99,7 +99,7 @@ function PropertiesTab({ registries, routeBase, regLabel }: {
               )}
             >
               {Icon && <Icon className="h-3.5 w-3.5" />}
-              {regLabel(r.id, r.entity.name)}
+              {regLabel(r.id, r.entity.namePlural ?? r.entity.name)}
             </button>
           )
         })}
@@ -161,7 +161,7 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
     }
     if (customTabs) {
       for (const tab of customTabs) {
-        list.push({ id: `_custom_${tab.id}`, label: tab.label, icon: tab.icon, type: 'custom' })
+        list.push({ id: tab.id, label: tab.label, icon: tab.icon, type: 'custom' })
       }
     }
     if (connectors.length > 0) {
@@ -184,6 +184,8 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
       const rest = hash.slice(routeBase.length + 1).split('/')[0]
       const match = tabs.find((t) => t.id === rest)
       if (match) return match.id
+      const legacyCustom = rest.startsWith('_custom_') ? rest.slice('_custom_'.length) : null
+      if (legacyCustom && tabs.find((t) => t.id === legacyCustom && t.type === 'custom')) return legacyCustom
       // Legacy/nested: a registry id (flat or under _properties) → Properties tab.
       if (registries?.some((r) => r.id === rest) && tabs.some((t) => t.id === '_properties')) return '_properties'
     }
@@ -207,7 +209,7 @@ export function PluginSettingsPanel({ title, subtitle, generalSettings, registri
   }
 
   const activeTabDef = tabs.find((t) => t.id === activeTab) ?? tabs[0]
-  const customTabContent = customTabs?.find((t) => `_custom_${t.id}` === activeTab)
+  const customTabContent = customTabs?.find((t) => t.id === activeTab)
 
   return (
     <div className="space-y-4">
