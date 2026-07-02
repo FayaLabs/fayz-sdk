@@ -11,7 +11,9 @@ interface AuthContextValue {
   signUp: (email: string, password: string, fullName: string) => Promise<AuthSession>
   signOut: () => Promise<void>
   signInWithOAuth: (provider: OAuthProvider) => Promise<void>
-  resetPassword: (email: string) => Promise<void>
+  resetPassword: (email: string, options?: { redirectTo?: string }) => Promise<void>
+  updatePassword: (password: string) => Promise<AuthSession | void>
+  handleCallback: (url?: string) => Promise<AuthSession | null>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -116,10 +118,36 @@ export function AuthProvider({ adapter, children }: AuthProviderProps) {
       }
     },
 
-    async resetPassword(email) {
+    async resetPassword(email, options) {
       setError(null)
       try {
-        await adapterRef.current.resetPassword(email)
+        await adapterRef.current.resetPassword(email, options)
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        setError(error)
+        throw error
+      }
+    },
+
+    async updatePassword(password) {
+      setError(null)
+      try {
+        const session = await adapterRef.current.updatePassword?.(password)
+        if (session) setSession(session)
+        return session
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        setError(error)
+        throw error
+      }
+    },
+
+    async handleCallback(url) {
+      setError(null)
+      try {
+        const session = await adapterRef.current.handleCallback?.(url) ?? null
+        if (session) setSession(session)
+        return session
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err))
         setError(error)
@@ -154,5 +182,7 @@ export function useAuth() {
     signOut: ctx.signOut,
     signInWithOAuth: ctx.signInWithOAuth,
     resetPassword: ctx.resetPassword,
+    updatePassword: ctx.updatePassword,
+    handleCallback: ctx.handleCallback,
   }
 }

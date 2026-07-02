@@ -124,5 +124,14 @@ export function createMockAuthAdapter(mockUser: MockUser = DEFAULT_MOCK_USER): A
     async resetPassword(_email) {
       // No-op in mock
     },
+
+    async updatePassword(_password) {
+      const stored = getStored()
+      return stored?.session
+    },
+
+    async handleCallback() {
+      return getStored()?.session ?? null
+    },
   }
 }
