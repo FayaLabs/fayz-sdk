@@ -42,6 +42,10 @@ correlation ID:
 Agenda emits normal events; subscribers ignore events originated from themselves
 to prevent feedback loops.
 
+Host applications may dispatch the provider-neutral browser event
+`agenda:refresh` after receiving a Realtime/database notification. The calendar
+reloads its current visible range; the event carries no Google-specific data.
+
 ## Deletion
 
 The `booking.deleted` snapshot contains the metadata that existed before delete.
@@ -53,3 +57,6 @@ the domain event.
 The SDK provides the durable producer and commands. Each extension remains
 responsible for workers, retry, dead-letter, idempotency, observability and
 contract tests. Polling may exist only as reconciliation.
+
+Before mass production, define retention, backlog alerts, quota/rate limits and
+the financial semantics of an external deletion for appointments with orders.
