@@ -81,7 +81,5 @@
     "tailwindcss": "^3.4.0"
   },
   "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }
