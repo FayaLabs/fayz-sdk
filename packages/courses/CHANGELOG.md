@@ -1,5 +1,12 @@
 # @fayz-ai/courses
 
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies [c88dd5c]
+  - @fayz-ai/core@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes

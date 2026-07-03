@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-sites",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "[experimental] Fayz SDK — sites, funnels & landing pages plugin",
   "type": "module",
   "main": "./dist/index.cjs",

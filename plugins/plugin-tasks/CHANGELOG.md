@@ -1,5 +1,14 @@
 # @fayz-ai/plugin-tasks
 
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [c88dd5c]
+  - @fayz-ai/core@0.7.0
+  - @fayz-ai/ui@0.7.0
+  - @fayz-ai/saas@0.7.0
+
 ## 0.1.6
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @fayz-ai/app-runtime
 
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies [c88dd5c]
+  - @fayz-ai/core@0.7.0
+  - @fayz-ai/ui@0.7.0
+  - @fayz-ai/saas@0.7.0
+  - @fayz-ai/auth@0.7.0
+  - @fayz-ai/storefront@0.7.0
+  - @fayz-ai/shop@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes
