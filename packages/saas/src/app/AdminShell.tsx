@@ -246,7 +246,8 @@ function pageToNavigationItem(page: CustomPage, fallbackPosition: number): Order
     permission: page.permission,
     position: page.position ?? fallbackPosition,
     children: page.children
-      ?.map((child, index) => pageToNavigationItem(child, index))
+      ?.filter((child) => child.nav !== false)
+      .map((child, index) => pageToNavigationItem(child, index))
       .filter((item): item is OrderedNavigationItem => Boolean(item)),
   }
 }
@@ -325,6 +326,10 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       position: entry.position,
     }))
     for (const [index, page] of pages.entries()) {
+      // `nav: false` routes the page but keeps it out of the sidebar/topbar nav
+      // (mobile-only pages reached via bottomNav/avatar). Routes are still built
+      // from `pages` in collectPageRoutes below, so the page remains navigable.
+      if (page.nav === false) continue
       const item = pageToNavigationItem(page, index + 1000)
       if (!item) continue
 

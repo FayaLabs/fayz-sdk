@@ -32,6 +32,11 @@ export interface CustomPage {
   position?: number
   badge?: string | number
   permission?: { feature: string; action: 'read' | 'create' | 'edit' | 'delete' }
+  /** Show this page in the sidebar/topbar navigation. Default: true. Set `false`
+   *  for mobile-only pages reachable via bottomNav/avatar (e.g. a "Mais" overflow
+   *  hub or a "Perfil" avatar target): the route still works, but the entry is
+   *  hidden from desktop navigation where those mobile constructs are meaningless. */
+  nav?: boolean
   children?: CustomPage[]
 }
 
