@@ -1,7 +1,6 @@
 ---
 "@fayz-ai/plugin-automations": patch
 "@fayz-ai/plugin-conversations": patch
-"@fayz-ai/plugin-courses": patch
 "@fayz-ai/plugin-dashboard": patch
 "@fayz-ai/plugin-reputation": patch
 "@fayz-ai/plugin-shop": patch
