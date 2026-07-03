@@ -619,9 +619,15 @@ importers:
       '@fayz-ai/courses':
         specifier: workspace:^
         version: link:../../packages/courses
+      '@fayz-ai/saas':
+        specifier: workspace:^
+        version: link:../../packages/saas
       '@fayz-ai/ui':
         specifier: workspace:^
         version: link:../../packages/ui
+      '@tanstack/react-table':
+        specifier: ^8.20.0
+        version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
