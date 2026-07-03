@@ -203,6 +203,7 @@ export const en: Record<string, string> = {
   "agenda.appointment.price": "Price",
   "agenda.appointment.title": "Title",
   "agenda.appointment.addTitle": "Add a title",
+  "agenda.appointment.untitled": "(no title)",
   "agenda.bookingType.appointment": "Appointment",
   "agenda.bookingType.event": "Event",
   "agenda.bookingType.task": "Task",

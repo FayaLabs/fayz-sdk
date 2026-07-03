@@ -562,14 +562,16 @@ export function CalendarView() {
       openModal('create', { prefill: { startsAt: arg.startStr, endsAt: arg.endStr, professionalId, locationId: locId || undefined } })
     }
 
-    // Warn if no schedule covers this slot
-    if (!schedule) {
+    // Warn if no schedule covers this slot — only when the working-hours module
+    // is on (off by default in eventMode:'simple', so simple/Google-Calendar
+    // events never surface the "no open schedule for this professional" dialog).
+    if (config.modules.workingHours && !schedule) {
       setScheduleConfirm({ onConfirm: proceed })
       return
     }
 
     proceed()
-  }, [openModal, findScheduleForSlot])
+  }, [openModal, findScheduleForSlot, config.modules.workingHours])
 
   const handleEventDrop = useCallback(async (arg: EventDropArg) => {
     const booking = arg.event.extendedProps.booking as CalendarBooking
@@ -802,9 +804,11 @@ export function CalendarView() {
         {/* Mini month calendar */}
         <MiniCalendar selectedDate={selectedDate} onDateSelect={handleMiniDateSelect} />
 
+        {/* Agendas (professional filter) — hidden when no booking type uses a
+            professional (e.g. eventMode:'simple'). */}
+        {config.capabilities.professional && (<>
         <div className="h-px bg-border my-4" />
 
-        {/* Agendas */}
         <button onClick={() => setProfSectionOpen((p) => !p)}
           className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground hover:text-foreground py-1 transition-colors">
           <span>Agendas</span>
@@ -828,10 +832,13 @@ export function CalendarView() {
             })}
           </div>
         )}
+        </>)}
 
+        {/* Status filter — hidden when no booking type uses a status workflow
+            (e.g. eventMode:'simple'). */}
+        {config.capabilities.status && (<>
         <div className="h-px bg-border my-4" />
 
-        {/* Status */}
         <button onClick={() => setStatusSectionOpen((p) => !p)}
           className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground hover:text-foreground py-1 transition-colors">
           <span>Status</span>
@@ -854,6 +861,7 @@ export function CalendarView() {
             })}
           </div>
         )}
+        </>)}
       </div>
 
       {/* ═══ MAIN AREA ═══ */}

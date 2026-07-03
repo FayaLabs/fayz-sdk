@@ -235,6 +235,24 @@ export interface AgendaModules {
   financial: boolean
 }
 
+/**
+ * Derived UI capabilities — computed ONCE in resolveConfig from the resolved
+ * bookingTypes so no component ever re-derives "is this a simple event agenda?"
+ * ad-hoc. A capability is enabled when ANY booking type uses that field. In
+ * eventMode:'simple' the single "Evento" type disables
+ * client/professional/services/location/status, so every consumer (popover,
+ * filter rail, modal) hides the professional/service/status machinery in one
+ * place instead of scattering `eventMode === 'simple'` checks.
+ */
+export interface AgendaCapabilities {
+  title: boolean
+  client: boolean
+  professional: boolean
+  services: boolean
+  location: boolean
+  status: boolean
+}
+
 export interface AgendaCurrency {
   code: string
   locale: string
@@ -243,6 +261,10 @@ export interface AgendaCurrency {
 
 export interface ResolvedAgendaConfig {
   modules: AgendaModules
+  /** Whether this is a simple Google-Calendar-style event agenda (eventMode:'simple'). */
+  simpleMode: boolean
+  /** Derived once from bookingTypes — see AgendaCapabilities. */
+  capabilities: AgendaCapabilities
   labels: AgendaPluginLabels
   currency: AgendaCurrency
   bookingKind: string
@@ -280,23 +302,45 @@ export interface ResolvedAgendaConfig {
 // ---------------------------------------------------------------------------
 
 export function resolveConfig(options?: AgendaPluginOptions): ResolvedAgendaConfig {
+  // ── eventMode:'simple' derives ALL module + capability defaults ONCE, here. ──
+  // Simple = Google-Calendar-style events (title/description + timestamp). It
+  // flips professional/service machinery OFF by default: no working-hours /
+  // schedule checks, no confirmations outreach, no conflict (double-booking)
+  // detection, no location. Explicit `modules.*` re-enable individually. Full
+  // mode (beauty) is unchanged — every default below matches the old behavior
+  // when `simple` is false. Field-level machinery (client/professional/
+  // services/location/status/title) is derived into `capabilities` from the
+  // resolved bookingTypes, so components never test eventMode themselves.
+  const simple = options?.eventMode === 'simple'
+  const bookingTypes = options?.bookingTypes
+    ?? (simple ? SIMPLE_EVENT_BOOKING_TYPES : DEFAULT_BOOKING_TYPES)
+  const capabilities: AgendaCapabilities = {
+    title: bookingTypes.some((bt) => bt.fields.title === true),
+    client: bookingTypes.some((bt) => bt.fields.client),
+    professional: bookingTypes.some((bt) => bt.fields.professional),
+    services: bookingTypes.some((bt) => bt.fields.services),
+    location: bookingTypes.some((bt) => bt.fields.location),
+    status: bookingTypes.some((bt) => bt.fields.status),
+  }
   return {
     modules: {
-      workingHours: options?.modules?.workingHours !== false,
-      confirmations: options?.modules?.confirmations !== false,
-      conflictDetection: options?.modules?.conflictDetection !== false,
+      // Off-unless-explicit in simple mode (`?? !simple`); default-on in full.
+      workingHours: options?.modules?.workingHours ?? !simple,
+      confirmations: options?.modules?.confirmations ?? !simple,
+      conflictDetection: options?.modules?.conflictDetection ?? !simple,
       dragAndDrop: options?.modules?.dragAndDrop !== false,
       locationSelection: options?.modules?.locationSelection === true,
       financial: options?.modules?.financial ?? !!options?.financialBridge,
     },
+    simpleMode: simple,
+    capabilities,
     labels: { ...DEFAULT_LABELS, ...options?.labels },
     currency: { ...DEFAULT_CURRENCY, ...options?.currency },
     bookingKind: options?.bookingKind ?? 'appointment',
     orderKind: options?.orderKind ?? 'service_order',
     scheduleKind: options?.scheduleKind ?? 'working_hours',
     statuses: options?.statuses ?? DEFAULT_STATUSES,
-    bookingTypes: options?.bookingTypes
-      ?? (options?.eventMode === 'simple' ? SIMPLE_EVENT_BOOKING_TYPES : DEFAULT_BOOKING_TYPES),
+    bookingTypes,
     businessHours: options?.businessHours ?? { startTime: '07:00', endTime: '21:00' },
     slotDuration: options?.slotDuration ?? 30,
     professionalKind: options?.professionalKind ?? 'staff',

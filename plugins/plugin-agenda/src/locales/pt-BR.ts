@@ -203,6 +203,7 @@ export const ptBR: Record<string, string> = {
   "agenda.appointment.price": "Preço",
   "agenda.appointment.title": "Título",
   "agenda.appointment.addTitle": "Adicionar um título",
+  "agenda.appointment.untitled": "(sem título)",
   "agenda.bookingType.appointment": "Agendamento",
   "agenda.bookingType.event": "Evento",
   "agenda.bookingType.task": "Tarefa",
