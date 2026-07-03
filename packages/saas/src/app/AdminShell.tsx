@@ -16,7 +16,9 @@ import {
   Avatar,
   AvatarImage,
   AvatarFallback,
+  useLayoutStore,
 } from '@fayz-ai/ui'
+import { CommandPalette, type CommandItem } from '../shell/components/layout/CommandPalette'
 import { useOrganizationStore } from '../org/store'
 import { useAuth } from '@fayz-ai/auth'
 import { AuthGate } from '@fayz-ai/plugin-auth'
@@ -57,6 +59,10 @@ export interface AdminShellProps {
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
   showSettings?: boolean
   showOrgSettings?: boolean
+  /** Show the workspace/org switcher at the sidebar top. Default: true.
+   *  Single-org apps (config.org.multiOrg === false) get false from the
+   *  scaffold so B2C users never see an organization concept. */
+  showOrgSwitcher?: boolean
   /** Show the branding ("Identidade Visual") + company "Geral" settings tabs.
    *  Default: true. B2C apps pass false to hide org-identity settings. */
   showBranding?: boolean
@@ -301,7 +307,7 @@ function buildSettingsTabs(
   return settingsTabs
 }
 
-function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, showBranding = true, contentFrame = true, moduleNav, bottomNav, onBottomNavAction, mobileHeader }: AdminShellProps) {
+function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, showBranding = true, showOrgSwitcher = true, contentFrame = true, moduleNav, bottomNav, onBottomNavAction, mobileHeader }: AdminShellProps) {
   const runtime = usePluginRuntime()
   const t = useTranslation()
   const can = usePermissionOptional()
@@ -340,6 +346,23 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     }
     return items.sort(compareNavigation)
   }, [runtime.navigation, pages])
+
+  // Command palette (⌘K + the topbar Search button). The palette owns the ⌘K
+  // key listener, so it must be MOUNTED for the shortcut to work — the topbar
+  // Search button drives the same shared layout store.
+  const commandPaletteOpen = useLayoutStore((s) => s.commandPaletteOpen)
+  const setCommandPaletteOpen = useLayoutStore((s) => s.setCommandPaletteOpen)
+  const commandItems = React.useMemo<CommandItem[]>(() => {
+    const navGroup = tr('layout.commandPalette.navigation', 'Navigation')
+    const items: CommandItem[] = []
+    for (const nav of navigation) {
+      items.push({ id: nav.id, label: nav.label, icon: nav.icon, group: navGroup, action: () => navigateTo(nav.route) })
+      for (const child of nav.children ?? []) {
+        items.push({ id: child.id, label: `${nav.label} · ${child.label}`, icon: child.icon, group: navGroup, action: () => navigateTo(child.route) })
+      }
+    }
+    return items
+  }, [navigation])
 
   // Route table: plugin routes + custom pages, most-specific-first.
   const routes = React.useMemo<RouteEntry[]>(() => {
@@ -425,7 +448,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       onSignOut={() => { void signOut() }}
       onProfile={() => navigateTo('/perfil')}
       onSettings={() => navigateTo('/settings')}
-      sidebarTopContent={<WorkspaceSwitcher />}
+      sidebarTopContent={showOrgSwitcher ? <WorkspaceSwitcher /> : undefined}
       userMenuSlot={
         <AdminUserMenu
           user={shellUser}
@@ -459,6 +482,11 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
         </div>
       )}
     </AppShell>
+    <CommandPalette
+      commands={commandItems}
+      open={commandPaletteOpen}
+      onOpenChange={setCommandPaletteOpen}
+    />
     </ModuleLayoutProvider>
   )
 }
