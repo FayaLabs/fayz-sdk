@@ -11,7 +11,7 @@ import { SummaryView } from './views/SummaryView'
 import { QuickTransactionForm } from './views/QuickTransactionForm'
 import { usePendingQuickAdd, consumeQuickAdd } from './quick-add'
 import type { QuickTransactionType } from './types'
-import { Plus, Camera } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@fayz-ai/ui'
 import { PayablesView } from './views/PayablesView'
 import { ReceivablesView } from './views/ReceivablesView'
@@ -195,12 +195,6 @@ export function FinancialPage({ config, provider, store, registries }: {
     setQuickAddReceipt(false)
     setQuickAddOpen(true)
   }, [])
-  // Start straight from a receipt → it becomes an expense with the image attached.
-  const openReceiptCapture = useCallback(() => {
-    setQuickAddType('expense')
-    setQuickAddReceipt(true)
-    setQuickAddOpen(true)
-  }, [])
 
   // FAY-1242: open the sheet on a global quick-add request (the app shell's
   // elevated center "+" button). One-shot — consumed so it never re-fires.
@@ -214,7 +208,15 @@ export function FinancialPage({ config, provider, store, registries }: {
     setQuickAddOpen(true)
   }, [pendingQuickAdd])
 
+  // One-primary-action rule (FAY-1247): each module surfaces exactly ONE primary
+  // add affordance and config picks its face — never both. When quickAdd is the
+  // primary action (B2C, e.g. norman), suppress the ERP "+ New" menu here so the
+  // header shows only the quick-add "Nova transação" button. Payables are still
+  // covered: the quick-add sheet's "Pago: Não" creates an unpaid conta a pagar.
+  // When quickAdd is off (ERP default, beauty) this returns the payable/receivable/
+  // cash actions and no quick-add buttons render — exactly today's behavior.
   const quickActions = useMemo<PluginQuickAction[]>(() => {
+    if (config.quickAdd) return []
     const actions: PluginQuickAction[] = []
     if (config.modules.payables) {
       actions.push({
@@ -244,7 +246,7 @@ export function FinancialPage({ config, provider, store, registries }: {
       })
     }
     return actions
-  }, [config.modules])
+  }, [config.modules, config.quickAdd])
 
   function handleOnboardingComplete() {
     setOnboardingComplete(true)
@@ -313,25 +315,18 @@ export function FinancialPage({ config, provider, store, registries }: {
         headerAction={
           <div className="flex items-center gap-2">
             {config.quickAdd && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="hidden md:inline-flex"
-                  onClick={openReceiptCapture}
-                >
-                  <Camera className="h-4 w-4" />
-                  {t('financial.quickTx.sendReceipt')}
-                </Button>
-                <Button
-                  size="sm"
-                  className="hidden md:inline-flex"
-                  onClick={() => openQuickAdd('expense')}
-                >
-                  <Plus className="h-4 w-4" />
-                  {t('financial.quickTx.newTransaction')}
-                </Button>
-              </>
+              // One-primary-action rule (FAY-1247): quick-add is the single primary
+              // add affordance in B2C mode. The receipt entry point lives inside the
+              // sheet's "Fotografar ou anexar recibo" attachment step, so no separate
+              // "Enviar recibo" button is needed here.
+              <Button
+                size="sm"
+                className="hidden md:inline-flex"
+                onClick={() => openQuickAdd('expense')}
+              >
+                <Plus className="h-4 w-4" />
+                {t('financial.quickTx.newTransaction')}
+              </Button>
             )}
             <ModuleActionBar
               quickActions={quickActions}
