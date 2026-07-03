@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { OrgAdapter } from '@fayz-ai/core'
+import type { OrgAdapter, AuthAdapter } from '@fayz-ai/core'
 import {
   PluginRuntimeProvider,
   resolvePluginRuntime,
@@ -102,12 +102,22 @@ export function getAuthShellProps(auth: FayzAppConfig['auth']): {
   }
 }
 
-function resolveOrgAdapter(config: FayzAppConfig): OrgAdapter {
+function resolveOrgAdapter(config: FayzAppConfig, authAdapter?: AuthAdapter): OrgAdapter {
   const org = config.org
   if (org?.adapter && typeof org.adapter === 'object') return org.adapter as OrgAdapter
 
   const strategy = org?.adapter ?? (config.supabaseUrl ? 'supabase' : 'mock')
-  if (strategy === 'supabase') return createSupabaseOrgAdapter()
+  // The app declares its own business roles via permissions.defaultProfiles; pass
+  // their identity (id/name/description) to both adapters so the role SET is
+  // app-owned, not baked into the SDK.
+  const declaredRoles = config.permissions?.defaultProfiles?.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+  }))
+  // Inject the resolved auth adapter so the org adapter can DELIVER invites (send
+  // the e-mail + create the auth user) — org owns the audit row + role, auth owns delivery.
+  if (strategy === 'supabase') return createSupabaseOrgAdapter({ roles: declaredRoles, authAdapter })
   return createMockOrgAdapter(config.permissions?.defaultProfiles)
 }
 
@@ -199,9 +209,10 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
       createFayzSupabaseClient(config.supabaseUrl, config.supabaseAnonKey)
     }
     const i18n = buildI18nConfig(config)
+    const authRuntime = resolveAuthRuntime(config)
     return {
-      authRuntime: resolveAuthRuntime(config),
-      orgAdapter: resolveOrgAdapter(config),
+      authRuntime,
+      orgAdapter: resolveOrgAdapter(config, authRuntime.adapter),
       i18n,
       plugins: config.plugins ?? [],
     }

@@ -185,7 +185,13 @@ function SidebarLayout({
     <SaveBarProvider>
     <ModuleHeaderSlotContext.Provider value={headerSlot}>
     <ModuleHeaderActionsSlotContext.Provider value={actionsSlot}>
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className={cn(
+      'flex h-screen overflow-hidden bg-background',
+      // Frame mode: the inset gap around the framed card takes the sidebar (menu)
+      // color, so the white card reads as a panel floating on the same tone as the
+      // left menu. The card's own md:m-2 margin reveals this behind it.
+      frame && 'md:bg-sidebar',
+    )}>
       {/* Desktop Sidebar — always flush / full-height (GoHighLevel style) */}
       <div className="hidden md:flex">
         <Sidebar
@@ -347,8 +353,10 @@ function TopbarLayout({
         rightContent={topbarEnd}
         onMenuClick={hasBottomNav ? undefined : () => setMobileMenuOpen(true)}
       />
-      {/* Frame inset/border only from md up, so mobile stays edge-to-edge. */}
-      <main className={cn('flex-1 overflow-y-auto pb-16 md:pb-0', frame && 'md:p-2')}>
+      {/* Frame inset/border only from md up, so mobile stays edge-to-edge. The
+          inset gap behind the framed card is the header color (bg-sidebar), so the
+          white card reads as a panel floating on the same navy as the topbar. */}
+      <main className={cn('flex-1 overflow-y-auto pb-16 md:pb-0', frame && 'md:bg-sidebar md:p-2')}>
         <div className={cn('min-h-full', frame && 'md:rounded-xl md:border md:border-border md:bg-card')}>
           {children}
         </div>

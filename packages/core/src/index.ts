@@ -5,7 +5,7 @@ export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest,
 export { WidgetZone } from './types/plugins'
 export type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from './types/auth'
 export type { OrgAdapter, Organization, OrgMember, OrgMembership, Location, Invite, CreateOrgOptions } from './types/org'
-export type { PermissionsConfig, FeatureDeclaration, PermissionAction, PermissionProfile } from './types/permissions'
+export type { PermissionsConfig, FeatureDeclaration, PermissionAction, PermissionProfile, SystemPermission } from './types/permissions'
 export type { Plan, BillingConfig } from './types/billing'
 export type { ThemeBrand, ThemeRadius, ThemeMode } from './types/theme'
 export type { LocaleConfig } from './types/i18n'

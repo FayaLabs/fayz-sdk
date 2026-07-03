@@ -77,16 +77,16 @@ export function LoginForm({ onSuccess, onForgotPassword, showOAuth, oauthProvide
         <input className={fieldClass()} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={disabled} />
       </label>
       <label className="block space-y-1.5 text-sm font-medium">
-        <span className="flex items-center justify-between gap-3">
-          Password
-          {onForgotPassword && (
-            <button type="button" className={buttonClass('ghost')} onClick={onForgotPassword}>
-              Forgot password?
-            </button>
-          )}
-        </span>
+        <span>Password</span>
         <input className={fieldClass()} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={disabled} />
       </label>
+      {onForgotPassword && (
+        <div className="-mt-1 flex justify-end">
+          <button type="button" className={buttonClass('ghost')} onClick={onForgotPassword}>
+            Forgot password?
+          </button>
+        </div>
+      )}
       {error && <p className="text-sm text-destructive">{error.message}</p>}
       <button className={buttonClass()} type="submit" disabled={disabled}>
         {disabled ? 'Signing in...' : 'Sign in'}

@@ -152,5 +152,23 @@ export function createSupabaseAuthAdapter(config: SupabaseAuthConfig): AuthAdapt
       } = await supabase.auth.getSession()
       return session ? mapSupabaseSession(session) : null
     },
+
+    async inviteUser(email, options) {
+      // Native, edge-function-free invite: a passwordless magic link. Sends the
+      // e-mail + creates the auth user (anon-callable, no service-role/admin).
+      // Membership is NOT granted from `data` (a client could forge it) — the
+      // accept-time trigger trusts the RLS-protected saas_core.invitations row.
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo:
+            options?.redirectTo ??
+            (typeof window !== 'undefined' ? `${window.location.origin}/` : undefined),
+          data: options?.data,
+        },
+      })
+      if (error) throw error
+    },
   }
 }
