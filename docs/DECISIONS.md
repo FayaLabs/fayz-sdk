@@ -3,6 +3,18 @@
 One entry per locked decision, newest first. A decision stays here until explicitly superseded.
 Format: **date — decision** · rationale · consequences.
 
+## 2026-07-03 — One primary add action per module; config picks its face, never both
+With `quickAdd: true` plugin-financial rendered three add affordances at once (quick-add pair +
+the ERP "+ New" menu). Rule: a module header exposes ONE add entry point — `quickAdd: true` (B2C)
+→ only "Nova transação" (receipt attach lives inside the sheet; unpaid expense = payable);
+default (ERP) → only the "+ New" quick-actions menu. Generalizes to every plugin and gives the
+AI builder a single answer to "what does this module's add button do".
+
+## 2026-07-03 — Navigation is surface-scoped (`CustomPage.nav: false`)
+Mobile-only pages (bottom-nav overflow hubs, avatar targets) set `nav: false`: routed but never
+shown in the desktop sidebar. Same lesson as `finance-home`: surfaces compose what makes sense
+for them — bottomNav declares the mobile world, the sidebar shows only desktop-meaningful items.
+
 ## 2026-07-02 — The clinic validates the FULL beauty-saas, no lite version
 Founder call. Tenant isolation (RLS, now on every `tenant_id` table) makes a shared full deployment
 safe. The `VITE_BEAUTY_PRESET=clinic` preset exists in code but will NOT be deployed — it is kept
