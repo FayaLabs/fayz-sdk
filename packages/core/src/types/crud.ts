@@ -87,6 +87,10 @@ export interface DetailTab {
   id: string
   label: string
   icon?: string
+  /** Legacy or compatibility route ids that should resolve to this tab. */
+  aliases?: string[]
+  /** Hide an inherited/archetype tab while still allowing the app to override it by id. */
+  hidden?: boolean
   /** Tab content component, or a registered component id (componentId) for a
    *  serializable EntityDef. Exactly one is expected. */
   component?: React.ComponentType<{ item: unknown; entityDef: EntityDef; [key: string]: unknown }>

@@ -3,9 +3,11 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { HeroSlide } from '../../sections'
 import type { HeroVariant } from '../../theme'
 import { bannerPlaceholder } from '../../sections'
+import { useStorefrontConfig } from '../../config'
 import { prefersReducedMotion } from '../../motion'
 import { Link } from '../../router'
 import { TID } from '../../testids'
+import { SmoothImage } from '../SmoothImage'
 
 function slideImage(slide: HeroSlide, w = 1600, h = 700): string {
   return slide.image ?? bannerPlaceholder(slide.title, slide.hue ?? 200, (slide.hue ?? 200) + 40, w, h)
@@ -56,8 +58,18 @@ export function HeroSection({
   height?: 'tall' | 'medium'
 }) {
   const [index, setIndex] = useState(0)
+  const [loadedSlides, setLoadedSlides] = useState<Record<number, boolean>>({})
+  const config = useStorefrontConfig()
   const interacted = useRef(false)
   const hClass = height === 'tall' ? 'h-[72vh] min-h-[440px]' : 'h-[48vh] min-h-[340px]'
+  const revealImages = config.imageLoading.mode !== 'none'
+  const revealStyle = (loaded: boolean): React.CSSProperties | undefined =>
+    revealImages
+      ? {
+          filter: config.imageLoading.blur && !loaded ? 'blur(10px)' : 'blur(0px)',
+          transition: `opacity 700ms ease, filter ${config.imageLoading.durationMs}ms ${config.imageLoading.easing}`,
+        }
+      : undefined
 
   // Auto-advance until the visitor takes over; never under reduced motion.
   useEffect(() => {
@@ -84,7 +96,7 @@ export function HeroSection({
             to={slide.href ?? '/catalog'}
             className="group relative block h-[42vh] min-h-[320px] overflow-hidden"
           >
-            <img
+            <SmoothImage
               src={slideImage(slide, 900, 700)}
               alt={slide.title}
               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
@@ -122,8 +134,12 @@ export function HeroSection({
           src={slideImage(slide)}
           alt={slide.title}
           aria-hidden={i !== index}
+          loading={i === 0 ? 'eager' : 'lazy'}
+          decoding="async"
+          onLoad={() => setLoadedSlides((current) => ({ ...current, [i]: true }))}
+          style={revealStyle(Boolean(loadedSlides[i]))}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-            i === index ? 'animate-kenburns opacity-100' : 'opacity-0'
+            i === index && (!revealImages || loadedSlides[i]) ? 'animate-kenburns opacity-100' : 'opacity-0'
           }`}
         />
       ))}

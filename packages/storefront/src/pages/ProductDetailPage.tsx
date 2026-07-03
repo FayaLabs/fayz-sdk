@@ -2,19 +2,24 @@ import React, { useEffect, useState } from 'react'
 import { ChevronLeft, RefreshCcw, ShieldCheck, Truck } from 'lucide-react'
 import { useProduct } from '../hooks/useProduct'
 import { useCartStore } from '../stores/cart.store'
-import { useStorefrontConfig } from '../config'
+import { getStorefrontComponents, useStorefrontConfig } from '../config'
 import { useStorefrontHead } from '../hooks/useStorefrontHead'
+import { useStorefrontActions } from '../hooks/useStorefront'
 import { Link } from '../router'
 import { Price } from '../components/Price'
 import { QuantityInput } from '../components/QuantityInput'
 import { ProductOptionSelector } from '../components/ProductOptionSelector'
 import { ProductSpecs } from '../components/ProductSpecs'
 import { RelatedProducts } from '../components/RelatedProducts'
+import { ProductEnquiryForm } from '../components/ProductEnquiryForm'
+import { SmoothImage } from '../components/SmoothImage'
 import { getProductOptionGroups, type ProductOptionSelection } from '../product-options'
+import { storefrontComponentContracts } from '../component-selectors'
 import { TID } from '../testids'
 
 export function ProductDetailPage({ slug }: { slug: string }) {
   const config = useStorefrontConfig()
+  const actions = useStorefrontActions()
   const { product, loading } = useProduct(slug)
   const addItem = useCartStore((s) => s.addItem)
   const [qty, setQty] = useState(1)
@@ -61,21 +66,52 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   const soldOut = product.inventoryCount <= 0
   const lowStock = !soldOut && product.inventoryCount <= 5
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0]
+  const components = getStorefrontComponents(config)
+  const ProductDetailComponent = components.ProductDetail
+  const addToCart = () => addItem(product, qty, selectedOptions)
+  const openEnquiry = () => {
+    document.getElementById('storefront-product-enquiry')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
       ? Math.round((1 - product.price / product.compareAtPrice) * 100)
       : 0
 
+  if (ProductDetailComponent) {
+    return (
+      <ProductDetailComponent
+        product={product}
+        config={config}
+        commerceMode={config.commerceMode}
+        primaryImage={image}
+        optionGroups={optionGroups}
+        selectedOptions={selectedOptions}
+        setSelectedOptions={setSelectedOptions}
+        quantity={qty}
+        setQuantity={setQty}
+        soldOut={soldOut}
+        lowStock={lowStock}
+        actions={actions}
+        addToCart={addToCart}
+        openEnquiry={openEnquiry}
+      />
+    )
+  }
+
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <main {...storefrontComponentContracts.productDetail.root} className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <Link to="/" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ChevronLeft className="h-4 w-4" /> Continuar comprando
       </Link>
 
       <div className="grid animate-fade-up gap-10 md:grid-cols-2">
-        <div className="group overflow-hidden border bg-muted" style={{ borderRadius: 'var(--sf-radius-card)' }}>
+        <div
+          {...storefrontComponentContracts.productDetail.gallery}
+          className="group overflow-hidden border bg-muted"
+          style={{ borderRadius: 'var(--sf-radius-card)' }}
+        >
           {image && (
-            <img
+            <SmoothImage
               src={image.url}
               alt={image.altText ?? product.name}
               className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
@@ -100,43 +136,47 @@ export function ProductDetailPage({ slug }: { slug: string }) {
             {product.name}
           </h1>
 
-          <div className="mt-3 flex items-center gap-3">
-            <div className="text-xl">
-              <Price
-                value={product.price}
-                compareAt={product.compareAtPrice}
-                testId={TID.pdpPrice}
-                compareTestId={TID.pdpComparePrice}
-              />
+          {config.commerceMode === 'checkout' && (
+            <div className="mt-3 flex items-center gap-3">
+              <div className="text-xl">
+                <Price
+                  value={product.price}
+                  compareAt={product.compareAtPrice}
+                  testId={TID.pdpPrice}
+                  compareTestId={TID.pdpComparePrice}
+                />
+              </div>
+              {discountPct > 0 && (
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+                  −{discountPct}%
+                </span>
+              )}
             </div>
-            {discountPct > 0 && (
-              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                −{discountPct}%
-              </span>
-            )}
-          </div>
+          )}
 
           <p data-testid={TID.pdpDescription} className="mt-5 leading-relaxed text-muted-foreground">
             {product.description}
           </p>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            {soldOut ? (
-              <span className="inline-flex items-center gap-2 font-medium text-muted-foreground">
-                <span className="h-2 w-2 rounded-full bg-muted-foreground" /> Sem estoque
-              </span>
-            ) : lowStock ? (
-              <span className="inline-flex items-center gap-2 font-semibold text-amber-600">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-                Últimas unidades — só {product.inventoryCount} restantes
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2 font-medium text-emerald-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Em estoque
-              </span>
-            )}
-            {product.sku && <span className="text-muted-foreground">SKU: {product.sku}</span>}
-          </div>
+          {config.commerceMode === 'checkout' && (
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              {soldOut ? (
+                <span className="inline-flex items-center gap-2 font-medium text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-muted-foreground" /> Sem estoque
+                </span>
+              ) : lowStock ? (
+                <span className="inline-flex items-center gap-2 font-semibold text-amber-600">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                  Últimas unidades — só {product.inventoryCount} restantes
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 font-medium text-emerald-600">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Em estoque
+                </span>
+              )}
+              {product.sku && <span className="text-muted-foreground">SKU: {product.sku}</span>}
+            </div>
+          )}
 
           <ProductOptionSelector
             groups={optionGroups}
@@ -144,38 +184,74 @@ export function ProductDetailPage({ slug }: { slug: string }) {
             onChange={setSelectedOptions}
           />
 
-          <div className="mt-8 flex items-center gap-4">
-            <QuantityInput
-              value={qty}
-              onChange={setQty}
-              max={soldOut ? 1 : product.inventoryCount}
-              testId={TID.pdpQtyInput}
-            />
-            <button
-              type="button"
-              data-testid={TID.pdpAddToCart}
-              disabled={soldOut}
-              onClick={() => addItem(product, qty, selectedOptions)}
-              className="sf-cta flex-1 bg-primary py-3.5 font-semibold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0"
-              style={{ borderRadius: 'var(--sf-radius-button)' }}
-            >
-              {soldOut ? 'Esgotado' : 'Adicionar ao carrinho'}
-            </button>
+          <div {...storefrontComponentContracts.productDetail.actions} className="mt-8">
+            {config.commerceMode === 'checkout' ? (
+              <div className="flex items-center gap-4">
+                <QuantityInput
+                  value={qty}
+                  onChange={setQty}
+                  max={soldOut ? 1 : product.inventoryCount}
+                  testId={TID.pdpQtyInput}
+                />
+                <button
+                  type="button"
+                  data-testid={TID.pdpAddToCart}
+                  disabled={soldOut}
+                  onClick={addToCart}
+                  className="sf-cta flex-1 bg-primary py-3.5 font-semibold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0"
+                  style={{ borderRadius: 'var(--sf-radius-button)' }}
+                >
+                  {soldOut ? 'Esgotado' : 'Adicionar ao carrinho'}
+                </button>
+              </div>
+            ) : config.commerceMode === 'enquiry' ? (
+              <button
+                type="button"
+                  {...storefrontComponentContracts.productDetail.enquiryButton}
+                onClick={openEnquiry}
+                className="sf-cta w-full bg-primary py-3.5 font-semibold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ borderRadius: 'var(--sf-radius-button)' }}
+              >
+                {config.enquiry.label}
+              </button>
+            ) : (
+              <Link
+                to={config.catalogPath}
+                className="inline-flex border px-5 py-3 text-sm font-semibold transition-colors hover:bg-muted"
+                style={{ borderRadius: 'var(--sf-radius-button)' }}
+              >
+                Voltar ao catálogo
+              </Link>
+            )}
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-3 border-t pt-6 text-center">
-            <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-              <Truck className="h-5 w-5 text-primary" /> Envio rápido
+          {config.commerceMode === 'checkout' && (
+            <div className="mt-6 grid grid-cols-3 gap-3 border-t pt-6 text-center">
+              <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <Truck className="h-5 w-5 text-primary" /> Envio rápido
+              </div>
+              <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <RefreshCcw className="h-5 w-5 text-primary" /> Troca fácil
+              </div>
+              <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <ShieldCheck className="h-5 w-5 text-primary" /> Pagamento seguro
+              </div>
             </div>
-            <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-              <RefreshCcw className="h-5 w-5 text-primary" /> Troca fácil
-            </div>
-            <div className="flex flex-col items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-              <ShieldCheck className="h-5 w-5 text-primary" /> Pagamento seguro
-            </div>
-          </div>
+          )}
         </div>
       </div>
+
+      {config.commerceMode === 'enquiry' && (
+        <section id="storefront-product-enquiry" className="mt-12 border-t pt-10">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="sf-heading text-2xl font-semibold">Need more information?</h2>
+            <p className="mt-2 text-muted-foreground">Send an enquiry about this product.</p>
+            <div className="mt-6">
+              <ProductEnquiryForm product={product} />
+            </div>
+          </div>
+        </section>
+      )}
 
       <ProductSpecs product={product} />
       <RelatedProducts product={product} />

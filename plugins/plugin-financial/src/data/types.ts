@@ -1,7 +1,7 @@
 import type {
   Invoice, InvoiceItem, FinancialMovement, BankAccount,
   CashSession, PaymentMethod, PaymentMethodType, ChartOfAccountsNode,
-  CardTransaction,
+  CostCenter, CardTransaction,
   CreateInvoiceInput, PayMovementInput, CreateTransferInput, TransferResult,
   OpenCashSessionInput, CloseCashSessionInput, CreateBankAccountInput,
   InvoiceQuery, MovementQuery, StatementQuery,
@@ -46,6 +46,7 @@ export interface FinancialDataProvider {
 
   // --- Chart of Accounts ---
   getChartOfAccounts(): Promise<ChartOfAccountsNode[]>
+  getCostCenters(): Promise<CostCenter[]>
 
   // --- Card Transactions ---
   getCardTransactions(dateRange?: DateRange): Promise<CardTransaction[]>

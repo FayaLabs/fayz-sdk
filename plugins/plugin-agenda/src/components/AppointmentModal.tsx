@@ -21,6 +21,7 @@ import { useTranslation } from '@fayz-ai/core'
 import { getCurrentLocale } from '@fayz-ai/core'
 import { isStatusAvailable } from '../types'
 import type { CreateBookingInput, BookingTypeId } from '../types'
+import type { ExternalBookingSource } from '../config'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,6 +39,7 @@ function formatCompactDate(dateStr: string, locale: string): string {
 }
 
 interface ServiceItem { serviceId: string; name: string; durationMinutes: number; price: number }
+interface CancellationReasonItem { id: string; label: string; requiresNotes?: boolean }
 
 // ---------------------------------------------------------------------------
 // Inline editable number — allows clearing, commits on blur/enter
@@ -266,11 +268,12 @@ interface Props {
   bookingId?: string
   prefill?: Partial<CreateBookingInput> & { endsAt?: string }
   initialTab?: string
+  externalSource?: ExternalBookingSource
   onClose: () => void
-  onCreated?: (bookingId: string) => void
+  onCreated?: (bookingId: string, source?: ExternalBookingSource) => void
 }
 
-export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, onClose, onCreated }: Props) {
+export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, externalSource, onClose, onCreated }: Props) {
   const t = useTranslation()
   const locale = getCurrentLocale()
   const config = useAgendaConfig()
@@ -285,8 +288,12 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
   const storeLocations = useAgendaStore((s) => s.locations)
 
   // --- State ---
+  // Default to the first configured booking type (e.g. 'event' in simple mode,
+  // 'appointment' otherwise) so single-type agendas resolve their type cleanly.
+  const defaultBookingType = (config.bookingTypes[0]?.id ?? 'appointment') as BookingTypeId
   const [loading, setLoading] = useState(mode === 'edit')
-  const [bookingType, setBookingType] = useState<BookingTypeId>(prefill?.kind ?? 'appointment')
+  const [bookingType, setBookingType] = useState<BookingTypeId>(prefill?.kind ?? defaultBookingType)
+  const [title, setTitle] = useState('')
   const [clientId, setClientId] = useState(prefill?.clientId ?? '')
   const [clientSearch, setClientSearch] = useState('')
   const [clientPhone, setClientPhone] = useState('')
@@ -331,6 +338,10 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
   const [clientData, setClientData] = useState<Record<string, any> | null>(null)
   const [clientDataLoading, setClientDataLoading] = useState(false)
   const [clientEditing, setClientEditing] = useState(false)
+  const [cancellationReasons, setCancellationReasons] = useState<CancellationReasonItem[]>([])
+  const [cancellationReasonId, setCancellationReasonId] = useState('')
+  const [cancellationNotes, setCancellationNotes] = useState('')
+  const [cancellationReasonsLoading, setCancellationReasonsLoading] = useState(false)
 
   // Active booking type config
   const activeType = config.bookingTypes.find((bt) => bt.id === bookingType) ?? config.bookingTypes[0]
@@ -343,10 +354,11 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
     setServiceSearch(''); setNotes(''); setStatus('scheduled'); setShowNotes(false)
     setConflict(false); setLoading(mode === 'edit')
     setQuickCreate(false); setNewClientName(''); setNewClientPhone(''); setNewClientEmail(''); setCreatingClient(false)
-    setBookingType(prefill?.kind ?? 'appointment')
+    setBookingType(prefill?.kind ?? defaultBookingType); setTitle('')
     setEditingDate(false); setEditingTime(false); setConfirmingDelete(false); setDeleting(false)
     setEditOrderId(null); setEditOrderTotal(0); setEditPaymentStatus('none'); setPaymentStatusLoading(false)
     setClientData(null); setClientDataLoading(false); setClientEditing(false)
+    setCancellationReasonId(''); setCancellationNotes(''); setCancellationReasonsLoading(false)
     setModalTab((initialTab as 'appointment' | 'client' | 'financial') || 'appointment')
     if (!prefill?.professionalId && professionals.length === 1) setProfessionalId(professionals[0].id)
     setDate(() => {
@@ -368,7 +380,8 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
     setLoading(true)
     provider.getBookingById(bookingId).then((b) => {
       if (!b) { setLoading(false); return }
-      setBookingType((b.kind as BookingTypeId) ?? 'appointment')
+      setBookingType((b.kind as BookingTypeId) ?? defaultBookingType)
+      setTitle(b.clientName ?? '')
       setClientId(b.clientId ?? ''); setClientSearch(b.clientName ?? '')
       setProfessionalId(b.professionalId ?? ''); setLocationId(b.locationId ?? '')
       setDate(b.startsAt.slice(0, 10))
@@ -385,10 +398,11 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
       // Save initial snapshot for dirty check
       const svcSnap = b.services ? b.services.map((s: any) => ({ id: s.serviceId ?? '', dur: s.durationMinutes, price: s.price })) : []
       initialSnapshot.current = JSON.stringify({
+        title: b.clientName ?? '',
         clientId: b.clientId ?? '', professionalId: b.professionalId ?? '', locationId: b.locationId ?? '',
         date: b.startsAt.slice(0, 10),
         startTime: `${String(new Date(b.startsAt).getHours()).padStart(2, '0')}:${String(new Date(b.startsAt).getMinutes()).padStart(2, '0')}`,
-        status: b.status, notes: b.notes ?? '', services: svcSnap,
+        status: b.status, notes: b.notes ?? '', cancellationReasonId: '', cancellationNotes: '', services: svcSnap,
       })
       setLoading(false)
       // Resolve payment status from bridge if available
@@ -414,6 +428,15 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
       setClientDataLoading(false)
     }).catch(() => setClientDataLoading(false))
   }, [modalTab, clientId])
+
+  useEffect(() => {
+    if (!open || status !== 'cancelled' || !config.cancellationDetails || cancellationReasons.length > 0) return
+    setCancellationReasonsLoading(true)
+    config.cancellationDetails.listReasons()
+      .then((reasons) => setCancellationReasons(reasons))
+      .catch(() => setCancellationReasons([]))
+      .finally(() => setCancellationReasonsLoading(false))
+  }, [open, status, config.cancellationDetails, cancellationReasons.length])
 
   // Fetch initial service list when modal opens
   useEffect(() => {
@@ -497,14 +520,24 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
       const startsAt = new Date(`${date}T${startTime}:00`).toISOString()
       if (mode === 'create') {
         const newBooking = await createBooking({ kind: bookingType, clientId, professionalId, locationId: locationId || undefined, startsAt, notes: notes || undefined,
+          title: activeType.fields.title ? title.trim() : undefined,
           services: services.map((s: any) => ({ serviceId: s.serviceId, name: s.name, durationMinutes: s.durationMinutes, price: s.price })) })
         onClose()
-        onCreated?.(newBooking.id)
+        onCreated?.(newBooking.id, externalSource)
       } else if (bookingId) {
         await updateBooking(bookingId, {
           clientId, professionalId, locationId: locationId || undefined, startsAt, notes: notes || undefined, status: status as any,
+          title: activeType.fields.title ? title.trim() : undefined,
           services: services.map((s: any) => ({ serviceId: s.serviceId, name: s.name, durationMinutes: s.durationMinutes, price: s.price })),
         })
+        if (status === 'cancelled' && config.cancellationDetails && cancellationReasonId) {
+          await config.cancellationDetails.saveCancellationDetails({
+            bookingId,
+            reasonId: cancellationReasonId,
+            notes: cancellationNotes.trim() || undefined,
+            cancelledAt: new Date().toISOString(),
+          })
+        }
         onClose()
       }
     } catch { /* toast */ }
@@ -519,18 +552,24 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
   }
 
   const isPaidBooking = editPaymentStatus === 'paid'
+  const selectedCancellationReason = cancellationReasons.find((reason) => reason.id === cancellationReasonId)
+  const needsCancellationReason = mode === 'edit' && status === 'cancelled' && !!config.cancellationDetails
+  const needsCancellationNotes = needsCancellationReason && !!selectedCancellationReason?.requiresNotes
 
   // Dirty check — only enable Update when something changed
   const formSnapshot = useMemo(() =>
-    JSON.stringify({ clientId, professionalId, locationId, date, startTime, status, notes, services: services.map((s: any) => ({ id: s.serviceId, dur: s.durationMinutes, price: s.price })) }),
-    [clientId, professionalId, locationId, date, startTime, status, notes, services]
+    JSON.stringify({ title, clientId, professionalId, locationId, date, startTime, status, notes, cancellationReasonId, cancellationNotes, services: services.map((s: any) => ({ id: s.serviceId, dur: s.durationMinutes, price: s.price })) }),
+    [title, clientId, professionalId, locationId, date, startTime, status, notes, cancellationReasonId, cancellationNotes, services]
   )
   const isDirty = mode === 'create' || formSnapshot !== initialSnapshot.current
 
   const canSubmit = (
+    (!activeType.fields.title || title.trim()) &&
     (!activeType.requiresClient || clientId) &&
     (!activeType.fields.professional || professionalId) &&
     (!activeType.requiresServices || services.length > 0) &&
+    (!needsCancellationReason || !!cancellationReasonId) &&
+    (!needsCancellationNotes || !!cancellationNotes.trim()) &&
     !conflict && !saving
   )
 
@@ -748,6 +787,16 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
 
             {!loading && <>
 
+            {/* Title — free-text event name (simple / Google-Calendar-style events) */}
+            {activeType.fields.title && (
+              <div className="flex items-center gap-3 py-1">
+                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t('agenda.appointment.addTitle')} autoFocus={mode === 'create'}
+                  className="w-full flex-1 rounded-input border border-input bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2.5 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+            )}
+
             {/* Client */}
             {activeType.fields.client && (
               <div className="flex items-center gap-3 py-1">
@@ -924,6 +973,34 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, o
               <div className="flex items-center gap-3 py-1">
                 <CircleDot className="h-4 w-4 text-muted-foreground shrink-0" />
                 <StatusSelect value={status} onChange={setStatus} statuses={config.statuses} bookingDate={date} />
+              </div>
+            )}
+
+            {needsCancellationReason && (
+              <div className="flex items-start gap-3 py-1">
+                <Ban className="h-4 w-4 mt-2 text-muted-foreground shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <select
+                    value={cancellationReasonId}
+                    onChange={(event) => setCancellationReasonId(event.target.value)}
+                    disabled={cancellationReasonsLoading}
+                    className="w-full rounded-input border border-input bg-card px-2.5 py-1.5 text-sm shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">{cancellationReasonsLoading ? t('agenda.cancellation.loadingReasons') : t('agenda.cancellation.selectReason')}</option>
+                    {cancellationReasons.map((reason) => (
+                      <option key={reason.id} value={reason.id}>
+                        {reason.label}{reason.requiresNotes ? ' *' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <textarea
+                    value={cancellationNotes}
+                    onChange={(event) => setCancellationNotes(event.target.value)}
+                    placeholder={needsCancellationNotes ? t('agenda.cancellation.notesRequired') : t('agenda.cancellation.notesOptional')}
+                    rows={2}
+                    className="w-full rounded-input border border-input bg-card px-2.5 py-1.5 text-sm resize-none shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               </div>
             )}
 

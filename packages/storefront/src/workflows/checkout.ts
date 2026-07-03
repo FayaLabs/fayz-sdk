@@ -67,7 +67,7 @@ export async function placeStorefrontOrder({
   }
 
   // Trusted placement: send only product ids + quantities. The provider
-  // (shop_place_order RPC on Supabase, in-memory parity in mock) re-reads
+  // (shop_place_order RPC on Supabase, in-memory provider in mock) re-reads
   // prices, validates the discount, and decrements inventory server-side.
   const order = await provider.placeOrder({
     customerId: customerId ?? undefined,

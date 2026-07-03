@@ -150,7 +150,8 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
       locationId: booking.location_id,
       metadata: booking.metadata ?? {},
       clientId: booking.party_id,
-      clientName: client?.name ?? null,
+      // Simple events (no party) fall back to the title stored in metadata.
+      clientName: client?.name ?? (booking.metadata?.title as string | undefined) ?? null,
       clientPhone: client?.phone ?? null,
       clientEmail: client?.email ?? null,
       clientAvatarUrl: client?.avatar_url ?? null,
@@ -253,6 +254,10 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
         contactName = person?.name as string | undefined
       }
 
+      // Simple / Google-Calendar-style events have no client party — persist the
+      // free-text title in metadata so the read model can surface it as the name.
+      const eventTitle = input.title?.trim() || undefined
+
       const { data: order, error: orderErr } = await core.from('orders').insert({
         tenant_id: tenantId,
         kind: input.kind ?? 'appointment',
@@ -267,6 +272,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
           source: 'agenda',
           ...(serviceNames ? { serviceNames, itemsSummary: serviceNames } : {}),
           ...(contactName ? { contactName } : {}),
+          ...(eventTitle ? { title: eventTitle } : {}),
         },
       }).select('id').single()
       if (orderErr) throw orderErr
@@ -286,6 +292,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
           source: 'agenda',
           ...(serviceNames ? { serviceNames, itemsSummary: serviceNames } : {}),
           ...(contactName ? { contactName } : {}),
+          ...(eventTitle ? { title: eventTitle } : {}),
         },
       }).select('id').single()
       if (bookingErr) throw bookingErr
@@ -315,7 +322,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
     async updateBooking(id: string, data: UpdateBookingInput): Promise<CalendarBooking> {
       const { core } = getClients()
       const { data: existing, error: existingErr } = await core.from('bookings')
-        .select('id, order_id, starts_at, assignee_id')
+        .select('id, order_id, starts_at, assignee_id, metadata')
         .eq('id', id)
         .single()
       if (existingErr) throw existingErr
@@ -323,6 +330,10 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       const updates: Record<string, unknown> = {}
       if (data.startsAt) updates.starts_at = data.startsAt
       if (data.endsAt) updates.ends_at = data.endsAt
+      // Simple-event title lives in metadata (no client party) — merge, don't clobber.
+      if (data.title !== undefined) {
+        updates.metadata = { ...(existing?.metadata as Record<string, unknown> ?? {}), title: data.title }
+      }
       if (data.status) {
         // Only update the agenda status — never touch the financial stage
         updates.status = data.status

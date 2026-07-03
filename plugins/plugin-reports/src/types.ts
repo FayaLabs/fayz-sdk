@@ -59,6 +59,10 @@ export interface ReportDataSource {
   columnMap?: Record<string, string>
 }
 
+export type ReportGrain = 'order' | 'order_item' | 'booking' | 'ledger_movement' | 'event'
+
+export type ReportAllowedAction = 'read'
+
 export interface ReportDef {
   id: string
   name: string
@@ -69,6 +73,16 @@ export interface ReportDef {
   columns: ReportColumnDef[]
   filters?: ReportFilterDef[]
   dataSource: ReportDataSource
+  /** Canonical read model/view used by the report. Defaults to dataSource.name. */
+  sourceView?: string
+  /** Business grain of each report row, used to prevent double counting. */
+  grain?: ReportGrain
+  /** Plugin that owns the report UI/definition. */
+  ownerPlugin?: string
+  /** Canonical data owner/spine for this report's facts. */
+  canonicalOwner?: string
+  /** Reports are normally read-only; explicit actions make that contract visible. */
+  allowedActions?: ReportAllowedAction[]
   permission?: { feature: string; action: 'read' }
   /** Show aggregate summary row */
   showSummary?: boolean

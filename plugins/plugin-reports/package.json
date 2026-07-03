@@ -1,7 +1,7 @@
 {
   "name": "@fayz-ai/plugin-reports",
   "version": "0.1.6",
-  "description": "Fayz SDK — plugin-reports plugin",
+  "description": "[experimental] Fayz SDK — plugin-reports plugin",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

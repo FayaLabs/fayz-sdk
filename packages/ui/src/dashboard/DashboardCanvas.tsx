@@ -90,6 +90,10 @@ export interface DashboardCanvasProps {
   showHeader?: boolean
   /** App-level curation of which widgets show, their order and span. */
   appLayout?: DashboardLayoutConfig
+  /** App-level widgets injected into this surface's grid without a plugin — e.g.
+   *  an "Ask the assistant" CTA. Merged with the registry widgets, then laid out
+   *  (respects each widget's span/defaultOrder). Filtered to this surface. */
+  extraWidgets?: DashboardWidgetDef[]
   /** Show a shared time-range control (sticky, top-right). Widgets read it via
    *  useDashboardRange(). Pass `true` for defaults or an options object. */
   range?: boolean | DashboardRangeOptions
@@ -115,11 +119,18 @@ export interface DashboardRangeOptions {
 }
 
 export function DashboardCanvas({
-  surface, domain, title, subtitle, showHeader = true, appLayout, range,
+  surface, domain, title, subtitle, showHeader = true, appLayout, extraWidgets, range,
   customizable = true, customizeLabel, initialVisibility, onNavigate, className,
 }: DashboardCanvasProps) {
   const runtime = usePluginRuntime()
-  const widgets = getDashboardWidgets(runtime, { surface, domain })
+  const registryWidgets = getDashboardWidgets(runtime, { surface, domain })
+  const widgets = React.useMemo<DashboardWidgetDef[]>(() => {
+    const extra = (extraWidgets ?? []).filter((w) => {
+      if (!(w.surfaces ?? ['home', 'plugin-home']).includes(surface)) return false
+      return !domain || w.domain === domain
+    })
+    return extra.length ? [...registryWidgets, ...extra] : registryWidgets
+  }, [registryWidgets, extraWidgets, surface, domain])
   const rangeOpts: DashboardRangeOptions | null = range ? (range === true ? {} : range) : null
 
   const forceAll = (initialVisibility ?? (surface === 'plugin-home' ? 'all' : 'default')) === 'all'

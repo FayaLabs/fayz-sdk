@@ -8,7 +8,6 @@ import type { CrmUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
 import { useModuleNavigation, ModuleActionBar, createViewRouter } from '@fayz-ai/saas'
 import { CrmGeneralSettings } from './components/CrmGeneralSettings'
-import { PipelineSettings } from './components/PipelineSettings'
 import { CrmOnboarding } from './components/CrmOnboarding'
 import { DashboardView } from './views/DashboardView'
 import { PipelineView } from './views/PipelineView'
@@ -104,7 +103,6 @@ export function CrmPage({ config, provider, store, registries }: {
               </p>
             </div>
             <CrmGeneralSettings />
-            <PipelineSettings />
           </div>
         </PageTransition>
       </CrmContextProvider>

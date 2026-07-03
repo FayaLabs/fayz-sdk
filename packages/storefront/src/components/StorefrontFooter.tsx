@@ -9,6 +9,17 @@ export function StorefrontFooter() {
   const { categories } = useCategories()
   const visibleCategories = categories.slice(0, 8)
   const hiddenCategoryCount = Math.max(categories.length - visibleCategories.length, 0)
+  const labels = {
+    categories: 'Departamentos',
+    navigation: 'Navegação',
+    contact: 'Contato',
+    viewAll: 'Ver todos',
+    purchases: 'Minhas compras',
+    privacy: 'Privacidade',
+    terms: 'Termos',
+    returns: 'Trocas e devoluções',
+    ...config.footer?.labels,
+  }
 
   const goCategory = (categoryId: string) => {
     useCatalogStore.getState().reset()
@@ -27,7 +38,7 @@ export function StorefrontFooter() {
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Departamentos</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{labels.categories}</h3>
           <ul className="space-y-2 text-sm">
             {visibleCategories.map((c) => (
               <li key={c.id}>
@@ -43,7 +54,7 @@ export function StorefrontFooter() {
             {hiddenCategoryCount > 0 && (
               <li>
                 <Link to={config.catalogPath} className="font-medium underline-offset-2 transition-opacity hover:underline">
-                  Ver todos ({categories.length})
+                  {labels.viewAll} ({categories.length})
                 </Link>
               </li>
             )}
@@ -51,21 +62,23 @@ export function StorefrontFooter() {
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Navegação</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{labels.navigation}</h3>
           <ul className="space-y-2 text-sm">
             {config.nav.map((link) => (
               <li key={link.to}>
                 <Link to={link.to} className="transition-opacity hover:opacity-70">{link.label}</Link>
               </li>
             ))}
-            <li>
-              <Link to="/account" className="transition-opacity hover:opacity-70">Minhas compras</Link>
-            </li>
+            {config.features.accounts && (
+              <li>
+                <Link to="/account" className="transition-opacity hover:opacity-70">{labels.purchases}</Link>
+              </li>
+            )}
           </ul>
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Contato</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{labels.contact}</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
             {config.footer?.contact?.phone && <li>{config.footer.contact.phone}</li>}
             {config.footer?.contact?.email && <li>{config.footer.contact.email}</li>}
@@ -83,15 +96,12 @@ export function StorefrontFooter() {
       <div className="border-t">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6">
           <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            <Link to="/privacy" className="transition-colors hover:text-foreground">Privacidade</Link>
-            <Link to="/terms" className="transition-colors hover:text-foreground">Termos</Link>
-            <Link to="/refunds" className="transition-colors hover:text-foreground">Trocas e devoluções</Link>
+            <Link to="/privacy" className="transition-colors hover:text-foreground">{labels.privacy}</Link>
+            <Link to="/terms" className="transition-colors hover:text-foreground">{labels.terms}</Link>
+            <Link to="/refunds" className="transition-colors hover:text-foreground">{labels.returns}</Link>
           </nav>
           <p className="text-center">
-            © {config.name} — powered by Fayz · Fotos:{' '}
-            <a href="https://unsplash.com" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">
-              Unsplash
-            </a>
+            {config.footer?.credit ?? <>© {config.name} — powered by Fayz</>}
           </p>
         </div>
       </div>

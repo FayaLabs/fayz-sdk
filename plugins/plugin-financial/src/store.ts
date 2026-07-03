@@ -9,6 +9,7 @@ import type {
   InvoiceQuery, MovementQuery, StatementQuery,
   CreateInvoiceInput, PayMovementInput, CreateTransferInput,
   OpenCashSessionInput, CloseCashSessionInput,
+  QuickTransactionInput,
   DateRange,
 } from './types'
 
@@ -55,6 +56,8 @@ export interface FinancialUIState {
   fetchStatement(query: StatementQuery): Promise<void>
   fetchCardTransactions(dateRange?: DateRange): Promise<void>
   createInvoice(input: CreateInvoiceInput): Promise<Invoice>
+  /** FAY-1225 "log money in a few taps": one call → the right provider plumbing + full surface refresh. */
+  createQuickTransaction(input: QuickTransactionInput): Promise<void>
   payMovement(input: PayMovementInput): Promise<void>
   createTransfer(input: CreateTransferInput): Promise<void>
   cancelInvoice(invoiceId: string): Promise<void>
@@ -165,6 +168,91 @@ export function createFinancialStore(provider: FinancialDataProvider): StoreApi<
         return invoice
       } catch (err: any) {
         toast.error('Failed to create invoice', { description: err?.message })
+        throw err
+      }
+    },
+
+    async createQuickTransaction(input) {
+      try {
+        if (input.type === 'transfer') {
+          if (!input.bankAccountId || !input.toAccountId) {
+            throw new Error('Select source and destination accounts')
+          }
+          await provider.createTransfer({
+            fromAccountId: input.bankAccountId,
+            toAccountId: input.toAccountId,
+            amount: input.amount,
+            date: input.date,
+            notes: input.description?.trim() || undefined,
+          })
+        } else {
+          const direction: 'debit' | 'credit' = input.type === 'income' ? 'credit' : 'debit'
+          const desc = input.description?.trim() || (input.type === 'income' ? 'Receita' : 'Despesa')
+          // 1. The obligation (invoice + bill movement).
+          // Persist the recurring flag + the snapped-receipt data URL (FAY-1226)
+          // on the invoice metadata so the transaction feed can indicate/preview it.
+          const invoiceMeta: Record<string, unknown> = {}
+          if (input.recurring) invoiceMeta.recurring = true
+          if (input.receiptUrl) invoiceMeta.receiptUrl = input.receiptUrl
+          const invoice = await provider.createInvoice({
+            direction,
+            invoiceDate: input.date,
+            contactName: desc,
+            metadata: Object.keys(invoiceMeta).length > 0 ? invoiceMeta : undefined,
+            items: [{
+              itemKind: 'other',
+              description: desc,
+              quantity: 1,
+              unitPrice: input.amount,
+              accountId: input.categoryId,
+            }],
+            installments: [{
+              direction,
+              movementKind: 'bill',
+              amount: input.amount,
+              dueDate: input.date,
+              installmentNumber: 1,
+              bankAccountId: input.bankAccountId,
+              notes: desc,
+            }],
+          })
+          // 2. Settle it now when marked paid → a realized cash event that shows in
+          //    the statement/extract and feeds the monthly cash-flow KPIs.
+          if (input.paid) {
+            const movements = await provider.getMovements({ direction, status: 'pending' })
+            const bill = movements.data.find((m) => m.invoiceId === invoice.id && m.movementKind === 'bill')
+            if (bill) {
+              await provider.payMovement({
+                movementId: bill.id,
+                amount: input.amount,
+                paymentDate: input.date,
+                bankAccountId: input.bankAccountId,
+                notes: desc,
+              })
+            }
+          }
+        }
+        // Refresh every surface this store feeds: Home/Resumo KPIs (summary),
+        // the mobile transaction list (statement), balances, and the payables/
+        // receivables tables (invoices).
+        const invoiceQuery = get().invoiceQuery
+        const statementQuery = get().statementQuery
+        const [summary, bankAccounts, invoicesRes, statement] = await Promise.all([
+          provider.getSummary(),
+          provider.getBankAccounts(),
+          provider.getInvoices(invoiceQuery),
+          statementQuery ? provider.getStatement(statementQuery) : Promise.resolve(get().statement),
+        ])
+        set({
+          summary,
+          bankAccounts,
+          invoices: invoicesRes.data,
+          invoicesTotal: invoicesRes.total,
+          statement,
+        })
+        toast.success('Transaction saved')
+      } catch (err: any) {
+        toast.error('Failed to save transaction', { description: err?.message })
         throw err
       }
     },

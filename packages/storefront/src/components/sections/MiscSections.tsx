@@ -4,6 +4,7 @@ import { bannerPlaceholder } from '../../sections'
 import { Reveal } from '../../motion'
 import { Link } from '../../router'
 import { TID } from '../../testids'
+import { SmoothImage } from '../SmoothImage'
 
 function Icon({ name, className }: { name: string; className?: string }) {
   const C = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name]
@@ -49,7 +50,7 @@ export function PromoBanner({
 }) {
   return (
     <section data-testid={TID.promoBanner} className="group relative my-12 overflow-hidden">
-      <img
+      <SmoothImage
         src={image ?? bannerPlaceholder(title, hue, hue + 50, 1600, 420)}
         alt={title}
         className="h-80 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"

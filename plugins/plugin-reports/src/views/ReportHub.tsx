@@ -23,8 +23,8 @@ export function ReportHub({ onSelect }: ReportHubProps) {
   const categories = useMemo(() => {
     const filtered = search
       ? config.reports.filter(
-          (r) =>
-            r.name.toLowerCase().includes(search.toLowerCase()) ||
+        (r) =>
+          r.name.toLowerCase().includes(search.toLowerCase()) ||
             r.description?.toLowerCase().includes(search.toLowerCase()),
         )
       : config.reports

@@ -126,7 +126,14 @@ export function AppointmentPopover({ booking, position, onClose, onEdit }: Props
             <div className="flex items-start gap-3">
               <span className="mt-1.5 h-3 w-3 rounded shrink-0" style={{ backgroundColor: color }} />
               <div className="min-w-0">
-                <PersonLink personId={booking.clientId} name={booking.clientName ?? 'Unknown'} className="text-base" />
+                {/* Client agendas link to the person; simple events (no client
+                    capability) render the free-text title as a plain heading —
+                    booking.clientName carries the event title in that model. */}
+                {config.capabilities.client ? (
+                  <PersonLink personId={booking.clientId} name={booking.clientName ?? 'Unknown'} className="text-base" />
+                ) : (
+                  <p className="text-base font-medium truncate">{booking.clientName || t('agenda.appointment.untitled')}</p>
+                )}
                 <p className="text-sm text-muted-foreground mt-0.5">{fmtDate(booking.startsAt)} &middot; {timeRange}</p>
               </div>
             </div>
@@ -142,7 +149,7 @@ export function AppointmentPopover({ booking, position, onClose, onEdit }: Props
               </div>
             )}
 
-            {booking.professionalName && (
+            {config.capabilities.professional && booking.professionalName && (
               <div className="flex items-center gap-3">
                 <User className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm">{booking.professionalName}</span>
@@ -204,14 +211,17 @@ export function AppointmentPopover({ booking, position, onClose, onEdit }: Props
               )
             })()}
 
-            <div className="pt-2 border-t fayz-glass-divider">
-              <PopoverStatusSelect
-                value={booking.status}
-                statuses={config.statuses}
-                bookingStartsAt={booking.startsAt}
-                onChange={(v) => { updateStatus(booking.id, v); onClose() }}
-              />
-            </div>
+            {/* Status workflow — hidden for simple events (no status capability). */}
+            {config.capabilities.status && (
+              <div className="pt-2 border-t fayz-glass-divider">
+                <PopoverStatusSelect
+                  value={booking.status}
+                  statuses={config.statuses}
+                  bookingStartsAt={booking.startsAt}
+                  onChange={(v) => { updateStatus(booking.id, v); onClose() }}
+                />
+              </div>
+            )}
           </div>
         </>
       )}

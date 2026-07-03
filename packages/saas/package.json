@@ -61,6 +61,7 @@
     "@fayz-ai/sdk": "workspace:^",
     "@fayz-ai/core": "workspace:^",
     "@fayz-ai/auth": "workspace:^",
+    "@fayz-ai/plugin-auth": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
     "@fayz-ai/db": "workspace:^",
     "@supabase/supabase-js": "^2.45.0",

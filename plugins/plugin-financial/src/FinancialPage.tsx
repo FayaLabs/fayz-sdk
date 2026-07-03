@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import { useTranslation } from '@fayz-ai/core'
 import { ModulePage, PageTransition, type ModuleNavItem } from '@fayz-ai/ui'
@@ -8,6 +8,11 @@ import type { FinancialUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
 import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
+import { QuickTransactionForm } from './views/QuickTransactionForm'
+import { usePendingQuickAdd, consumeQuickAdd } from './quick-add'
+import type { QuickTransactionType } from './types'
+import { Plus } from 'lucide-react'
+import { Button } from '@fayz-ai/ui'
 import { PayablesView } from './views/PayablesView'
 import { ReceivablesView } from './views/ReceivablesView'
 import { CashRegistersView } from './views/CashRegistersView'
@@ -160,12 +165,58 @@ export function FinancialPage({ config, provider, store, registries }: {
     try { return localStorage.getItem('saas-core:financial-onboarded') === 'true' } catch { return false }
   })
 
+  // Skip the welcome wizard when the provider already has transactions — a user
+  // (or a seeded demo/dogfood provider) with existing data should land on the
+  // populated Summary, not a "let's get started" flow.
+  useEffect(() => {
+    if (onboardingComplete) return
+    let cancelled = false
+    void provider.getMovements({ pageSize: 1 })
+      .then((res) => { if (!cancelled && res.total > 0) setOnboardingComplete(true) })
+      .catch(() => { /* leave onboarding as-is on error */ })
+    return () => { cancelled = true }
+  }, [onboardingComplete, provider])
+
   const t = useTranslation()
   const intent = parseIntent(view)
   const isSettings = view === 'settings'
   const nav = buildNav(config, view, navigate, t)
 
+  // FAY-1225 "log money in a few taps": a reachable quick-add that opens the
+  // Mobills-grade transaction sheet (default = expense). Prominent primary
+  // button on desktop + a thumb-reachable FAB on mobile.
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [quickAddType, setQuickAddType] = useState<QuickTransactionType>('expense')
+  // FAY-1226 "snap a receipt": when true, the sheet foregrounds the attachment
+  // step + auto-opens the camera/gallery picker.
+  const [quickAddReceipt, setQuickAddReceipt] = useState(false)
+  const openQuickAdd = useCallback((type: QuickTransactionType = 'expense') => {
+    setQuickAddType(type)
+    setQuickAddReceipt(false)
+    setQuickAddOpen(true)
+  }, [])
+
+  // FAY-1242: open the sheet on a global quick-add request (the app shell's
+  // elevated center "+" button). One-shot — consumed so it never re-fires.
+  const pendingQuickAdd = usePendingQuickAdd()
+  useEffect(() => {
+    if (!pendingQuickAdd) return
+    const req = consumeQuickAdd()
+    if (!req) return
+    setQuickAddType(req.type)
+    setQuickAddReceipt(req.receipt)
+    setQuickAddOpen(true)
+  }, [pendingQuickAdd])
+
+  // One-primary-action rule (FAY-1247): each module surfaces exactly ONE primary
+  // add affordance and config picks its face — never both. When quickAdd is the
+  // primary action (B2C, e.g. norman), suppress the ERP "+ New" menu here so the
+  // header shows only the quick-add "Nova transação" button. Payables are still
+  // covered: the quick-add sheet's "Pago: Não" creates an unpaid conta a pagar.
+  // When quickAdd is off (ERP default, beauty) this returns the payable/receivable/
+  // cash actions and no quick-add buttons render — exactly today's behavior.
   const quickActions = useMemo<PluginQuickAction[]>(() => {
+    if (config.quickAdd) return []
     const actions: PluginQuickAction[] = []
     if (config.modules.payables) {
       actions.push({
@@ -195,7 +246,7 @@ export function FinancialPage({ config, provider, store, registries }: {
       })
     }
     return actions
-  }, [config.modules])
+  }, [config.modules, config.quickAdd])
 
   function handleOnboardingComplete() {
     setOnboardingComplete(true)
@@ -262,14 +313,42 @@ export function FinancialPage({ config, provider, store, registries }: {
         viewKey={view}
         direction={direction}
         headerAction={
-          <ModuleActionBar
-            quickActions={quickActions}
-            settingsPath={registries && registries.length > 0 ? '/settings/financial' : undefined}
-            settingsLabel={t('financial.settingsPage.title')}
-          />
+          <div className="flex items-center gap-2">
+            {config.quickAdd && (
+              // One-primary-action rule (FAY-1247): quick-add is the single primary
+              // add affordance in B2C mode. The receipt entry point lives inside the
+              // sheet's "Fotografar ou anexar recibo" attachment step, so no separate
+              // "Enviar recibo" button is needed here.
+              <Button
+                size="sm"
+                className="hidden md:inline-flex"
+                onClick={() => openQuickAdd('expense')}
+              >
+                <Plus className="h-4 w-4" />
+                {t('financial.quickTx.newTransaction')}
+              </Button>
+            )}
+            <ModuleActionBar
+              quickActions={quickActions}
+              settingsPath={registries && registries.length > 0 ? '/settings/financial' : undefined}
+              settingsLabel={t('financial.settingsPage.title')}
+            />
+          </div>
         }
       >
         {renderView()}
+
+        {/* FAY-1242: the mobile quick-add + receipt FAB stack was removed — the
+            app shell's elevated center "+" bottom-nav button now owns global
+            quick-add (via openQuickAdd), and receipts stay reachable through the
+            form's Anexo step. Desktop keeps its header buttons above. */}
+
+        <QuickTransactionForm
+          open={quickAddOpen}
+          onOpenChange={setQuickAddOpen}
+          defaultType={quickAddType}
+          focusReceipt={quickAddReceipt}
+        />
       </ModulePage>
     </FinancialContextProvider>
   )

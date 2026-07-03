@@ -22,5 +22,7 @@ export interface AuthAdapter {
   signUp(email: string, password: string, fullName: string): Promise<AuthSession>
   signOut(): Promise<void>
   signInWithOAuth(provider: AuthProvider): Promise<void>
-  resetPassword(email: string): Promise<void>
+  resetPassword(email: string, options?: { redirectTo?: string }): Promise<void>
+  updatePassword?(password: string): Promise<AuthSession | void>
+  handleCallback?(url?: string): Promise<AuthSession | null>
 }

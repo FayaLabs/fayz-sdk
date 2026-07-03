@@ -19,6 +19,7 @@ export default defineConfig({
     'lucide-react',
     '@fayz-ai/core',
     '@fayz-ai/auth',
+    '@fayz-ai/plugin-auth',
     '@fayz-ai/sdk',
     '@fayz-ai/sdk/shop',
     '@fayz-ai/shop',

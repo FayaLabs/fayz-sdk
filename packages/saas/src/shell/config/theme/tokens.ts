@@ -82,7 +82,17 @@ export type ThemeDensity = 'compact' | 'comfortable' | 'spacious'
 export type ThemeShadow = 'none' | 'subtle' | 'medium' | 'bold'
 export type ThemeFont = 'system' | 'inter' | 'dm-sans' | 'poppins' | 'geist' | 'plus-jakarta' | 'outfit' | 'nunito' | 'source-sans' | 'raleway' | 'manrope'
 
+/** Native sidebar palette selector. 'neutral' (default) keeps the light Polaris
+ *  rail; 'brand' opts the sidebar into the app's `brand` color with a readable
+ *  light foreground (icons, active item, workspace switcher, user row). */
+export type SidebarStyle = 'brand' | 'neutral'
+
 export interface SaasTheme {
+  /** Explicit discriminator so config code never has to duck-type the theme
+   *  shape (SaasTheme vs CreateThemeOptions share keys like `brand`/`name`).
+   *  Optional for hand-written configs — `isSaasTheme` falls back to a
+   *  structural check — but generated configs should always set it. */
+  __kind?: 'saas-theme'
   name: string
   preset?: FayzThemePresetId
   brand: string
@@ -90,7 +100,9 @@ export interface SaasTheme {
   density?: ThemeDensity
   shadow?: ThemeShadow
   font?: ThemeFont
-  sidebar?: {
+  /** 'brand' | 'neutral' to derive the sidebar palette natively, or an explicit
+   *  token object for full control. Defaults to neutral when omitted. */
+  sidebar?: SidebarStyle | {
     background: string
     foreground: string
     border?: string

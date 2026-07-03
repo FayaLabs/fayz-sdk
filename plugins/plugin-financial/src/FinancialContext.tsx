@@ -28,6 +28,8 @@ export interface LocationOption {
 
 export interface ResolvedFinancialConfig {
   modules: FinancialModules
+  /** Show the plugin's own quick-add header buttons / FAB. Opt-in (default false). */
+  quickAdd: boolean
   labels: FinancialPluginLabels
   currency: FinancialCurrency
   itemTypes: ItemTypeOption[]

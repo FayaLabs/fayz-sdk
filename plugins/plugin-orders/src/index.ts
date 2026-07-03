@@ -212,6 +212,6 @@ export function createOrdersPlugin(options?: OrdersPluginOptions): PluginManifes
 }
 
 export type { OrdersDataProvider } from './data/types'
-export { createFayzOrdersProvider } from './data/fayz'
-export type { FayzOrdersProviderOptions } from './data/fayz'
+export { createFayzOrdersProvider } from './data/platform'
+export type { FayzOrdersProviderOptions } from './data/platform'
 export type { ResolvedOrdersConfig } from './OrdersContext'

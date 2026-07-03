@@ -1,5 +1,6 @@
 export { useProducts } from './useProducts'
 export { useProduct } from './useProduct'
 export { useCategories } from './useCategories'
+export { useStorefront, useCatalog, useCart, useEnquiry, useStorefrontActions } from './useStorefront'
 export { useMyOrders } from './useMyOrders'
 export { useDiscountValidator } from './useDiscountValidator'

@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // App factory (main entry point)
 // ---------------------------------------------------------------------------
-export { createFayzApp, AdminProviders } from './app/createFayzApp'
+export { createFayzApp, AdminProviders } from './app/admin-app'
 export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, CustomPage, PageSection } from './app/config'
 
 // Native admin scaffold — manifest-first entry. Importing this registers the
@@ -10,6 +10,11 @@ export { defineSaas, AdminScaffold } from './app/scaffold'
 export { AdminShell } from './app/AdminShell'
 export { LoginPage } from './app/LoginPage'
 export { navigateTo as adminNavigateTo, useAdminPath } from './app/routing'
+
+// Auth hook re-exported through the saas front-door so app screens (e.g. a
+// Profile page) can read the current user + signOut without depending on
+// @fayz-ai/auth directly.
+export { useAuth } from '@fayz-ai/auth'
 
 // ---------------------------------------------------------------------------
 // CRUD engine — NATIVE code is now in ./crud (de-bridged from saas-core: the
@@ -34,10 +39,6 @@ export { PermissionGate } from './permissions/PermissionGate'
 export { WidgetSlot } from './plugins/WidgetSlot'
 export { useFieldRules } from './hooks/useFieldRules'
 
-// Native admin shell — createSaasApp orchestrator (de-bridged from saas-core
-// into ./shell). The default createCrudPage is the native one.
-export { createSaasApp } from './shell/createSaasApp'
-export type { SaasAppConfig, PageConfig } from './shell/createSaasApp'
 export { createCrudPage } from './crud/createCrudPage'
 // Client-orders archetype (used by beauty-saas client detail tab)
 export { ClientOrdersTab } from './shell/components/crud/archetypes/ClientOrdersTab'
@@ -172,6 +173,12 @@ export { PersonLink } from './components/shared/PersonLink'
 export { resolveEntityHref } from './lib/entity-routes'
 export { usePluginPrefs } from './hooks/usePluginPrefs'
 export { setScheduleBlockConfig, getScheduleBlockConfig, subscribeScheduleBlockConfig } from './lib/schedule-config'
+
+// Assistant chat store — lets apps drive the shell's chat panel imperatively
+// (e.g. an "Ask the assistant" CTA calling useChatStore().setOpen(true)). The
+// store is a shared zustand singleton, so app + shell read the same instance.
+export { useChatStore } from './shell/stores/chat.store'
+export type { ChatMessage } from './shell/stores/chat.store'
 
 // Shell plugin-settings panel + dedup util (used by vertical plugins)
 export { PluginSettingsPanel } from './shell/components/plugins/PluginSettingsPanel'

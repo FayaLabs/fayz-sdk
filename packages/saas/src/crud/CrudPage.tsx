@@ -349,7 +349,7 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
     // Parse /uuid or /uuid/tab-name
     const subParts = sub.slice(1).split('/')
     const id = subParts[0]
-    const initialTab = subParts[1] || undefined
+    const initialTab = subParts[1]?.split('?')[0] || undefined
     const item = store.getById(id)
     viewKey = `detail-${id}`
 

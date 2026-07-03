@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { AuthAdapter, OrgAdapter } from '@fayz-ai/core'
+import type { OrgAdapter } from '@fayz-ai/core'
 import {
   PluginRuntimeProvider,
   resolvePluginRuntime,
@@ -8,7 +8,13 @@ import {
   mergeTranslations,
   setCurrentLocale,
 } from '@fayz-ai/core'
-import { AuthProvider, createSupabaseAuthAdapter, createMockAuthAdapter } from '@fayz-ai/auth'
+import {
+  AuthProvider,
+  createAuthRuntime,
+  type AuthLayout,
+  type AuthPluginOptions,
+  type ResolvedAuthPlugin,
+} from '@fayz-ai/plugin-auth'
 import { NavTransitionProvider } from '@fayz-ai/ui'
 import { createFayzSupabaseClient, getFayzSupabaseClientOptional } from '../supabase/client'
 import { OrgProvider } from '../org/context'
@@ -22,8 +28,7 @@ import { useBillingStore } from '../billing/store'
 import type { Plan } from '@fayz-ai/core'
 import type { PlanConfig } from '../shell/types/billing'
 import { useThemeStore } from '../shell/stores/theme.store'
-import { resolveTheme, type CreateThemeOptions } from '../shell/config/theme/utils'
-import type { SaasTheme } from '../shell/config/theme/tokens'
+import { resolveTheme, isSaasTheme } from '../shell/config/theme/utils'
 import { AdminShell } from './AdminShell'
 import { useAdminPath } from './routing'
 import type { FayzAppConfig } from './config'
@@ -32,24 +37,69 @@ import type { FayzAppConfig } from './config'
 // Adapter resolution
 // ---------------------------------------------------------------------------
 
-function resolveAuthAdapter(config: FayzAppConfig): AuthAdapter {
-  const auth = config.auth
-  if (auth?.adapter && typeof auth.adapter === 'object') return auth.adapter as AuthAdapter
+function isResolvedAuthPlugin(value: FayzAppConfig['auth']): value is ResolvedAuthPlugin {
+  return Boolean(value && 'kind' in value && value.kind === 'auth')
+}
 
-  const strategy = auth?.adapter ?? (config.supabaseUrl ? 'supabase' : 'mock')
-  if (strategy === 'supabase') {
-    if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      throw new Error(
-        "[@fayz-ai/saas] auth.adapter='supabase' requires supabaseUrl and supabaseAnonKey in FayzAppConfig.",
-      )
-    }
-    return createSupabaseAuthAdapter({
-      supabaseUrl: config.supabaseUrl,
-      supabaseAnonKey: config.supabaseAnonKey,
-      supabaseClient: getFayzSupabaseClientOptional() ?? undefined,
-    })
+function resolveAuthRuntime(config: FayzAppConfig): ResolvedAuthPlugin {
+  const auth = config.auth
+  if (isResolvedAuthPlugin(auth)) return auth
+
+  const provider = auth?.provider ?? auth?.adapter ?? (config.supabaseUrl ? 'supabase' : 'mock')
+  const oauth = auth?.oauth ?? {
+    enabled: auth?.showOAuth ?? false,
+    providers: auth?.oauthProviders ?? ['google'],
   }
-  return createMockAuthAdapter()
+
+  return createAuthRuntime({
+    provider,
+    requireAuth: auth?.requireAuth ?? true,
+    layout: auth?.layout ?? auth?.loginLayout,
+    logo: auth?.logo ?? auth?.loginLogo,
+    tagline: auth?.tagline ?? auth?.loginTagline,
+    description: auth?.description ?? auth?.loginDescription,
+    oauth,
+    routes: auth?.routes,
+    supabase: {
+      url: auth?.supabase?.url ?? config.supabaseUrl,
+      anonKey: auth?.supabase?.anonKey ?? config.supabaseAnonKey,
+      client: auth?.supabase?.client ?? getFayzSupabaseClientOptional() ?? undefined,
+      callbackUrl: auth?.supabase?.callbackUrl,
+      resetPasswordUrl: auth?.supabase?.resetPasswordUrl,
+    },
+  } satisfies AuthPluginOptions)
+}
+
+export function getAuthShellProps(auth: FayzAppConfig['auth']): {
+  requireAuth?: boolean
+  loginTagline?: string
+  loginDescription?: string
+  loginLogo?: React.ReactNode
+  loginLayout?: AuthLayout
+  showOAuth?: boolean
+  oauthProviders?: Exclude<import('@fayz-ai/core').AuthProvider, 'email'>[]
+} {
+  if (!auth) return {}
+  if (isResolvedAuthPlugin(auth)) {
+    return {
+      requireAuth: auth.requireAuth,
+      loginTagline: auth.tagline,
+      loginDescription: auth.description,
+      loginLogo: auth.logo,
+      loginLayout: auth.layout,
+      showOAuth: auth.oauth.enabled,
+      oauthProviders: auth.oauth.providers,
+    }
+  }
+  return {
+    requireAuth: auth.requireAuth,
+    loginTagline: auth.tagline ?? auth.loginTagline,
+    loginDescription: auth.description ?? auth.loginDescription,
+    loginLogo: auth.logo ?? auth.loginLogo,
+    loginLayout: auth.layout ?? auth.loginLayout,
+    showOAuth: auth.oauth?.enabled ?? auth.showOAuth,
+    oauthProviders: auth.oauth?.providers ?? auth.oauthProviders,
+  }
 }
 
 function resolveOrgAdapter(config: FayzAppConfig): OrgAdapter {
@@ -116,12 +166,9 @@ function ThemeInitializer({ config }: { config: FayzAppConfig }) {
 
   React.useEffect(() => {
     if (config.theme) {
-      const isSaasTheme = 'brand' in config.theme && (
-        'radius' in config.theme || 'sidebar' in config.theme || 'font' in config.theme
-      )
-      const resolved = isSaasTheme
-        ? resolveTheme(config.theme as SaasTheme)
-        : config.theme as CreateThemeOptions
+      const resolved = isSaasTheme(config.theme)
+        ? resolveTheme(config.theme)
+        : config.theme
       setOverrides(resolved)
     }
     if (config.defaultThemeMode && typeof window !== 'undefined' && !localStorage.getItem('saas-core:theme-mode')) {
@@ -134,7 +181,7 @@ function ThemeInitializer({ config }: { config: FayzAppConfig }) {
 }
 
 // ---------------------------------------------------------------------------
-// AdminProviders — the provider stack shared by the createFayzApp/createSaasApp
+// AdminProviders — the provider stack shared by the admin factory/createSaasApp
 // sugar path AND the manifest-driven AdminScaffold. Resolves adapters + i18n
 // once (stable refs) and recomputes the plugin runtime reactively as the path
 // changes, so route-scoped widget visibility stays correct.
@@ -152,15 +199,18 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
       createFayzSupabaseClient(config.supabaseUrl, config.supabaseAnonKey)
     }
     const i18n = buildI18nConfig(config)
-    setCurrentLocale(i18n.defaultLocale)
     return {
-      authAdapter: resolveAuthAdapter(config),
+      authRuntime: resolveAuthRuntime(config),
       orgAdapter: resolveOrgAdapter(config),
       i18n,
       plugins: config.plugins ?? [],
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config])
+
+  React.useEffect(() => {
+    setCurrentLocale(resolved.i18n.defaultLocale)
+  }, [resolved.i18n.defaultLocale])
 
   // Recompute the plugin runtime when the hash path or tenant changes
   // (route-scoped visibility + tenant-scoped plugin data providers).
@@ -188,7 +238,7 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
   )
 
   return (
-    <AuthProvider adapter={resolved.authAdapter}>
+    <AuthProvider adapter={resolved.authRuntime.adapter}>
       <OrgProvider adapter={resolved.orgAdapter} autoCreate={config.org?.autoCreate ?? true}>
         <PluginRuntimeProvider value={runtime}>
           <PermissionsProvider config={config.permissions}>
@@ -224,6 +274,7 @@ AdminProviders.displayName = 'AdminProviders'
 // ---------------------------------------------------------------------------
 
 export function createFayzApp(config: FayzAppConfig): React.ComponentType {
+  const authShellProps = getAuthShellProps(config.auth)
   function FayzApp({ children }: { children?: React.ReactNode }) {
     return (
       <AdminProviders config={config}>
@@ -234,16 +285,12 @@ export function createFayzApp(config: FayzAppConfig): React.ComponentType {
             layout={config.layout}
             contentFrame={config.contentFrame}
             moduleNav={config.moduleNav}
+            bottomNav={config.bottomNav}
             pages={config.pages}
-            requireAuth={config.auth?.requireAuth}
-            loginTagline={config.auth?.loginTagline}
-            loginDescription={config.auth?.loginDescription}
-            loginLogo={config.auth?.loginLogo}
-            loginLayout={config.auth?.loginLayout}
-            showOAuth={config.auth?.showOAuth}
-            oauthProviders={config.auth?.oauthProviders}
+            {...authShellProps}
             showSettings
-            showOrgSettings={Boolean(config.org)}
+            showOrgSettings={config.orgSettings ?? Boolean(config.org)}
+            showBranding={config.branding ?? true}
           />
         )}
       </AdminProviders>

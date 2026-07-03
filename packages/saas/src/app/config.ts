@@ -8,6 +8,8 @@ import type {
   LocaleConfig,
   PermissionsConfig,
 } from '@fayz-ai/core'
+import type { AuthPluginOptions, ResolvedAuthPlugin } from '@fayz-ai/plugin-auth'
+import type { BottomNavItem, MobileHeaderVariant } from '@fayz-ai/ui'
 import type { SaasTheme } from '../shell/config/theme/tokens'
 import type { CreateThemeOptions } from '../shell/config/theme/utils'
 import type { PlanConfig } from '../shell/types/billing'
@@ -30,6 +32,11 @@ export interface CustomPage {
   position?: number
   badge?: string | number
   permission?: { feature: string; action: 'read' | 'create' | 'edit' | 'delete' }
+  /** Show this page in the sidebar/topbar navigation. Default: true. Set `false`
+   *  for mobile-only pages reachable via bottomNav/avatar (e.g. a "Mais" overflow
+   *  hub or a "Perfil" avatar target): the route still works, but the entry is
+   *  hidden from desktop navigation where those mobile constructs are meaningless. */
+  nav?: boolean
   children?: CustomPage[]
 }
 
@@ -39,9 +46,19 @@ export interface CustomPage {
 
 export interface AuthConfig {
   /** 'supabase' | 'mock' or bring your own AuthAdapter */
-  adapter?: 'supabase' | 'mock' | AuthAdapter
+  adapter?: AuthPluginOptions['adapter']
+  /** New plugin-auth provider selector. Existing apps may keep using adapter. */
+  provider?: AuthPluginOptions['provider']
   /** Redirect to login when no session is found (default: true) */
   requireAuth?: boolean
+  /** New plugin-auth route and provider options. */
+  routes?: AuthPluginOptions['routes']
+  supabase?: AuthPluginOptions['supabase']
+  oauth?: AuthPluginOptions['oauth']
+  layout?: AuthPluginOptions['layout']
+  logo?: ReactNode
+  tagline?: string
+  description?: string
   loginLogo?: ReactNode
   loginLayout?: 'split' | 'centered'
   loginTagline?: string
@@ -49,6 +66,8 @@ export interface AuthConfig {
   showOAuth?: boolean
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
 }
+
+export type AppAuthConfig = AuthConfig | ResolvedAuthPlugin
 
 export interface OrgConfig {
   /** 'supabase' | 'mock' or bring your own OrgAdapter */
@@ -90,7 +109,7 @@ export interface FayzAppConfig {
   // -------------------------------------------------------------------------
   // Auth
   // -------------------------------------------------------------------------
-  auth?: AuthConfig
+  auth?: AppAuthConfig
 
   // -------------------------------------------------------------------------
   // Organization / multi-tenancy
@@ -114,6 +133,17 @@ export interface FayzAppConfig {
   defaultThemeMode?: ThemeMode
   /** Shell layout variant (default: 'sidebar') */
   layout?: 'sidebar' | 'topbar' | 'minimal'
+  /** Mobile bottom tab bar. Rendered by AppShell on small screens (md:hidden)
+   *  for every layout variant. Route items map a lucide icon name to a route; an
+   *  `{ kind: 'action', id, icon }` item renders as a raised center button
+   *  (Mobills style) that fires `onBottomNavAction(id)` instead of navigating. */
+  bottomNav?: BottomNavItem[]
+  /** Fired when a bottom-nav `action` item (e.g. the center "+") is tapped. */
+  onBottomNavAction?: (id: string) => void
+  /** Mobile header treatment (<md), default 'minimal'. 'transparent' renders no
+   *  header bar (edge-to-edge content) with a floating profile avatar top-right;
+   *  'hidden' renders neither. Desktop keeps its sidebar + user menu. */
+  mobileHeader?: MobileHeaderVariant
   /** Wrap the main content in an inset "framed" card (default: true). The
    *  sidebar itself is always flush/full-height. */
   contentFrame?: boolean
@@ -128,6 +158,18 @@ export interface FayzAppConfig {
   // i18n
   // -------------------------------------------------------------------------
   locale?: LocaleConfig
+
+  // -------------------------------------------------------------------------
+  // Settings surface
+  // -------------------------------------------------------------------------
+  /** Show org-level settings tabs (Equipe/Permissões/Localizações/Regras).
+   *  Defaults to `Boolean(org)` for back-compat. B2C/personal apps that still
+   *  need an org for the workspace can set `false` to hide these ERP tabs. */
+  orgSettings?: boolean
+  /** Show the branding ("Identidade Visual") + company "Geral" settings tabs.
+   *  Default: `true`. B2C apps set `false` to drop org-identity settings, leaving
+   *  Perfil + Segurança + plugin settings only. */
+  branding?: boolean
 
   // -------------------------------------------------------------------------
   // Permissions

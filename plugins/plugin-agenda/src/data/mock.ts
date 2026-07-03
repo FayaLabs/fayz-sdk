@@ -133,10 +133,26 @@ function createSampleSchedules(): Schedule[] {
 // Mock provider factory
 // ---------------------------------------------------------------------------
 
-export function createMockAgendaProvider(): AgendaDataProvider {
-  const bookings: CalendarBooking[] = createSampleBookings()
-  const schedules: Schedule[] = createSampleSchedules()
-  const professionals: Professional[] = [...SAMPLE_PROFESSIONALS]
+/**
+ * Pre-populated agenda data. Any omitted collection falls back to the built-in
+ * salon-style sample. Pass `bookings` (and optionally an empty `professionals`)
+ * to render a calendar seeded with app-specific events.
+ */
+export interface MockAgendaSeed {
+  bookings?: CalendarBooking[]
+  professionals?: Professional[]
+  schedules?: Schedule[]
+}
+
+export interface MockAgendaProviderOptions {
+  seed?: MockAgendaSeed
+}
+
+export function createMockAgendaProvider(options?: MockAgendaProviderOptions): AgendaDataProvider {
+  const seed = options?.seed
+  const bookings: CalendarBooking[] = seed?.bookings ? [...seed.bookings] : createSampleBookings()
+  const schedules: Schedule[] = seed?.schedules ? [...seed.schedules] : createSampleSchedules()
+  const professionals: Professional[] = seed?.professionals ? [...seed.professionals] : [...SAMPLE_PROFESSIONALS]
 
   return {
     async getLocations(): Promise<Array<{ id: string; name: string }>> {
@@ -167,7 +183,7 @@ export function createMockAgendaProvider(): AgendaDataProvider {
         startsAt: input.startsAt, endsAt: addMinutes(input.startsAt, totalDuration || 30),
         status: 'scheduled', notes: input.notes ?? null,
         orderId: input.services.length > 0 ? uid() : null, locationId: input.locationId ?? null, metadata: {},
-        clientId: input.clientId, clientName: 'New Client', clientPhone: null, clientEmail: null, clientAvatarUrl: null,
+        clientId: input.clientId, clientName: input.title?.trim() || 'New Client', clientPhone: null, clientEmail: null, clientAvatarUrl: null,
         professionalId: input.professionalId,
         professionalName: professionals.find((p) => p.id === input.professionalId)?.name ?? 'Unknown',
         professionalAvatarUrl: null,
@@ -201,6 +217,7 @@ export function createMockAgendaProvider(): AgendaDataProvider {
         ...existing,
         ...(data.startsAt && { startsAt: data.startsAt }),
         ...(data.endsAt && { endsAt: data.endsAt }),
+        ...(data.title !== undefined && { clientName: data.title }),
         ...(data.status && { status: data.status }),
         ...(data.notes !== undefined && { notes: data.notes ?? null }),
         ...(data.professionalId && { professionalId: data.professionalId }),

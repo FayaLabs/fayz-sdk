@@ -1,5 +1,8 @@
 # Data-Model Refactor — order-to-cash spine (Salesforce-grade, modular)
 
+> **Status: IN-PROGRESS working doc** (execution plan under active work, not current state —
+> the applied data model is [`data-model.md`](./data-model.md)).
+
 > **2026-06-17.** Goal: make the shared `orders` spine *redondo e flexível* — clean
 > responsibility separation (operational vs commercial vs financial), zero drift,
 > reports that can't lie. Each step is **additive then flip**, verified live before

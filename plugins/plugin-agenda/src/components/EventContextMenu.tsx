@@ -101,6 +101,8 @@ export function EventContextMenu({ booking, position, onClose, onEdit }: Props) 
             )}
           </div>
 
+          {/* Status workflow — hidden for simple events (no status capability). */}
+          {config.capabilities.status && (
           <div className="border-t px-4 py-3">
             <p className="text-[11px] font-medium text-muted-foreground mb-2">{t('agenda.contextMenu.changeStatus')}</p>
             <div className="flex items-center gap-1.5">
@@ -115,6 +117,7 @@ export function EventContextMenu({ booking, position, onClose, onEdit }: Props) 
               })}
             </div>
           </div>
+          )}
         </>
       )}
     </FloatingPanel>

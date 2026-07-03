@@ -1,18 +1,18 @@
 // Types
 export type { EntityArchetype, BaseEntity, PersonEntity, ProductEntity, ServiceEntity, OrderEntity, TransactionEntity, LocationEntity, ScheduleEntity, CategoryEntity } from './types/entities'
 export type { EntityDef, FieldDef, FieldType, FieldRelation, FieldGroup, DetailTab, FormLayout, ComputedFieldValue } from './types/crud'
-export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, PluginRegistryDef, PluginMigration, PluginServerAction, PluginCustomFieldsDef, PluginDiagnostic, VerticalId, ScaffoldType, TenantPluginBinding, DashboardWidgetDef, DashboardWidgetKind, DashboardSurface, DashboardLayoutConfig, ResolvedDashboardWidget } from './types/plugins'
+export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, PluginRegistryDef, PluginMigration, PluginDiagnostic, VerticalId, ScaffoldType, TenantPluginBinding, DashboardWidgetDef, DashboardWidgetKind, DashboardSurface, DashboardLayoutConfig, ResolvedDashboardWidget } from './types/plugins'
 export { WidgetZone } from './types/plugins'
 export type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from './types/auth'
 export type { OrgAdapter, Organization, OrgMember, OrgMembership, Location, Invite, CreateOrgOptions } from './types/org'
 export type { PermissionsConfig, FeatureDeclaration, PermissionAction, PermissionProfile } from './types/permissions'
 export type { Plan, BillingConfig } from './types/billing'
-export type { SaasTheme, ThemeConfig, ThemeBrand, ThemeRadius, ThemeMode } from './types/theme'
+export type { ThemeBrand, ThemeRadius, ThemeMode } from './types/theme'
 export type { LocaleConfig } from './types/i18n'
 
 // Data providers
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './data/supabase'
-export { createFayzApiProvider } from './data/fayz-api'
+export { createFayzApiProvider } from './data/platform-api'
 export { createMockProvider } from './data/mock'
 export { createArchetypeProvider } from './data/archetype'
 export { withCache } from './data/cached'
