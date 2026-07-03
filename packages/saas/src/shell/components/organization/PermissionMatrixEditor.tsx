@@ -1,10 +1,10 @@
 import * as React from 'react'
 import { Card } from '@fayz-ai/ui'
 import { Input } from '@fayz-ai/ui'
-import { Button } from '@fayz-ai/ui'
 import { Badge } from '@fayz-ai/ui'
 import { Checkbox, type CheckboxColor } from '@fayz-ai/ui'
-import { ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { useSaveBar, useBackHandler } from '@fayz-ai/ui'
+import { ArrowLeft, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { FeatureDeclaration, PermissionAction, PermissionProfile, SystemPermission } from '../../types/permissions'
 
@@ -28,9 +28,14 @@ interface PermissionMatrixEditorProps {
   onSave: (data: { name: string; description?: string; systemPermissions: SystemPermission[]; grants: Record<string, PermissionAction[]> }) => void
   onCancel: () => void
   saving?: boolean
+  /** True when creating/duplicating (not editing an existing custom role). Drives
+   *  the SaveBar dirty state + the breadcrumb crumb. */
+  isNew?: boolean
+  /** Label of the parent list, shown in the back breadcrumb (e.g. "Permissões"). */
+  parentLabel?: string
 }
 
-export function PermissionMatrixEditor({ features, profile, onSave, onCancel, saving }: PermissionMatrixEditorProps) {
+export function PermissionMatrixEditor({ features, profile, onSave, onCancel, saving, isNew, parentLabel }: PermissionMatrixEditorProps) {
   const { t } = useTranslation()
   const [name, setName] = React.useState(profile?.name ?? '')
   const [description, setDescription] = React.useState(profile?.description ?? '')
@@ -38,6 +43,22 @@ export function PermissionMatrixEditor({ features, profile, onSave, onCancel, sa
   const [grants, setGrants] = React.useState<Record<string, PermissionAction[]>>(profile?.grants ?? {})
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set())
   const [search, setSearch] = React.useState('')
+
+  // Snapshot the initial form so an EDIT only shows the SaveBar once something
+  // actually changes. A NEW role (create/duplicate) is unsaved by definition, so
+  // it's "dirty" as soon as it has a name.
+  const initial = React.useRef({
+    name: profile?.name ?? '',
+    description: profile?.description ?? '',
+    systemPerms: JSON.stringify(profile?.systemPermissions ?? []),
+    grants: JSON.stringify(profile?.grants ?? {}),
+  })
+  const dirty = isNew
+    ? name.trim() !== ''
+    : name !== initial.current.name ||
+      description !== initial.current.description ||
+      JSON.stringify(systemPerms) !== initial.current.systemPerms ||
+      JSON.stringify(grants) !== initial.current.grants
 
   const toggleSystemPerm = (perm: SystemPermission) => {
     setSystemPerms((prev) =>
@@ -68,6 +89,17 @@ export function PermissionMatrixEditor({ features, profile, onSave, onCancel, sa
     onSave({ name: name.trim(), description: description.trim() || undefined, systemPermissions: systemPerms, grants })
   }
 
+  // Surface Save/Discard through the app-wide floating SaveBar (same pattern as
+  // CRUD forms), and wire Escape → back-to-list.
+  useSaveBar({
+    dirty,
+    saving,
+    onSave: handleSave,
+    onDiscard: onCancel,
+    saveLabel: isNew ? t('organization.permissions.createProfile') : t('organization.permissions.updateProfile'),
+  })
+  useBackHandler(onCancel)
+
   // Group features, filtering by search
   const groups = React.useMemo(() => {
     const filtered = search
@@ -84,6 +116,18 @@ export function PermissionMatrixEditor({ features, profile, onSave, onCancel, sa
 
   return (
     <div className="space-y-6">
+      {/* Back-to-list breadcrumb, matching the CRUD subpage pattern. */}
+      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 transition-colors hover:text-foreground">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {parentLabel ?? t('organization.permissions.title')}
+        </button>
+        <span>/</span>
+        <span className="max-w-[240px] truncate font-medium text-foreground">
+          {name.trim() || t('organization.permissions.createCustom')}
+        </span>
+      </nav>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="text-sm font-medium">{t('organization.permissions.profileName')}</label>
@@ -194,13 +238,7 @@ export function PermissionMatrixEditor({ features, profile, onSave, onCancel, sa
           </table>
         </div>
       </Card>
-
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
-        <Button onClick={handleSave} disabled={!name.trim() || saving}>
-          {saving ? t('common.saving') : profile ? t('organization.permissions.updateProfile') : t('organization.permissions.createProfile')}
-        </Button>
-      </div>
+      {/* Save / Discard are provided by the app-wide floating SaveBar (useSaveBar). */}
     </div>
   )
 }

@@ -14,6 +14,7 @@ interface AuthContextValue {
   resetPassword: (email: string, options?: { redirectTo?: string }) => Promise<void>
   updatePassword: (password: string) => Promise<AuthSession | void>
   handleCallback: (url?: string) => Promise<AuthSession | null>
+  inviteUser: (email: string, options?: { redirectTo?: string; data?: Record<string, unknown> }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -154,6 +155,17 @@ export function AuthProvider({ adapter, children }: AuthProviderProps) {
         throw error
       }
     },
+
+    async inviteUser(email, options) {
+      setError(null)
+      try {
+        await adapterRef.current.inviteUser?.(email, options)
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        setError(error)
+        throw error
+      }
+    },
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -184,5 +196,6 @@ export function useAuth() {
     resetPassword: ctx.resetPassword,
     updatePassword: ctx.updatePassword,
     handleCallback: ctx.handleCallback,
+    inviteUser: ctx.inviteUser,
   }
 }

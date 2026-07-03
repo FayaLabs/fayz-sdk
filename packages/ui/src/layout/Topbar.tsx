@@ -328,7 +328,7 @@ export function Topbar({
           <div className="mx-8 hidden max-w-sm flex-1 md:flex">
             <button
               onClick={() => setCommandPaletteOpen(true)}
-              className="relative flex h-8 w-full items-center rounded-md border border-sidebar-border bg-sidebar-accent px-3 pl-8 text-sm text-sidebar-muted shadow-sm transition-colors hover:bg-card"
+              className="relative flex h-8 w-full items-center rounded-md border border-sidebar-border bg-sidebar-accent px-3 pl-8 text-sm text-sidebar-muted shadow-sm transition-colors hover:border-sidebar-foreground/25 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground"
             >
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sidebar-muted" />
               <span className="text-xs">{searchPlaceholder}</span>
@@ -364,7 +364,7 @@ export function Topbar({
               const left = active.offsetLeft - el.offsetWidth / 2 + active.offsetWidth / 2
               el.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
             }
-          }} className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+          }} className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
             {allNav.map((item) => {
               if (item.children && item.children.length > 0) {
                 return (

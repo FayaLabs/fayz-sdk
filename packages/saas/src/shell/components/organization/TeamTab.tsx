@@ -3,6 +3,7 @@ import { UserPlus, MoreHorizontal, Mail, Clock } from 'lucide-react'
 import { Card } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import { Badge } from '@fayz-ai/ui'
+import { Skeleton } from '@fayz-ai/ui'
 import { Avatar, AvatarFallback, AvatarImage } from '@fayz-ai/ui'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@fayz-ai/ui'
 import {
@@ -13,11 +14,15 @@ import {
   DropdownSeparator,
 } from '@fayz-ai/ui'
 import { InviteMemberDialog } from './InviteMemberDialog'
+import { toast } from '../notifications/ToastProvider'
 import { useOrganizationStore } from '../../stores/organization.store'
 import { usePermissionsStore } from '../../stores/permissions.store'
 import { useInviteStore } from '../../stores/invite.store'
-import { useOrgAdapterOptional } from '../../lib/org-context'
-import { useAuthStore } from '../../stores/auth.store'
+// Native org adapter (see InviteMemberDialog) — the shell context is un-provided.
+import { useOrgAdapterOptional as useNativeOrgAdapter } from '../../../org'
+import type { OrgAdapter } from '../../types/org-adapter'
+const useOrgAdapterOptional = () => useNativeOrgAdapter() as unknown as OrgAdapter | null
+import { useAuthStore } from '@fayz-ai/auth'
 import { usePermission } from '../../hooks/usePermission'
 import { useTranslation } from '../../hooks/useTranslation'
 import { dedup } from '../../lib/dedup'
@@ -30,7 +35,7 @@ export function TeamTab() {
   const profiles = usePermissionsStore((s) => s.profiles)
   const invites = useInviteStore((s) => s.invites)
   const setInvites = useInviteStore((s) => s.setInvites)
-  const user = useAuthStore((s) => s.user)
+  const { user } = useAuthStore()
   const { hasSystemPermission } = usePermission()
 
   const [inviteOpen, setInviteOpen] = React.useState(false)
@@ -70,8 +75,9 @@ export function TeamTab() {
       await adapter.revokeInvite(currentOrg.id, inviteId)
       const updated = await adapter.listInvites(currentOrg.id)
       setInvites(updated)
-    } catch {
-      // ignore
+      toast.success(t('organization.team.inviteRevoked'))
+    } catch (err: any) {
+      toast.error(t('organization.team.inviteActionFailed'), { description: err?.message })
     }
   }
 
@@ -81,8 +87,9 @@ export function TeamTab() {
       await adapter.resendInvite(currentOrg.id, inviteId)
       const updated = await adapter.listInvites(currentOrg.id)
       setInvites(updated)
-    } catch {
-      // ignore
+      toast.success(t('organization.team.inviteResent'))
+    } catch (err: any) {
+      toast.error(t('organization.team.inviteActionFailed'), { description: err?.message })
     }
   }
 
@@ -121,7 +128,25 @@ export function TeamTab() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {members.map((member) => {
+                {members.length === 0 ? (
+                  // Members load via central org hydration; show skeleton rows meanwhile.
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={`sk-${i}`}>
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                          <div className="space-y-1.5">
+                            <Skeleton className="h-3.5 w-32" />
+                            <Skeleton className="h-3 w-40" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3"><Skeleton className="h-6 w-24 rounded-full" /></td>
+                      <td className="p-3"><Skeleton className="h-3 w-20" /></td>
+                      {canManageTeam && <td className="p-3" />}
+                    </tr>
+                  ))
+                ) : members.map((member) => {
                   const initials = member.user.fullName
                     .split(' ')
                     .map((n) => n[0])
@@ -163,7 +188,9 @@ export function TeamTab() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant="secondary" className="text-xs">{member.profileName}</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {profiles.find((p) => p.id === member.profileId)?.name ?? member.profileName}
+                          </Badge>
                         )}
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">

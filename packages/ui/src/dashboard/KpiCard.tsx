@@ -222,8 +222,10 @@ export function KpiCard(props: KpiCardProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    // h-full so cards fill the (stretch) grid cell and every card in a row matches
+    // the tallest — labels/subtitles of different lengths no longer misalign them.
+    <Card className="h-full">
+      <CardContent className="flex h-full flex-col p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">{label}</span>
           <span className="text-muted-foreground">{renderIcon(icon)}</span>

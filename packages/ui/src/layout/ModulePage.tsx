@@ -139,7 +139,7 @@ function MobileTabs({ nav }: { nav: ModuleNavItem[] }) {
 
   return (
     <div className="md:hidden -mx-1 mb-4 no-print">
-      <div ref={scrollRef} className="flex gap-1 px-1 pb-2 overflow-x-auto scrollbar-hide">
+      <div ref={scrollRef} className="flex gap-1 px-1 pb-2 overflow-x-auto scrollbar-none">
         {nav.map((item) => {
           const Icon = item.icon ? (ICON_MAP[item.icon] ?? null) : null
           const hasChildren = item.children && item.children.length > 0
@@ -340,7 +340,7 @@ function ModuleHeader({ nav }: { nav: ModuleNavItem[] }) {
 
   const content = (
     <div className="flex w-full min-w-0 items-center gap-4">
-      <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-hide">
+      <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none">
         {nav.map((item) => {
           const Icon = item.icon ? (ICON_MAP[item.icon] ?? null) : null
           const hasChildren = item.children && item.children.length > 0

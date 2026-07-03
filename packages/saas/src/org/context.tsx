@@ -2,6 +2,7 @@ import * as React from 'react'
 import type { OrgAdapter, Organization, OrgMembership } from '@fayz-ai/core'
 import { useAuthStore } from '@fayz-ai/auth'
 import { useOrganizationStore, getPersistedOrgId } from './store'
+import { usePermissionsStore } from '../permissions'
 
 // ---------------------------------------------------------------------------
 // Adapter context
@@ -68,11 +69,35 @@ export interface OrgProviderProps {
 
 export function OrgProvider({ adapter, autoCreate = false, children }: OrgProviderProps) {
   const { user } = useAuthStore()
-  const { currentOrg, userOrgs, loading, setCurrentOrg, setUserOrgs, setLoading, reset } =
+  const { currentOrg, userOrgs, loading, setCurrentOrg, setUserOrgs, setMembers, setLoading, reset } =
     useOrganizationStore()
+  const setProfiles = usePermissionsStore((s) => s.setProfiles)
+  const setCurrentProfile = usePermissionsStore((s) => s.setCurrentProfile)
 
   const adapterRef = React.useRef(adapter)
   adapterRef.current = adapter
+
+  // Load the org's members + permission profiles into the shared stores whenever
+  // an org resolves. This is what makes the role list, the invite dialog's role
+  // dropdown, and permission checks work — previously nothing loaded them here,
+  // so those surfaces came up empty. Also resolves the signed-in user's own role.
+  const hydrateOrg = React.useCallback(
+    async (orgId: string, uid: string | undefined) => {
+      try {
+        const [members, profiles] = await Promise.all([
+          adapterRef.current.listMembers(orgId),
+          adapterRef.current.listProfiles(orgId),
+        ])
+        setMembers(members)
+        setProfiles(profiles)
+        const myMembership = uid ? members.find((m) => m.userId === uid) : undefined
+        setCurrentProfile(profiles.find((p) => p.id === myMembership?.profileId) ?? null)
+      } catch {
+        // Non-fatal — leave stores as-is if the load fails.
+      }
+    },
+    [setMembers, setProfiles, setCurrentProfile],
+  )
 
   // Load orgs when user is authenticated
   React.useEffect(() => {
@@ -109,6 +134,7 @@ export function OrgProvider({ adapter, autoCreate = false, children }: OrgProvid
               },
             ])
             setCurrentOrg(newOrg)
+            await hydrateOrg(newOrg.id, user!.id)
           }
           return
         }
@@ -120,7 +146,10 @@ export function OrgProvider({ adapter, autoCreate = false, children }: OrgProvid
 
         if (target && !cancelled) {
           const org = await adapterRef.current.getOrg(target.orgId)
-          if (!cancelled) setCurrentOrg(org)
+          if (!cancelled) {
+            setCurrentOrg(org)
+            await hydrateOrg(org.id, user!.id)
+          }
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -140,6 +169,7 @@ export function OrgProvider({ adapter, autoCreate = false, children }: OrgProvid
     try {
       const org = await adapterRef.current.getOrg(orgId)
       setCurrentOrg(org)
+      await hydrateOrg(org.id, user?.id)
     } finally {
       setLoading(false)
     }
@@ -151,6 +181,7 @@ export function OrgProvider({ adapter, autoCreate = false, children }: OrgProvid
     try {
       const org = await adapterRef.current.getOrg(currentOrg.id)
       setCurrentOrg(org)
+      await hydrateOrg(org.id, user?.id)
     } finally {
       setLoading(false)
     }
