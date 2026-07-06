@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-financial",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Fayz SDK — plugin-financial plugin",
   "type": "module",
   "main": "./dist/index.cjs",

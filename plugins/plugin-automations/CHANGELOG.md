@@ -1,5 +1,15 @@
 # @fayz-ai/plugin-automations
 
+## 0.2.3
+
+### Patch Changes
+
+- c88dd5c: Portfolio honesty pass: these plugins are marked **[experimental] (incubating)** in package.json + README — not capability-complete (no data-provider pair / registries / migrations per docs/PLUGIN-PATTERNS.md). APIs may change without notice; not ready for fresh installs or generated apps.
+- Updated dependencies [c88dd5c]
+- Updated dependencies [d04bf96]
+  - @fayz-ai/core@0.7.0
+  - @fayz-ai/ui@0.7.0
+
 ## 0.2.2
 
 ### Patch Changes
