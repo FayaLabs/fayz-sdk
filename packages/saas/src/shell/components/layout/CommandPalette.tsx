@@ -3,11 +3,14 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Command } from 'cmdk'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
-  Home, Users, Settings, CreditCard, Bell, Calendar, Package, BarChart3,
-  FileText, Mail, Search, DollarSign, Megaphone, ShoppingCart, Target,
-  Wrench, ClipboardList, Briefcase, UserCog, BookOpen, MessageCircle,
-  Globe, Percent, Tag, Camera, UtensilsCrossed, MapPin, Handshake,
-  Contact, Building2, Filter, Plus, List, User, Box, Sparkles, Loader2,
+  Home, Users, Settings, CreditCard, Bell, Calendar, CalendarCheck2,
+  CalendarClock, CalendarX, Package, Activity, BarChart3, FileText, FileCheck2, Mail, Search,
+  DollarSign, BadgeDollarSign, CircleDollarSign, Megaphone, ShoppingCart, ShoppingBag, Target,
+  Wrench, ClipboardList, ListChecks, Briefcase, UserCog, BookOpen, BookOpenCheck, MessageCircle,
+  Globe, Percent, Tag, Tags, Camera, UtensilsCrossed, MapPin, Map, Handshake,
+  Contact, Building2, Filter, Plus, List, Shield, User, Box, Sparkles, Loader2,
+  ListPlus, FolderOpen, Boxes, Landmark, Receipt, Ban, Clock, Clock3, Inbox,
+  Star, TrendingUp, UserCheck, UserPlus, UserX, Zap,
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -42,11 +45,12 @@ interface CommandPaletteProps {
 }
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  Home, Users, Settings, CreditCard, Bell, Calendar, Package, BarChart3,
-  FileText, Mail, Search, DollarSign, Megaphone, ShoppingCart, Target,
-  Wrench, ClipboardList, Briefcase, UserCog, BookOpen, MessageCircle,
-  Globe, Percent, Tag, Camera, UtensilsCrossed, MapPin, Handshake,
-  Contact, Building2, Filter, Plus, List, User, Box, Sparkles,
+  Home, Users, Settings, CreditCard, Bell, Calendar, CalendarClock, Package, Activity, BarChart3,
+  CalendarCheck2, CalendarX, FileText, FileCheck2, Mail, Search, DollarSign, BadgeDollarSign, CircleDollarSign, Megaphone, ShoppingCart, ShoppingBag, Target,
+  Wrench, ClipboardList, ListChecks, Briefcase, UserCog, BookOpen, BookOpenCheck, MessageCircle,
+  Globe, Percent, Tag, Tags, Camera, UtensilsCrossed, MapPin, Map, Handshake,
+  Contact, Building2, Filter, Plus, List, Shield, ListPlus, FolderOpen, User, Box, Boxes, Sparkles, Landmark, Receipt, Ban, Clock, Clock3, Inbox,
+  Star, TrendingUp, UserCheck, UserPlus, UserX, Zap,
 }
 
 const ENTITY_ICON: Record<string, LucideIcon> = {

@@ -1,5 +1,39 @@
 # @fayz-ai/sdk
 
+## 0.6.5
+
+### Patch Changes
+
+- fayzVite: drop `@tanstack/react-table` from `dedupe`. It's a transitive dep of the `@fayz-ai/*` plugins, not a direct app dep, so it isn't hoisted to the app's root `node_modules`; deduping it made Vite resolve it from the app root and 500 the aliased UI source (data-table) in local-source mode. Keep `lucide-react` dedupe (a direct dep) — that's what collapses the duplicate icon barrels and cuts the preview-container RAM peak.
+
+## 0.6.4
+
+### Patch Changes
+
+- fayzVite: drop the `optimizeDeps.include` added in 0.6.3. Forcing `@tanstack/react-table` (a transitive dep of the `@fayz-ai/*` plugins, not a direct app dep) into `include` made Vite fail to resolve it and 500 any page using the data-table primitive. The `dedupe` of `lucide-react` + `@tanstack/react-table` — which is what actually collapses the duplicate copies and cuts the preview-container RAM peak — is kept.
+
+## 0.6.3
+
+### Patch Changes
+
+- fayzVite: dedupe `lucide-react` + `@tanstack/react-table` and pre-`include` them in `optimizeDeps`. Collapses the dual `lucide-react` copies (~1,500 icon modules each) that a version skew between apps and `@fayz-ai/*` packages installed, cutting the editor preview-container install/optimize RAM peak.
+
+## 0.6.2
+
+### Patch Changes
+
+- fix(sdk): restore preview-container server contract in `fayzVite()`
+
+  The 0.6.0 `fayzVite()` helper stripped the dev-server hardening that the Fayz
+  editor's preview containers depend on, so every migrated app returned
+  `403 "Blocked request. This host is not allowed."` when reached via the real
+  preview hostname (browser iframe through Caddy) or the Docker health probe.
+
+  `fayzVite()` now emits the full template-equivalent `server` block —
+  `allowedHosts: true`, `cors: true`, `host: true`, and CORS `headers` — and
+  adds `server` / `resolve` override options (previously silently ignored) that
+  merge over the SDK defaults without dropping the contract.
+
 ## 0.6.1
 
 ### Patch Changes

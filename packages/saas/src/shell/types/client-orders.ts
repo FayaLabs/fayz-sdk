@@ -52,6 +52,11 @@ export interface ClientOrdersProvider {
   getDocuments(query: ClientOrdersQuery): Promise<{ data: ClientDocument[]; total: number }>
 }
 
+export interface ClientOrdersStageFilter {
+  value: string
+  label: string
+}
+
 /** Navigator callback for clicking a row in the orders tab */
 export interface ClientOrdersNavigator {
   onNavigate(doc: ClientDocument): void

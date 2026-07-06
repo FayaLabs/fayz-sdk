@@ -1,12 +1,15 @@
 import * as React from 'react'
-import { Shield, Pencil, Trash2, Plus, Eye } from 'lucide-react'
+import { Shield, Pencil, Trash2, Plus, Eye, Copy } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import { Badge } from '@fayz-ai/ui'
+import { Skeleton } from '@fayz-ai/ui'
 import { PermissionMatrixEditor } from './PermissionMatrixEditor'
 import { usePermissionsStore } from '../../stores/permissions.store'
 import { useOrganizationStore } from '../../stores/organization.store'
-import { useOrgAdapterOptional } from '../../lib/org-context'
+// Use the NATIVE org adapter (the one the app actually provides). The shell
+// lib/org-context is a separate, un-provided context that returns null here.
+import { useOrgAdapterOptional } from '../../../org'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { PermissionProfile, PermissionAction, SystemPermission } from '../../types/permissions'
 
@@ -25,7 +28,21 @@ export function PermissionProfilesTab() {
   const { t } = useTranslation()
   const [editingProfile, setEditingProfile] = React.useState<PermissionProfile | null>(null)
   const [creating, setCreating] = React.useState(false)
+  // When duplicating, we open the CREATE flow pre-filled from a source role (its
+  // grants/system perms), with a fresh name — system roles are static, so users
+  // customize by copying rather than editing them in place.
+  const [duplicateSource, setDuplicateSource] = React.useState<PermissionProfile | null>(null)
   const [saving, setSaving] = React.useState(false)
+
+  const handleDuplicate = (profile: PermissionProfile) => {
+    setEditingProfile(null)
+    setCreating(false)
+    setDuplicateSource({
+      ...profile,
+      name: t('organization.permissions.copyName', { name: profile.name }) || `${profile.name} (copy)`,
+      isSystem: false,
+    })
+  }
 
   const memberCountByProfile = React.useMemo(() => {
     const counts: Record<string, number> = {}
@@ -48,6 +65,7 @@ export function PermissionProfilesTab() {
       setProfiles(updated)
       setEditingProfile(null)
       setCreating(false)
+      setDuplicateSource(null)
     } catch {
       // ignore
     } finally {
@@ -66,20 +84,17 @@ export function PermissionProfilesTab() {
     }
   }
 
-  if (creating || editingProfile) {
+  if (creating || editingProfile || duplicateSource) {
     return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">
-          {editingProfile ? t('organization.permissions.editProfile', { name: editingProfile.name }) : t('organization.permissions.createCustom')}
-        </h3>
-        <PermissionMatrixEditor
-          features={features}
-          profile={editingProfile ?? undefined}
-          onSave={handleSave}
-          onCancel={() => { setEditingProfile(null); setCreating(false) }}
-          saving={saving}
-        />
-      </div>
+      <PermissionMatrixEditor
+        features={features}
+        profile={editingProfile ?? duplicateSource ?? undefined}
+        isNew={!editingProfile}
+        parentLabel={t('organization.permissions.title')}
+        onSave={handleSave}
+        onCancel={() => { setEditingProfile(null); setCreating(false); setDuplicateSource(null) }}
+        saving={saving}
+      />
     )
   }
 
@@ -97,7 +112,20 @@ export function PermissionProfilesTab() {
       </div>
 
       <div className="grid gap-3">
-        {profiles.map((profile) => (
+        {profiles.length === 0 ? (
+          // Roles load via central org hydration; show skeletons until they arrive.
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={`sk-${i}`}>
+              <CardContent className="flex items-center gap-4 p-4">
+                <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-64" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : profiles.map((profile) => (
           <Card key={profile.id}>
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -126,18 +154,32 @@ export function PermissionProfilesTab() {
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => setEditingProfile(profile)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
+                {/* Duplicate — always available; the primary (and only) way to
+                    customize a static system role. */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-destructive hover:text-destructive"
-                  disabled={profile.isSystem}
-                  onClick={() => handleDelete(profile)}
+                  title={t('organization.permissions.duplicate')}
+                  onClick={() => handleDuplicate(profile)}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Copy className="h-3.5 w-3.5" />
                 </Button>
+                {/* Edit + delete are for custom roles only — system roles are static. */}
+                {!profile.isSystem && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingProfile(profile)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(profile)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

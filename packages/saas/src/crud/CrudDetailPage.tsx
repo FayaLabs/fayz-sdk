@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react'
-import { Edit, Trash2, Eye, Shield, CalendarDays, FileText, Clock, Package, Users, DollarSign, MapPin, BarChart3, Briefcase, ShoppingBag } from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { Edit, Trash2, Eye, Shield, CalendarDays, FileText, Clock, Package, Users, DollarSign, MapPin, BarChart3, Briefcase, ShoppingBag, FolderOpen, MessageSquare, Route } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Card, CardContent } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
@@ -223,8 +223,35 @@ function getArchetypeTabs(layout?: FormLayout, archetypeKind?: string): DetailTa
   return tabs
 }
 
+function mergeDetailTabs(archetypeTabs: DetailTab[], entityTabs: DetailTab[]): DetailTab[] {
+  const merged = new Map<string, DetailTab>()
+
+  for (const tab of entityTabs) merged.set(tab.id, tab)
+  for (const tab of archetypeTabs) {
+    if (!merged.has(tab.id)) merged.set(tab.id, tab)
+  }
+
+  return Array.from(merged.values())
+}
+
+function normalizeTabId(value?: string): string | undefined {
+  return value?.split('?')[0]
+}
+
+function resolveActiveTab(initialTab: string | undefined, tabs: DetailTab[]): string {
+  const normalized = normalizeTabId(initialTab)
+  if (!normalized) return 'overview'
+  if (normalized === 'overview') return 'overview'
+
+  const direct = tabs.find((tab) => tab.id === normalized)
+  if (direct) return direct.id
+
+  const alias = tabs.find((tab) => (tab as DetailTab & { aliases?: string[] }).aliases?.includes(normalized))
+  return alias?.id ?? 'overview'
+}
+
 const TAB_ICONS: Record<string, LucideIcon> = {
-  Shield, CalendarDays, FileText, Clock, Package, Users, DollarSign, MapPin, BarChart3, Briefcase, ShoppingBag,
+  Shield, CalendarDays, FileText, Clock, Package, Users, DollarSign, MapPin, BarChart3, Briefcase, ShoppingBag, FolderOpen, MessageSquare, Route,
 }
 
 export function CrudDetailPage({
@@ -246,21 +273,28 @@ export function CrudDetailPage({
   const imageValue = entityDef.imageField ? item[entityDef.imageField] : null
   const initial = typeof displayValue === 'string' ? displayValue.charAt(0).toUpperCase() : '?'
 
-  // Merge archetype tabs + custom entity tabs
+  // Merge archetype tabs + custom entity tabs. Entity-specific tabs win by id
+  // so vertical apps can replace generic person/product tabs without duplicates.
   const runtime = usePluginRuntimeOptional()
   const archetypeTabs = getArchetypeTabs(entityDef.layout, entityDef.data?.archetypeKind)
-  const customTabs = [...archetypeTabs, ...(entityDef.detailTabs ?? [])]
+  const customTabs = mergeDetailTabs(archetypeTabs, entityDef.detailTabs ?? [])
     // Drop tabs that require a plugin-contributed widget when none is registered
     // (e.g. the financial statement tab only appears when the financial plugin is active).
     .filter((tab) => !tab.requiresWidgetZone || (runtime ? getWidgetsForZone(runtime, tab.requiresWidgetZone).length > 0 : false))
+    .filter((tab) => !(tab as DetailTab & { hidden?: boolean }).hidden)
   const entityId = entityDef.name.toLowerCase().replace(/\s+/g, '-')
   const widgetZone = `${entityId}.detail.tabs`
 
-  // Resolve initial tab — validate it exists, fallback to "overview"
-  const validTabs = ['overview', ...customTabs.map((t) => t.id)]
-  const activeTab = initialTab && validTabs.includes(initialTab) ? initialTab : 'overview'
+  // Resolve initial tab — allow compatibility aliases, fallback to "overview".
+  const activeTab = resolveActiveTab(initialTab, customTabs)
+  const [selectedTab, setSelectedTab] = useState(activeTab)
+
+  useEffect(() => {
+    setSelectedTab(activeTab)
+  }, [activeTab])
 
   const handleTabChange = useCallback((value: string) => {
+    setSelectedTab(value)
     if (embedded) return
     const detailPath = `${basePath}/${item.id}`
     const newHash = value === 'overview' ? detailPath : `${detailPath}/${value}`
@@ -326,7 +360,7 @@ export function CrudDetailPage({
       {!embedded && <Separator />}
 
       {/* Tabs */}
-      <Tabs defaultValue={activeTab} onValueChange={handleTabChange}>
+      <Tabs value={selectedTab} onValueChange={handleTabChange}>
         <TabsList className={`max-w-full justify-start overflow-x-auto scrollbar-none${embedded ? ' h-8' : ''}`}>
           <TabsTrigger value="overview" className={`gap-1.5 ${embedded ? 'text-xs px-2 py-1' : ''}`}>
             <Eye className={embedded ? 'h-3 w-3' : 'h-3.5 w-3.5'} />

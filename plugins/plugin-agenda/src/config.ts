@@ -1,4 +1,4 @@
-import type { PluginScope, VerticalId } from '@fayz-ai/core'
+import type { PluginRegistryDef, PluginScope, VerticalId } from '@fayz-ai/core'
 import type { EntityLookup } from '@fayz-ai/saas'
 import type { AgendaDataProvider } from './data/types'
 import type { StatusConfig, BookingTypeConfig } from './types'
@@ -27,6 +27,28 @@ export interface ConfirmationChannelOption {
   id: string
   label: string
   icon: string
+}
+
+export interface CancellationReasonOption {
+  id: string
+  label: string
+  requiresNotes?: boolean
+}
+
+export interface CancellationDetailsProvider {
+  listReasons(): Promise<CancellationReasonOption[]>
+  saveCancellationDetails(input: {
+    bookingId: string
+    reasonId: string
+    notes?: string
+    cancelledAt?: string
+  }): Promise<void>
+}
+
+export interface ExternalBookingSource {
+  type: string
+  id?: string
+  [key: string]: unknown
 }
 
 export interface LocationOption {
@@ -59,6 +81,14 @@ export interface AgendaPluginOptions {
 
   /** Booking type tabs shown in the appointment modal */
   bookingTypes?: BookingTypeConfig[]
+
+  /**
+   * Simplifies the agenda to Google-Calendar-style events (no client /
+   * professional / service). When set to 'simple', the plugin exposes a single
+   * "Evento" booking type whose modal shows only title / date-time / notes.
+   * Ignored when an explicit `bookingTypes` override is provided.
+   */
+  eventMode?: 'simple'
 
   /** Booking status options */
   statuses?: StatusConfig[]
@@ -104,6 +134,15 @@ export interface AgendaPluginOptions {
 
   /** Confirmation channel options */
   confirmationChannels?: ConfirmationChannelOption[]
+
+  /** Optional app/plugin bridge for cancel-time reason capture. */
+  cancellationDetails?: CancellationDetailsProvider
+
+  /** Called after a booking is created from an external operational source. */
+  onBookingCreated?: (input: { bookingId: string; source?: ExternalBookingSource }) => void | Promise<void>
+
+  /** App-owned registries shown under /settings/agenda Properties. */
+  settingsRegistries?: PluginRegistryDef[]
 
   /** Financial bridge for agenda × financial cross-plugin integration */
   financialBridge?: AgendaFinancialBridge
@@ -172,6 +211,17 @@ const DEFAULT_BOOKING_TYPES: BookingTypeConfig[] = [
   },
 ]
 
+// Simple / Google-Calendar-style event — a single "Evento" type with just a
+// free-text title, date-time and notes. No client / professional / service.
+// Used by personal-finance-style agendas (see eventMode: 'simple').
+const SIMPLE_EVENT_BOOKING_TYPES: BookingTypeConfig[] = [
+  {
+    id: 'event', label: 'Event', icon: 'Calendar', color: '#6366f1',
+    fields: { title: true, client: false, professional: false, services: false, location: false, status: false },
+    requiresServices: false, requiresClient: false,
+  },
+]
+
 // ---------------------------------------------------------------------------
 // Resolved config — fully merged, no optionals
 // ---------------------------------------------------------------------------
@@ -185,6 +235,24 @@ export interface AgendaModules {
   financial: boolean
 }
 
+/**
+ * Derived UI capabilities — computed ONCE in resolveConfig from the resolved
+ * bookingTypes so no component ever re-derives "is this a simple event agenda?"
+ * ad-hoc. A capability is enabled when ANY booking type uses that field. In
+ * eventMode:'simple' the single "Evento" type disables
+ * client/professional/services/location/status, so every consumer (popover,
+ * filter rail, modal) hides the professional/service/status machinery in one
+ * place instead of scattering `eventMode === 'simple'` checks.
+ */
+export interface AgendaCapabilities {
+  title: boolean
+  client: boolean
+  professional: boolean
+  services: boolean
+  location: boolean
+  status: boolean
+}
+
 export interface AgendaCurrency {
   code: string
   locale: string
@@ -193,6 +261,10 @@ export interface AgendaCurrency {
 
 export interface ResolvedAgendaConfig {
   modules: AgendaModules
+  /** Whether this is a simple Google-Calendar-style event agenda (eventMode:'simple'). */
+  simpleMode: boolean
+  /** Derived once from bookingTypes — see AgendaCapabilities. */
+  capabilities: AgendaCapabilities
   labels: AgendaPluginLabels
   currency: AgendaCurrency
   bookingKind: string
@@ -207,6 +279,8 @@ export interface ResolvedAgendaConfig {
   autoCreateOrder: boolean
   locations: LocationOption[]
   confirmationChannels: ConfirmationChannelOption[]
+  cancellationDetails?: CancellationDetailsProvider
+  onBookingCreated?: (input: { bookingId: string; source?: ExternalBookingSource }) => void | Promise<void>
   contactLookup?: EntityLookup
   clientEntityDef?: EntityDef
   serviceLookup?: EntityLookup
@@ -228,22 +302,45 @@ export interface ResolvedAgendaConfig {
 // ---------------------------------------------------------------------------
 
 export function resolveConfig(options?: AgendaPluginOptions): ResolvedAgendaConfig {
+  // ── eventMode:'simple' derives ALL module + capability defaults ONCE, here. ──
+  // Simple = Google-Calendar-style events (title/description + timestamp). It
+  // flips professional/service machinery OFF by default: no working-hours /
+  // schedule checks, no confirmations outreach, no conflict (double-booking)
+  // detection, no location. Explicit `modules.*` re-enable individually. Full
+  // mode (beauty) is unchanged — every default below matches the old behavior
+  // when `simple` is false. Field-level machinery (client/professional/
+  // services/location/status/title) is derived into `capabilities` from the
+  // resolved bookingTypes, so components never test eventMode themselves.
+  const simple = options?.eventMode === 'simple'
+  const bookingTypes = options?.bookingTypes
+    ?? (simple ? SIMPLE_EVENT_BOOKING_TYPES : DEFAULT_BOOKING_TYPES)
+  const capabilities: AgendaCapabilities = {
+    title: bookingTypes.some((bt) => bt.fields.title === true),
+    client: bookingTypes.some((bt) => bt.fields.client),
+    professional: bookingTypes.some((bt) => bt.fields.professional),
+    services: bookingTypes.some((bt) => bt.fields.services),
+    location: bookingTypes.some((bt) => bt.fields.location),
+    status: bookingTypes.some((bt) => bt.fields.status),
+  }
   return {
     modules: {
-      workingHours: options?.modules?.workingHours !== false,
-      confirmations: options?.modules?.confirmations !== false,
-      conflictDetection: options?.modules?.conflictDetection !== false,
+      // Off-unless-explicit in simple mode (`?? !simple`); default-on in full.
+      workingHours: options?.modules?.workingHours ?? !simple,
+      confirmations: options?.modules?.confirmations ?? !simple,
+      conflictDetection: options?.modules?.conflictDetection ?? !simple,
       dragAndDrop: options?.modules?.dragAndDrop !== false,
       locationSelection: options?.modules?.locationSelection === true,
       financial: options?.modules?.financial ?? !!options?.financialBridge,
     },
+    simpleMode: simple,
+    capabilities,
     labels: { ...DEFAULT_LABELS, ...options?.labels },
     currency: { ...DEFAULT_CURRENCY, ...options?.currency },
     bookingKind: options?.bookingKind ?? 'appointment',
     orderKind: options?.orderKind ?? 'service_order',
     scheduleKind: options?.scheduleKind ?? 'working_hours',
     statuses: options?.statuses ?? DEFAULT_STATUSES,
-    bookingTypes: options?.bookingTypes ?? DEFAULT_BOOKING_TYPES,
+    bookingTypes,
     businessHours: options?.businessHours ?? { startTime: '07:00', endTime: '21:00' },
     slotDuration: options?.slotDuration ?? 30,
     professionalKind: options?.professionalKind ?? 'staff',
@@ -251,6 +348,8 @@ export function resolveConfig(options?: AgendaPluginOptions): ResolvedAgendaConf
     autoCreateOrder: options?.autoCreateOrder !== false,
     locations: options?.locations ?? [],
     confirmationChannels: options?.confirmationChannels ?? [],
+    cancellationDetails: options?.cancellationDetails,
+    onBookingCreated: options?.onBookingCreated,
     contactLookup: options?.contactLookup,
     clientEntityDef: options?.clientEntityDef,
     serviceLookup: options?.serviceLookup,

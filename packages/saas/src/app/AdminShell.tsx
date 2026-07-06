@@ -2,6 +2,8 @@ import * as React from 'react'
 import {
   AppShell,
   type NavigationItem,
+  type BottomNavItem,
+  type MobileHeaderVariant,
   ModuleLayoutProvider,
   PageTransition,
   type ModuleNavVariant,
@@ -14,13 +16,15 @@ import {
   Avatar,
   AvatarImage,
   AvatarFallback,
+  useLayoutStore,
 } from '@fayz-ai/ui'
+import { CommandPalette, type CommandItem } from '../shell/components/layout/CommandPalette'
 import { useOrganizationStore } from '../org/store'
 import { useAuth } from '@fayz-ai/auth'
+import { AuthGate } from '@fayz-ai/plugin-auth'
 import { usePluginRuntime, resolvePluginComponent, useTranslation } from '@fayz-ai/core'
 import type { PermissionAction, PluginNavigationEntry, PluginRouteDefinition, PluginSettingsTab } from '@fayz-ai/core'
 import { useAdminPath, navigateTo, matchRoute, routeScore } from './routing'
-import { LoginPage } from './LoginPage'
 import type { CustomPage } from './config'
 import type { AuthProvider } from '@fayz-ai/core'
 import { setEntityRouteMap } from '../lib/entity-routes'
@@ -55,12 +59,25 @@ export interface AdminShellProps {
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
   showSettings?: boolean
   showOrgSettings?: boolean
+  /** Show the workspace/org switcher at the sidebar top. Default: true.
+   *  Single-org apps (config.org.multiOrg === false) get false from the
+   *  scaffold so B2C users never see an organization concept. */
+  showOrgSwitcher?: boolean
+  /** Show the branding ("Identidade Visual") + company "Geral" settings tabs.
+   *  Default: true. B2C apps pass false to hide org-identity settings. */
+  showBranding?: boolean
   /** Wrap the main content in an inset "framed" card (default: true). The
    *  sidebar is always flush/full-height. */
   contentFrame?: boolean
   /** How module-internal navigation renders. Defaults to 'tabs' for the
    *  'sidebar' layout and 'rail' for 'topbar'. */
   moduleNav?: ModuleNavVariant
+  /** Mobile bottom tab bar, passed straight through to AppShell. */
+  bottomNav?: BottomNavItem[]
+  /** Fired when a bottom-nav `action` item (e.g. the center "+") is tapped. */
+  onBottomNavAction?: (id: string) => void
+  /** Mobile header treatment (<md), passed straight through to AppShell. */
+  mobileHeader?: MobileHeaderVariant
 }
 
 // ---------------------------------------------------------------------------
@@ -196,10 +213,25 @@ function sectionOrder(section: NavigationItem['section']): number {
   return section === 'main' ? 0 : section === 'secondary' ? 1 : 2
 }
 
-function compareNavigation(a: OrderedNavigationItem, b: OrderedNavigationItem): number {
+function compareNavigation(a: NavigationItem & { position?: number }, b: NavigationItem & { position?: number }): number {
   const sectionDelta = sectionOrder(a.section) - sectionOrder(b.section)
   if (sectionDelta !== 0) return sectionDelta
-  return a.position - b.position
+  return (a.position ?? 0) - (b.position ?? 0)
+}
+
+function findModuleParent(
+  item: OrderedNavigationItem,
+  items: OrderedNavigationItem[],
+): OrderedNavigationItem | null {
+  const candidates = items
+    .filter((candidate) =>
+      candidate.section === item.section &&
+      candidate.route !== item.route &&
+      item.route.startsWith(`${candidate.route}/`)
+    )
+    .sort((a, b) => b.route.length - a.route.length)
+
+  return candidates[0] ?? null
 }
 
 function pageToNavigationItem(page: CustomPage, fallbackPosition: number): OrderedNavigationItem | null {
@@ -214,7 +246,8 @@ function pageToNavigationItem(page: CustomPage, fallbackPosition: number): Order
     permission: page.permission,
     position: page.position ?? fallbackPosition,
     children: page.children
-      ?.map((child, index) => pageToNavigationItem(child, index))
+      ?.filter((child) => child.nav !== false)
+      .map((child, index) => pageToNavigationItem(child, index))
       .filter((item): item is OrderedNavigationItem => Boolean(item)),
   }
 }
@@ -275,7 +308,7 @@ function buildSettingsTabs(
   return settingsTabs
 }
 
-function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, contentFrame = true, moduleNav }: AdminShellProps) {
+function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSettings = true, showOrgSettings = false, showBranding = true, showOrgSwitcher = true, contentFrame = true, moduleNav, bottomNav, onBottomNavAction, mobileHeader }: AdminShellProps) {
   const runtime = usePluginRuntime()
   const t = useTranslation()
   const can = usePermissionOptional()
@@ -293,11 +326,48 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       position: entry.position,
     }))
     for (const [index, page] of pages.entries()) {
+      // `nav: false` routes the page but keeps it out of the sidebar/topbar nav
+      // (mobile-only pages reached via bottomNav/avatar). Routes are still built
+      // from `pages` in collectPageRoutes below, so the page remains navigable.
+      if (page.nav === false) continue
       const item = pageToNavigationItem(page, index + 1000)
-      if (item) items.push(item)
+      if (!item) continue
+
+      const parent = findModuleParent(item, items)
+      if (parent) {
+        const children = parent.children ?? [{
+          ...parent,
+          id: `${parent.id}:index`,
+          children: undefined,
+          position: -1,
+        }]
+        if (!children.some((child) => child.route === item.route)) {
+          parent.children = [...children, item].sort(compareNavigation)
+        }
+        continue
+      }
+
+      items.push(item)
     }
     return items.sort(compareNavigation)
   }, [runtime.navigation, pages])
+
+  // Command palette (⌘K + the topbar Search button). The palette owns the ⌘K
+  // key listener, so it must be MOUNTED for the shortcut to work — the topbar
+  // Search button drives the same shared layout store.
+  const commandPaletteOpen = useLayoutStore((s) => s.commandPaletteOpen)
+  const setCommandPaletteOpen = useLayoutStore((s) => s.setCommandPaletteOpen)
+  const commandItems = React.useMemo<CommandItem[]>(() => {
+    const navGroup = tr('layout.commandPalette.navigation', 'Navigation')
+    const items: CommandItem[] = []
+    for (const nav of navigation) {
+      items.push({ id: nav.id, label: nav.label, icon: nav.icon, group: navGroup, action: () => navigateTo(nav.route) })
+      for (const child of nav.children ?? []) {
+        items.push({ id: child.id, label: `${nav.label} · ${child.label}`, icon: child.icon, group: navGroup, action: () => navigateTo(child.route) })
+      }
+    }
+    return items
+  }, [navigation])
 
   // Route table: plugin routes + custom pages, most-specific-first.
   const routes = React.useMemo<RouteEntry[]>(() => {
@@ -362,7 +432,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
 
   const activeContent = ActiveComponent ? (
     match.route.path === '/settings' || match.route.path === '/settings/*'
-      ? <SettingsPage extraTabs={settingsTabs} />
+      ? <SettingsPage extraTabs={settingsTabs} showCompany={showBranding} showBranding={showBranding} />
       : <ActiveComponent {...activeParams} />
   ) : null
 
@@ -376,10 +446,14 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       user={shellUser}
       pageTitle={activePageTitle}
       currentPath={path}
+      bottomNav={bottomNav}
+      onBottomNavAction={onBottomNavAction}
+      mobileHeader={mobileHeader}
       onNavigate={(route) => navigateTo(route)}
       onSignOut={() => { void signOut() }}
+      onProfile={() => navigateTo('/perfil')}
       onSettings={() => navigateTo('/settings')}
-      sidebarTopContent={<WorkspaceSwitcher />}
+      sidebarTopContent={showOrgSwitcher ? <WorkspaceSwitcher /> : undefined}
       userMenuSlot={
         <AdminUserMenu
           user={shellUser}
@@ -395,7 +469,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
         >
           {match?.route.fullBleed
             ? <div className="h-full min-h-0 overflow-hidden">{activeContent}</div>
-            : <div className="space-y-6 p-6">{activeContent}</div>}
+            : <div className="space-y-4 p-3 md:space-y-6 md:p-6">{activeContent}</div>}
         </PageTransition>
       ) : (
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
@@ -413,37 +487,31 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
         </div>
       )}
     </AppShell>
+    <CommandPalette
+      commands={commandItems}
+      open={commandPaletteOpen}
+      onOpenChange={setCommandPaletteOpen}
+    />
     </ModuleLayoutProvider>
   )
 }
 
 /** The shell + an auth gate in front of it. */
 export function AdminShell(props: AdminShellProps) {
-  const { isAuthenticated, isLoading } = useAuth()
-  const requireAuth = props.requireAuth ?? true
-
-  if (requireAuth && !isAuthenticated) {
-    if (isLoading) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <span className="text-sm text-muted-foreground">Loading…</span>
-        </div>
-      )
-    }
-    return (
-      <LoginPage
-        appName={props.appName}
-        logo={props.logo}
-        loginLogo={props.loginLogo}
-        layout={props.loginLayout}
-        tagline={props.loginTagline}
-        description={props.loginDescription}
-        showOAuth={props.showOAuth}
-        oauthProviders={props.oauthProviders}
-      />
-    )
-  }
-
-  return <AdminShellInner {...props} />
+  return (
+    <AuthGate
+      requireAuth={props.requireAuth ?? true}
+      appName={props.appName}
+      logo={props.logo}
+      loginLogo={props.loginLogo}
+      layout={props.loginLayout}
+      tagline={props.loginTagline}
+      description={props.loginDescription}
+      showOAuth={props.showOAuth}
+      oauthProviders={props.oauthProviders}
+    >
+      <AdminShellInner {...props} />
+    </AuthGate>
+  )
 }
 AdminShell.displayName = 'AdminShell'

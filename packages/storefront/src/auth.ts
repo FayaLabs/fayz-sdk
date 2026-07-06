@@ -1,5 +1,9 @@
 import type { AuthAdapter, AuthUser } from '@fayz-ai/core'
-import { createMockAuthAdapter } from '@fayz-ai/auth'
+import {
+  createAuthRuntime,
+  createMockAuthAdapter,
+  type AuthPluginOptions,
+} from '@fayz-ai/plugin-auth'
 import { getShopProvider } from '@fayz-ai/shop/runtime'
 import { useSessionStore } from './stores/session.store'
 
@@ -11,20 +15,53 @@ import { useSessionStore } from './stores/session.store'
 // and purchase history attach to a customer.
 // ---------------------------------------------------------------------------
 
-export type StorefrontAuthAdapter = AuthAdapter | 'mock' | 'supabase'
+export type StorefrontAuthAdapter = AuthAdapter | 'mock' | 'supabase' | (string & {})
+
+export interface StorefrontAuthConfig {
+  adapter?: AuthPluginOptions['adapter']
+  provider?: AuthPluginOptions['provider']
+  routes?: AuthPluginOptions['routes']
+  supabase?: AuthPluginOptions['supabase']
+}
 
 let _adapter: AuthAdapter | null = null
 
+function isAuthAdapter(value: unknown): value is AuthAdapter {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      'getSession' in value &&
+      'signIn' in value &&
+      'signOut' in value,
+  )
+}
+
+function normalizeAuthConfig(
+  configured: StorefrontAuthAdapter | StorefrontAuthConfig | undefined,
+): StorefrontAuthConfig {
+  if (!configured) return {}
+  if (typeof configured === 'string' || isAuthAdapter(configured)) return { adapter: configured }
+  return configured
+}
+
 export function resolveAuthAdapter(
-  configured: StorefrontAuthAdapter | undefined,
+  configured: StorefrontAuthAdapter | StorefrontAuthConfig | undefined,
+  fallback?: { supabaseUrl?: string; supabaseAnonKey?: string },
 ): AuthAdapter {
-  if (configured && configured !== 'mock' && configured !== 'supabase') return configured
-  if (configured === 'supabase') {
-    console.warn(
-      '@fayz-ai/shop: auth.adapter="supabase" is legacy. Pass an explicit AuthAdapter or use the Fayz SDK broker path.',
-    )
-  }
-  return createMockAuthAdapter()
+  const config = normalizeAuthConfig(configured)
+  return createAuthRuntime({
+    provider: config.provider ?? config.adapter ?? (fallback?.supabaseUrl ? 'supabase' : 'mock'),
+    adapter: config.adapter,
+    routes: config.routes,
+    requireAuth: false,
+    supabase: {
+      url: config.supabase?.url ?? fallback?.supabaseUrl,
+      anonKey: config.supabase?.anonKey ?? fallback?.supabaseAnonKey,
+      client: config.supabase?.client,
+      callbackUrl: config.supabase?.callbackUrl,
+      resetPasswordUrl: config.supabase?.resetPasswordUrl,
+    },
+  }).adapter
 }
 
 /** Called once by createStorefrontApp. Restores any persisted session. */

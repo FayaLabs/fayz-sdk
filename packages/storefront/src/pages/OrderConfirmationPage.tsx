@@ -10,6 +10,7 @@ import { CustomerAccountShell } from '../components/CustomerAccountShell'
 import { OrderTrackingTimeline } from '../components/OrderTrackingTimeline'
 import { financialStatusBadge } from '../order-status'
 import { useStorefrontHead } from '../hooks/useStorefrontHead'
+import { SmoothImage } from '../components/SmoothImage'
 
 const CONFETTI_COLORS = ['hsl(var(--primary))', '#f59e0b', '#10b981', '#3b82f6', '#ec4899']
 
@@ -139,7 +140,7 @@ export function OrderConfirmationPage({ orderId }: { orderId: string }) {
         <ul className="mt-8 space-y-3 text-left">
           {order.items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 text-sm">
-              {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="h-12 w-12 rounded-lg border object-cover" />}
+              {item.imageUrl && <SmoothImage src={item.imageUrl} alt={item.name} className="h-12 w-12 rounded-lg border object-cover" />}
               <span className="flex-1">
                 {item.name} <span className="text-muted-foreground">× {item.quantity}</span>
               </span>

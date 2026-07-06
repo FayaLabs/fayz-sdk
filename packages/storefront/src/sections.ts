@@ -1,4 +1,5 @@
 import type { HeroVariant } from './theme'
+import type React from 'react'
 
 // ---------------------------------------------------------------------------
 // Home-page section blueprint — the storefront's PageConfig equivalent.
@@ -19,8 +20,27 @@ export interface HeroSlide {
   boxed?: boolean
 }
 
-export type HomeSection =
+export interface MediaCarouselItem {
+  title: string
+  subtitle?: string
+  eyebrow?: string
+  cta?: string
+  href?: string
+  image: string
+  imageAlt?: string
+  align?: 'start' | 'center' | 'end'
+}
+
+export type StorefrontSection =
   | { type: 'hero'; variant: HeroVariant; slides: HeroSlide[]; height?: 'tall' | 'medium' }
+  | {
+      type: 'mediaCarousel'
+      items: MediaCarouselItem[]
+      height?: 'medium' | 'tall' | 'screen'
+      autoplayMs?: number
+      overlay?: 'dark' | 'soft' | 'none'
+      className?: string
+    }
   | { type: 'categories'; style: 'bubbles' | 'tiles'; title?: string }
   | {
       type: 'products'
@@ -32,14 +52,30 @@ export type HomeSection =
       filter?: 'sale' | 'new' | 'all'
       limit?: number
     }
+  | {
+      type: 'productSlider'
+      title: string
+      subtitle?: string
+      eyebrow?: string
+      filter?: 'sale' | 'new' | 'all'
+      categoryName?: string
+      collection?: string
+      limit?: number
+      cta?: string
+      href?: string
+      className?: string
+    }
   | { type: 'benefits'; items: Array<{ icon: string; title: string; text?: string }> }
   | { type: 'banner'; title: string; subtitle?: string; eyebrow?: string; cta?: string; href?: string; image?: string; hue?: number }
   | { type: 'manifesto'; title?: string; text: string }
   | { type: 'testimonials'; title?: string; items: Array<{ quote: string; author: string }> }
   | { type: 'newsletter'; title?: string; subtitle?: string }
 
+/** @deprecated Use StorefrontSection. Kept for existing generated stores. */
+export type HomeSection = StorefrontSection
+
 export interface HomeConfig {
-  sections: HomeSection[]
+  sections: readonly StorefrontSection[]
 }
 
 export interface NavLink {
@@ -51,6 +87,17 @@ export interface FooterConfig {
   about?: string
   contact?: { phone?: string; email?: string; address?: string }
   social?: Array<{ label: string; href: string }>
+  credit?: React.ReactNode
+  labels?: {
+    categories?: string
+    navigation?: string
+    contact?: string
+    viewAll?: string
+    purchases?: string
+    privacy?: string
+    terms?: string
+    returns?: string
+  }
 }
 
 /** Wide gradient SVG data-URI — deterministic hero/banner art, no network. */

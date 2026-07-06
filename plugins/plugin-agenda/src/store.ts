@@ -4,6 +4,7 @@ import { toast } from '@fayz-ai/ui'
 import { getScheduleBlockConfig, setScheduleBlockConfig } from '@fayz-ai/saas'
 import type { AgendaDataProvider } from './data/types'
 import type { AgendaFinancialBridge } from './financial-bridge'
+import type { ExternalBookingSource } from './config'
 import type {
   CalendarBooking, Professional, Schedule,
   CreateBookingInput, UpdateBookingInput, BookingQuery,
@@ -48,6 +49,7 @@ export interface AgendaUIState {
     bookingId?: string
     prefill?: Partial<CreateBookingInput> & { endsAt?: string }
     initialTab?: string
+    externalSource?: ExternalBookingSource
   }
 
   // Actions
@@ -64,7 +66,7 @@ export interface AgendaUIState {
   setFilters(filters: Partial<{ professionalIds: string[]; locationId: string | null; statuses: string[] }>): void
   setView(view: string): void
   setSelectedDate(date: string): void
-  openAppointmentModal(mode: 'create' | 'edit', options?: { bookingId?: string; prefill?: Partial<CreateBookingInput> & { endsAt?: string }; initialTab?: string }): void
+  openAppointmentModal(mode: 'create' | 'edit', options?: { bookingId?: string; prefill?: Partial<CreateBookingInput> & { endsAt?: string }; initialTab?: string; externalSource?: ExternalBookingSource }): void
   closeAppointmentModal(): void
 }
 
@@ -292,7 +294,7 @@ export function createAgendaStore(provider: AgendaDataProvider, financialBridge?
     setSelectedDate(date) { set({ selectedDate: date }) },
 
     openAppointmentModal(mode, options) {
-      set({ appointmentModal: { open: true, mode, bookingId: options?.bookingId, prefill: options?.prefill, initialTab: options?.initialTab } })
+      set({ appointmentModal: { open: true, mode, bookingId: options?.bookingId, prefill: options?.prefill, initialTab: options?.initialTab, externalSource: options?.externalSource } })
     },
 
     closeAppointmentModal() {

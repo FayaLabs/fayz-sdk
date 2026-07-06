@@ -15,5 +15,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
-  external: ['react', 'react-dom', '@fayz-ai/core', '@fayz-ai/auth', '@fayz-ai/ui', '@fayz-ai/sdk', '@fayz-ai/db', '@fayz-ai/saas-core', 'lucide-react', '@tanstack/react-table', 'react-dom'],
+  external: ['react', 'react-dom', '@fayz-ai/core', '@fayz-ai/auth', '@fayz-ai/plugin-auth', '@fayz-ai/ui', '@fayz-ai/sdk', '@fayz-ai/db', '@fayz-ai/saas-core', 'lucide-react', '@tanstack/react-table', 'react-dom'],
 })

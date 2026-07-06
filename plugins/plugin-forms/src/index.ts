@@ -4,6 +4,7 @@ import type { CustomFormsDataProvider } from './data/types'
 import { createMockFormsProvider } from './data/mock'
 import { createSupabaseFormsProvider } from './data/supabase'
 import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
+import { PluginSettingsPanel } from '@fayz-ai/saas'
 import { createCustomFormsStore } from './store'
 import { customFormsLocales } from './locales'
 import { resolveConfig } from './config'
@@ -97,9 +98,25 @@ export function createCustomFormsPlugin(options?: CustomFormsPluginOptions): Plu
     },
   ]
 
+  const registries = [...formRegistries, ...(options?.settingsRegistries ?? [])]
+
   const SettingsComponent: React.FC = () =>
-    React.createElement(CustomFormsSettingsTab, { config, provider, store, registries: formRegistries })
-  SettingsComponent.displayName = 'CustomFormsSettingsTab'
+    React.createElement(PluginSettingsPanel, {
+      title: config.labels.settingsLabel,
+      subtitle: config.labels.settingsSubtitle,
+      customTabs: [
+        {
+          id: 'forms',
+          label: config.labels.pageTitle,
+          icon: 'FileText',
+          content: React.createElement(CustomFormsSettingsTab, { config, provider, store }),
+        },
+      ],
+      registries,
+      routeBase: '/settings/custom_forms',
+      hostPluginId: 'custom_forms',
+    })
+  SettingsComponent.displayName = 'CustomFormsSettingsPanel'
 
   const PersonDocumentsWidget: React.FC<any> = (props: any) =>
     React.createElement(PersonDocumentsWidgetImpl, { ...props, config, provider, store })
@@ -141,7 +158,7 @@ export function createCustomFormsPlugin(options?: CustomFormsPluginOptions): Plu
       },
     ],
 
-    registries: formRegistries,
+    registries,
 
     aiTools: [
       {

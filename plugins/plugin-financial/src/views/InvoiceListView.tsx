@@ -2,11 +2,11 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { FileText, CircleDashed, CircleEllipsis, CircleCheckBig, CircleAlert, Ban } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ListView } from '@fayz-ai/ui'
-import { useFinancialConfig, useFinancialStore, formatCurrency } from '../FinancialContext'
+import { useFinancialConfig, useFinancialProvider, useFinancialStore, formatCurrency } from '../FinancialContext'
 import { SubpageHeader } from '@fayz-ai/ui'
 import { PersonLink } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
-import type { TransactionDirection, InvoiceStatus, Invoice } from '../types'
+import type { TransactionDirection, InvoiceStatus, Invoice, ChartOfAccountsNode, CostCenter } from '../types'
 
 const STATUS_OPTIONS: { value: InvoiceStatus; labelKey: string; color: string; icon: React.ElementType }[] = [
   { value: 'open', labelKey: 'financial.invoice.statusOpen', color: 'bg-info-soft text-info-soft-foreground', icon: CircleDashed },
@@ -88,6 +88,7 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
 }) {
   const t = useTranslation()
   const { currency } = useFinancialConfig()
+  const provider = useFinancialProvider()
   const invoices = useFinancialStore((s) => s.invoices)
   const invoicesTotal = useFinancialStore((s) => s.invoicesTotal)
   const invoicesLoading = useFinancialStore((s) => s.invoicesLoading)
@@ -95,14 +96,36 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus[]>([])
+  const [accountId, setAccountId] = useState('')
+  const [costCenterId, setCostCenterId] = useState('')
+  const [accounts, setAccounts] = useState<ChartOfAccountsNode[]>([])
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([])
+
+  useEffect(() => {
+    let active = true
+    Promise.all([provider.getChartOfAccounts(), provider.getCostCenters()])
+      .then(([accountRows, costCenterRows]) => {
+        if (!active) return
+        setAccounts(accountRows.filter((account) => account.nodeType === 'leaf'))
+        setCostCenters(costCenterRows)
+      })
+      .catch(() => {
+        if (!active) return
+        setAccounts([])
+        setCostCenters([])
+      })
+    return () => { active = false }
+  }, [provider])
 
   useEffect(() => {
     fetchInvoices({
       direction,
       status: statusFilter.length > 0 ? statusFilter : undefined,
       search: search || undefined,
+      accountId: accountId || undefined,
+      costCenterId: costCenterId || undefined,
     })
-  }, [direction, statusFilter, search])
+  }, [direction, statusFilter, search, accountId, costCenterId])
 
   const filtered = invoices.filter((inv) => inv.direction === direction)
   const listTitle = direction === 'debit' ? t('financial.invoice.accountsPayable') : t('financial.invoice.accountsReceivable')
@@ -135,6 +158,40 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
         title={listTitle}
         subtitle={t('financial.invoice.invoices', { count: filtered.length })}
       />
+      {(accounts.length > 0 || costCenters.length > 0) && (
+        <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+          {accounts.length > 0 && (
+            <label className="flex min-w-[220px] flex-col gap-1 text-xs font-medium text-muted-foreground">
+              {t('financial.invoice.filterAccount')}
+              <select
+                className="h-9 rounded-md border bg-background px-3 text-sm text-foreground"
+                value={accountId}
+                onChange={(event) => setAccountId(event.target.value)}
+              >
+                <option value="">{t('financial.invoice.filterAllAccounts')}</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>{account.code} - {account.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {costCenters.length > 0 && (
+            <label className="flex min-w-[220px] flex-col gap-1 text-xs font-medium text-muted-foreground">
+              {t('financial.invoice.filterCostCenter')}
+              <select
+                className="h-9 rounded-md border bg-background px-3 text-sm text-foreground"
+                value={costCenterId}
+                onChange={(event) => setCostCenterId(event.target.value)}
+              >
+                <option value="">{t('financial.invoice.filterAllCostCenters')}</option>
+                {costCenters.map((costCenter) => (
+                  <option key={costCenter.id} value={costCenter.id}>{costCenter.code} - {costCenter.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
       <ListView<Invoice>
         columns={columns}
         data={filtered}

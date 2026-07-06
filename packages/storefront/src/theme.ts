@@ -56,6 +56,10 @@ export interface StorefrontTheme {
     variant?: HeaderVariant
     /** Uppercase nav links (premium retail tone) */
     uppercaseNav?: boolean
+    /** Show category shortcuts after primary nav links. Default true. */
+    showCategories?: boolean
+    /** Show the storefront search input in the header. Default true. */
+    showSearch?: boolean
   }
   productCard?: {
     style?: CardStyle

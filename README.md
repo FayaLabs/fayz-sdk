@@ -42,7 +42,9 @@ fayz create plugin loyalty   # scaffold an app-local (incubator) plugin
 
 ## Docs
 
-- [Architecture boundaries](docs/architecture-boundaries.md) — the ownership contract (start here)
+- [AGENTS.md](AGENTS.md) — **agents/new sessions start here**: deploy model, conventions, doc map
+- [Direction](docs/DIRECTION.md) — thesis, roadmap, validation waves · [Decisions](docs/DECISIONS.md) — locked decision log
+- [Architecture boundaries](docs/architecture-boundaries.md) — the ownership contract
 - [Customization ladder](docs/customization-ladder.md) — config → fully bespoke, no forking
 - [Architecture v2](docs/architecture-v2.md) — manifest-first design
 - [Plugin patterns](PLUGIN_PATTERNS.md) · [Plugin model](docs/plugin-model.md) — how to build a plugin

@@ -10,6 +10,7 @@ export { resolveDashboardLayout, type LaidOutWidget } from './layout'
 export { useDashboardPreferences, type DashboardPreferencesState } from './preferences'
 export { DashboardCustomizeMenu, type DashboardCustomizeMenuProps } from './DashboardCustomizeMenu'
 export { DashboardGrid, type DashboardGridItem, type DashboardGridProps } from './DashboardGrid'
+export { GoldCard, type GoldCardProps } from './GoldCard'
 export {
   DashboardRangeProvider,
   DashboardRangeControl,

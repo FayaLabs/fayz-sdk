@@ -16,8 +16,19 @@ import { Badge } from '@fayz-ai/ui'
 import { usePermissionsStore } from '../../stores/permissions.store'
 import { useOrganizationStore } from '../../stores/organization.store'
 import { useInviteStore } from '../../stores/invite.store'
-import { useOrgAdapterOptional } from '../../lib/org-context'
-import { useAuthStore } from '../../stores/auth.store'
+// Native org adapter (the one the app actually provides). The shell lib/org-context
+// is a separate, un-provided context that returns null here — which made the submit
+// button a no-op (handleSend bailed on `!adapter`).
+import { useOrgAdapterOptional as useNativeOrgAdapter } from '../../../org'
+import type { OrgAdapter } from '../../types/org-adapter'
+
+// The native adapter is the same runtime object; its Invite/Location types differ
+// from the shell's only in fields these components don't read, so a cast is safe.
+const useOrgAdapterOptional = () => useNativeOrgAdapter() as unknown as OrgAdapter | null
+// The signed-in user lives in @fayz-ai/auth's store (what OrgProvider reads). The
+// shell stores/auth.store is a separate, unpopulated store — reading `user` from
+// it left `user` null, so handleSend bailed on `!user` (silent no-op).
+import { useAuthStore } from '@fayz-ai/auth'
 import { useTranslation } from '../../hooks/useTranslation'
 
 interface InviteMemberDialogProps {
@@ -33,7 +44,7 @@ export function InviteMemberDialog({ open, onOpenChange, defaultEmail }: InviteM
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const profiles = usePermissionsStore((s) => s.profiles)
   const setInvites = useInviteStore((s) => s.setInvites)
-  const user = useAuthStore((s) => s.user)
+  const { user } = useAuthStore()
 
   const [emails, setEmails] = React.useState<string[]>([defaultEmail ?? ''])
   const [profileId, setProfileId] = React.useState(profiles[1]?.id ?? profiles[0]?.id ?? '')

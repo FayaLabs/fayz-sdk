@@ -200,6 +200,9 @@ importers:
       '@fayz-ai/db':
         specifier: workspace:^
         version: link:../db
+      '@fayz-ai/plugin-auth':
+        specifier: workspace:^
+        version: link:../../plugins/plugin-auth
       '@fayz-ai/sdk':
         specifier: workspace:^
         version: link:../sdk
@@ -310,6 +313,9 @@ importers:
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../core
+      '@fayz-ai/plugin-auth':
+        specifier: workspace:^
+        version: link:../../plugins/plugin-auth
       '@fayz-ai/sdk':
         specifier: workspace:^
         version: link:../sdk
@@ -508,6 +514,34 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@20.19.43)
+
+  plugins/plugin-auth:
+    dependencies:
+      '@fayz-ai/auth':
+        specifier: workspace:^
+        version: link:../../packages/auth
+      '@fayz-ai/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@fayz-ai/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.31
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.2.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.15)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
 
   plugins/plugin-automations:
     dependencies:
@@ -745,6 +779,9 @@ importers:
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@fayz-ai/saas':
+        specifier: workspace:^
+        version: link:../../packages/saas
       '@fayz-ai/ui':
         specifier: workspace:^
         version: link:../../packages/ui

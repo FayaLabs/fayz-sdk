@@ -199,6 +199,16 @@ export interface ChartOfAccountsNode {
   createdAt: string
 }
 
+export interface CostCenter {
+  id: string
+  code: string
+  name: string
+  isActive: boolean
+  tenantId: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface CardTransaction {
   id: string
   movementId: string
@@ -316,6 +326,8 @@ export interface InvoiceQuery {
   direction?: TransactionDirection
   status?: InvoiceStatus | InvoiceStatus[]
   contactId?: string
+  accountId?: string
+  costCenterId?: string
   dateRange?: DateRange
   search?: string
   page?: number
@@ -351,6 +363,39 @@ export interface CreateTransferInput {
   /** YYYY-MM-DD — becomes payment_date on both ledger legs */
   date: string
   notes?: string
+}
+
+/**
+ * "Log money in a few taps" (FAY-1225). A single-transaction quick-add that the
+ * store expands into the right provider calls: expense/income → createInvoice
+ * (+ payMovement when marked paid); transfer → createTransfer. Keeps the
+ * Mobills-style form dumb — it only collects fields, the store does the plumbing.
+ */
+export type QuickTransactionType = 'expense' | 'income' | 'transfer'
+
+export interface QuickTransactionInput {
+  type: QuickTransactionType
+  /** Positive amount in the account currency */
+  amount: number
+  /** YYYY-MM-DD */
+  date: string
+  /** When true, the movement is settled immediately (creates a paid cash event). */
+  paid: boolean
+  description?: string
+  /** Chart-of-accounts / cost-center id (category chip) */
+  categoryId?: string
+  /** expense/income: bank account or card. transfer: source account. */
+  bankAccountId?: string
+  /** transfer: destination account */
+  toAccountId?: string
+  /** Marks the transaction as recurring (stored in metadata; UI affordance). */
+  recurring?: boolean
+  /**
+   * FAY-1226 "snap a receipt": a captured/attached receipt image as a data URL
+   * (mock mode has no Supabase bucket). Persisted on the created invoice's
+   * metadata so the transaction feed can show a 📎 indicator + preview.
+   */
+  receiptUrl?: string
 }
 
 export interface TransferResult {

@@ -1832,6 +1832,8 @@ export const defaultTranslations: Record<string, string> = {
   'registry.card-brands': 'Card Brand',
 
   // registry — crm
+  'registry.stages': 'Stages',
+  'registry.stages.description': 'Pipeline stages used by CRM deals',
   'registry.lead-sources': 'Lead Source',
   'registry.tags': 'Tag',
   'registry.activity-types': 'Activity Type',
@@ -3720,6 +3722,8 @@ export const builtInLocales: Record<string, Record<string, string>> = {
     'registry.card-brands': 'Bandeira de Cartão',
 
     // registry — crm
+    'registry.stages': 'Estágios',
+    'registry.stages.description': 'Estágios do pipeline usados pelos negócios do CRM',
     'registry.lead-sources': 'Origem de Lead',
     'registry.tags': 'Tag',
     'registry.activity-types': 'Tipo de Atividade',

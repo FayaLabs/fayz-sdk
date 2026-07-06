@@ -126,24 +126,13 @@ This is what makes "clients create new pages effortlessly" true: a new page in e
 
 ## 4. The customization ladder ("nada engessado")
 
-The non-negotiable product requirement: defaults everywhere, dead-ends nowhere. Seven levels, each strictly additive — a client at level 6 still gets SDK upgrades for everything they didn't touch.
-
-| Level | What the client changes | Artifact | Needs code? | Needs deploy? |
-|---|---|---|---|---|
-| 1. **Config** | labels, currency, shipping, feature flags, plugin config | manifest | no | no |
-| 2. **Theme** | extend a template, override tokens (colors/fonts/radius/density) | manifest | no | no |
-| 3. **Recompose** | reorder/add/remove blocks on existing pages; create new block-tree pages in any surface | manifest | no | no |
-| 4. **Slots** | inject widgets into named zones (`WidgetZone.*` already exists: topbar, sidebar, page-before/after, floating) | manifest (widget refs) + optional custom block | sometimes | sometimes |
-| 5. **Override** | replace any SDK component by registry id (`crud.detail-header`, `storefront.product-card`, `agenda.event-card`) | `registry.tsx` | yes | yes |
-| 6. **Custom pages/components** | fully bespoke React pages registered as `custom:*`, routed by the manifest, with SDK context (data provider, tenant, permissions, i18n) available via hooks | `registry.tsx` + components | yes | yes |
-| 7. **Custom plugin** | app-local or private plugin with own entities, migrations, nav, blocks, aiTools — same `PluginManifest` contract as official plugins | plugin package | yes | yes |
-
-Design rules that keep the ladder honest:
-
-- **Every SDK component that renders a domain concept gets a registry id** (that's the override surface — it must be enumerated and documented, not accidental).
-- **Overrides receive the same typed props as the original** — upgrades can evolve internals freely as long as the props contract is semver-respected.
-- **Levels 1–4 are platform-editable** (fayz.ai UI / AI agent edits the manifest live). Levels 5–7 are repo code — but *scoped to `registry.tsx` + the custom components*, never forks of SDK pages.
-- **No eject path, by design.** If a client needs to eject, the ladder failed — file it as an SDK gap.
+The non-negotiable product requirement: defaults everywhere, dead-ends nowhere. Seven strictly
+additive levels — **the single source of truth is [`customization-ladder.md`](./customization-ladder.md)**
+(full table, artifacts, code/deploy requirements, and the design rules that keep the ladder honest).
+Summary: 1 Config → 2 Theme → 3 Recompose → 4 Slots → 5 Override by registry id → 6 Custom
+pages/components → 7 Custom plugin. Levels 1–4 are platform-editable (AI Builder edits the manifest
+live); 5–7 are app code scoped to `registry.tsx` + own components; **no eject path by design** — an
+eject need is an SDK gap to file.
 
 ---
 

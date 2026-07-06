@@ -29,6 +29,9 @@ export interface BookingTypeConfig {
   icon: string
   color: string
   fields: {
+    /** Free-text event title (maps to the booking's display name). Used by
+     *  simple / Google-Calendar-style events that have no client party. */
+    title?: boolean
     client: boolean
     professional: boolean
     services: boolean
@@ -205,6 +208,9 @@ export interface CreateBookingInput {
   locationId?: string
   startsAt: string
   notes?: string
+  /** Free-text event title for simple events (no client party). Maps to the
+   *  booking's display name (clientName in the read model). */
+  title?: string
   services: CreateBookingServiceInput[]
 }
 
@@ -224,6 +230,8 @@ export interface UpdateBookingInput {
   endsAt?: string
   status?: BookingStatus
   notes?: string
+  /** Free-text event title for simple events (no client party). */
+  title?: string
   services?: CreateBookingServiceInput[]
 }
 

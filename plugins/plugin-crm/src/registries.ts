@@ -22,10 +22,35 @@ const tagEntity: EntityDef = {
   defaultSort: 'name',
   fields: [
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
-    { key: 'color', label: 'Color', type: 'text', showInTable: true, defaultValue: '#6366f1' },
+    { key: 'color', label: 'Color', type: 'color', showInTable: true, defaultValue: '#6366f1' },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
   data: { table: 'crm_tags', tenantScoped: true },
+}
+
+const pipelineStageEntity: EntityDef = {
+  name: 'Stage',
+  namePlural: 'Stages',
+  icon: 'Workflow',
+  displayField: 'name',
+  defaultSort: 'order',
+  fields: [
+    { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true, searchable: true },
+    {
+      key: 'pipelineId',
+      label: 'Pipeline',
+      type: 'relation',
+      relation: { table: 'pipelines', labelField: 'name' },
+      required: true,
+      showInTable: true,
+    },
+    { key: 'order', label: 'Order', type: 'number', required: true, showInTable: true, defaultValue: 0 },
+    { key: 'color', label: 'Color', type: 'color', showInTable: true, defaultValue: '#6366f1' },
+    { key: 'probability', label: 'Probability %', type: 'number', min: 0, max: 100, showInTable: true, defaultValue: 0 },
+    { key: 'isWon', label: 'Won Stage', type: 'boolean', showInTable: true, defaultValue: false },
+    { key: 'isLost', label: 'Lost Stage', type: 'boolean', showInTable: true, defaultValue: false },
+  ],
+  data: { table: 'pipeline_stages', tenantScoped: true },
 }
 
 const activityTypeEntity: EntityDef = {
@@ -42,6 +67,21 @@ const activityTypeEntity: EntityDef = {
 }
 
 export const crmRegistries: PluginRegistryDef[] = [
+  {
+    id: 'stages',
+    entity: pipelineStageEntity,
+    icon: 'Workflow',
+    description: 'Pipeline stages used by CRM deals',
+    display: 'table',
+    seedData: [
+      { id: 'stage-new', pipelineId: 'pipe-default', name: 'New Lead', order: 1, color: '#64748b', probability: 10, isWon: false, isLost: false },
+      { id: 'stage-qualified', pipelineId: 'pipe-default', name: 'Qualified', order: 2, color: '#3b82f6', probability: 30, isWon: false, isLost: false },
+      { id: 'stage-proposal', pipelineId: 'pipe-default', name: 'Proposal', order: 3, color: '#8b5cf6', probability: 60, isWon: false, isLost: false },
+      { id: 'stage-negotiation', pipelineId: 'pipe-default', name: 'Negotiation', order: 4, color: '#f59e0b', probability: 80, isWon: false, isLost: false },
+      { id: 'stage-won', pipelineId: 'pipe-default', name: 'Won', order: 5, color: '#10b981', probability: 100, isWon: true, isLost: false },
+      { id: 'stage-lost', pipelineId: 'pipe-default', name: 'Lost', order: 6, color: '#ef4444', probability: 0, isWon: false, isLost: true },
+    ],
+  },
   {
     id: 'lead-sources',
     entity: leadSourceEntity,

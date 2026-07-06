@@ -6,6 +6,7 @@ import { bannerPlaceholder } from '../../sections'
 import { Reveal } from '../../motion'
 import { navigateTo } from '../../router'
 import { TID } from '../../testids'
+import { SmoothImage } from '../SmoothImage'
 
 export function CategoryShowcase({ style, title }: { style: 'bubbles' | 'tiles'; title?: string }) {
   const { categories } = useCategories()
@@ -33,7 +34,7 @@ export function CategoryShowcase({ style, title }: { style: 'bubbles' | 'tiles';
             <Reveal key={c.id} delay={i * 80}>
               <button type="button" onClick={() => go(c.id)} className="group flex w-28 flex-col items-center gap-3">
                 <span className="block h-24 w-24 overflow-hidden rounded-full border-2 border-transparent shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:border-primary group-hover:shadow-md">
-                  <img
+                  <SmoothImage
                     src={c.imageUrl ?? bannerPlaceholder(c.name, 30 + i * 70, 70 + i * 70, 200, 200)}
                     alt={c.name}
                     className="h-full w-full object-cover"
@@ -59,7 +60,7 @@ export function CategoryShowcase({ style, title }: { style: 'bubbles' | 'tiles';
         {categories.map((c, i) => (
           <Reveal key={c.id} delay={i * 90}>
             <button type="button" onClick={() => go(c.id)} className="group relative block aspect-[4/5] w-full overflow-hidden" style={{ borderRadius: 'var(--sf-radius-card)' }}>
-              <img
+              <SmoothImage
                 src={c.imageUrl ?? bannerPlaceholder(c.name, 30 + i * 70, 70 + i * 70, 480, 600)}
                 alt={c.name}
                 className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"

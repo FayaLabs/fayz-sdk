@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/ui",
-  "version": "0.6.0",
+  "version": "0.6.6",
   "description": "Fayz SDK UI — Radix + Tailwind component library with CRUD engine and layout shells",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -101,8 +101,5 @@
     "tsup": "^8.2.0",
     "typescript": "^5.5.0"
   },
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "license": "MIT"
 }

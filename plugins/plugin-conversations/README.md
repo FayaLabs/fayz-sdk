@@ -1,5 +1,7 @@
 # @fayz-ai/plugin-conversations
 
+> **Status: experimental (incubating).** Not capability-complete — missing some or all of the capability bar (data-provider contract w/ supabase+mock pair, entity registries, settings, migrations; see `PLUGIN_PATTERNS.md`). Fine to explore in dogfoods; NOT ready for fresh installs or generated apps, and its API may change without notice.
+
 > One omni-channel inbox — SMS, WhatsApp, Instagram, email, and web chat in one thread.
 
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-conversations.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-conversations)

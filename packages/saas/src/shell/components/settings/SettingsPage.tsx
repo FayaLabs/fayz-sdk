@@ -21,6 +21,13 @@ interface SettingsPageProps {
   className?: string
   beforeContent?: React.ReactNode
   afterContent?: React.ReactNode
+  /** Show the company "Geral" (organization general) tab. Default: true.
+   *  B2C apps pass false to hide org-identity settings. Ignored when `tabs` is
+   *  supplied explicitly. */
+  showCompany?: boolean
+  /** Show the branding ("Identidade Visual") tab. Default: true. Ignored when
+   *  `tabs` is supplied explicitly. */
+  showBranding?: boolean
 }
 
 export function SettingsPage({
@@ -30,15 +37,17 @@ export function SettingsPage({
   className,
   beforeContent,
   afterContent,
+  showCompany = true,
+  showBranding = true,
 }: SettingsPageProps) {
   const { t } = useTranslation()
 
   const defaultTabs: SettingsTab[] = React.useMemo(() => [
-    { id: 'general', label: t('settings.general'), icon: <Building2 className="h-4 w-4" />, component: <ConnectedCompanySettings /> },
+    ...(showCompany ? [{ id: 'general', label: t('settings.general'), icon: <Building2 className="h-4 w-4" />, component: <ConnectedCompanySettings /> }] : []),
     { id: 'profile', label: t('settings.profile'), icon: <User className="h-4 w-4" />, component: <ConnectedUserProfile /> },
     { id: 'security', label: t('settings.security'), icon: <Shield className="h-4 w-4" />, component: <ConnectedSecuritySettings /> },
-    { id: 'branding', label: t('settings.branding'), icon: <Palette className="h-4 w-4" />, component: <ConnectedBrandingSettings /> },
-  ], [t])
+    ...(showBranding ? [{ id: 'branding', label: t('settings.branding'), icon: <Palette className="h-4 w-4" />, component: <ConnectedBrandingSettings /> }] : []),
+  ], [t, showCompany, showBranding])
 
   const baseTabs = tabs ?? defaultTabs
   const resolvedTabs = extraTabs ? [...baseTabs, ...extraTabs] : baseTabs

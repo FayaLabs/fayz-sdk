@@ -11,23 +11,29 @@ import {
   CreditCard,
   Bell,
   Calendar,
+  CalendarClock,
   Package,
+  Activity,
   BarChart3,
   FileText,
   Mail,
   DollarSign,
   Megaphone,
   ShoppingCart,
+  ShoppingBag,
   Target,
   Wrench,
   ClipboardList,
+  ClipboardCheck,
   Briefcase,
   UserCog,
   BookOpen,
+  BookOpenCheck,
   MessageCircle,
   Globe,
   Percent,
   Tag,
+  Tags,
   Camera,
   UtensilsCrossed,
   MapPin,
@@ -35,7 +41,11 @@ import {
   Contact,
   Building2,
   Plus,
+  Shield,
   List,
+  ListChecks,
+  FileCheck2,
+  FolderOpen,
   Dog,
   Cat,
   PawPrint,
@@ -64,18 +74,32 @@ import {
   SlidersHorizontal,
   TableProperties,
   UserPlus,
+  UserCheck,
+  UserX,
   TreePalm,
+  Boxes,
+  Box,
   PartyPopper,
   Radio,
   CalendarDays,
+  CalendarCheck2,
+  CalendarX,
+  BadgeDollarSign,
   Banknote,
   Layers,
   Music,
   Eye,
   ListMusic,
+  ListPlus,
+  Map,
+  Ban,
+  Clock3,
   Disc3,
   UsersRound,
   Mic,
+  Inbox,
+  Star,
+  Zap,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '../utils/cn'
@@ -175,13 +199,14 @@ function TopbarUserMenu({
 }
 
 export const ICON_MAP: Record<string, LucideIcon> = {
-  Home, Users, Settings, CreditCard, Bell, Calendar, Package, BarChart3,
-  FileText, Mail, DollarSign, Megaphone, ShoppingCart, Target, Wrench,
-  ClipboardList, Briefcase, UserCog, BookOpen, MessageCircle, Globe,
-  Percent, Tag, Camera, UtensilsCrossed, Search, MapPin, Handshake,
-  Contact, Building2, ChevronDown, Filter, Plus, List, Dog, Cat, PawPrint, Heart, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
-  ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, Plug, SlidersHorizontal, TableProperties, Landmark, Receipt, TrendingUp, CircleDollarSign, Clock, AlertTriangle, Sparkles, Wallet, Warehouse, Ruler, ArrowUpRight, ArrowDownRight, UserPlus, TreePalm,
-  PartyPopper, Radio, CalendarDays, Banknote, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
+  Home, Users, Settings, CreditCard, Bell, Calendar, CalendarClock, Package, Activity, BarChart3,
+  FileText, Mail, DollarSign, Megaphone, ShoppingCart, ShoppingBag, Target, Wrench,
+  ClipboardList, ClipboardCheck, Briefcase, UserCog, BookOpen, MessageCircle, Globe,
+  BookOpenCheck, Percent, Tag, Tags, Camera, UtensilsCrossed, Search, MapPin, Handshake,
+  Contact, Building2, ChevronDown, Filter, Plus, Shield, List, ListChecks, FolderOpen, Dog, Cat, PawPrint, Heart, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
+  ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, Plug, SlidersHorizontal, TableProperties, Landmark, Receipt, TrendingUp, CircleDollarSign, Clock, AlertTriangle, Sparkles, Wallet, Warehouse, Ruler, ArrowUpRight, ArrowDownRight, UserPlus, UserX, TreePalm,
+  Boxes, Box, FileCheck2, PartyPopper, Radio, CalendarDays, BadgeDollarSign, Banknote, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
+  CalendarCheck2, CalendarX, ListPlus, Map, Ban, Clock3, Inbox, UserCheck, Star, Zap,
 }
 
 function getIcon(name: string): LucideIcon {
@@ -281,15 +306,19 @@ export function Topbar({
       {/* Row 1: Logo + Search + Actions */}
       <div className="border-b border-sidebar-border bg-sidebar text-sidebar-foreground">
         <div className="flex h-14 w-full items-center justify-between px-4 md:px-6">
-          {/* Left: Mobile menu + Logo */}
+          {/* Left: Mobile menu + Logo — the hamburger is only rendered when an
+              onMenuClick handler is supplied. Mobile-first apps with a bottom
+              nav omit it so the bottom bar is the primary navigation. */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={onMenuClick}
-              className="inline-flex items-center justify-center rounded-md p-2 text-sidebar-foreground/70 hover:bg-sidebar/30 hover:text-sidebar-foreground md:hidden"
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+            {onMenuClick && (
+              <button
+                onClick={onMenuClick}
+                className="inline-flex items-center justify-center rounded-md p-2 text-sidebar-foreground/70 hover:bg-sidebar/30 hover:text-sidebar-foreground md:hidden"
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
             <div className="hidden shrink-0 items-center md:flex">
               {logo ?? <span className="text-lg font-bold">App</span>}
             </div>
@@ -299,7 +328,7 @@ export function Topbar({
           <div className="mx-8 hidden max-w-sm flex-1 md:flex">
             <button
               onClick={() => setCommandPaletteOpen(true)}
-              className="relative flex h-8 w-full items-center rounded-md border border-sidebar-border bg-sidebar-accent px-3 pl-8 text-sm text-sidebar-muted shadow-sm transition-colors hover:bg-card"
+              className="relative flex h-8 w-full items-center rounded-md border border-sidebar-border bg-sidebar-accent px-3 pl-8 text-sm text-sidebar-muted shadow-sm transition-colors hover:border-sidebar-foreground/25 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground"
             >
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sidebar-muted" />
               <span className="text-xs">{searchPlaceholder}</span>
@@ -335,7 +364,7 @@ export function Topbar({
               const left = active.offsetLeft - el.offsetWidth / 2 + active.offsetWidth / 2
               el.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
             }
-          }} className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+          }} className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
             {allNav.map((item) => {
               if (item.children && item.children.length > 0) {
                 return (

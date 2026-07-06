@@ -57,22 +57,22 @@ let _localeStore: LocaleStore = {
   locale: 'en',
   setLocale: (l) => { _localeStore.locale = l },
 }
+const _localeListeners = new Set<() => void>()
 
 export function setLocaleStore(store: LocaleStore): void {
   _localeStore = store
 }
 
 function useLocaleStore(): LocaleStore {
-  const [, rerender] = React.useReducer((n: number) => n + 1, 0)
-  React.useEffect(() => {
-    const prev = _localeStore.setLocale
-    _localeStore.setLocale = (l) => {
-      prev(l)
-      rerender()
-    }
-    return () => { _localeStore.setLocale = prev }
-  }, [])
-  return _localeStore
+  const locale = React.useSyncExternalStore(
+    (listener) => {
+      _localeListeners.add(listener)
+      return () => _localeListeners.delete(listener)
+    },
+    getCurrentLocale,
+    getCurrentLocale,
+  )
+  return React.useMemo(() => ({ locale, setLocale: setCurrentLocale }), [locale])
 }
 
 export function getCurrentLocale(): string {
@@ -80,7 +80,9 @@ export function getCurrentLocale(): string {
 }
 
 export function setCurrentLocale(locale: string): void {
+  if (_localeStore.locale === locale) return
   _localeStore.setLocale(locale)
+  _localeListeners.forEach((listener) => listener())
 }
 
 // Core built-in translations

@@ -1,15 +1,44 @@
 // Factory
-export { createStorefrontApp, initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
+export { createStorefront, createStorefrontApp, initStorefrontRuntime, StorefrontShell } from './createStorefrontApp'
+export type { CreateStorefrontOptions } from './createStorefrontApp'
+export {
+  defineStorefrontConfig,
+  defineStorefrontComponents,
+  defineStorefrontRoutes,
+  defineStorefrontSections,
+  defineStorefrontApp,
+} from './define'
 export type {
   StorefrontConfig,
   ResolvedStorefrontConfig,
   StorefrontRouteComponentProps,
   StorefrontRouteChrome,
+  StorefrontCommerceMode,
+  StorefrontImageLoadingConfig,
+  StorefrontImageLoadingMode,
   StorefrontRouteDefinition,
   StorefrontRouteKind,
   StorefrontRouteParams,
+  StorefrontEnquiryConfig,
 } from './config'
-export { useStorefrontConfig } from './config'
+export type {
+  StorefrontActions,
+  StorefrontComponents,
+  ProductCardProps,
+  ProductDetailProps,
+  ProductGalleryProps,
+  ProductPriceProps,
+  ProductActionsProps,
+  ProductEnquiryFormContractProps,
+  CategoryCardProps,
+  CollectionSectionProps,
+  HeroSectionContractProps,
+  MediaCarouselProps as MediaCarouselContractProps,
+  ProductSliderProps as ProductSliderContractProps,
+  StorefrontChromeProps,
+  StorefrontStateProps,
+} from './component-contracts'
+export { useStorefrontConfig, useStorefrontConfigOptional } from './config'
 
 // Manifest path (renderApp(defineStorefront(config)) / storefront scaffold)
 export { defineStorefront, StorefrontScaffold } from './scaffold'
@@ -41,17 +70,31 @@ export {
   getCustomerAuthAdapter,
   resolveAuthAdapter,
 } from './auth'
-export type { StorefrontAuthAdapter, EstablishSessionOptions } from './auth'
+export type { StorefrontAuthAdapter, StorefrontAuthConfig, EstablishSessionOptions } from './auth'
 export { useCatalogStore } from './stores/catalog.store'
 export type { CatalogState, CatalogSort } from './stores/catalog.store'
 
 // Hooks
-export { useProducts, useProduct, useCategories, useMyOrders, useDiscountValidator } from './hooks'
+export {
+  useProducts,
+  useProduct,
+  useCategories,
+  useStorefront,
+  useCatalog,
+  useCart,
+  useEnquiry,
+  useStorefrontActions,
+  useMyOrders,
+  useDiscountValidator,
+} from './hooks'
 
 // Components (for custom layouts)
 export { StorefrontHeader } from './components/StorefrontHeader'
+export { SmoothImage } from './components/SmoothImage'
+export type { SmoothImageProps } from './components/SmoothImage'
 export { ProductCard } from './components/ProductCard'
-export type { ProductCardProps } from './components/ProductCard'
+export { ProductEnquiryForm } from './components/ProductEnquiryForm'
+export type { ProductEnquiryFormProps } from './components/ProductEnquiryForm'
 export { OrderTrackingTimeline } from './components/OrderTrackingTimeline'
 export { ProductGrid } from './components/ProductGrid'
 export { FiltersPanel } from './components/FiltersPanel'
@@ -93,7 +136,7 @@ export type {
   HeroVariant,
   CardStyle,
 } from './theme'
-export type { HomeSection, HomeConfig, HeroSlide, NavLink, FooterConfig } from './sections'
+export type { StorefrontSection, HomeSection, HomeConfig, HeroSlide, MediaCarouselItem, NavLink, FooterConfig } from './sections'
 export { bannerPlaceholder } from './sections'
 export {
   storefrontTemplates,
@@ -105,10 +148,14 @@ export {
 export type { StorefrontTemplate, StorefrontTemplateId } from './presets'
 
 // Home sections (for custom compositions)
-export { HomePage } from './pages/HomePage'
+export { HomePage, StorefrontSections } from './pages/HomePage'
 export { HeroSection } from './components/sections/HeroSection'
+export { MediaCarousel } from './components/sections/MediaCarousel'
+export type { MediaCarouselProps } from './components/sections/MediaCarousel'
 export { CategoryShowcase } from './components/sections/CategoryShowcase'
 export { ProductRail } from './components/sections/ProductRail'
+export { ProductSlider } from './components/sections/ProductSlider'
+export type { ProductSliderProps } from './components/sections/ProductSlider'
 export {
   BenefitsRow,
   PromoBanner,
@@ -126,10 +173,13 @@ export type { RevealProps } from './motion'
 export { formatMoney, roundCents } from './format'
 export { TID } from './testids'
 export {
-  productCardSlotContract,
-  storefrontSlotContracts,
-} from './slot-contracts'
-export type { ProductCardSlotContract } from './slot-contracts'
+  productCardComponentContract,
+  storefrontComponentContracts,
+} from './component-selectors'
+export type {
+  ProductCardComponentContract,
+  ProductDetailComponentContract,
+} from './component-selectors'
 
 // ---------------------------------------------------------------------------
 // Front-door re-exports: storefront apps depend on @fayz-ai/storefront alone.

@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/portal",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Fayz SDK member/learner portal scaffold — authenticated 'my courses' + player surface",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -48,7 +48,5 @@
     "courses",
     "lms"
   ],
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }

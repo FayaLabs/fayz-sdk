@@ -1,7 +1,5 @@
 import React, { useState, useCallback } from 'react'
 import { TemplateListView } from './TemplateListView'
-import { useTranslation } from '@fayz-ai/core'
-import type { PluginRegistryDef } from '@fayz-ai/core'
 import type { CustomFormsConfig } from '../config'
 import type { CustomFormsDataProvider } from '../data/types'
 import type { CustomFormsStore } from '../store'
@@ -11,11 +9,9 @@ interface CustomFormsSettingsTabProps {
   config: CustomFormsConfig
   provider: CustomFormsDataProvider
   store: CustomFormsStore
-  registries?: PluginRegistryDef[]
 }
 
-export function CustomFormsSettingsTab({ config, provider, store, registries }: CustomFormsSettingsTabProps) {
-  const t = useTranslation()
+export function CustomFormsSettingsTab({ config, provider, store }: CustomFormsSettingsTabProps) {
   const [builderTemplateId, setBuilderTemplateId] = useState<string | null>(null)
 
   const handleNew = useCallback(() => {
@@ -46,8 +42,7 @@ export function CustomFormsSettingsTab({ config, provider, store, registries }: 
     checkHash()
   }, [])
 
-  // Templates tab content — either list or builder
-  const templatesContent = builderTemplateId ? (
+  return builderTemplateId ? (
     <BuilderWrapper
       templateId={builderTemplateId === '__new__' ? undefined : builderTemplateId}
       store={store}
@@ -62,18 +57,6 @@ export function CustomFormsSettingsTab({ config, provider, store, registries }: 
       onEdit={handleEdit}
       onNew={handleNew}
     />
-  )
-
-  return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{t('customForms.settingsTitle')}</h1>
-        <p style={{ color: 'var(--muted-foreground, #6b7280)', margin: '4px 0 0', fontSize: '14px' }}>
-          {t('customForms.settingsSubtitle')}
-        </p>
-      </div>
-      {templatesContent}
-    </div>
   )
 }
 

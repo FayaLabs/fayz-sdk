@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-orders",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Fayz SDK — plugin-orders plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -48,7 +48,5 @@
     "fayz-plugin",
     "fayz-sdk"
   ],
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }

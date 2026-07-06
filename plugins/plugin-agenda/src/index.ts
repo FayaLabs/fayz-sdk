@@ -25,6 +25,7 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
     () => createMockAgendaProvider(),
   )
   const store = createAgendaStore(provider, options?.financialBridge)
+  const registries = [...agendaRegistries, ...(options?.settingsRegistries ?? [])]
 
   // Register schedule block config globally so ScheduleEditor can read it
   setScheduleBlockConfig({
@@ -152,19 +153,19 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
       },
     ],
 
-    registries: agendaRegistries,
+    registries,
 
     settings: [
       {
         id: 'agenda',
         label: 'Agenda',
         icon: 'Calendar',
-        // Standard layout: General | Integrations (Google Calendar addon) | Properties (holidays).
+        // Standard layout: General | Integrations (Google Calendar addon) | Properties.
         component: (() => {
           const AgendaSettingsTab: React.FC = () => React.createElement(PluginSettingsPanel, {
             title: 'Agenda',
             generalSettings: React.createElement(AgendaGeneralSettings),
-            registries: agendaRegistries,
+            registries,
             hostPluginId: 'agenda',
             routeBase: '/settings/agenda',
           })
@@ -183,6 +184,10 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
 export type { AgendaPluginOptions } from './config'
 export type { ResolvedAgendaConfig } from './config'
 export type { AgendaDataProvider } from './data/types'
+// Seedable in-memory provider — apps pass a seed to render the calendar with
+// app-specific events instead of the built-in salon sample.
+export { createMockAgendaProvider } from './data/mock'
+export type { MockAgendaSeed, MockAgendaProviderOptions } from './data/mock'
 export type { AgendaFinancialBridge, BookingPaymentStatus, BookingPaymentSummary, BookingPaymentDetail } from './financial-bridge'
 export { createFinancialBridge, computeCommissionAmount } from './bridges/create-financial-bridge'
 

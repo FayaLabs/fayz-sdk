@@ -25,6 +25,51 @@ describe('plugin-financial · invoice/movement slice (mock provider)', () => {
     const movs = await provider.getMovements({ direction: 'credit' })
     expect(movs.data.some((m) => m.invoiceId === invoice.id && m.amount === 300)).toBe(true)
   })
+
+  it('filters invoices by item account and cost center assignments', async () => {
+    const provider = createMockFinancialProvider()
+    const target = await provider.createInvoice({
+      direction: 'debit',
+      invoiceDate: '2026-06-01',
+      contactName: 'Supplier A',
+      items: [{
+        itemKind: 'other',
+        description: 'Supplies',
+        quantity: 1,
+        unitPrice: 120,
+        accountId: 'coa-expenses',
+        costCenterId: 'cc-salon',
+      }],
+      installments: [
+        { direction: 'debit', movementKind: 'bill', amount: 120, dueDate: '2026-06-10', installmentNumber: 1 },
+      ],
+    })
+    await provider.createInvoice({
+      direction: 'debit',
+      invoiceDate: '2026-06-01',
+      contactName: 'Supplier B',
+      items: [{
+        itemKind: 'other',
+        description: 'Marketing',
+        quantity: 1,
+        unitPrice: 80,
+        accountId: 'coa-marketing',
+        costCenterId: 'cc-marketing',
+      }],
+      installments: [
+        { direction: 'debit', movementKind: 'bill', amount: 80, dueDate: '2026-06-10', installmentNumber: 1 },
+      ],
+    })
+
+    const byAccount = await provider.getInvoices({ direction: 'debit', accountId: 'coa-expenses' })
+    expect(byAccount.data.map((invoice) => invoice.id)).toEqual([target.id])
+
+    const byCostCenter = await provider.getInvoices({ direction: 'debit', costCenterId: 'cc-salon' })
+    expect(byCostCenter.data.map((invoice) => invoice.id)).toEqual([target.id])
+
+    const byBoth = await provider.getInvoices({ direction: 'debit', accountId: 'coa-expenses', costCenterId: 'cc-marketing' })
+    expect(byBoth.data).toHaveLength(0)
+  })
 })
 
 describe('plugin-financial · ⚖️ reconciliation capability (mock provider)', () => {

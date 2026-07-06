@@ -1,41 +1,74 @@
+import * as React from 'react'
 import { UserProfile } from './UserProfile'
-import { useAuthStore } from '../../stores/auth.store'
-import { getSupabaseClient } from '../../lib/supabase'
+// The signed-in user lives in @fayz-ai/auth's store (the one AuthProvider fills) —
+// the shell stores/auth.store is a separate, unpopulated store.
+import { useAuthStore } from '@fayz-ai/auth'
+import { getSupabaseClient, getSupabaseClientSafe, CORE_SCHEMA } from '../../lib/supabase'
 import { toast } from '../notifications/ToastProvider'
 
+interface ProfileRow {
+  full_name: string | null
+  avatar_url: string | null
+  email: string | null
+}
+
+// The "/me" surface: the current user's canonical profile = the auth user (id,
+// e-mail) merged with their saas_core.profiles row (name, avatar). Reads/writes go
+// to saas_core.profiles (RLS: id = auth.uid(), so a user only ever sees/edits their
+// own), and keep the auth-user metadata in sync so both stay coherent.
 export function ConnectedUserProfile() {
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
+  const [profile, setProfile] = React.useState<ProfileRow | null>(null)
+
+  // Fill: load the canonical profile row on mount (falls back to auth metadata).
+  React.useEffect(() => {
+    const supabase = getSupabaseClientSafe()
+    if (!user || !supabase) return // mock/no-backend: just use the auth-store user
+    let cancelled = false
+    void supabase
+      .schema(CORE_SCHEMA)
+      .from('profiles')
+      .select('full_name, avatar_url, email')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setProfile(data as ProfileRow)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
+
   const handleSave = async (data: { fullName: string }) => {
+    if (!user) return
     try {
       const supabase = getSupabaseClient()
+      // Upsert the canonical row (INSERT if the profile doesn't exist yet).
+      const { error: profileError } = await supabase
+        .schema(CORE_SCHEMA)
+        .from('profiles')
+        .upsert({ id: user.id, full_name: data.fullName, email: user.email }, { onConflict: 'id' })
+      if (profileError) throw profileError
 
-      if (data.fullName !== user?.fullName) {
-        const { error: metaError } = await supabase.auth.updateUser({
-          data: { full_name: data.fullName },
-        })
-        if (metaError) throw metaError
+      // Keep the auth-user metadata in sync (used across the app's session).
+      const { error: metaError } = await supabase.auth.updateUser({ data: { full_name: data.fullName } })
+      if (metaError) throw metaError
 
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ full_name: data.fullName })
-          .eq('id', user!.id)
-        if (profileError) throw profileError
-
-        setUser(user ? { ...user, fullName: data.fullName } : null)
-      }
-
-      toast.success('Profile updated')
+      setUser({ ...user, fullName: data.fullName })
+      setProfile({ full_name: data.fullName, avatar_url: profile?.avatar_url ?? null, email: user.email })
+      toast.success('Perfil atualizado')
     } catch (err: any) {
-      toast.error('Failed to update', { description: err?.message })
+      toast.error('Falha ao atualizar', { description: err?.message })
     }
   }
 
   const handleAvatarChange = async (file: File) => {
+    if (!user) return
     try {
       const supabase = getSupabaseClient()
       const ext = file.name.split('.').pop()
-      const path = `avatars/${user!.id}.${ext}`
+      const path = `avatars/${user.id}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -45,15 +78,25 @@ export function ConnectedUserProfile() {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
       const avatarUrl = urlData.publicUrl
 
-      await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } })
-      await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user!.id)
+      const { error: profileError } = await supabase
+        .schema(CORE_SCHEMA)
+        .from('profiles')
+        .upsert({ id: user.id, avatar_url: avatarUrl, email: user.email }, { onConflict: 'id' })
+      if (profileError) throw profileError
 
-      setUser(user ? { ...user, avatarUrl } : null)
-      toast.success('Avatar updated')
+      await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } })
+      setUser({ ...user, avatarUrl })
+      setProfile({ full_name: profile?.full_name ?? null, avatar_url: avatarUrl, email: user.email })
+      toast.success('Avatar atualizado')
     } catch (err: any) {
-      toast.error('Failed to upload avatar', { description: err?.message })
+      toast.error('Falha ao enviar avatar', { description: err?.message })
     }
   }
 
-  return <UserProfile user={user as any} onSave={handleSave} onAvatarChange={handleAvatarChange} />
+  // Merge: prefer the canonical profile row, fall back to auth metadata.
+  const merged = user
+    ? { ...user, fullName: profile?.full_name ?? user.fullName, avatarUrl: profile?.avatar_url ?? user.avatarUrl }
+    : null
+
+  return <UserProfile user={merged as any} onSave={handleSave} onAvatarChange={handleAvatarChange} />
 }

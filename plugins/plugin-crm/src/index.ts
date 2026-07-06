@@ -1,6 +1,6 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
-import type { EntityLookupMap } from '@fayz-ai/saas'
+import { PluginSettingsPanel, type EntityLookupMap } from '@fayz-ai/saas'
 import { CrmPage } from './CrmPage'
 import { createCrmDashboardWidgets } from './views/dashboardWidgets'
 import { CrmContextProvider, type ResolvedCrmConfig } from './CrmContext'
@@ -12,7 +12,6 @@ import { createCrmStore } from './store'
 import { crmRegistries } from './registries'
 import { crmLocales } from './locales'
 import { CrmGeneralSettings } from './components/CrmGeneralSettings'
-import { PipelineSettings } from './components/PipelineSettings'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -218,12 +217,14 @@ export function createCrmPlugin(options?: CrmPluginOptions): PluginManifest {
         component: (() => {
           const Tab: React.FC = () =>
             React.createElement(CrmContextProvider, { config, provider, store },
-              React.createElement(
-                'div',
-                { style: { display: 'flex', flexDirection: 'column', gap: '20px' } },
-                React.createElement(CrmGeneralSettings),
-                React.createElement(PipelineSettings),
-              ),
+              React.createElement(PluginSettingsPanel, {
+                title: 'Sales & CRM',
+                subtitle: 'Pipeline, lead management, and CRM properties',
+                generalSettings: React.createElement(CrmGeneralSettings),
+                registries: crmRegistries,
+                hostPluginId: 'crm',
+                routeBase: '/settings/crm',
+              }),
             )
           Tab.displayName = 'CrmSettingsTab'
           return Tab

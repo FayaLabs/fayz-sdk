@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/storefront",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Fayz SDK storefront kit — Shopify-style customer-facing ecommerce template components",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -45,6 +45,7 @@
   "dependencies": {
     "@fayz-ai/auth": "workspace:^",
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/plugin-auth": "workspace:^",
     "@fayz-ai/sdk": "workspace:^",
     "@fayz-ai/shop": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
@@ -69,7 +70,5 @@
     "template"
   ],
   "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }

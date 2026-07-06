@@ -2,7 +2,7 @@ import type { FinancialDataProvider } from './types'
 import type {
   Invoice, InvoiceItem, FinancialMovement, BankAccount,
   CashSession, PaymentMethod, PaymentMethodType, ChartOfAccountsNode,
-  CardTransaction,
+  CostCenter, CardTransaction,
   CreateInvoiceInput, PayMovementInput, CreateTransferInput, TransferResult,
   OpenCashSessionInput, CloseCashSessionInput, CreateBankAccountInput,
   InvoiceQuery, MovementQuery, StatementQuery,
@@ -68,13 +68,15 @@ interface MockStore {
   paymentMethods: PaymentMethod[]
   paymentMethodTypes: PaymentMethodType[]
   chartOfAccounts: ChartOfAccountsNode[]
+  costCenters: CostCenter[]
   cardTransactions: CardTransaction[]
 }
 
-function createStore(seedPaymentMethodTypes?: Array<{ name: string; transactionType?: string }>): MockStore {
+function createStore(options?: MockFinancialProviderOptions): MockStore {
   const tenantId = 'mock-tenant'
+  const seed = options?.seed
 
-  const defaultPMTypes: PaymentMethodType[] = (seedPaymentMethodTypes ?? [
+  const defaultPMTypes: PaymentMethodType[] = (options?.paymentMethodTypes ?? [
     { name: 'Cash', transactionType: 'cash' },
     { name: 'Credit Card', transactionType: 'credit_card' },
     { name: 'Debit Card', transactionType: 'debit_card' },
@@ -115,14 +117,18 @@ function createStore(seedPaymentMethodTypes?: Array<{ name: string; transactionT
   }
 
   return {
-    invoices: [],
-    invoiceItems: [],
-    movements: [],
-    bankAccounts: [cashAccount, bankAccount],
+    // Seeded data (when provided) makes the module render as if the user already
+    // has accounts + transactions — a populated Summary/Statements instead of the
+    // empty onboarding state. Seed arrays are copied so the caller's data is not mutated.
+    invoices: seed?.invoices ? [...seed.invoices] : [],
+    invoiceItems: seed?.invoiceItems ? [...seed.invoiceItems] : [],
+    movements: seed?.movements ? [...seed.movements] : [],
+    bankAccounts: seed?.bankAccounts ? [...seed.bankAccounts] : [cashAccount, bankAccount],
     cashSessions: [],
-    paymentMethods: [],
+    paymentMethods: seed?.paymentMethods ? [...seed.paymentMethods] : [],
     paymentMethodTypes: defaultPMTypes,
     chartOfAccounts: [],
+    costCenters: [],
     cardTransactions: [],
   }
 }
@@ -131,12 +137,27 @@ function createStore(seedPaymentMethodTypes?: Array<{ name: string; transactionT
 // Mock provider factory
 // ---------------------------------------------------------------------------
 
+/**
+ * Pre-populated store data. Any omitted collection stays empty (except
+ * bankAccounts, which fall back to the two default mock accounts when absent).
+ * Pass full domain objects — the mock treats them as the existing ledger.
+ */
+export interface MockFinancialSeed {
+  bankAccounts?: BankAccount[]
+  invoices?: Invoice[]
+  invoiceItems?: InvoiceItem[]
+  movements?: FinancialMovement[]
+  paymentMethods?: PaymentMethod[]
+}
+
 export interface MockFinancialProviderOptions {
   paymentMethodTypes?: Array<{ name: string; transactionType?: string }>
+  /** Pre-seed the in-memory store so the module renders populated (not the empty state). */
+  seed?: MockFinancialSeed
 }
 
 export function createMockFinancialProvider(options?: MockFinancialProviderOptions): FinancialDataProvider {
-  const store = createStore(options?.paymentMethodTypes)
+  const store = createStore(options)
   const tenantId = 'mock-tenant'
 
   function recalcInvoiceStatus(invoice: Invoice): void {
@@ -160,6 +181,14 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
       if (query.direction) results = results.filter((i) => i.direction === query.direction)
       if (query.status) results = results.filter((i) => matchesStatus(i.status, query.status as InvoiceStatus | InvoiceStatus[]))
       if (query.contactId) results = results.filter((i) => i.contactId === query.contactId)
+      if (query.accountId) {
+        const invoiceIds = new Set(store.invoiceItems.filter((item) => item.accountId === query.accountId).map((item) => item.invoiceId))
+        results = results.filter((invoice) => invoiceIds.has(invoice.id))
+      }
+      if (query.costCenterId) {
+        const invoiceIds = new Set(store.invoiceItems.filter((item) => item.costCenterId === query.costCenterId).map((item) => item.invoiceId))
+        results = results.filter((invoice) => invoiceIds.has(invoice.id))
+      }
       if (query.dateRange) results = results.filter((i) => matchesDateRange(i.invoiceDate, query.dateRange))
       if (query.search) {
         const s = query.search.toLowerCase()
@@ -517,6 +546,10 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
       return store.chartOfAccounts.filter((n) => n.isActive)
     },
 
+    async getCostCenters(): Promise<CostCenter[]> {
+      return store.costCenters.filter((c) => c.isActive)
+    },
+
     // --- Card Transactions ---
     async getCardTransactions(dateRange?: DateRange): Promise<CardTransaction[]> {
       let results = [...store.cardTransactions]
@@ -636,7 +669,14 @@ export function createMockFinancialProvider(options?: MockFinancialProviderOptio
       )
 
       const todayStr = today()
-      const monthStart = todayStr.slice(0, 7) + '-01'
+      // "Monthly" cash flow uses a trailing 30-day window (rolling month), not
+      // calendar month-to-date. Month-to-date collapses to near-empty in the
+      // first days of a month — on the 1st it's a single day — so the cash-flow
+      // chart and Fluxo Mensal KPI read empty even with a full month of realized
+      // activity. A rolling window stays representative on every day of the month.
+      const monthAgo = new Date()
+      monthAgo.setDate(monthAgo.getDate() - 30)
+      const monthStart = monthAgo.toISOString().slice(0, 10)
       const monthEnd = todayStr
 
       const monthMovements = store.movements.filter((m) =>

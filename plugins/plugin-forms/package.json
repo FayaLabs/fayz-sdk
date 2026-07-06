@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-forms",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Fayz SDK — plugin-forms plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -29,14 +29,15 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
     "lucide-react": "^0.400.0",
-    "zustand": "^4.5.0",
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/modifiers": "^9.0.0",
-    "@dnd-kit/utilities": "^3.2.2"
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
@@ -50,8 +51,5 @@
     "fayz",
     "fayz-plugin",
     "fayz-sdk"
-  ],
-  "publishConfig": {
-    "access": "public"
-  }
+  ]
 }
