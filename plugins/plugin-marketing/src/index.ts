@@ -1,6 +1,6 @@
 import React from 'react'
 import type { PluginManifest, PluginRegistryDef, PluginScope, VerticalId } from '@fayz-ai/core'
-import { getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
+import { createSafeDataProvider, getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
 import { PluginSettingsPanel } from '@fayz-ai/saas'
 import { MarketingPage } from './MarketingPage'
 import { SettingsView } from './views/SettingsView'
@@ -17,7 +17,12 @@ import type {
   SitesPerformanceBridge,
 } from './data/types'
 import { createMockMarketingProvider } from './data/mock'
+import type { ContentPlannerProvider } from './data/contentTypes'
+import { createMockContentPlannerProvider } from './data/contentMock'
+import { createSupabaseContentPlannerProvider } from './data/contentSupabase'
 import { createMarketingStore } from './store'
+import { createContentPlannerStore } from './views/content/contentStore'
+import { MIGRATION_001_CONTENT_PLANNER, MIGRATION_002_MULTI_PLATFORM, MIGRATION_003_RECORDING_OPS } from './migrations'
 import { DEFAULT_CURRENCY, type MarketingCurrency } from './format'
 import { MARKETING_PRESETS, type MarketingDomain, type MarketingDomainModules } from './presets'
 import type { AcquisitionChannel, ConversionModel } from './types'
@@ -50,6 +55,8 @@ export interface MarketingPluginOptions {
   scope?: PluginScope
   verticalId?: VerticalId
   dataProvider?: MarketingDataProvider
+  /** Content planner options (module toggled via `modules.contentPlanner`). */
+  contentPlanner?: { dataProvider?: ContentPlannerProvider }
   /** App/vertical-owned settings registries rendered inside Marketing settings. */
   settingsRegistries?: PluginRegistryDef[]
   /** Optional DI to read real conversions (mounted later). */
@@ -66,6 +73,7 @@ const DEFAULT_LABELS: MarketingLabels = {
   campaigns: 'Campaigns',
   funnel: 'Funnel',
   landingPages: 'Landing pages',
+  content: 'Content',
   settings: 'Settings',
 }
 
@@ -95,9 +103,17 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
   const store = createMarketingStore(provider)
   const dashboardWidgets = createMarketingDashboardWidgets({ config, provider, store })
 
+  // Content planner has its own provider seam: real Supabase CRUD (with mock
+  // fallback) while the analytics provider stays mock-until-bridges.
+  const contentProvider = options?.contentPlanner?.dataProvider ?? createSafeDataProvider(
+    () => createSupabaseContentPlannerProvider(),
+    () => createMockContentPlannerProvider(),
+  )
+  const contentStore = createContentPlannerStore(contentProvider)
+
   const PageComponent: React.ComponentType<unknown> = () =>
     React.createElement(MarketingContextProvider, { config, provider, store },
-      React.createElement(MarketingPage, { config, provider, store }))
+      React.createElement(MarketingPage, { config, provider, store, contentProvider, contentStore }))
   PageComponent.displayName = 'MarketingPage'
 
   // Settings lives in the SDK-core central Settings area (not a module tab).
@@ -130,6 +146,7 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
     declaredFeatures: [
       { id: 'marketing', label: config.labels.pageTitle, group: 'Engage' },
       ...(config.modules.landingPages ? [{ id: 'marketing.landing-pages', label: config.labels.landingPages, group: 'Engage' }] : []),
+      ...(config.modules.contentPlanner ? [{ id: 'marketing.content', label: config.labels.content, group: 'Engage' }] : []),
     ],
     navigation: [
       {
@@ -155,6 +172,29 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
       { name: 'marketing.campaign.created', description: 'A campaign was created' },
       { name: 'marketing.campaign.updated', description: 'A campaign was updated' },
       { name: 'marketing.channel.synced', description: 'A channel pulled fresh attribution data' },
+      { name: 'marketing.content.plan.updated', description: 'A content plan (brief/config) was updated' },
+      { name: 'marketing.content.post.created', description: 'A content post was created' },
+      { name: 'marketing.content.post.updated', description: 'A content post was updated' },
+    ],
+    migrations: [
+      {
+        id: 'marketing-001-content-planner',
+        version: '1.0.0',
+        sql: MIGRATION_001_CONTENT_PLANNER,
+        description: 'Create mkt_social_accounts, mkt_content_plans and mkt_content_posts tables',
+      },
+      {
+        id: 'marketing-002-multi-platform',
+        version: '1.1.0',
+        sql: MIGRATION_002_MULTI_PLATFORM,
+        description: 'Accounts publish to many platforms (platforms[]); posts gain optional platform targets',
+      },
+      {
+        id: 'marketing-003-recording-ops',
+        version: '1.2.0',
+        sql: MIGRATION_003_RECORDING_OPS,
+        description: 'Recording-day checklist + media asset URL on posts; mkt-media storage bucket',
+      },
     ],
     aiTools: [
       {
@@ -240,3 +280,16 @@ export type {
 } from './types'
 export { MARKETING_PRESETS, type MarketingDomain } from './presets'
 export { createMockMarketingProvider } from './data/mock'
+export type {
+  ContentPlannerProvider,
+  ContentPlan,
+  ContentPost,
+  SocialAccount,
+  PostFormat,
+  PostStatus,
+  SaveContentPlanInput,
+  SaveContentPostInput,
+  SaveSocialAccountInput,
+} from './data/contentTypes'
+export { createMockContentPlannerProvider } from './data/contentMock'
+export { createSupabaseContentPlannerProvider } from './data/contentSupabase'

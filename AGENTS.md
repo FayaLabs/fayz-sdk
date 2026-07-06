@@ -71,6 +71,10 @@ in generated apps.
    `.env` values are never printed — names only.
 6. **Verify before deleting/overwriting**; report failures with output; commits end with the
    `Co-Authored-By: Claude` trailer; commit messages explain the why.
+7. **Never stack a modal on a modal** (founder rule, 2026-07-06). A dialog/ConfirmDialog must not
+   open on top of an already-open Modal/Sheet. Destructive confirms inside a modal are a two-step
+   INLINE confirm (footer swaps to a destructive band with cancel/confirm — see the account modal
+   in plugin-marketing ContentView). Dialogs over plain pages are fine.
 
 ## Doc map
 

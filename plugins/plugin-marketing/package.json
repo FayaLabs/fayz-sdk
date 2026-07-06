@@ -12,6 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./schema": {
+      "source": "./src/schema/index.ts",
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema.js",
+      "require": "./dist/schema.cjs"
     }
   },
   "files": [
@@ -30,6 +36,7 @@
   },
   "dependencies": {
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/db": "workspace:^",
     "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
     "@tanstack/react-table": "^8.20.0",

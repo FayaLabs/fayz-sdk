@@ -862,6 +862,9 @@ importers:
       '@fayz-ai/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@fayz-ai/db':
+        specifier: workspace:^
+        version: link:../../packages/db
       '@fayz-ai/saas':
         specifier: workspace:^
         version: link:../../packages/saas
