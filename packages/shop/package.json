@@ -92,6 +92,5 @@
     "shop",
     "supabase"
   ],
-  "license": "MIT",
-  "private": true
+  "license": "MIT"
 }
