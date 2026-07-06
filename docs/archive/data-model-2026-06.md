@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [DATA-MODEL.md](../DATA-MODEL.md). Historical reference only; do not follow operationally.
+
 # DATA-MODEL — the archetype decision (resolves the doubt)
 
 > Iteration 1 deliverable. This is the convention all four apps follow so we can lock it later

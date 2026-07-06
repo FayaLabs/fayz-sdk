@@ -6,7 +6,7 @@ import { scanBoundaries } from '../lib/boundaries.js'
 // `fayz doctor` — validate the app in the current directory: manifest structure,
 // platform-bundled plugin references, locale completeness, and architecture
 // boundaries (provider-access + supported-surface). Boundary issues are WARNINGS
-// by design (soft enforcement — docs/architecture-boundaries.md §6); only manifest
+// by design (soft enforcement — docs/ARCHITECTURE.md (boundary model)); only manifest
 // structural problems exit non-zero.
 export function doctor(dir = process.cwd()): number {
   // Boundary checks run even without a manifest (code-config apps still have a src/).

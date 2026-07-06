@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [CUSTOMIZATION.md](../CUSTOMIZATION.md). Historical reference only; do not follow operationally.
+
 # The Customization Ladder ("nada engessado")
 
 > How a generated Fayz app goes from pure-config to fully bespoke **without ever forking SDK code**. Each level is strictly additive: a client at level 6 still receives SDK upgrades for everything they didn't touch. Companion: `architecture-v2.md` (§4 defines the ladder; this doc is the concrete how-to). All mechanisms below are implemented in `@fayz-ai/core` and verified.

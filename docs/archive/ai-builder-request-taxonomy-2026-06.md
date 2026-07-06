@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [AI-BUILDER.md](../AI-BUILDER.md). Historical reference only; do not follow operationally.
+
 # AI Builder request taxonomy
 
 > The contract the AI Builder's request classifier targets. The **classifier itself lives in the `fayz` platform repo**; this repo owns the canonical taxonomy so platform and SDK never drift. Source of truth: [`@fayz-ai/sdk/ai-builder`](../packages/sdk/src/ai-builder.ts). Layer definitions: `architecture-boundaries.md`.

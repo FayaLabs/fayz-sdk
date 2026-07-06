@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [PLUGINS.md](../PLUGINS.md). Historical reference only; do not follow operationally.
+
 # Contributing to fayz-sdk
 
 fayz-sdk is an open monorepo. The plugin system is designed for the npm ecosystem — anyone can publish a plugin and it will work in any Fayz-generated app.

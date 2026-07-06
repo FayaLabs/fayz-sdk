@@ -1,6 +1,6 @@
 {
   "surfaceVersion": 1,
-  "description": "Packages a generated Fayz app may depend on. fayz doctor warns on any app dependency outside this list. See docs/architecture-boundaries.md §3.",
+  "description": "Packages a generated Fayz app may depend on. fayz doctor warns on any app dependency outside this list. See docs/ARCHITECTURE.md (boundary model).",
   "tiers": {
     "stable": "semver-tracked, supported public API"
   },

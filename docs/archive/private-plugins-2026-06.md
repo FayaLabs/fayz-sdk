@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [CUSTOMIZATION.md](../CUSTOMIZATION.md). Historical reference only; do not follow operationally.
+
 # Private plugins — the partner / Silvio extension path
 
 > How a partner or customer adds **real business behaviour** to a Fayz app without editing SDK or shared-plugin internals — and how that work graduates into an official plugin. This is layer C in `architecture-boundaries.md`.

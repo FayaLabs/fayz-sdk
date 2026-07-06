@@ -102,7 +102,7 @@ governed capability instead of a showcase card. A plugin is **capability-complet
 `plugin-tasks` is the reference implementation (smallest plugin that satisfies all six).
 Copy its shape. The gate ratchets: as each plugin reaches the bar it is added to
 `ENFORCED` in `scripts/check-plugin-capability.mjs` (never removed). Background:
-`docs/plugin-model.md`.
+`docs/PLUGINS.md`.
 
 ## Extension seams (the contract surface)
 
@@ -128,7 +128,7 @@ everything an official plugin (layer D) can. The full seam set (`packages/core/s
 
 `serverActions`, `customFields`, and `diagnostics` are declarative reservations — the
 contract shape is locked; implementation wiring is lazy. See
-`docs/architecture-boundaries.md` §5 for the ownership rules around each seam.
+`docs/ARCHITECTURE.md` §5 for the ownership rules around each seam.
 
 ## Integrity + capability tests (the deploy gate)
 

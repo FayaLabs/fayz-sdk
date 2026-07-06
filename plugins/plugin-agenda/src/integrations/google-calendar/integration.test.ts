@@ -4,7 +4,7 @@
 // booking↔event mapping are all proven HERE — before/without the deployed edge
 // function. The data-plane behaviors that need a live Google account are written
 // as it.todo specs so the intended contract is documented and pending, not
-// silently missing. See PLUGIN_PATTERNS.md → integration capability.
+// silently missing. See docs/PLUGIN-PATTERNS.md → integration capability.
 import { describe, it, expect } from 'vitest'
 import { assertConnectorContract } from '@fayz-ai/core/testing'
 import { googleCalendarConnector } from './connector'

@@ -7,4 +7,4 @@
 "@fayz-ai/plugin-sites": patch
 ---
 
-Portfolio honesty pass: these plugins are marked **[experimental] (incubating)** in package.json + README — not capability-complete (no data-provider pair / registries / migrations per PLUGIN_PATTERNS.md). APIs may change without notice; not ready for fresh installs or generated apps.
+Portfolio honesty pass: these plugins are marked **[experimental] (incubating)** in package.json + README — not capability-complete (no data-provider pair / registries / migrations per docs/PLUGIN-PATTERNS.md). APIs may change without notice; not ready for fresh installs or generated apps.

@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [PLUGINS.md](../PLUGINS.md). Historical reference only; do not follow operationally.
+
 # PLUGIN-MODEL — Curated capability without becoming *engessado*
 
 > The answer to the central question. **2026-06-16.**

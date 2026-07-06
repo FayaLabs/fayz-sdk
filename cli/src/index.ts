@@ -13,7 +13,7 @@ Usage:
   fayz --help                             Show this help
   fayz --version                          Show version
 
-Docs: fayz-sdk/docs/architecture-boundaries.md
+Docs: fayz-sdk/docs/ARCHITECTURE.md
 `
 
 const VERSION = '0.1.0'

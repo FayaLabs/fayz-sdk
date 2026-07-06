@@ -5,7 +5,7 @@
 // A plugin is only a real, governed capability (not a showcase card) when it
 // owns the data/backend half of the contract, not just UI surfaces. This gate
 // classifies every plugin and reports exactly what each is missing to become
-// capability-complete. See PLUGIN_PATTERNS.md and docs/plugin-model.md.
+// capability-complete. See docs/PLUGIN-PATTERNS.md and docs/PLUGINS.md.
 //
 // Capability facets (detected statically from src/, mirroring check-plugin-patterns):
 //   provider     a data path — createSafeDataProvider / data/supabase.ts / *Provider()
@@ -235,7 +235,7 @@ if (STRICT) {
 if (failures.length) {
   console.error('\nPlugin capability check FAILED (--strict):')
   for (const f of failures) console.error(`  - ${f}`)
-  console.error('\nSee PLUGIN_PATTERNS.md → capability anatomy, and docs/plugin-model.md.')
+  console.error('\nSee docs/PLUGIN-PATTERNS.md → capability anatomy, and docs/PLUGINS.md.')
   process.exit(1)
 }
 

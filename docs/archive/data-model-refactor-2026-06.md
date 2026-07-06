@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [DATA-MODEL.md](../DATA-MODEL.md). Historical reference only; do not follow operationally.
+
 # Data-Model Refactor — order-to-cash spine (Salesforce-grade, modular)
 
 > **Status: IN-PROGRESS working doc** (execution plan under active work, not current state —

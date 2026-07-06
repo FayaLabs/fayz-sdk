@@ -1,5 +1,7 @@
 # Plugin-Owned Migrations — Making Plugin Enablement Backend-Ready
 
+> Canonical summary: [../DATA-MODEL.md](../DATA-MODEL.md) §5 owns the migration canon; this RFC holds the rationale.
+
 **Status:** Design / RFC · **Date:** 2026-06-17 · **Author:** dogfood sprint
 **Problem owner:** Fayz editor will need to run these migrations when it provisions SDK projects.
 

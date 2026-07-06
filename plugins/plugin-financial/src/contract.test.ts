@@ -2,7 +2,7 @@
 // Exercises the gate's rules with inline manifests (no UI import) so the tool
 // itself is proven: a conformant manifest passes; each malformed shape throws.
 // Real plugins call assertPluginManifestContract(theirManifest) in an env where
-// their UI bundle loads (app-level / jsdom). See PLUGIN_PATTERNS.md → integrity.
+// their UI bundle loads (app-level / jsdom). See docs/PLUGIN-PATTERNS.md → integrity.
 import { describe, it, expect } from 'vitest'
 import { assertPluginManifestContract, PluginContractError } from '@fayz-ai/core/testing'
 import type { PluginManifest } from '@fayz-ai/core'
