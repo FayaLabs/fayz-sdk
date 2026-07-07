@@ -1,5 +1,14 @@
 # @fayz-ai/plugin-marketing
 
+## 0.2.1
+
+### Patch Changes
+
+- Republish with freshly built type declarations — the 0.2.0 tarball shipped a
+  stale dist (turbo cache replay during `pnpm release`) missing the content
+  planner types (MarketingLabels.content, MarketingDomainModules.contentPlanner,
+  ChecklistItem).
+
 ## 0.2.0
 
 ### Minor Changes
