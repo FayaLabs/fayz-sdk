@@ -41,11 +41,24 @@ function FeesKpi() {
   return <KpiCard label={t('courses.kpi.fees') || 'Platform fees'} icon="Percent" loading={!s} value={s ? formatMoney(s.platformFeeTotal, s.currency) : undefined} />
 }
 
-export function createCoursesDashboardWidgets(): DashboardWidgetDef[] {
+/** Commerce KPIs are contributed only for the modules the host opted into —
+ *  a host embedding courses as a lightweight members feature must not get
+ *  revenue/MRR cards broadcast onto its home dashboard (FAY-1247 rule). */
+export function createCoursesDashboardWidgets(
+  modules: { sales?: boolean; subscriptions?: boolean; financial?: boolean } = {},
+): DashboardWidgetDef[] {
   return [
-    defineKpiWidget({ id: 'courses.kpi.revenue', title: 'courses.kpi.revenue', domain: 'courses', defaultOrder: 0, component: RevenueKpi }),
-    defineKpiWidget({ id: 'courses.kpi.sales', title: 'courses.kpi.sales', domain: 'courses', defaultOrder: 1, component: SalesKpi }),
-    defineKpiWidget({ id: 'courses.kpi.mrr', title: 'courses.kpi.mrr', domain: 'courses', defaultOrder: 2, component: MrrKpi }),
-    defineKpiWidget({ id: 'courses.kpi.fees', title: 'courses.kpi.fees', domain: 'courses', defaultOrder: 3, component: FeesKpi }),
+    ...(modules.sales
+      ? [
+          defineKpiWidget({ id: 'courses.kpi.revenue', title: 'courses.kpi.revenue', domain: 'courses', defaultOrder: 0, component: RevenueKpi }),
+          defineKpiWidget({ id: 'courses.kpi.sales', title: 'courses.kpi.sales', domain: 'courses', defaultOrder: 1, component: SalesKpi }),
+        ]
+      : []),
+    ...(modules.subscriptions
+      ? [defineKpiWidget({ id: 'courses.kpi.mrr', title: 'courses.kpi.mrr', domain: 'courses', defaultOrder: 2, component: MrrKpi })]
+      : []),
+    ...(modules.financial
+      ? [defineKpiWidget({ id: 'courses.kpi.fees', title: 'courses.kpi.fees', domain: 'courses', defaultOrder: 3, component: FeesKpi })]
+      : []),
   ]
 }

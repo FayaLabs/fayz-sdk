@@ -35,6 +35,20 @@ export interface CoursesPluginOptions {
   navLabel?: string
   scope?: PluginScope
   verticalId?: VerticalId
+  /**
+   * Commerce-vertical modules — ALL OFF by default (the one architectural
+   * rule: shared-surface contributions are opt-in, never broadcast — FAY-1247).
+   * course-admin (the vertical owner) enables everything via its PluginRef
+   * config; a host embedding courses as a lightweight members feature (e.g.
+   * agency-os's "Memberships") gets only the base nav entry + editor.
+   */
+  modules?: {
+    membersArea?: boolean
+    sales?: boolean
+    subscriptions?: boolean
+    financial?: boolean
+    reports?: boolean
+  }
 }
 
 const asComp = (c: unknown) => c as React.ComponentType<unknown>
@@ -56,6 +70,30 @@ export function createCoursesPlugin(options?: CoursesPluginOptions): PluginManif
 
   const base = options?.navPosition ?? 1
   const section = options?.navSection ?? 'main'
+  const modules = options?.modules ?? {}
+
+  // Opt-in nav/routes per module. Position offsets stay stable relative to the
+  // enabled set so hosts control exactly where the block sits.
+  const navigation = [
+    { section, position: base, label: options?.navLabel ?? 'Courses', route: '/courses', icon: 'BookOpen', permission: read('courses') },
+    ...(modules.membersArea ? [{ section, position: base + 1, label: 'Members area', route: '/courses/members', icon: 'GraduationCap', permission: read('courses') }] : []),
+    ...(modules.sales ? [{ section, position: base + 2, label: 'Sales', route: '/courses/sales', icon: 'TrendingUp', permission: read('courses.sales') }] : []),
+    ...(modules.subscriptions ? [{ section, position: base + 3, label: 'Subscriptions', route: '/courses/subscriptions', icon: 'Repeat', permission: read('courses.sales') }] : []),
+    ...(modules.financial ? [{ section, position: base + 4, label: 'Financial', route: '/courses/financial', icon: 'CreditCard', permission: read('courses.finance') }] : []),
+    ...(modules.reports ? [{ section, position: base + 5, label: 'Reports', route: '/courses/reports', icon: 'BarChart3', permission: read('courses.sales') }] : []),
+  ]
+
+  const routes = [
+    // Static segments outscore the `:id` param in the saas router, so these
+    // resolve before the editor route (AdminShell sorts by routeScore).
+    { path: '/courses', component: asComp(CoursesListPage), permission: read('courses') },
+    ...(modules.membersArea ? [{ path: '/courses/members', component: asComp(MembersAreaPage), permission: read('courses') }] : []),
+    ...(modules.sales ? [{ path: '/courses/sales', component: asComp(SalesPage), permission: read('courses.sales') }] : []),
+    ...(modules.subscriptions ? [{ path: '/courses/subscriptions', component: asComp(SubscriptionsPage), permission: read('courses.sales') }] : []),
+    ...(modules.financial ? [{ path: '/courses/financial', component: asComp(FinancialPage), permission: read('courses.finance') }] : []),
+    ...(modules.reports ? [{ path: '/courses/reports', component: asComp(ReportsPage), permission: read('courses.sales') }] : []),
+    { path: '/courses/:id', component: asComp(CourseEditorPage) },
+  ]
 
   return {
     id: 'courses',
@@ -71,27 +109,12 @@ export function createCoursesPlugin(options?: CoursesPluginOptions): PluginManif
       { id: 'courses.sales', label: 'Sales', group: 'Courses' },
       { id: 'courses.finance', label: 'Financial', group: 'Courses' },
     ],
-    navigation: [
-      { section, position: base, label: options?.navLabel ?? 'Courses', route: '/courses', icon: 'BookOpen', permission: read('courses') },
-      { section, position: base + 1, label: 'Members area', route: '/courses/members', icon: 'GraduationCap', permission: read('courses') },
-      { section, position: base + 2, label: 'Sales', route: '/courses/sales', icon: 'TrendingUp', permission: read('courses.sales') },
-      { section, position: base + 3, label: 'Subscriptions', route: '/courses/subscriptions', icon: 'Repeat', permission: read('courses.sales') },
-      { section, position: base + 4, label: 'Financial', route: '/courses/financial', icon: 'CreditCard', permission: read('courses.finance') },
-      { section, position: base + 5, label: 'Reports', route: '/courses/reports', icon: 'BarChart3', permission: read('courses.sales') },
-    ],
-    routes: [
-      // Static segments outscore the `:id` param in the saas router, so these
-      // resolve before the editor route (AdminShell sorts by routeScore).
-      { path: '/courses', component: asComp(CoursesListPage), permission: read('courses') },
-      { path: '/courses/members', component: asComp(MembersAreaPage), permission: read('courses') },
-      { path: '/courses/sales', component: asComp(SalesPage), permission: read('courses.sales') },
-      { path: '/courses/subscriptions', component: asComp(SubscriptionsPage), permission: read('courses.sales') },
-      { path: '/courses/financial', component: asComp(FinancialPage), permission: read('courses.finance') },
-      { path: '/courses/reports', component: asComp(ReportsPage), permission: read('courses.sales') },
-      { path: '/courses/:id', component: asComp(CourseEditorPage) },
-    ],
+    navigation,
+    routes,
     widgets: [],
-    dashboardWidgets: createCoursesDashboardWidgets(),
+    // Commerce KPIs on the shared 'home' surface follow the same opt-in rule:
+    // no module enabled → no widgets broadcast into a host's dashboard.
+    dashboardWidgets: createCoursesDashboardWidgets(modules),
     connectors: [createStripeConnector()],
     settings: [
       { id: 'courses', label: 'Courses', icon: 'BookOpen', component: asComp(CoursesSettingsTab), order: 20, permission: read('courses') },
