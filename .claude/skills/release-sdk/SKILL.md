@@ -101,3 +101,21 @@ branch, deps bumped, skipped, push result).
 - **App push non-fast-forward** (remote moved) → `git pull --rebase origin <branch>` then re-push.
   `sync-apps.mjs` does this automatically.
 - **Isolation**: publish in a git worktree; never stash/checkout the shared working dir.
+- **Abandoned version line poisons already-published deps** ⚠️ — if the suite ever aimed at a
+  version you then abandoned (e.g. headed to 0.7.0, redirected to 0.6.6), any package **already**
+  published during that window pins the dead range in its *internal* deps. `plugin-auth@0.1.1`
+  shipped `@fayz-ai/auth@^0.7.0` (via `workspace:^` resolved while auth was 0.7.0); auth@0.7.0
+  never existed, so every app resolving `saas -> plugin-auth ^0.1.1 -> auth@^0.7.0` died with
+  ETARGET — and `changeset publish` had **skipped** re-publishing it (version unchanged).
+  Fix: bump that package a patch and republish from a worktree on `origin/main` so `workspace:^`
+  re-resolves to the live version; a caret range (`^0.1.1`) auto-picks the patch, so dependents
+  need no republish. After ANY version-line change, audit published internal deps:
+  ```bash
+  for p in <all @fayz-ai pkgs>; do
+    npm view @fayz-ai/$p@latest dependencies --json 2>/dev/null \
+      | node -e "let d={};try{d=JSON.parse(require('fs').readFileSync(0))}catch{}; \
+        for(const[k,v]of Object.entries(d))if(k.startsWith('@fayz-ai/')&&/0\.7/.test(v))console.log('$p ->',k,v)"
+  done
+  ```
+  And smoke-test resolution before calling it done:
+  `npm i @fayz-ai/saas@<ver> --legacy-peer-deps --dry-run` in a scratch dir → must exit 0.

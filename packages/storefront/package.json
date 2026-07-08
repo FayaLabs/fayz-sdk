@@ -69,8 +69,5 @@
     "ecommerce",
     "template"
   ],
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "license": "MIT"
 }

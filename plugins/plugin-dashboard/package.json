@@ -45,8 +45,5 @@
     "fayz",
     "fayz-plugin",
     "fayz-sdk"
-  ],
-  "publishConfig": {
-    "access": "public"
-  }
+  ]
 }

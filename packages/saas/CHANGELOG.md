@@ -47,6 +47,7 @@
 
 - Updated dependencies [c88dd5c]
 - Updated dependencies [d04bf96]
+- Updated dependencies [c88dd5c]
   - @fayz-ai/core@0.7.0
   - @fayz-ai/ui@0.7.0
   - @fayz-ai/auth@0.7.0

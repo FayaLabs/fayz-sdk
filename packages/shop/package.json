@@ -92,8 +92,5 @@
     "shop",
     "supabase"
   ],
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "license": "MIT"
 }
