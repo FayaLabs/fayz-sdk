@@ -1,6 +1,6 @@
 # OPERATIONS — running a fleet of live businesses
 
-Status: design (target architecture; most mechanisms `[planned]`) · Updated: 2026-07-06
+Status: design (target architecture; most mechanisms `[planned]`) · Updated: 2026-07-08
 Owner-of-truth: this doc, until the mechanisms land — then the code
 
 Day 2 is where platforms are decided: WordPress died on update chaos and operational burden; Shopify wins on "we run it" ([BENCHMARKS.md](BENCHMARKS.md) §1.5). The moment the clinic goes live, every question in this document becomes a customer-facing question. Written now — before any live customer — so the answers are designed rather than improvised.
@@ -49,6 +49,7 @@ Policies this encodes:
 - **Migration dry-run against a production snapshot before any live-fleet bump** (the rehearsal — first execution gates Wave 1).
 - **Rollback story**: code rolls back by repinning; schema rolls forward-only (append-only migrations) — so any migration in a fleet release must be **additive-then-flip** ([DATA-MODEL.md](DATA-MODEL.md) §6's refactor discipline generalized). A release that can't satisfy that ships behind a flag.
 - **Pinned vs tracking**: a tenant may hold a version (support window applies — versioning policy in [PLUGINS.md](PLUGINS.md) §6).
+- **Pre-publish gates + canary** `[planned]`: no SDK PR merges without compiling a consumer, no publish without tarball-consumer smoke, no fleet bump without a green canary app — the executable spec is [TESTING.md](TESTING.md) §8 (ROADMAP gap #18).
 
 ## 5. Support access
 

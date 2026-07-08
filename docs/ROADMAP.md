@@ -78,7 +78,7 @@ Structural advantages the assessment leans on (why "yes"): the audited-engines s
 | 15 | Connector credential record convergence (per-connector tables → shared shape) | [CONNECTORS.md](CONNECTORS.md) §3 | *(new — file)* | P3 |
 | 16 | CLI templates are string literals with no CI compile gate — the 3 scaffolded kinds can drift silently from published packages (proven manually 2026-07-08 only) | [AI-BUILDER.md](AI-BUILDER.md) §1 | *(new — file)* | P2, before CLI publish |
 | 17 | Unsplash imagery pipeline: 50 req/h demo key + CDN hotlinks — fine for demos, not for client stores at volume | [AI-BUILDER.md](AI-BUILDER.md) §1 | *(new — file)* | P3 |
-| 18 | SDK CI never compiles a consumer before publish — dogfood `build:published-sdk` lanes run post-publish, validating damage instead of preventing it. Fix: per-shape dogfood compile gate in SDK CI (fayzVite `sdkDir` → PR source) + tarball-consumer smoke (`fayz create` + packed-tarball install, closes #16) + `--canary` order in sync-apps | [TESTING.md](TESTING.md) §7 | *(new — file)* | P1, before first live-fleet bump |
+| 18 | SDK CI never compiles a consumer before publish — dogfood `build:published-sdk` lanes run post-publish, validating damage instead of preventing it. Fix: per-shape dogfood compile gate in SDK CI (fayzVite `sdkDir` → PR source) + tarball-consumer smoke (`fayz create` + packed-tarball install, closes #16) + `--canary` order in sync-apps | [TESTING.md](TESTING.md) §8 | *(new — file)* | P1, before first live-fleet bump |
 
 *(Resolved during this refactor's audit: the `credentials.local` scare — file was never committed, gitignore covers `*.local`; no rotation required.)*
 

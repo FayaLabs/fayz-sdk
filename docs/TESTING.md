@@ -49,9 +49,37 @@ Before the first SDK version bump against live customers: clone the production p
 
 ## 7. Priorities (what to build, in order)
 
-1. **Consumer compile gate in SDK CI** — checkout one dogfood app per shape (beauty-saas, course-members, pulse-store) and run their typecheck+build against the PR's SDK source (`fayzVite sdkDir`); plus tarball-consumer smoke (`fayz create` all kinds, install the packed tarballs, build). Today every `build:published-sdk` lane runs post-publish — it validates damage instead of preventing it (ROADMAP gap #18). Cheapest item on this list with the widest catch.
+1. **Consumer compile gate in SDK CI** — checkout one dogfood app per shape (beauty-saas, course-members, pulse-store) and run their typecheck+build against the PR's SDK source (`fayzVite sdkDir`); plus tarball-consumer smoke (`fayz create` all kinds, install the packed tarballs, build). Today every `build:published-sdk` lane runs post-publish — it validates damage instead of preventing it (ROADMAP gap #18). Cheapest item on this list with the widest catch. Executable spec: §8.
 2. RLS correctness fixtures in the capability suite — **gates the clinic** (SECURITY §3).
 3. Capability tests for the Wave-1/Wave-3 plugin set (agenda, financial, crm, courses) — ratchet each into `--strict`.
 4. Golden-config composition CI for the beauty and course shapes.
 5. Scripted app smoke (boot + auth + one write) per dogfood.
 6. Upgrade rehearsal runbook, exercised once before the first live-fleet bump.
+
+## 8. The SDK-update prevention plan `[planned — deferred]`
+
+The executable spec for §7 item 1 + the rollout half (queued as ROADMAP gap #18; rollout design in
+[OPERATIONS.md](OPERATIONS.md) §4). Three gates, in trigger order:
+
+**Gate A — dogfood compile (SDK CI, every PR).** New `ci.yml` job `dogfood-compile`: checkout one
+app per shape — `beauty-saas` (admin), `pulse-store` (storefront), `course-members` (member) — as
+siblings of the SDK checkout so `fayzVite`'s `../../fayz-sdk` source aliasing resolves the **PR's
+source**; then per app `pnpm install` + `typecheck` + `vite build`. Needs a read-only PAT/deploy key
+for the `FayaLabs/fayz-app-*` repos as an Actions secret (`DOGFOOD_CHECKOUT_TOKEN`). Catches: any SDK
+change that breaks a real consumer's compile, before merge.
+
+**Gate B — tarball-consumer smoke (SDK CI, every PR).** Extend the existing
+`published-artifact-smoke` job: after `check-published-shape.mjs`, run `fayz create` for all three
+kinds into a temp dir, point the generated `package.json` at the packed tarballs (pnpm `overrides`),
+`npm install` + `npm run build` + `vite preview` + HTTP smoke. Catches: exports-map/dist/runtime-dep
+bugs the source alias hides (the plugin-auth ETARGET class), and closes gap #16 (CLI template drift)
+in the same job. No secrets needed — this is pure SDK output.
+
+**Gate C — canary rollout (`sync-apps.mjs`).** Add `--canary <app>` (default: the least-critical
+storefront): bump only that app, run its `build:published-sdk` + e2e lane, require green, then
+proceed to the fleet. Encodes OPERATIONS §4's wave model in the tool that actually does the bumps
+today. Interim until the channel machinery (internal → dogfood → waves) exists.
+
+Order of construction: B (no external setup) → A (needs the token) → C (small script change).
+Definition of done: a PR that breaks a dogfood app's compile cannot merge; a publish whose tarballs
+can't be consumed cannot pass CI; a fleet bump cannot skip the canary.
