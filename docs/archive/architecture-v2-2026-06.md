@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [ARCHITECTURE.md](../ARCHITECTURE.md). Historical reference only; do not follow operationally.
+
 # Fayz SDK — Architecture v2: Manifest-First
 
 > **Status:** Approved direction, v1 draft (2026-06-11). Supersedes the API shape described in `agent-guide.md`; complements `architecture-blueprint.md` (layer model, primitives, epics — still valid, referenced as **BP**).

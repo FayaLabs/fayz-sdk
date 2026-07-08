@@ -31,7 +31,9 @@
   "dependencies": {
     "@fayz-ai/core": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
+    "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/courses": "workspace:^",
+    "@tanstack/react-table": "^8.20.0",
     "lucide-react": "^0.400.0"
   },
   "devDependencies": {

@@ -7,7 +7,7 @@
 
 `@fayz-ai/storefront` is the customer-facing surface of the Fayz SDK: a storefront scaffold that renders a page as a tree of **blocks** (hero, products, manifesto, cart, …) defined in the app manifest. Two completely different brands come out of the same template with zero custom components — the storefront is *data*, not a fork.
 
-It reads commerce from `@fayz-ai/shop`, so the same engine powering an admin also powers the public store. Customize from labels to a fully bespoke section via the [customization ladder](../../docs/customization-ladder.md) — never by editing this package.
+It reads commerce from `@fayz-ai/shop`, so the same engine powering an admin also powers the public store. Customize from labels to a fully bespoke section via the [customization ladder](../../docs/CUSTOMIZATION.md) — never by editing this package.
 
 ## What's inside
 - **Scaffold** — `defineStorefront(config)` + `StorefrontScaffold` rendered by `renderApp`

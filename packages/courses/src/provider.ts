@@ -4,6 +4,10 @@ import type {
   CreateModuleInput, UpdateModuleInput,
   CreateLessonInput, UpdateLessonInput,
   ListCoursesOptions,
+  Offer, CreateOfferInput, UpdateOfferInput,
+  Order, ListOrdersOptions,
+  Subscription, ListSubscriptionsOptions,
+  Payout, CreatorAccount, FinancialSummary,
 } from './types'
 
 export interface CoursesProvider {
@@ -36,6 +40,23 @@ export interface CoursesProvider {
     lessonId: string,
     patch: { completed?: boolean; lastPositionSec?: number },
   ): Promise<Progress>
+
+  // Offers (pricing / order-bumps)
+  listOffers(courseId: string): Promise<Offer[]>
+  createOffer(input: CreateOfferInput): Promise<Offer>
+  updateOffer(id: string, input: UpdateOfferInput): Promise<Offer>
+  deleteOffer(id: string): Promise<void>
+
+  // Sales ledger
+  listOrders(options?: ListOrdersOptions): Promise<Order[]>
+
+  // Recurring subscriptions
+  listSubscriptions(options?: ListSubscriptionsOptions): Promise<Subscription[]>
+
+  // Financial / payouts / Stripe Connect
+  getFinancialSummary(): Promise<FinancialSummary>
+  listPayouts(): Promise<Payout[]>
+  getCreatorAccount(): Promise<CreatorAccount>
 }
 
 // Global provider holder (mirrors @fayz-ai/shop's setShopProvider/getShopProvider).

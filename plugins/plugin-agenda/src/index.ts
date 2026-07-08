@@ -56,6 +56,9 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
     version: '1.0.0',
     scope: options?.scope ?? 'universal',
     verticalId: options?.verticalId,
+    // Booking/scheduling is business-ops (clinic, salon, services) — targets
+    // the saas/admin Panel world, not the ecommerce storefront.
+    scaffolds: ['saas'],
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [

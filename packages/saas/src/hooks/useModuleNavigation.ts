@@ -44,12 +44,18 @@ export function useModuleNavigation(hashBase: string, depthMap?: DepthMap, homeV
       // '/inventory/dashboard' → treat as home view
       if (segments.length === 1 && segments[0] === homeView) return homeView
       // Detect action + ID patterns: '/products/edit/uuid' or '/stock/detail/uuid'
-      const ACTION_KEYWORDS = ['edit', 'detail', 'view']
+      const ACTION_KEYWORDS = ['edit', 'detail', 'view', 'post']
       if (segments.length >= 3) {
         const maybeAction = segments[segments.length - 2]
         if (ACTION_KEYWORDS.includes(maybeAction)) {
           return segments.slice(0, -2).join('-') + '-' + maybeAction + ':' + segments[segments.length - 1]
         }
+      }
+      // Generic fallback: a trailing UUID is always an ID for the view formed
+      // by the preceding segments ('/content/post/<uuid>' → 'content-post:<uuid>')
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (segments.length >= 2 && UUID_RE.test(segments[segments.length - 1])) {
+        return segments.slice(0, -1).join('-') + ':' + segments[segments.length - 1]
       }
       return segments.join('-')
     }

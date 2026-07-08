@@ -47,6 +47,9 @@ export function createShopPlugin(options?: ShopPluginOptions): PluginManifest {
     version: '1.0.0',
     scope: options?.scope ?? 'vertical',
     verticalId: options?.verticalId,
+    // Storefront/commerce-operator-console surface — targets the ecommerce
+    // Panel world, not a saas admin app.
+    scaffolds: ['ecommerce'],
     defaultEnabled: true,
     dependencies: [],
     navigation: [

@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/auth",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "Fayz SDK auth — pluggable authentication adapters with React hooks",
   "type": "module",
   "main": "./src/index.ts",
@@ -38,5 +38,8 @@
     "tsup": "^8.2.0",
     "typescript": "^5.5.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

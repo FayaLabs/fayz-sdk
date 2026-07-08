@@ -46,10 +46,11 @@ commit on `main`.) Validate every file you touched: `node -e "require('./<f>')"`
 
 ### 3. Publish — from an isolated worktree  ⚠️ don't disturb other lanes
 Other sessions/lanes may be live in the main working dir. **Never `git stash`/`checkout` the
-shared working dir.** Do the publish in a throwaway worktree:
+shared working dir.** Do the publish in a throwaway worktree kept **inside the repo** under
+`.claude/worktrees/` (git-ignored, so it never clutters the parent dir listing):
 ```bash
-git worktree add /Users/fayalabs/dev/fayz-sdk-rel <ref>   # e.g. origin/main after your bump commit
-cd /Users/fayalabs/dev/fayz-sdk-rel
+git worktree add .claude/worktrees/rel <ref>   # e.g. origin/main after your bump commit
+cd .claude/worktrees/rel
 pnpm install --prefer-offline
 pnpm release        # turbo build && changeset publish
 ```
@@ -66,6 +67,13 @@ for p in core ui saas auth sdk db plugin-agenda plugin-crm plugin-dashboard \
 done
 ```
 
+### 4b. Sync the CLI release channels
+`fayz create` pins generated-app deps from `packages/sdk/src/release-channels.json`. Refresh it
+from what npm now serves, and commit it with the release:
+```bash
+node scripts/sync-release-channels.mjs
+```
+
 ### 5. Roll out to the dogfood apps (automated)
 ```bash
 node /Users/fayalabs/dev/fayz-sdk/.claude/skills/release-sdk/sync-apps.mjs            # all apps
@@ -79,7 +87,7 @@ reported as `skipped`. It never downgrades and never touches non-`@fayz-ai` deps
 
 ### 6. Clean up + report
 ```bash
-cd /Users/fayalabs/dev/fayz-sdk && git worktree remove /Users/fayalabs/dev/fayz-sdk-rel --force
+cd /Users/fayalabs/dev/fayz-sdk && git worktree remove .claude/worktrees/rel --force
 ```
 Final report to the user: published versions (step 4), and the sync report table (per app:
 branch, deps bumped, skipped, push result).

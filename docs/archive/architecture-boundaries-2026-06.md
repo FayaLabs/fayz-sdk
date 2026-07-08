@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-06** — superseded by [ARCHITECTURE.md](../ARCHITECTURE.md). Historical reference only; do not follow operationally.
+
 # Fayz SDK — Architecture Boundaries (the contract)
 
 > **Status:** Canonical boundary contract (2026-06-19, FAY-1217). This is the single source of truth for *who owns what*. Companions: `architecture-v2.md` (manifest-first design), `customization-ladder.md` (how an app customizes without forking), `../PLUGIN_PATTERNS.md` (plugin anatomy).

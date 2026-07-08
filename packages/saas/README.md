@@ -10,7 +10,7 @@ This is where the Fayz pitch becomes a product. `@fayz-ai/saas` is the multi-ten
 A salon and a clinic ship from the same engine — `@fayz-ai/saas` is the part that makes each one a real, isolated, billable tenant. Plugins snap in; this layer gives them an org to live in, a user to act as, and a shell to render through.
 
 ## What's inside
-- **App factory** — `defineSaas`, `createSaasApp`, `createFayzApp`, `AdminScaffold`, `AdminShell`, `LoginPage` (manifest-first admin entry)
+- **App factory** — `defineSaas`, `AdminScaffold`, `AdminShell`, `LoginPage` (manifest-first admin entry)
 - **CRUD engine** — `CrudPage`, `CrudListView`, `CrudFormPage`, `CrudDetailPage`, `CrudCardGrid`, `createCrudPage`, `ImportWizard`, `exportToCSV`
 - **Org / multi-tenancy** — `createSupabaseOrgAdapter`, `createMockOrgAdapter`, `OrgProvider`, `useTenant`, `useOrganizationStore`
 - **Permissions** — `PermissionsProvider`, `PermissionGate`, `usePermission`, `useHasPermission`, `usePermissions`

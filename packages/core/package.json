@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/core",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "Fayz SDK core — data providers, entity system, plugin runtime, i18n, routing",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -103,5 +103,8 @@
     "plugin-system",
     "data-provider",
     "entity"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

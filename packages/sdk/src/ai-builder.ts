@@ -1,7 +1,7 @@
 // The AI Builder request taxonomy — the contract the platform's request
 // classifier targets. The classifier itself lives in the `fayz` platform repo;
 // this is the canonical source of truth for the request classes and the
-// architecture layer each is allowed to touch (docs/architecture-boundaries.md).
+// architecture layer each is allowed to touch (docs/ARCHITECTURE.md).
 
 /** Ownership layer a request may modify. */
 export type FayzLayer = 'app' | 'plugin-config' | 'private-extension' | 'platform' | 'none'
@@ -65,7 +65,7 @@ export const AI_BUILDER_REQUEST_CLASSES: Record<AiBuilderRequestClass, AiBuilder
     needsCode: true,
     needsDeploy: true,
     description:
-      'Add new business behaviour as an app-local plugin (own entities, data, migrations, AI tools, connectors). The sanctioned partner/Silvio path — scaffold with `fayz create plugin`. See private-plugins.md.',
+      'Add new business behaviour as an app-local plugin (own entities, data, migrations, AI tools, connectors). The sanctioned partner/Silvio path — scaffold with `fayz create plugin`. See CUSTOMIZATION.md.',
     examples: [
       'Build a loyalty-points engine with its own table',
       'Add a custom importer for a legacy ERP',

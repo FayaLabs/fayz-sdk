@@ -31,3 +31,9 @@ export {
   useNavTransition,
   type NavTransition,
 } from './PageTransition'
+export {
+  ContentSplit,
+  ContentSplitTrigger,
+  type ContentSplitProps,
+  type ContentSplitTriggerProps,
+} from './ContentSplit'

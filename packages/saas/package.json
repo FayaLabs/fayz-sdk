@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/saas",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "Fayz SDK SaaS layer — multi-tenancy, billing, permissions, org management",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -80,5 +80,8 @@
     "@types/react-dom": "^18.3.0",
     "tailwindcss": "^3.4.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }
