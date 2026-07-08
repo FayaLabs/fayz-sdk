@@ -102,6 +102,10 @@ export function createCoursesPlugin(options?: CoursesPluginOptions): PluginManif
     version: '1.0.0',
     scope: options?.scope ?? 'vertical',
     verticalId: options?.verticalId,
+    // LMS is its own business model with opt-in commerce modules
+    // (members/sales/subscriptions — see modules.* below) — targets the
+    // saas/admin Panel world rather than the ecommerce storefront.
+    scaffolds: ['saas'],
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [

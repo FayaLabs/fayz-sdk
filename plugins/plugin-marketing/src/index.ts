@@ -141,6 +141,9 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
     version: '1.0.0',
     scope: options?.scope ?? 'universal',
     verticalId: options?.verticalId,
+    // Admin content-planning surface (campaigns, content calendar) — targets the
+    // saas/admin Panel world, not the ecommerce storefront/operator console.
+    scaffolds: ['saas'],
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [
