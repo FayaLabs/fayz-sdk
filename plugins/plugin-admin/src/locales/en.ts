@@ -1,0 +1,17 @@
+export const en: Record<string, string> = {
+  'admin.layout.title': 'Layout',
+  'admin.layout.sidebar': 'Sidebar',
+  'admin.layout.topbar': 'Topbar',
+  'admin.layout.minimal': 'Minimal',
+  'admin.moduleNav.title': 'Module navigation',
+  'admin.moduleNav.rail': 'Side rail for the installed modules',
+  'admin.moduleNav.tabs': 'Tabs for the installed modules',
+  'admin.mobileHeader.title': 'Mobile header',
+  'admin.mobileHeader.minimal': 'Minimal header bar',
+  'admin.mobileHeader.transparent': 'Transparent, edge-to-edge content',
+  'admin.mobileHeader.hidden': 'Hidden',
+  'admin.branding.title': 'Branding',
+  'admin.branding.on': 'Org branding settings are visible to operators',
+  'admin.branding.off': 'Org branding settings are hidden',
+  'admin.readOnlyNotice': 'Read-only preview. Editing these settings here is coming soon — for now they are set in your app config.',
+}
