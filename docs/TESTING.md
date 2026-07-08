@@ -1,6 +1,6 @@
 # TESTING — the per-layer strategy
 
-Status: canonical · Updated: 2026-07-06
+Status: canonical · Updated: 2026-07-08
 Owner-of-truth: `scripts/check-plugin-capability.mjs` + `packages/core/src/testing` + FAY-1250 (tests scored 2/10)
 
 Honest baseline first: the July-2026 foundation audit scored testing **2/10**. What exists is real but thin — this document defines the target pyramid and the order in which it gets built, tied to the launch gates rather than to coverage vanity.
@@ -49,8 +49,9 @@ Before the first SDK version bump against live customers: clone the production p
 
 ## 7. Priorities (what to build, in order)
 
-1. RLS correctness fixtures in the capability suite — **gates the clinic** (SECURITY §3).
-2. Capability tests for the Wave-1/Wave-3 plugin set (agenda, financial, crm, courses) — ratchet each into `--strict`.
-3. Golden-config composition CI for the beauty and course shapes.
-4. Scripted app smoke (boot + auth + one write) per dogfood.
-5. Upgrade rehearsal runbook, exercised once before the first live-fleet bump.
+1. **Consumer compile gate in SDK CI** — checkout one dogfood app per shape (beauty-saas, course-members, pulse-store) and run their typecheck+build against the PR's SDK source (`fayzVite sdkDir`); plus tarball-consumer smoke (`fayz create` all kinds, install the packed tarballs, build). Today every `build:published-sdk` lane runs post-publish — it validates damage instead of preventing it (ROADMAP gap #18). Cheapest item on this list with the widest catch.
+2. RLS correctness fixtures in the capability suite — **gates the clinic** (SECURITY §3).
+3. Capability tests for the Wave-1/Wave-3 plugin set (agenda, financial, crm, courses) — ratchet each into `--strict`.
+4. Golden-config composition CI for the beauty and course shapes.
+5. Scripted app smoke (boot + auth + one write) per dogfood.
+6. Upgrade rehearsal runbook, exercised once before the first live-fleet bump.
