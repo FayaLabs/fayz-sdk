@@ -1,6 +1,6 @@
 # THEMES — the theme contract and the design system as contract
 
-Status: canonical · Updated: 2026-07-06
+Status: canonical · Updated: 2026-07-08
 Owner-of-truth: `packages/ui/src/theme/` + `packages/saas/src/shell/config/theme/`
 
 Theming is customization level 2: pure data, builder-editable, zero blast radius. The deeper rule this doc carries is Shopify's Polaris lesson ([BENCHMARKS.md](BENCHMARKS.md) §2.4): **the design system is a contract** — plugins render only the `@fayz-ai/ui` vocabulary, which is why a theme change (or a platform-wide restyle) propagates through every plugin and every third-party surface without breaking anything.
@@ -46,3 +46,22 @@ Adjacent to theming (what renders where, for whom):
 - **Navigation scoping** — `CustomPage.nav: false` for mobile-only pages (routed, hidden from the desktop sidebar); bottom-nav declares the mobile world (DECISIONS 2026-07-03). The mobile-first shell (topbar→bottom-nav, responsive dashboard reflow) shipped in FAY-1237/1240.
 - **One primary add action per module** — config picks quick-add (B2C) or the ERP "+ New" menu, never both (DECISIONS 2026-07-03) — a theming-adjacent rule the builder needs when configuring modules.
 - **Persona engine** `[planned FAY-1249/1253]` — deriving `b2c | b2b` presentation defaults at `defineSaas` time (norman vs beauty from the same plugins). The hand-rolled `VITE_BEAUTY_PRESET=clinic` preset is kept as evidence input only, not deployed (DECISIONS 2026-07-02).
+
+## 5. Storefront templates at scale `[decision-needed]`
+
+The four storefront templates (mare/sertao/volt/atelier) are literals in
+`packages/storefront/src/presets.ts`. Fine at 4; wrong shape for 30+:
+
+- **single-file authoring bottleneck** — every template is a merge conflict in one module;
+- **no catalog surface** — nothing machine-readable (id, tags, inspiration, screenshot) for the AI
+  builder or a marketplace listing to browse; today the `fayz-create` skill hand-describes the four;
+- **release coupling** — a template tweak requires a `@fayz-ai/storefront` release;
+- **no asset convention** — imagery is per-app (`images.manifest.mjs` + the Unsplash pipeline), not
+  per-template, so a template can't ship its look.
+
+A template is already pure data (`theme` + `home(storeName, images)` + `announcement`), so the
+scaling structure is a **template contract + registry**: one module per template with catalog
+metadata, a generated `template-catalog.json` (same pattern as `supported-surface.json`), and a
+per-template image manifest. Serializable data also means templates can graduate to
+marketplace-distributed artifacts ([MARKETPLACE.md](MARKETPLACE.md)) without an SDK release.
+Queued: [ROADMAP.md](ROADMAP.md) Appendix B #16.

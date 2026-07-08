@@ -76,6 +76,8 @@ Structural advantages the assessment leans on (why "yes"): the audited-engines s
 | 13 | Dual `createCrudPage`/`createNativeCrudPage` mid-migration | saas de-bridge lane | *(existing lane)* | P3 |
 | 14 | Plugin lazy-activation / bundle budgets | feasibility §3 | *(new — file)* | P2, before 20 plugins |
 | 15 | Connector credential record convergence (per-connector tables → shared shape) | [CONNECTORS.md](CONNECTORS.md) §3 | *(new — file)* | P3 |
+| 16 | CLI templates are string literals with no CI compile gate — the 3 scaffolded kinds can drift silently from published packages (proven manually 2026-07-08 only) | [AI-BUILDER.md](AI-BUILDER.md) §1 | *(new — file)* | P2, before CLI publish |
+| 17 | Unsplash imagery pipeline: 50 req/h demo key + CDN hotlinks — fine for demos, not for client stores at volume | [AI-BUILDER.md](AI-BUILDER.md) §1 | *(new — file)* | P3 |
 
 *(Resolved during this refactor's audit: the `credentials.local` scare — file was never committed, gitignore covers `*.local`; no rotation required.)*
 
@@ -132,3 +134,5 @@ Every `[decision-needed]` across the doc set. Locking one = a [DECISIONS.md](DEC
 | 13 | Support-access/impersonation model | OPERATIONS §5 | before Wave-1 support reality |
 | 14 | LGPD DPA approach + retention defaults | SECURITY §4 | counsel, gates the clinic |
 | 15 | `fayz migrate`/`fayz upgrade` CLI wrappers: build timing | AI-BUILDER §7 | after FAY-1205 lands |
+| 16 | Storefront template registry for 30+ templates: per-template modules + generated `template-catalog.json` + per-template image manifest, vs in-package `presets.ts` | THEMES §5 | before commissioning a template wave (M2/M3) |
+| 17 | CLI scaffold version resolution: baked `release-channels.json` snapshot (stale between CLI publishes) vs live `npm view` at create time with offline fallback | AI-BUILDER §1 | when `@fayz-ai/cli` publishes |

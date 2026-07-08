@@ -48,7 +48,7 @@ export function doctor(dir = process.cwd()): number {
   const pluginIds = referencedPluginIds(manifest)
   if (pluginIds.length > 0) {
     console.warn(
-      `⚠ plugins referenced by manifest are resolved by the platform bundle, not public npm packages: ${pluginIds.join(', ')}`,
+      `⚠ manifest references plugin(s) [${pluginIds.join(', ')}] — each id must resolve to an installed @fayz-ai/plugin-* factory wired in src/plugins.generated.ts or src/config/app.tsx`,
     )
     warnings++
   }

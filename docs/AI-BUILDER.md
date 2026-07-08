@@ -1,6 +1,6 @@
 # AI-BUILDER — the builder ⇄ SDK app contract
 
-Status: canonical · **Contract version: 0.1** — changes to this contract require a [DECISIONS.md](DECISIONS.md) entry · Updated: 2026-07-06
+Status: canonical · **Contract version: 0.2** — changes to this contract require a [DECISIONS.md](DECISIONS.md) entry · Updated: 2026-07-08
 Owner-of-truth: this document (the target contract that FAY-1208 / FAY-1212 / FAY-1188 implement) + `@fayz-ai/sdk/ai-builder` (the request taxonomy) + the fayz repo's Panel/manifest machinery
 
 This is the document the fayz platform builds against: how the AI builder installs, configures, customizes, migrates, and operates apps made of this SDK — and what it does when a request exceeds the rails. Everything here obeys the status grammar ruthlessly, because a builder that trusts an unimplemented claim ships a broken app.
@@ -10,6 +10,8 @@ This is the document the fayz platform builds against: how the AI builder instal
 ## 1. Honest baseline
 
 Today the fayz generation pipeline emits generic React apps (localStorage mocks, no `@fayz-ai` usage) — the builder⇄SDK bridge scored **2/10** in the July-2026 audit (FAY-1250). The dogfood apps proving the SDK are hand-written. **This document is the target contract**, not a description of current builder behavior; each section marks what already exists on the SDK side vs what the platform must implement. The convergence lane: FAY-1208 (agent operates the SDK), FAY-1212 (capability discovery), FAY-1188 (scaffold emits the proven conventions).
+
+**CLI baseline moved (2026-07-08):** `fayz create <storefront|admin|member>` scaffolds the proven dogfood shapes — real `@fayz-ai` deps pinned from `release-channels.json`, `fayzVite`, mock providers, derived manifest, a per-kind `CLAUDE.md` checklist — and the output compiles against published npm. The §4 install flow has a working local simulation: the `fayz-create` skill (`.claude/skills/fayz-create`) plays the builder agent end-to-end (proven: Vitalis storefront). The skill's hand-maintained plugin table is interim evidence for the generated capability catalog (Appendix B #7); the platform builder still needs to converge.
 
 ## 2. The serialization contract
 
@@ -158,5 +160,6 @@ When a customer/partner's incubator plugin should become distributable: graduati
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-07-06 | Initial contract: serialization + Panel sync duty, capability discovery surfaces, install protocol, request-routing matrix, migration/DB rules, escalation contract, providers-only runtime surface |
+| 0.2 | 2026-07-08 | CLI scaffolds real apps (dogfood shapes, release-channel pinned deps); `fayz-create` skill = local agent simulation of §4; `sync-release-channels.mjs` keeps pins honest; `@fayz-ai/portal` promoted to supported surface |
 
 Open `[decision-needed]` items affecting this contract (all queued in [ROADMAP.md](ROADMAP.md) Appendix B): generated capability catalog + options schemas (§3); typed runtime client (§10); componentId validator fix (blocks registry-indirect routes); auto_install field shape (affects plugin selection); `fayz extract` replacement (§2).

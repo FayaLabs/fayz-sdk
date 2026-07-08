@@ -3,6 +3,19 @@
 One entry per locked decision, newest first. A decision stays here until explicitly superseded.
 Format: **date — decision** · rationale · consequences.
 
+## 2026-07-08 — `fayz create` scaffolds real apps; the builder-agent simulation is a Claude Code skill
+The CLI's stub templates (placeholder runtime, zero plugins) were replaced with the proven dogfood
+shapes (pulse-store / beauty-saas / course-members) — generated apps compile against published npm
+and boot on mock providers with no env. The agent brain deliberately lives OUTSIDE the CLI:
+`.claude/skills/fayz-create` plays the platform builder (brief → ≤4 product questions incl. look &
+feel and real-vs-invented catalog → `fayz create --dir ~/dev/fayz-app/_create --install` →
+personalization to dogfood depth incl. Unsplash imagery → build/doctor/browser gate). Rationale: the
+CLI stays a deterministic tool any agent (platform builder, Claude Code, CI) can invoke; intelligence
+is never baked into the binary. Proven e2e 2026-07-08 (Vitalis storefront). Consequences:
+`release-channels.json` is now load-bearing for scaffold quality (was 5 minors stale, unnoticed) —
+`scripts/sync-release-channels.mjs` is release step 4b; `@fayz-ai/portal` promoted to the supported
+surface. Spec: AI-BUILDER §1/§4.
+
 ## 2026-07-06 — Distribution split: protocol public, products private
 Verified exposure: every @fayz-ai package is on public npm under MIT — the commercial plugins are
 legally reusable by anyone (published versions stay MIT forever). Locked: substrate packages
