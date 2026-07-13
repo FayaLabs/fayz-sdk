@@ -252,7 +252,10 @@ export function createMockAgendaProvider(options?: MockAgendaProviderOptions): A
     },
 
     async getAvailableSlots(params: AvailableSlotsParams): Promise<TimeSlot[]> {
-      const date = new Date(params.date)
+      // Parse 'YYYY-MM-DD' as LOCAL midnight (not UTC) so the weekday and the
+      // generated slot instants land on the requested calendar day in any tz.
+      const [yy, mm, dd] = params.date.split('-').map(Number)
+      const date = new Date(yy, (mm ?? 1) - 1, dd ?? 1)
       const dayOfWeek = date.getDay()
       const interval = params.slotInterval ?? 30
 

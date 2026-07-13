@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-reputation",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "[experimental] Fayz SDK — reviews & reputation management plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -12,6 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./public": {
+      "source": "./src/public/index.tsx",
+      "types": "./dist/public/index.d.ts",
+      "import": "./dist/public/index.js",
+      "require": "./dist/public/index.cjs"
     }
   },
   "files": [
@@ -45,6 +51,5 @@
     "fayz",
     "fayz-plugin",
     "fayz-sdk"
-  ],
-  "private": true
+  ]
 }
