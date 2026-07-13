@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-agenda",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Fayz SDK — plugin-agenda plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,28 +37,28 @@
   },
   "dependencies": {
     "@fayz-ai/core": "workspace:^",
+    "@fayz-ai/plugin-financial": "workspace:^",
+    "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
-    "lucide-react": "^0.400.0",
-    "zustand": "^4.5.0",
     "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
-    "@fullcalendar/timegrid": "^6.1.20",
-    "@fullcalendar/react": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
-    "@fayz-ai/saas": "workspace:^",
-    "@fayz-ai/plugin-financial": "workspace:^",
-    "@tanstack/react-table": "^8.20.0",
+    "@fullcalendar/list": "^6.1.0",
+    "@fullcalendar/react": "^6.1.20",
     "@fullcalendar/resource-timegrid": "^6.1.0",
-    "@fullcalendar/list": "^6.1.0"
+    "@fullcalendar/timegrid": "^6.1.20",
+    "@tanstack/react-table": "^8.20.0",
+    "lucide-react": "^0.400.0",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "tsup": "^8.2.0",
     "typescript": "^5.5.0",
-    "@types/react-dom": "^18.3.0",
-    "vitest": "^2.1.9",
-    "react-dom": "^18.3.0"
+    "vitest": "^2.1.9"
   },
   "license": "MIT",
   "keywords": [

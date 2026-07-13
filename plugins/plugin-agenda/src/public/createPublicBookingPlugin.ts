@@ -1,26 +1,55 @@
 import { createElement, type FC, type ReactNode } from 'react'
+import { CalendarCheck, ShieldCheck, Video } from 'lucide-react'
 import type { PluginManifest, PluginScope, VerticalId, PaymentProvider } from '@fayz-ai/core'
 import { createSafeDataProvider } from '@fayz-ai/core'
-import type { AgendaDataProvider } from '../data/types'
 import type { Professional, Schedule } from '../types'
-import { createMockAgendaProvider, type MockAgendaSeed } from '../data/mock'
-import { createSupabaseAgendaProvider } from '../data/supabase'
+import type { MockAgendaSeed } from '../data/mock'
+import { createMockPublicBookingProvider, type PublicBookingDataProvider } from './data'
+import { createSupabasePublicBookingProvider } from './data.supabase'
 import { BookingProvider, type PublicBookingContextValue, type OnIdentityVerified } from './context'
 import { BookingWidget } from './BookingWidget'
-import type { PublicService, BookingWindow, PublicBookingLabels, WorkingHours, PaymentConfig, ResolvedPayment } from './types'
+import { DEFAULT_BOOKING_COMPONENTS } from './components/defaults'
+import type {
+  BookingBrand,
+  BookingComponents,
+  BookingWindow,
+  PaymentConfig,
+  PublicBookingLabels,
+  PublicService,
+  ResolvedBookingBrand,
+  ResolvedPayment,
+  WorkingHours,
+} from './types'
 
 export interface PublicBookingOptions {
   /** Mount path for the public booking route. Default '/agendar'. */
   basePath?: string
-  /** The single professional/resource bookings target (POC). */
+  /**
+   * Tenant this public page books against. REQUIRED when a Supabase client is
+   * configured (setGlobalSupabaseClient) — it scopes services/slots/bookings.
+   */
+  tenantId?: string
+  /**
+   * The single professional/resource bookings target. With Supabase this must
+   * be the staff person UUID; omit → any active professional (RPC unions
+   * schedules across staff).
+   */
   professional?: { id?: string; name?: string }
-  /** Bookable services shown in the widget. */
-  services: PublicService[]
-  /** Working hours used to seed the mock provider's availability. */
+  /**
+   * Bookable services. Optional: when omitted, the widget fetches the catalog
+   * from the provider (Supabase v_public_services). Static wins when provided.
+   */
+  services?: PublicService[]
+  /** Working hours used to seed mock availability + the overview "Sobre" card. */
   workingHours?: WorkingHours
   /** Booking-window bounds for the date/slot picker. */
   window?: Partial<BookingWindow>
+  /** Every user-visible string (all defaulted, pt-BR). */
   labels?: Partial<PublicBookingLabels>
+  /** Brand personalization: name/logo/tagline/icons/badges/highlights. */
+  brand?: BookingBrand
+  /** Swap whole subcomponents when structure must change (defaults exported). */
+  components?: Partial<BookingComponents>
   /** Adds a final Pagamento (Pix) step. Omit/disable to end the flow at confirmation. */
   payment?: PaymentConfig
   /** Charge provider (from a payments plugin) used by the Pagamento step. Optional. */
@@ -29,8 +58,8 @@ export interface PublicBookingOptions {
   onIdentityVerified?: OnIdentityVerified
   currency?: string
   locale?: string
-  /** Inject a custom provider (real availability). Overrides the safe resolver. */
-  dataProvider?: AgendaDataProvider
+  /** Inject a custom provider (overrides the mock/Supabase safe resolver). */
+  dataProvider?: PublicBookingDataProvider
   /** Override the full mock seed (advanced). */
   seed?: MockAgendaSeed
   scope?: PluginScope
@@ -40,7 +69,7 @@ export interface PublicBookingOptions {
 export interface PublicBookingPlugin {
   manifest: PluginManifest
   Provider: FC<{ children: ReactNode }>
-  dataProvider: AgendaDataProvider
+  dataProvider: PublicBookingDataProvider
 }
 
 const DEFAULT_LABELS: PublicBookingLabels = {
@@ -51,11 +80,74 @@ const DEFAULT_LABELS: PublicBookingLabels = {
   confirmCta: 'Confirmar agendamento',
   successTitle: 'Agendamento confirmado!',
   successBody: 'Você receberá os detalhes em breve. Até logo!',
+  // overview
+  servicesHeading: 'Serviços',
+  aboutHeading: 'Sobre',
+  openingHoursHeading: 'Horário de funcionamento',
+  closedLabel: 'Fechado',
+  bookNowCta: 'Agendar agora',
+  // datetime
+  timezoneNote: 'Fuso: Horário de Brasília',
+  slotsHeading: 'Horários disponíveis',
+  noSlots: 'Nenhum horário disponível neste dia. Tente outra data.',
+  continueCta: 'Continuar',
+  backToServices: 'Serviços',
+  back: 'Voltar',
+  prevWeek: 'Semana anterior',
+  nextWeek: 'Próxima semana',
+  // contact
+  contactIntro: 'Preencha as informações abaixo para que seu agendamento seja identificado.',
+  phoneLabel: 'Celular',
+  phoneHint:
+    'Enviaremos um código para confirmar que o número de telefone é seu. Usaremos este número para associar as suas informações à sua conta.',
+  sendCodeCta: 'Enviar código via WhatsApp',
+  codeTitle: 'Insira o código',
+  codeBody: 'Enviamos um código via WhatsApp para você confirmar seu número.',
+  codeInvalid: 'Código inválido. Para testar, use 0000.',
+  codeConfirmCta: 'Confirmar',
+  codeResendHint: 'Reenviar código via WhatsApp em 28 segundos.',
+  phoneVerified: 'Celular verificado',
+  changePhone: 'Trocar telefone',
+  nameLabel: 'Nome completo *',
+  namePlaceholder: 'Seu nome',
+  emailLabel: 'E-mail',
+  emailPlaceholder: 'voce@email.com',
+  emailHint: 'Enviaremos uma confirmação e um lembrete antes do agendamento.',
+  notesLabel: 'Observação',
+  notesPlaceholder: 'Use esse espaço para deixar uma observação sobre este agendamento',
+  saveAndContinueCta: 'Salvar e continuar',
+  submitError: 'Não foi possível concluir o agendamento. Tente novamente.',
+  noChargeNote: 'Pagamento via Pix · Sem cobrança agora',
+  // right rail
+  railTitle: 'Passos para agendar',
+  railWaitingPayment: 'Aguardando pagamento',
+  railService: 'Serviço',
+  railProfessional: 'Profissional',
+  railDatetime: 'Data e horário',
+  railContact: 'Informações pessoais',
+  railPayment: 'Pagamento',
 }
 
 const DEFAULT_WINDOW: BookingWindow = { minAdvanceHours: 2, maxAdvanceDays: 21, slotInterval: 30 }
 
 const DEFAULT_HOURS: WorkingHours = { daysOfWeek: [1, 2, 3, 4, 5, 6], start: '09:00', end: '18:00' }
+
+function resolveBrand(brand: BookingBrand | undefined, labels: PublicBookingLabels): ResolvedBookingBrand {
+  const name = brand?.name ?? labels.title
+  return {
+    name,
+    initials: brand?.initials ?? name.charAt(0).toUpperCase(),
+    logoUrl: brand?.logoUrl,
+    tagline: brand?.tagline === undefined ? 'Agendamento online seguro' : brand.tagline,
+    serviceIcon: brand?.serviceIcon ?? Video,
+    serviceMeta: brand?.serviceMeta === undefined ? 'Online' : brand.serviceMeta,
+    featuredBadge: brand?.featuredBadge === undefined ? 'Mais procurado' : brand.featuredBadge,
+    highlights: brand?.highlights ?? [
+      { icon: CalendarCheck, text: 'Confirmação imediata' },
+      { icon: ShieldCheck, text: 'Agendamento seguro' },
+    ],
+  }
+}
 
 let scheduleId = 0
 
@@ -77,13 +169,18 @@ function buildSchedules(professionalId: string, hours: WorkingHours): Schedule[]
 
 export function createPublicBookingPlugin(options: PublicBookingOptions): PublicBookingPlugin {
   const basePath = options.basePath ?? '/agendar'
-  const professionalId = options.professional?.id ?? 'dr-hiago'
+  // Mock needs a concrete seed professional; Supabase can target any (null).
+  const mockProfessionalId = options.professional?.id ?? 'pro-1'
+  const professionalId = options.professional?.id ?? null
   const professionalName = options.professional?.name ?? 'Especialista'
   const window: BookingWindow = { ...DEFAULT_WINDOW, ...options.window }
   const labels: PublicBookingLabels = { ...DEFAULT_LABELS, ...options.labels }
+  const brand = resolveBrand(options.brand, labels)
+  const components: BookingComponents = { ...DEFAULT_BOOKING_COMPONENTS, ...options.components }
   const currency = options.currency ?? 'BRL'
   const locale = options.locale ?? 'pt-BR'
   const hours = options.workingHours ?? DEFAULT_HOURS
+  const staticServices = options.services ?? null
   const payment: ResolvedPayment | null = options.payment?.enabled
     ? {
         reservationFeePercent: options.payment.reservationFeePercent ?? 100,
@@ -92,7 +189,7 @@ export function createPublicBookingPlugin(options: PublicBookingOptions): Public
     : null
 
   const professional: Professional = {
-    id: professionalId,
+    id: mockProfessionalId,
     name: professionalName,
     avatarUrl: null,
     locationId: null,
@@ -101,33 +198,46 @@ export function createPublicBookingPlugin(options: PublicBookingOptions): Public
   }
   const mockSeed: MockAgendaSeed = options.seed ?? {
     professionals: [professional],
-    schedules: buildSchedules(professionalId, hours),
+    schedules: buildSchedules(mockProfessionalId, hours),
     bookings: [],
   }
 
   const provider =
     options.dataProvider ??
-    createSafeDataProvider(
-      () => createSupabaseAgendaProvider(),
-      () => createMockAgendaProvider({ seed: mockSeed }),
+    createSafeDataProvider<PublicBookingDataProvider>(
+      () => {
+        if (!options.tenantId) {
+          throw new Error(
+            '[plugin-agenda/public] `tenantId` is required when a Supabase client is configured (setGlobalSupabaseClient).',
+          )
+        }
+        return createSupabasePublicBookingProvider({ tenantId: options.tenantId })
+      },
+      () =>
+        createMockPublicBookingProvider({
+          seed: mockSeed,
+          services: staticServices ?? [],
+          professionalId: mockProfessionalId,
+        }),
     )
 
-  const value: PublicBookingContextValue = {
+  const base: Omit<PublicBookingContextValue, 'services' | 'servicesLoading'> = {
     provider,
     professionalId,
     professionalName,
-    services: options.services,
     businessHours: hours,
     payment,
     paymentProvider: options.paymentProvider ?? null,
     onIdentityVerified: options.onIdentityVerified ?? null,
     window,
     labels,
+    brand,
+    components,
     currency,
     locale,
   }
   const Provider: FC<{ children: ReactNode }> = ({ children }) =>
-    createElement(BookingProvider, { value, children })
+    createElement(BookingProvider, { base, staticServices, children })
   Provider.displayName = 'PublicBookingProvider'
 
   const BookingScreen: FC<unknown> = () =>
@@ -140,7 +250,7 @@ export function createPublicBookingPlugin(options: PublicBookingOptions): Public
     id: 'booking',
     name: 'Agendamento',
     icon: 'CalendarCheck',
-    version: '0.1.0',
+    version: '0.3.0',
     scope: options.scope ?? 'universal',
     verticalId: options.verticalId,
     scaffolds: ['website', 'landing_page'],

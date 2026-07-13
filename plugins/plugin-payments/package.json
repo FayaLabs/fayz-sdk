@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-payments",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "[experimental] Fayz SDK — payments plugin (Pix charge provider + website surface)",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -39,11 +39,11 @@
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "tsup": "^8.2.0",
-    "typescript": "^5.5.0",
-    "@types/react-dom": "^18.3.0"
+    "typescript": "^5.5.0"
   },
   "license": "MIT",
   "keywords": [

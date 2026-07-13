@@ -1,7 +1,6 @@
 import { createElement, type FC, type ReactNode } from 'react'
 import type { PluginManifest, PluginScope, PaymentProvider } from '@fayz-ai/core'
-import { createSafePaymentProvider } from '../index'
-import type { MockPaymentOptions } from '../data/mock'
+import { createMockPaymentProvider, type MockPaymentOptions } from '../data/mock'
 import { PaymentProviderContext, type PaymentContextValue } from './context'
 
 // ---------------------------------------------------------------------------
@@ -30,7 +29,12 @@ export interface PublicPaymentPlugin {
 }
 
 export function createPublicPaymentPlugin(options?: PublicPaymentOptions): PublicPaymentPlugin {
-  const paymentProvider = options?.paymentProvider ?? createSafePaymentProvider(options?.mock)
+  // Default is the MOCK provider even when a Supabase client is configured:
+  // the Supabase payment path is still a stub (real gateway = MercadoPago edge
+  // fn, deferred), so a real provider must be injected explicitly via
+  // `paymentProvider`. Don't route through createSafePaymentProvider here or
+  // any app with a configured Supabase client would hit the throwing stub.
+  const paymentProvider = options?.paymentProvider ?? createMockPaymentProvider(options?.mock)
 
   const value: PaymentContextValue = { provider: paymentProvider }
   const Provider: FC<{ children: ReactNode }> = ({ children }) =>

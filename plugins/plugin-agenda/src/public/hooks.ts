@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react'
 import { useBooking } from './context'
-import type { PublicService, ContactInfo } from './types'
+import type { PublicService } from './types'
+import type { PublicCreateBookingInput, PublicBookingResult } from './data'
 import type { TimeSlot } from '../types'
 
-/** The configured bookable services (from context; POC-static, ERP-driven later). */
+/** The resolved bookable services (static option or fetched from the provider). */
 export function useServices(): PublicService[] {
   return useBooking().services
+}
+
+export interface UsePublicServicesResult {
+  services: PublicService[]
+  loading: boolean
+}
+
+/** Like useServices, but exposes the fetch state for skeletons. */
+export function usePublicServices(): UsePublicServicesResult {
+  const { services, servicesLoading } = useBooking()
+  return { services, loading: servicesLoading }
 }
 
 export interface UseAvailableSlotsResult {
@@ -16,7 +28,7 @@ export interface UseAvailableSlotsResult {
 
 /**
  * Available time slots for a service on a given date. Delegates to
- * provider.getAvailableSlots — mock now, real availability later, same call.
+ * provider.getAvailableSlots — mock now, Supabase RPC when configured, same call.
  */
 export function useAvailableSlots(params: { serviceId: string | null; date: string | null }): UseAvailableSlotsResult {
   const { provider, professionalId, services, window } = useBooking()
@@ -57,53 +69,29 @@ export function useAvailableSlots(params: { serviceId: string | null; date: stri
   return { slots, loading, error }
 }
 
-export interface CreatePublicBookingInput {
-  serviceId: string
-  /** ISO datetime of the chosen slot start. */
-  startsAt: string
-  contact: ContactInfo
-}
+export type CreatePublicBookingInput = PublicCreateBookingInput
 
 export interface UseCreateBookingResult {
-  submit: (input: CreatePublicBookingInput) => Promise<void>
+  submit: (input: CreatePublicBookingInput) => Promise<PublicBookingResult>
   submitting: boolean
   error: Error | null
   done: boolean
 }
 
-/** Create a booking via the provider. POC: mock append; real persistence later. */
+/** Create a booking via the provider (mock append / Supabase RPC). */
 export function useCreateBooking(): UseCreateBookingResult {
-  const { provider, professionalId, services } = useBooking()
+  const { provider } = useBooking()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [done, setDone] = useState(false)
 
-  async function submit(input: CreatePublicBookingInput): Promise<void> {
-    const service = services.find((s) => s.id === input.serviceId)
-    if (!service) throw new Error('Serviço inválido')
+  async function submit(input: CreatePublicBookingInput): Promise<PublicBookingResult> {
     setSubmitting(true)
     setError(null)
     try {
-      await provider.createBooking({
-        kind: 'appointment',
-        // POC: the customer is captured as the booking title; a real flow would
-        // upsert a client/person record and pass its id here.
-        clientId: 'public-guest',
-        professionalId,
-        startsAt: input.startsAt,
-        title: input.contact.name,
-        notes: [input.contact.phone, input.contact.email, input.contact.notes].filter(Boolean).join(' · ') || undefined,
-        services: [
-          {
-            serviceId: service.id,
-            name: service.name,
-            durationMinutes: service.durationMinutes,
-            price: service.price,
-            assigneeId: professionalId,
-          },
-        ],
-      })
+      const result = await provider.createBooking(input)
       setDone(true)
+      return result
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err))
       setError(e)
