@@ -46,14 +46,19 @@ Survey: shopfront `…0101`, pulse `…0102`, tannat `…0103`, artorious `…01
 project `euzqjcusjloljlgwlkiw` (shop_* tables, RLS by tenant_id=storeId, RPC
 shop_place_order); cristinarotondaro `…0121` mock/enquiry-mode.
 
-- [ ] Apply packages/shop/migrations (0001 schema, 0002 storefront RLS, 0003 place_order,
-      + any views bridging product_images/categories relation names) to FayzApi
-- [ ] Create saas_core.tenants rows for the 5 stores (same fixed UUIDs)
-- [ ] Copy catalog data (categories/products/images/discounts) euzq → FayzApi via
-      Management API for the 4 live stores
-- [ ] Flip each store's .env (PUBLIC_SUPABASE_URL/KEY → FayzApi) + app.manifest.json
-      backend { projectRef, tenantId }; storefront e2e per store (catalog renders, mock
-      checkout writes shop_orders in FayzApi); push main
+- [x] Applied 0001-0003 + NEW 0004_shop_get_order (guest order-confirmation
+      capability RPC) to FayzApi
+- [x] saas_core.tenants rows for the 5 stores created (8 tenants total now)
+- [x] Catalog copied euzq → FayzApi (7 used categories w/ derived tenant, 70
+      products, 67 images, 4 discounts; old orders NOT copied — demo data;
+      unknown tenant a496ec63… had 3 products, copied, no saas_core row)
+- [x] PILOT artorious-shop: env→FayzApi, sdk ^0.6.8 + storefront ^0.7.1, manifest
+      backend contract, .env.example; e2e GREEN (catalog, RPC order #3 R$77.99
+      server-priced, capability confirmation). Branch feat/fayz-api-backend pushed —
+      MERGE AFTER PUBLISH + regen lockfile.
+- [ ] pulse/tannat/shopfront: SAME recipe, BLOCKED on another lane's uncommitted WIP
+      (storefront 0.7 API migration: createStorefront/defineStorefrontConfig) in all
+      three working trees — apply after that WIP lands
 - [ ] cristinarotondaro: decision — stays mock/enquiry (no checkout); only manifest
       normalization now
 
@@ -90,6 +95,12 @@ shop_place_order); cristinarotondaro `…0121` mock/enquiry-mode.
 
 ## Log
 
+- 2026-07-14 · Phase 2: FayzApi provisioned for shop (0001-0004), catalog copied,
+  artorious pilot e2e green on tarball-installed sdk 0.6.8/storefront 0.7.1.
+  FOUND: published storefront 0.7.0 lacks productCardComponentContract that store
+  code already uses (deved against local source) — storefront 0.7.1 joins the
+  publish wave. FOUND: new fayzVite auto-aliases ../../fayz-sdk source; use
+  FAYZ_SDK_SOURCE=published for app e2e on this machine. (Fable)
 - 2026-07-14 · Phase 0 code done (core cloud client + agenda 0.4.0 resolution); full build
   34/34; publish blocked on founder (classifier). Surveys of 14 apps completed and folded
   into phases above. (Fable)
