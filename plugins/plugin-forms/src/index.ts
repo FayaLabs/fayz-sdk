@@ -82,7 +82,7 @@ export function createCustomFormsPlugin(options?: CustomFormsPluginOptions): Plu
           { key: 'isActive', label: 'Active', type: 'boolean' as const, showInTable: true, defaultValue: true, inlineToggle: true },
         ],
         data: {
-          table: 'frm_categories',
+          table: 'plg_forms_categories',
           tenantScoped: true,
         },
       },

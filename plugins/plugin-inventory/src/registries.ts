@@ -18,8 +18,7 @@ const supplierEntity: EntityDef = {
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
   data: {
-    table: 'persons',
-    schema: 'saas_core',
+    table: 'people',
     tenantScoped: true,
     filters: { kind: 'supplier' },
     defaults: { kind: 'supplier' },
@@ -37,7 +36,7 @@ const measurementUnitEntity: EntityDef = {
     { key: 'abbreviation', label: 'Abbreviation', type: 'text', required: true, showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'measurement_units', tenantScoped: true },
+  data: { table: 'plg_inventory_measurement_units', tenantScoped: true },
 }
 
 const productCategoryEntity: EntityDef = {
@@ -51,7 +50,7 @@ const productCategoryEntity: EntityDef = {
     { key: 'parentId', label: 'Parent', type: 'text', showInTable: false },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'product_categories', tenantScoped: true },
+  data: { table: 'plg_inventory_product_categories', tenantScoped: true },
 }
 
 const stockLocationEntity: EntityDef = {
@@ -65,7 +64,7 @@ const stockLocationEntity: EntityDef = {
     { key: 'description', label: 'Description', type: 'textarea', showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'stock_locations', tenantScoped: true },
+  data: { table: 'plg_inventory_stock_locations', tenantScoped: true },
 }
 
 export const inventoryRegistries: PluginRegistryDef[] = [
