@@ -51,10 +51,10 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 0 — Setup · branch: devcenter/p1-golden-path
 
-- [ ] P0.1 Baseline: record current check-suite results
+- [x] P0.1 Baseline: record current check-suite results
   repo: fayz-sdk
   acceptance: `pnpm build && pnpm typecheck && pnpm check:plugin-patterns && pnpm check:plugin-capability && node scripts/cli-smoke.mjs` — record pass/fail of each in Log (pre-existing failures are baseline notes, not blockers)
-  status: todo
+  status: done
 
 ## Phase 1 — Golden path (fayz-sdk) · branch: devcenter/p1-golden-path
 
@@ -219,3 +219,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 ## Log
 
 - 2026-07-14 · plan approved; tracker created; branch devcenter/p1-golden-path cut from main (Fable, interactive session)
+- 2026-07-14 · P0.1 done — baseline ALL GREEN: build 31/31, typecheck 42/42, plugin-patterns pass, plugin-capability report-only pass (note: plugin-inventory RLS deferred to project_rls.sql), cli-smoke pass (Fable)
