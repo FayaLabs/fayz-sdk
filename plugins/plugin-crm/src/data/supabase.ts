@@ -8,11 +8,12 @@ import type {
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getCrmTenantId } from '../lib/tenant'
 import { deriveLeadStatus, deriveQuoteStatus } from '../cascade'
+import { T } from './tables'
 
 function getTenantId(): string | undefined {
   // Plugin-local override wins; otherwise use the app's active tenant (set on
   // org switch). Without this fallback, writes stamp tenant_id=undefined and
-  // fail the persons/orders RLS WITH CHECK (tenant_id IN user_tenant_ids()).
+  // fail the people/orders RLS WITH CHECK (tenant_id IN user_tenant_ids()).
   return getCrmTenantId() ?? getActiveTenantId()
 }
 
@@ -27,23 +28,25 @@ function snakeToCamel(obj: Record<string, unknown>): Record<string, unknown> {
 function getClients() {
   const supabase = getSupabaseClientOptional() as any
   if (!supabase) throw new Error('Supabase not initialized')
-  return { core: supabase.schema('saas_core'), pub: supabase }
+  // Core tables now live in public alongside the plugin tables — a single public
+  // client serves both core (people/orders) and plugin (plg_crm_*) tables.
+  return { core: supabase, pub: supabase }
 }
 
 export function createSupabaseCrmProvider(options?: {
   clientConversion?: { archetypeKind: string; extensionTable: string; fkColumn: string }
 }): CrmDataProvider {
   const provider: CrmDataProvider = {
-    // --- Pipelines (public.pipelines + pipeline_stages) ---
+    // --- Pipelines (public.plg_crm_pipelines + plg_crm_pipeline_stages) ---
     async getPipelines(): Promise<Pipeline[]> {
       const { pub } = getClients()
-      const { data } = await pub.from('pipelines').select('*').eq('is_active', true).order('name')
+      const { data } = await pub.from(T.pipelines).select('*').eq('is_active', true).order('name')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as Pipeline)
     },
 
     async getPipelineStages(pipelineId: string): Promise<PipelineStage[]> {
       const { pub } = getClients()
-      const { data } = await pub.from('pipeline_stages').select('*').eq('pipeline_id', pipelineId).order('order')
+      const { data } = await pub.from(T.pipelineStages).select('*').eq('pipeline_id', pipelineId).order('order')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as PipelineStage)
     },
 
@@ -90,7 +93,7 @@ export function createSupabaseCrmProvider(options?: {
     async createLead(input: CreateLeadInput): Promise<Lead> {
       const { core } = getClients()
       const tenantId = getTenantId()
-      const { data, error } = await core.from('persons').insert({
+      const { data, error } = await core.from('people').insert({
         tenant_id: tenantId, kind: 'lead', name: input.name,
         email: input.email, phone: input.phone,
         notes: input.notes, tags: input.tags ?? [], is_active: true,
@@ -109,7 +112,7 @@ export function createSupabaseCrmProvider(options?: {
       if (partial.phone !== undefined) row.phone = partial.phone
       if (partial.notes !== undefined) row.notes = partial.notes
       if (partial.status) row.metadata = { status: partial.status }
-      const { data, error } = await core.from('persons').update(row).eq('id', id).select().single()
+      const { data, error } = await core.from('people').update(row).eq('id', id).select().single()
       if (error) throw new Error(error.message)
       return (await provider.getLeadById(id))!
     },
@@ -117,7 +120,7 @@ export function createSupabaseCrmProvider(options?: {
     async convertLeadToDeal(leadId: string, dealInput: CreateDealInput): Promise<Deal> {
       const { core } = getClients()
       // Update lead status to converted
-      await core.from('persons').update({ metadata: { status: 'converted' } }).eq('id', leadId)
+      await core.from('people').update({ metadata: { status: 'converted' } }).eq('id', leadId)
       return provider.createDeal({ ...dealInput, leadId } as any)
     },
 
@@ -203,7 +206,7 @@ export function createSupabaseCrmProvider(options?: {
       const { core, pub } = getClients()
       const tenantId = getTenantId()
 
-      // Create order in saas_core
+      // Create order in public.orders
       const { data: order, error } = await core.from('orders').insert({
         tenant_id: tenantId, kind: 'deal', status: 'open',
         total: input.value, party_id: input.contactId,
@@ -214,7 +217,7 @@ export function createSupabaseCrmProvider(options?: {
       if (error) throw new Error(error.message)
 
       // Create deal extension with pipeline/stage info
-      await pub.from('deal_extensions').insert({
+      await pub.from(T.dealExtensions).insert({
         order_id: order.id, tenant_id: tenantId,
         pipeline_id: input.pipelineId, stage_id: input.stageId,
         probability: 0, expected_close_date: input.expectedCloseDate,
@@ -244,15 +247,15 @@ export function createSupabaseCrmProvider(options?: {
         if (partial.stageId) row.stage_id = partial.stageId
         if (partial.probability != null) row.probability = partial.probability
         if (partial.expectedCloseDate) row.expected_close_date = partial.expectedCloseDate
-        await pub.from('deal_extensions').update(row).eq('order_id', id)
+        await pub.from(T.dealExtensions).update(row).eq('order_id', id)
       }
       return (await provider.getDealById(id))!
     },
 
     async moveDealToStage(dealId: string, stageId: string): Promise<Deal> {
       const { core, pub } = getClients()
-      const { data: stageRow } = await pub.from('pipeline_stages').select('*').eq('id', stageId).single()
-      await pub.from('deal_extensions').update({
+      const { data: stageRow } = await pub.from(T.pipelineStages).select('*').eq('id', stageId).single()
+      await pub.from(T.dealExtensions).update({
         stage_id: stageId, probability: stageRow?.probability ?? 0,
       }).eq('order_id', dealId)
       if (stageRow?.is_won) await core.from('orders').update({ status: 'won' }).eq('id', dealId)
@@ -267,10 +270,10 @@ export function createSupabaseCrmProvider(options?: {
           tenantId: stageRow.tenant_id, createdAt: stageRow.created_at,
         }
         // Update lead status
-        const { data: ext } = await pub.from('deal_extensions').select('lead_id').eq('order_id', dealId).single()
+        const { data: ext } = await pub.from(T.dealExtensions).select('lead_id').eq('order_id', dealId).single()
         if (ext?.lead_id) {
           const newLeadStatus = deriveLeadStatus(typedStage)
-          await core.from('persons').update({ metadata: { status: newLeadStatus } }).eq('id', ext.lead_id)
+          await core.from('people').update({ metadata: { status: newLeadStatus } }).eq('id', ext.lead_id)
         }
         // Update quote statuses
         const { data: quotes } = await core.from('orders').select('id, status').eq('kind', 'quote')
@@ -288,10 +291,10 @@ export function createSupabaseCrmProvider(options?: {
       return (await provider.getDealById(dealId))!
     },
 
-    // --- Activities (public.crm_activities) ---
+    // --- Activities (public.plg_crm_activities) ---
     async getActivities(query: ActivityQuery): Promise<PaginatedResult<Activity>> {
       const { pub } = getClients()
-      let qb = pub.from('crm_activities').select('*', { count: 'exact' })
+      let qb = pub.from(T.activities).select('*', { count: 'exact' })
       if (query.dealId) qb = qb.eq('deal_id', query.dealId)
       if (query.leadId) qb = qb.eq('lead_id', query.leadId)
       if (query.activityType) qb = qb.eq('activity_type', query.activityType)
@@ -307,7 +310,7 @@ export function createSupabaseCrmProvider(options?: {
     async createActivity(input: CreateActivityInput): Promise<Activity> {
       const { pub } = getClients()
       const tenantId = getTenantId()
-      const { data, error } = await pub.from('crm_activities').insert({
+      const { data, error } = await pub.from(T.activities).insert({
         tenant_id: tenantId, deal_id: input.dealId, lead_id: input.leadId,
         contact_id: input.contactId, activity_type: input.activityType,
         title: input.title, description: input.description,
@@ -319,12 +322,12 @@ export function createSupabaseCrmProvider(options?: {
 
     async completeActivity(id: string): Promise<Activity> {
       const { pub } = getClients()
-      const { data, error } = await pub.from('crm_activities').update({ completed_at: new Date().toISOString() }).eq('id', id).select().single()
+      const { data, error } = await pub.from(T.activities).update({ completed_at: new Date().toISOString() }).eq('id', id).select().single()
       if (error) throw new Error(error.message)
       return snakeToCamel(data) as unknown as Activity
     },
 
-    // --- Quotes (saas_core.orders kind='quote' + order_items) ---
+    // --- Quotes (public.orders kind='quote' + order_items) ---
     async getQuotes(query: QuoteQuery): Promise<PaginatedResult<Quote>> {
       const { core } = getClients()
       let qb = core.from('orders').select('*', { count: 'exact' }).eq('kind', 'quote')
@@ -504,7 +507,7 @@ export function createSupabaseCrmProvider(options?: {
       const personToConvert = quote.leadId ?? quote.contactId
       if (personToConvert) {
         const clientKind = options?.clientConversion?.archetypeKind ?? 'client'
-        const { data: person } = await core.from('persons')
+        const { data: person } = await core.from('people')
           .select('kind, name, email, phone, tenant_id, metadata')
           .eq('id', personToConvert).single()
 
@@ -512,7 +515,7 @@ export function createSupabaseCrmProvider(options?: {
         const personKind = (person as any)?.kind as string | undefined
         if (person && (personKind === 'lead' || personKind === 'contact')) {
           const personMeta = (person as any)?.metadata ?? {}
-          await core.from('persons').update({
+          await core.from('people').update({
             kind: clientKind,
             metadata: { ...personMeta, convertedFromLead: true },
           }).eq('id', personToConvert)
@@ -577,7 +580,7 @@ export function createSupabaseCrmProvider(options?: {
 
     async getDealByLeadId(leadId: string): Promise<Deal | null> {
       const { pub } = getClients()
-      const { data } = await pub.from('deal_extensions').select('order_id').eq('lead_id', leadId).limit(1)
+      const { data } = await pub.from(T.dealExtensions).select('order_id').eq('lead_id', leadId).limit(1)
       if (!data || data.length === 0) return null
       return provider.getDealById(data[0].order_id)
     },
@@ -588,8 +591,8 @@ export function createSupabaseCrmProvider(options?: {
       const monthStart = new Date().toISOString().slice(0, 7) + '-01'
       const today = new Date().toISOString().slice(0, 10)
 
-      const { count: totalLeads } = await core.from('persons').select('*', { count: 'exact', head: true }).eq('kind', 'lead')
-      const { count: newLeads } = await core.from('persons').select('*', { count: 'exact', head: true }).eq('kind', 'lead').gte('created_at', monthStart)
+      const { count: totalLeads } = await core.from('people').select('*', { count: 'exact', head: true }).eq('kind', 'lead')
+      const { count: newLeads } = await core.from('people').select('*', { count: 'exact', head: true }).eq('kind', 'lead').gte('created_at', monthStart)
       const { data: deals } = await core.from('orders').select('status, total, updated_at').eq('kind', 'deal')
       const allDeals = deals ?? []
       const openDeals = allDeals.filter((d: any) => d.status === 'open')
@@ -597,8 +600,8 @@ export function createSupabaseCrmProvider(options?: {
       const wonThisMonth = wonDeals.filter((d: any) => d.updated_at >= monthStart)
       const convertedLeads = allDeals.length // each deal came from a lead conversion
 
-      const { count: pendingActs } = await pub.from('crm_activities').select('*', { count: 'exact', head: true }).is('completed_at', null)
-      const { count: overdueActs } = await pub.from('crm_activities').select('*', { count: 'exact', head: true }).is('completed_at', null).lt('due_date', today)
+      const { count: pendingActs } = await pub.from(T.activities).select('*', { count: 'exact', head: true }).is('completed_at', null)
+      const { count: overdueActs } = await pub.from(T.activities).select('*', { count: 'exact', head: true }).is('completed_at', null).lt('due_date', today)
 
       return {
         totalLeads: totalLeads ?? 0,
