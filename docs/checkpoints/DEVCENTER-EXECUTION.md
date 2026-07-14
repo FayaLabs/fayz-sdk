@@ -193,13 +193,13 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: 22 pages generated; build green (ADJUSTED: payments not on branch — substitute financial; 19 catalog plugins today, self-heals at merge)
   status: done
 
-- [ ] P4.8 Recursos (troubleshooting, ia, comunidade) + CLI scaffold CLAUDE.md gains docs URL (fayz-sdk cli/src/templates/shared.ts)
-  acceptance: build green; cli-smoke green in fayz-sdk
-  status: todo
+- [x] P4.8 Recursos (troubleshooting, ia, comunidade) + CLI scaffold CLAUDE.md gains docs URL (fayz-sdk cli/src/templates/shared.ts)
+  acceptance: build green; cli-smoke green in fayz-sdk (NOTE: guide is AGENTS.md now, lives in cli/src/commands/create.ts)
+  status: done
 
 - [ ] P4.9 Docs-honesty CI job (.github/workflows): scaffold app with published CLI, run every quickstart command incl. db apply --dry-run, next build
   acceptance: workflow file lints (`act` optional); local dry-run of the same script green
-  status: todo
+  status: in-progress
 
 ## CHECKPOINT 2 — FOUNDER MANUAL (loop STOPS here)
 
