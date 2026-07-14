@@ -13,6 +13,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "test": "tsup && node --test \"test/**/*.test.mjs\"",
     "clean": "rm -rf dist"
   },
   "publishConfig": {

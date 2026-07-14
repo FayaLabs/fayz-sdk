@@ -68,10 +68,10 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: `pnpm --filter @fayz-ai/auth build && node scripts/check-published-shape.mjs`
   status: done
 
-- [ ] A3a `fayz db apply` — plan builder + resolvers (dry-run only)
+- [x] A3a `fayz db apply` — plan builder + resolvers (dry-run only)
   repo: fayz-sdk · files: cli/src/lib/migration-plan.ts (new, pure), cli/src/commands/db.ts (new, --dry-run path), cli/src/index.ts (register `db apply` + HELP). Resolution order: ① @fayz-ai/db migrations via require.resolve ② app drizzle/*.sql ③ app supabase/seed-saas-core.sql ④ enabled plugins from app.manifest.json (reuse cli/src/lib/manifest.ts) → node_modules/@fayz-ai/<plugin>/src/migrations/*.sql ⑤ app src/plugins/*/migrations/*.sql. NEVER resolve ../../fayz-sdk.
   acceptance: `pnpm --filter @fayz-ai/cli build && node cli/dist/index.js db apply --dry-run <scaffolded-tmp-app>` prints ordered plan; unit test for migration-plan passes (`pnpm --filter @fayz-ai/cli test` or node test runner)
-  status: todo
+  status: done
 
 - [ ] A3b `fayz db apply` — Management-API executor + env contract
   repo: fayz-sdk · files: cli/src/lib/supabase-management.ts (new; POST api.supabase.com/v1/projects/{ref}/database/query; port from fayz-app/beauty-saas/scripts/db-apply.mjs), cli/src/commands/db.ts (env: SUPABASE_PROJECT_REF required no default, SUPABASE_PAT; read env → .env.local → .env; confirm-target prompt unless --yes; flags --spine-only --plugins-only --plugin <id>; ends NOTIFY pgrst)
@@ -222,3 +222,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · P0.1 done — baseline ALL GREEN: build 31/31, typecheck 42/42, plugin-patterns pass, plugin-capability report-only pass (note: plugin-inventory RLS deferred to project_rls.sql), cli-smoke pass (Fable)
 - 2026-07-14 · A1 done — @fayz-ai/db `files` += migrations (8 spine SQL files 001–008 confirmed in tarball); check-published-shape gains migrations rule; scoped build+typecheck green (Opus agent, verified by orchestrator)
 - 2026-07-14 · A2 done — auth main/module/types → dist (+ exports["."].types was also src, fixed); shape script gains no-src-entry-points rule for all 30 pkgs (auth was sole violator); external ESM tarball import simulated OK (workspace:^ rewrite caveat is publish-time normal); root typecheck 42/42 (Opus agent, verified by orchestrator)
+- 2026-07-14 · A3a done — cli/src/lib/migration-plan.ts (pure planner, 5-source resolution) + cli/src/commands/db.ts (`db apply --dry-run` + filter flags; non-dry-run stubbed exit 1) + `pnpm --filter @fayz-ai/cli test` (node --test, 9/9). KEY FINDING: require.resolve('@fayz-ai/db/package.json') fails (exports map omits ./package.json) — planner uses resolvePackageDir() node_modules walker; A3b must reuse it. Verified dry-run on scaffold: spine 8 + crm 4 files, dashboard skip noted (Opus agent, verified by orchestrator)

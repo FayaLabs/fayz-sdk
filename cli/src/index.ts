@@ -1,5 +1,6 @@
 import { create } from './commands/create.js'
 import { createPlugin } from './commands/create-plugin.js'
+import { db } from './commands/db.js'
 import { doctor } from './commands/doctor.js'
 import { extract } from './commands/extract.js'
 
@@ -10,6 +11,7 @@ Usage:
   fayz create plugin <name>               Scaffold an app-local (incubator) plugin
   fayz doctor [dir]                       Validate manifest + architecture boundaries
   fayz extract [dir]                      Assisted code-config → manifest migration
+  fayz db apply [dir] --dry-run           Plan the Supabase migration order (spine → drizzle → seed → plugins)
   fayz --help                             Show this help
   fayz --version                          Show version
 
@@ -24,6 +26,8 @@ function main(argv: string[]): number {
     case 'create':
       if (rest[0] === 'plugin') return createPlugin(rest[1] ?? '')
       return create(rest[0] ?? '', rest[1] ?? '')
+    case 'db':
+      return db(rest[0], rest.slice(1))
     case 'doctor':
       return doctor(rest[0])
     case 'extract':
