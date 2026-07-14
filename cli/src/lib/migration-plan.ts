@@ -77,11 +77,34 @@ function sqlFilesIn(dir: string): string[] {
 }
 
 /**
+ * Plugin ids whose companion migrations ship in a package that does NOT follow
+ * the `@fayz-ai/plugin-<id>` convention. shop + courses are first-class SDK
+ * packages (@fayz-ai/shop, @fayz-ai/courses) with root-level migrations/.
+ */
+const PLUGIN_PACKAGE_OVERRIDES: Record<string, string> = {
+  shop: '@fayz-ai/shop',
+  courses: '@fayz-ai/courses',
+}
+
+/**
  * Map a manifest plugin id (e.g. 'crm') to its published package name.
- * The SDK convention is a stable `@fayz-ai/plugin-<id>` mapping.
+ * The SDK convention is a stable `@fayz-ai/plugin-<id>` mapping, overridden for
+ * the handful of first-class packages (shop, courses) that predate it.
  */
 export function pluginPackageName(id: string): string {
-  return `@fayz-ai/plugin-${id}`
+  return PLUGIN_PACKAGE_OVERRIDES[id] ?? `@fayz-ai/plugin-${id}`
+}
+
+/**
+ * Resolve a package's companion migration .sql files. Convention plugins keep
+ * them under `src/migrations/`; the first-class packages (@fayz-ai/shop,
+ * @fayz-ai/courses) keep them at the package root under `migrations/`. Check
+ * both so either layout is provisioned.
+ */
+function pluginMigrationFiles(pluginDir: string): string[] {
+  const srcFiles = sqlFilesIn(join(pluginDir, 'src', 'migrations'))
+  if (srcFiles.length > 0) return srcFiles
+  return sqlFilesIn(join(pluginDir, 'migrations'))
 }
 
 /**
@@ -159,7 +182,7 @@ export function buildMigrationPlan(appDir: string, options: BuildMigrationPlanOp
     }
   }
 
-  // ③ saas_core catalog seed (app-owned, depends on spine + drizzle tables).
+  // ③ core catalog seed (app-owned, depends on spine + drizzle tables).
   if (wantDrizzleSeed) {
     const seed = join(root, 'supabase', 'seed-saas-core.sql')
     if (existsSync(seed)) {
@@ -195,9 +218,9 @@ export function buildMigrationPlan(appDir: string, options: BuildMigrationPlanOp
           )
           continue
         }
-        const files = sqlFilesIn(join(pluginDir, 'src', 'migrations'))
+        const files = pluginMigrationFiles(pluginDir)
         if (files.length === 0) {
-          notes.push(`plugin '${id}': ${pkg} ships no src/migrations — skipped`)
+          notes.push(`plugin '${id}': ${pkg} ships no migrations — skipped`)
           continue
         }
         steps.push({ order: 0, source: 'plugin', id, files })
