@@ -1,0 +1,715 @@
+{
+  "generatedFrom": "scripts/emit-plugin-catalog.mjs",
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "id": "plugin-agenda",
+      "package": "@fayz-ai/plugin-agenda",
+      "version": "0.1.8",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-agenda plugin",
+      "readmeIntro": "Every service business runs on a calendar. Salons book stylists, clinics book doctors, studios book rooms — the same primitive, rebuilt badly a thousand times. plugin-agenda is that primitive done once: a resource-aware calendar with appointments, blocks, working hours, conflict detection, and drag-and-drop, all driven by config instead of forks.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createAgendaPlugin"
+    },
+    {
+      "id": "plugin-auth",
+      "package": "@fayz-ai/plugin-auth",
+      "version": "0.1.0",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "visual",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — reusable auth runtime and UI integration plugin",
+      "readmeIntro": "Reusable auth runtime and UI for Fayz apps.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": null
+    },
+    {
+      "id": "plugin-automations",
+      "package": "@fayz-ai/plugin-automations",
+      "version": "0.2.2",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "visual",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — workflows & automations plugin",
+      "readmeIntro": "The best automations don't live in a third-party tool watching webhooks from the outside — they live inside the app, listening to its own events. plugin-automations is the GoHighLevel \"Automation\" surface for Fayz: when a form is submitted, a call is missed, or a deal is won, fan out into SMS, email, waits, tags, and tasks. Because it's a plugin in the same defineSaas app, it can react to real…",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createAutomationsPlugin"
+    },
+    {
+      "id": "plugin-conversations",
+      "package": "@fayz-ai/plugin-conversations",
+      "version": "0.2.3",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — unified conversations / omni-channel inbox plugin",
+      "readmeIntro": "Customers reach out everywhere — a WhatsApp here, an Instagram DM there, an email, a text. Replying across five tabs is how businesses drop conversations. plugin-conversations is the GoHighLevel-style unified inbox for the Fayz engine: every channel collapses into one threaded view, so a salon, a restaurant, or an agency answers everyone from a single place.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createConversationsPlugin"
+    },
+    {
+      "id": "plugin-courses",
+      "package": "@fayz-ai/plugin-courses",
+      "version": "0.2.2",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — courses admin management plugin",
+      "readmeIntro": "Every vertical eventually wants to sell knowledge. A salon teaches a masterclass, a clinic runs patient education, a gym ships training programs. Bolting an LMS onto each is wasted work. This plugin makes \"courses\" a capability you snap on: a navigation entry plus admin pages for authoring courses, organizing modules and lessons, and tracking enrollments and progress.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createCoursesPlugin"
+    },
+    {
+      "id": "plugin-crm",
+      "package": "@fayz-ai/plugin-crm",
+      "version": "0.2.3",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./schema"
+      ],
+      "description": "Fayz SDK — plugin-crm plugin",
+      "readmeIntro": "Every business that sells anything needs a way to track who's interested, what's in motion, and what's about to close. Most verticals end up rebuilding the same CRM badly. plugin-crm is the one sales engine — leads, a drag-style pipeline, deals, quotes, and activities — that snaps into a defineSaas app and adapts to the vertical underneath it.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": true,
+      "migrationsCount": 4,
+      "factory": "createCrmPlugin"
+    },
+    {
+      "id": "plugin-dashboard",
+      "package": "@fayz-ai/plugin-dashboard",
+      "version": "0.1.5",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "visual",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — plugin-dashboard plugin",
+      "readmeIntro": "A SaaS home page is never owned by one team. Bookings wants today's agenda, finance wants revenue, the shop wants top products. The usual outcome is one god-component that imports everything and rots. This plugin kills that. It provides the / home surface and a widget registry: every plugin contributes its own dashboardWidgets, and the dashboard renders, orders, and lays them out into a single…",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createDashboardPlugin"
+    },
+    {
+      "id": "plugin-financial",
+      "package": "@fayz-ai/plugin-financial",
+      "version": "0.1.7",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-financial plugin",
+      "readmeIntro": "Most vertical SaaS bolts on finance as an afterthought: a \"total\" field, a spreadsheet export, and a prayer. plugin-financial makes money a first-class part of the app. It models the full order-to-cash loop — receivables, payables, cash registers, statements, card reconciliation, and commission rules — as composable modules you toggle per business.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": true,
+      "migrationsCount": 9,
+      "factory": "createFinancialPlugin"
+    },
+    {
+      "id": "plugin-forms",
+      "package": "@fayz-ai/plugin-forms",
+      "version": "0.1.5",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-forms plugin",
+      "readmeIntro": "Every real business runs on forms it never wanted to build: anamnesis sheets, evolution notes, consent contracts, intake docs. plugin-forms kills that busywork. Define a template once, attach a filled document to a person, and the data lives in your tenant — not in a PDF nobody can query.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": true,
+      "migrationsCount": 2,
+      "factory": "createCustomFormsPlugin"
+    },
+    {
+      "id": "plugin-inventory",
+      "package": "@fayz-ai/plugin-inventory",
+      "version": "0.1.6",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-inventory plugin",
+      "readmeIntro": "Inventory is the universal organ — a salon counts product, a restaurant counts ingredients, a clinic counts supplies. plugin-inventory is that organ as a plugin: a product catalog, stock entry/exit/history, optional recipes (bill of materials), and a dashboard that surfaces stock value and what's running low. It's scope: universal, so it snaps into any vertical.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": true,
+      "migrationsCount": 3,
+      "factory": "createInventoryPlugin"
+    },
+    {
+      "id": "plugin-marketing",
+      "package": "@fayz-ai/plugin-marketing",
+      "version": "0.1.6",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — marketing campaigns & broadcasts plugin",
+      "readmeIntro": "Marketing analytics are always the same shape — channels, campaigns, a funnel, landing-page CVR — but what counts as a \"conversion\" changes per business. A salon converts a booking, a store converts an order, an agency converts a lead. plugin-marketing is one plugin that adapts to all of them: pick a domain preset (or pass an explicit conversion model + channels) and the funnel, channel…",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createMarketingPlugin"
+    },
+    {
+      "id": "plugin-menu",
+      "package": "@fayz-ai/plugin-menu",
+      "version": "0.2.3",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-menu plugin",
+      "readmeIntro": "A menu is the product catalog of a food business — and it changes by the hour. plugin-menu is the management surface for that: items, categories, allergens, and modifiers, with sold-out toggles that take effect instantly. It's the foundation the orders flow reads from, so the two compose into a working restaurant.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createMenuPlugin"
+    },
+    {
+      "id": "plugin-orders",
+      "package": "@fayz-ai/plugin-orders",
+      "version": "0.2.3",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-orders plugin",
+      "readmeIntro": "Orders are the heartbeat of an operations business. plugin-orders gives a restaurant — or any food vertical — a real-time order board: dine-in, takeout, and delivery flowing across a kanban, with history behind it. It's the surface the floor staff actually live in.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createOrdersPlugin"
+    },
+    {
+      "id": "plugin-reports",
+      "package": "@fayz-ai/plugin-reports",
+      "version": "0.1.6",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — plugin-reports plugin",
+      "readmeIntro": "Every business eventually asks the same thing: \"show me the numbers.\" plugin-reports answers it without a BI bolt-on. You declare reports as data — columns, filters, date ranges, badges, and a data source — and the plugin renders a searchable report hub plus a filterable, exportable viewer. No per-report UI, no copy-pasted tables.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createReportsPlugin"
+    },
+    {
+      "id": "plugin-reputation",
+      "package": "@fayz-ai/plugin-reputation",
+      "version": "0.2.2",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "visual",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — reviews & reputation management plugin",
+      "readmeIntro": "Reputation is the cheapest growth lever a local business has, and the easiest to ignore. Reviews sit scattered across Google and Facebook, replies never happen, and nobody ever asks the happy customer for a rating. plugin-reputation is the GoHighLevel-style reputation surface for the Fayz engine: a single home for your rating, your review feed, and the actions that move it.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createReputationPlugin"
+    },
+    {
+      "id": "plugin-shop",
+      "package": "@fayz-ai/plugin-shop",
+      "version": "0.2.4",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — plugin-shop plugin",
+      "readmeIntro": "Every vertical eventually wants to sell something. A salon sells retail product, a restaurant sells gift cards, a clinic sells packages. plugin-shop is the e-commerce admin surface that snaps into that need — a catalog, orders, customers, and discounts — without making you rebuild Shopify from scratch.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createShopPlugin"
+    },
+    {
+      "id": "plugin-sites",
+      "package": "@fayz-ai/plugin-sites",
+      "version": "0.2.2",
+      "kind": "plugin",
+      "status": "preview",
+      "capability": "visual",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "[experimental] Fayz SDK — sites, funnels & landing pages plugin",
+      "readmeIntro": "Most teams duct-tape a page builder onto a separate CRM and pray the leads sync. plugin-sites is the GoHighLevel \"Sites\" surface, native to your Fayz app: funnels, landing pages, and full websites that capture leads straight into the same tenant your pipeline lives in. No webhooks, no Zapier, no copy-paste.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createSitesPlugin"
+    },
+    {
+      "id": "plugin-tables",
+      "package": "@fayz-ai/plugin-tables",
+      "version": "0.2.3",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "partial",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-tables plugin",
+      "readmeIntro": "Restaurants don't run on records — they run on the room. plugin-tables gives the food vertical a real floor plan: zones, tables, and live status (available, occupied, reserved, cleaning), with seat and close flows wired to your own backend. It's the difference between a generic CRM and software a host can actually work a Friday night on.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      },
+      "hasMigrations": false,
+      "migrationsCount": 0,
+      "factory": "createTablesPlugin"
+    },
+    {
+      "id": "plugin-tasks",
+      "package": "@fayz-ai/plugin-tasks",
+      "version": "0.1.6",
+      "kind": "plugin",
+      "status": "beta",
+      "capability": "capability",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK — plugin-tasks plugin",
+      "readmeIntro": "Work happens between the records. A salon owner needs to \"call the supplier,\" a clinic admin needs to \"follow up on lab results\" — small things that never fit neatly into a booking or an invoice. plugin-tasks gives every Fayz app a lightweight, always-available task list: a topbar button that opens a drawer for quick-add, statuses, priorities, due dates, labels, and assignees.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      },
+      "hasMigrations": true,
+      "migrationsCount": 1,
+      "factory": "createTasksPlugin"
+    }
+  ],
+  "packages": [
+    {
+      "id": "app-runtime",
+      "package": "@fayz-ai/app-runtime",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "internal",
+      "private": true,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./styles.css"
+      ],
+      "description": "Fayz SDK umbrella runtime — single-pin re-export of core, auth, saas, ui, shop, storefront for generated apps",
+      "readmeIntro": null,
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      }
+    },
+    {
+      "id": "auth",
+      "package": "@fayz-ai/auth",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK auth — pluggable authentication adapters with React hooks",
+      "readmeIntro": "Auth shouldn't be the thing that couples your app to a backend. @fayz-ai/auth wraps authentication behind the core AuthAdapter contract so a Fayz app reads the same whether it's running on Supabase in production or a mock adapter in tests and previews. One provider, one useAuth hook, a Zustand-backed session store — the rest is an implementation detail you can swap.",
+      "channels": {
+        "stable": "^0.1.6",
+        "latest": "^0.1.6",
+        "preview": "^0.1.6"
+      }
+    },
+    {
+      "id": "cli",
+      "package": "@fayz-ai/cli",
+      "version": "0.3.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [],
+      "description": "Fayz CLI — scaffold, validate, extract and upgrade repo-per-app projects",
+      "readmeIntro": "The Fayz SDK command-line tool. Scaffolds repo-per-app projects, validates manifests/architecture boundaries, assists code-config → manifest migration, and provisions an app's Supabase database from its installed @fayz-ai/ packages.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      }
+    },
+    {
+      "id": "core",
+      "package": "@fayz-ai/core",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./data",
+        "./entity",
+        "./plugin",
+        "./i18n",
+        "./router",
+        "./runtime",
+        "./types",
+        "./testing",
+        "./integrations"
+      ],
+      "description": "Fayz SDK core — data providers, entity system, plugin runtime, i18n, routing",
+      "readmeIntro": "A salon, a restaurant, and a clinic are the same engine with different plugins enabled. @fayz-ai/core is that engine — headless and UI-free. It defines the plugin contract, the entity/CRUD model, the data-provider abstraction, and the manifest format that describes an entire app as data. Plugins declare what they are; core resolves them into navigation, routes, widgets, and tools at runtime.",
+      "channels": {
+        "stable": "^0.1.6",
+        "latest": "^0.1.6",
+        "preview": "^0.1.6"
+      }
+    },
+    {
+      "id": "courses",
+      "package": "@fayz-ai/courses",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK education domain — courses, modules, lessons, enrollments, progress",
+      "readmeIntro": "@fayz-ai/courses is the headless learning engine: a CoursesProvider contract plus the domain types and hooks for courses, modules, lessons, enrollments, and progress tracking. It owns what learning means so course-admin and member surfaces only have to render it — the education-side mirror of how @fayz-ai/shop powers commerce.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      }
+    },
+    {
+      "id": "db",
+      "package": "@fayz-ai/db",
+      "version": "0.1.2",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK database layer — Drizzle schema primitives, spine references, and migration helpers shared across plugins.",
+      "readmeIntro": "When apps are composed from plugins, their data models have to compose too. @fayz-ai/db is the schema spine: a small set of canonical Drizzle tables — tenants, persons, orders, bookings, products — plus the column helpers (tenant id, timestamps) that plugin schemas build on. Every plugin references the same spine, so a CRM's clients and an agenda's bookings agree on what a person and a tenant are.",
+      "channels": {
+        "stable": "^0.1.1",
+        "latest": "^0.1.1",
+        "preview": "^0.1.1"
+      }
+    },
+    {
+      "id": "portal",
+      "package": "@fayz-ai/portal",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        "."
+      ],
+      "description": "Fayz SDK member/learner portal scaffold — authenticated 'my courses' + player surface",
+      "readmeIntro": "Every course or membership product needs a second front door: not the admin app the creator uses, but the logged-in space their members live in. @fayz-ai/portal is that surface — an opinionated, auth-gated member shell that renders \"my courses,\" a lesson player, and an account page on top of @fayz-ai/courses and @fayz-ai/auth. Compose it once and your learners get a real portal instead of a…",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      }
+    },
+    {
+      "id": "saas",
+      "package": "@fayz-ai/saas",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./ui",
+        "./db",
+        "./org",
+        "./billing",
+        "./permissions"
+      ],
+      "description": "Fayz SDK SaaS layer — multi-tenancy, billing, permissions, org management",
+      "readmeIntro": "This is where the Fayz pitch becomes a product. @fayz-ai/saas is the multi-tenant layer that wraps the headless core in everything a commercial app needs: organizations and tenancy, role-based permissions, billing, a native CRUD engine, and a full admin shell. You enable a set of plugins, call defineSaas, and get a running app with auth, org switching, permission gates, and a generated admin UI.",
+      "channels": {
+        "stable": "^0.1.6",
+        "latest": "^0.1.6",
+        "preview": "^0.1.6"
+      }
+    },
+    {
+      "id": "sdk",
+      "package": "@fayz-ai/sdk",
+      "version": "0.6.5",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./app-params",
+        "./client",
+        "./shop",
+        "./release-channels",
+        "./release-channels.json",
+        "./supported-surface",
+        "./supported-surface.json",
+        "./ai-builder",
+        "./runtime",
+        "./types",
+        "./vite"
+      ],
+      "description": "Fayz SDK — API client, app params, runtime broker helpers, and shared types for generated Fayz projects",
+      "readmeIntro": "Fayz builds real, multi-tenant SaaS apps by composing plugins. @fayz-ai/sdk is the seam between a generated Fayz project and the platform behind it: a typed API client, the shared manifest/user/params types, a runtime broker for OAuth-backed integrations, and the release-channel resolver that keeps every package on a coherent version set.",
+      "channels": {
+        "stable": "^0.1.5",
+        "latest": "^0.1.5",
+        "preview": "^0.1.5"
+      }
+    },
+    {
+      "id": "shop",
+      "package": "@fayz-ai/shop",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./client",
+        "./admin",
+        "./runtime",
+        "./provider",
+        "./types",
+        "./catalog",
+        "./mock"
+      ],
+      "description": "Fayz SDK ecommerce layer — products, orders, customers, discounts, shipping",
+      "readmeIntro": "@fayz-ai/shop is the headless ecommerce engine: a ShopProvider contract plus the domain types for products, carts, orders, customers, discounts, and shipping. It owns what commerce means so the storefront (@fayz-ai/storefront) and admin surfaces only have to render it.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      }
+    },
+    {
+      "id": "storefront",
+      "package": "@fayz-ai/storefront",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./ui",
+        "./catalog",
+        "./shop"
+      ],
+      "description": "Fayz SDK storefront kit — Shopify-style customer-facing ecommerce template components",
+      "readmeIntro": "@fayz-ai/storefront is the customer-facing surface of the Fayz SDK: a storefront scaffold that renders a page as a tree of blocks (hero, products, manifesto, cart, …) defined in the app manifest. Two completely different brands come out of the same template with zero custom components — the storefront is data, not a fork.",
+      "channels": {
+        "stable": null,
+        "latest": null,
+        "preview": null
+      }
+    },
+    {
+      "id": "ui",
+      "package": "@fayz-ai/ui",
+      "version": "0.6.0",
+      "kind": "package",
+      "status": "beta",
+      "private": false,
+      "publicSurface": false,
+      "subpathExports": [
+        ".",
+        "./primitives",
+        "./layout",
+        "./theme",
+        "./dashboard",
+        "./styles.css",
+        "./preset",
+        "./tailwind"
+      ],
+      "description": "Fayz SDK UI — Radix + Tailwind component library with CRUD engine and layout shells",
+      "readmeIntro": "A composed Fayz app needs to look like one product, not a pile of plugins. @fayz-ai/ui is the design layer that makes that true: accessible Radix-backed primitives, a data table, layout shells (app shell, sidebar, module pages), a themeable token system, and a dashboard widget kit that plugins contribute KPIs, charts, and tables into. Salon, restaurant, clinic — same shell, same widgets,…",
+      "channels": {
+        "stable": "^0.1.6",
+        "latest": "^0.1.6",
+        "preview": "^0.1.6"
+      }
+    }
+  ]
+}
