@@ -63,10 +63,10 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: `node scripts/check-published-shape.mjs && cd packages/db && npm pack --dry-run --json | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const f=JSON.parse(d)[0].files.map(x=>x.path);process.exit(f.some(p=>/^migrations\/.+\.sql$/.test(p))?0:1)})"`
   status: done
 
-- [ ] A2 Fix @fayz-ai/auth legacy entry points to dist
+- [x] A2 Fix @fayz-ai/auth legacy entry points to dist
   repo: fayz-sdk · files: packages/auth/package.json (main/module/types → dist), scripts/check-published-shape.mjs (new rule: published main/types must point at dist/)
   acceptance: `pnpm --filter @fayz-ai/auth build && node scripts/check-published-shape.mjs`
-  status: todo
+  status: done
 
 - [ ] A3a `fayz db apply` — plan builder + resolvers (dry-run only)
   repo: fayz-sdk · files: cli/src/lib/migration-plan.ts (new, pure), cli/src/commands/db.ts (new, --dry-run path), cli/src/index.ts (register `db apply` + HELP). Resolution order: ① @fayz-ai/db migrations via require.resolve ② app drizzle/*.sql ③ app supabase/seed-saas-core.sql ④ enabled plugins from app.manifest.json (reuse cli/src/lib/manifest.ts) → node_modules/@fayz-ai/<plugin>/src/migrations/*.sql ⑤ app src/plugins/*/migrations/*.sql. NEVER resolve ../../fayz-sdk.
@@ -221,3 +221,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · plan approved; tracker created; branch devcenter/p1-golden-path cut from main (Fable, interactive session)
 - 2026-07-14 · P0.1 done — baseline ALL GREEN: build 31/31, typecheck 42/42, plugin-patterns pass, plugin-capability report-only pass (note: plugin-inventory RLS deferred to project_rls.sql), cli-smoke pass (Fable)
 - 2026-07-14 · A1 done — @fayz-ai/db `files` += migrations (8 spine SQL files 001–008 confirmed in tarball); check-published-shape gains migrations rule; scoped build+typecheck green (Opus agent, verified by orchestrator)
+- 2026-07-14 · A2 done — auth main/module/types → dist (+ exports["."].types was also src, fixed); shape script gains no-src-entry-points rule for all 30 pkgs (auth was sole violator); external ESM tarball import simulated OK (workspace:^ rewrite caveat is publish-time normal); root typecheck 42/42 (Opus agent, verified by orchestrator)

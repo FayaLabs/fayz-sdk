@@ -3,7 +3,7 @@
 // would publish must include built JS (and, except for the saas-core-bridged
 // plugins still pending W6 de-bridge, type declarations). Run after a full build.
 import { execFileSync } from 'node:child_process'
-import { readdirSync, existsSync } from 'node:fs'
+import { readdirSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = process.cwd()
@@ -32,6 +32,17 @@ for (const { group, name, dir } of dirs) {
   // relative to the installed package (require.resolve('@fayz-ai/db/package.json')).
   if (name === 'db' && !files.some((f) => /^migrations\/.+\.sql$/.test(f))) {
     problems.push('missing migrations/*.sql (spine SQL)')
+  }
+  // Legacy entry-point fields (main/module/types) must resolve to built dist, not
+  // raw TS in src/. Tools that read these fields (older bundlers, some TS
+  // moduleResolution modes, jest) would otherwise consume unbuilt source from the
+  // published tarball. The `source` export condition legitimately points at src/.
+  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+  for (const field of ['main', 'module', 'types']) {
+    const val = pkg[field]
+    if (typeof val === 'string' && /(^\.?\/?)src\//.test(val)) {
+      problems.push(`${field} points into src/ (${val}); should point at dist/`)
+    }
   }
   if (problems.length) {
     failures++
