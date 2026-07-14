@@ -16,7 +16,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "migrations"
   ],
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",

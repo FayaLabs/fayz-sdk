@@ -28,6 +28,11 @@ for (const { group, name, dir } of dirs) {
   if (!has('dist/index.js')) problems.push('missing dist/index.js (ESM)')
   if (!has('dist/index.cjs')) problems.push('missing dist/index.cjs (CJS)')
   if (needDts && !has('dist/index.d.ts')) problems.push('missing dist/index.d.ts (types)')
+  // @fayz-ai/db ships spine SQL so `fayz db apply` can resolve migrations/*.sql
+  // relative to the installed package (require.resolve('@fayz-ai/db/package.json')).
+  if (name === 'db' && !files.some((f) => /^migrations\/.+\.sql$/.test(f))) {
+    problems.push('missing migrations/*.sql (spine SQL)')
+  }
   if (problems.length) {
     failures++
     console.error(`✗ ${group}/${name}: ${problems.join('; ')}`)

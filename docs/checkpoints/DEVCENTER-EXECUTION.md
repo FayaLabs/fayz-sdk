@@ -58,10 +58,10 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 1 — Golden path (fayz-sdk) · branch: devcenter/p1-golden-path
 
-- [ ] A1 Ship spine SQL in @fayz-ai/db tarball
+- [x] A1 Ship spine SQL in @fayz-ai/db tarball
   repo: fayz-sdk · files: packages/db/package.json (`files` += "migrations"), scripts/check-published-shape.mjs (assert migrations present in `npm pack --dry-run --json`)
   acceptance: `node scripts/check-published-shape.mjs && cd packages/db && npm pack --dry-run --json | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const f=JSON.parse(d)[0].files.map(x=>x.path);process.exit(f.some(p=>/^migrations\/.+\.sql$/.test(p))?0:1)})"`
-  status: todo
+  status: done
 
 - [ ] A2 Fix @fayz-ai/auth legacy entry points to dist
   repo: fayz-sdk · files: packages/auth/package.json (main/module/types → dist), scripts/check-published-shape.mjs (new rule: published main/types must point at dist/)
@@ -220,3 +220,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 - 2026-07-14 · plan approved; tracker created; branch devcenter/p1-golden-path cut from main (Fable, interactive session)
 - 2026-07-14 · P0.1 done — baseline ALL GREEN: build 31/31, typecheck 42/42, plugin-patterns pass, plugin-capability report-only pass (note: plugin-inventory RLS deferred to project_rls.sql), cli-smoke pass (Fable)
+- 2026-07-14 · A1 done — @fayz-ai/db `files` += migrations (8 spine SQL files 001–008 confirmed in tarball); check-published-shape gains migrations rule; scoped build+typecheck green (Opus agent, verified by orchestrator)
