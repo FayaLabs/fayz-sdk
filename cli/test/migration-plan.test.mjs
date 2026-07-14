@@ -116,8 +116,9 @@ test('full plan ordering: spine → drizzle → seed → plugin → incubator', 
     assert.equal(plan.totalFiles, 8)
     // dashboard enabled but empty → a note, not a step
     assert.ok(plan.notes.some((n) => n.includes("plugin 'dashboard'")))
-    // files are sorted by filename within a step
-    assert.ok(plan.steps[0].files[0].endsWith('001_a.sql'))
+    // files are sorted by filename within a step; each entry carries a checksum
+    assert.ok(plan.steps[0].files[0].path.endsWith('001_a.sql'))
+    assert.match(plan.steps[0].files[0].checksum, /^[0-9a-f]{64}$/)
   } finally {
     cleanup(app)
   }
@@ -269,7 +270,7 @@ test('root-level migrations/ (shop/courses shape) are resolved for the plugin st
       ['courses', 1],
     ])
     // resolved from the package ROOT migrations/, not src/migrations/
-    assert.ok(pluginSteps[0].files[0].endsWith('0001_shop_tables.sql'))
+    assert.ok(pluginSteps[0].files[0].path.endsWith('0001_shop_tables.sql'))
   } finally {
     cleanup(app)
   }
@@ -282,7 +283,7 @@ test('src/migrations/ takes precedence when both layouts exist', () => {
     const plan = buildMigrationPlan(app)
     const crm = plan.steps.find((s) => s.source === 'plugin' && s.id === 'crm')
     assert.ok(crm)
-    assert.ok(crm.files[0].includes(join('src', 'migrations')))
+    assert.ok(crm.files[0].path.includes(join('src', 'migrations')))
   } finally {
     cleanup(app)
   }

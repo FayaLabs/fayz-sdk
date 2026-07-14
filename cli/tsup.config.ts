@@ -8,6 +8,8 @@ export default defineConfig({
     index: 'src/index.ts',
     'lib/migration-plan': 'src/lib/migration-plan.ts',
     'lib/supabase-management': 'src/lib/supabase-management.ts',
+    'lib/ledger': 'src/lib/ledger.ts',
+    'lib/pools': 'src/lib/pools.ts',
   },
   format: ['esm'],
   target: 'node18',

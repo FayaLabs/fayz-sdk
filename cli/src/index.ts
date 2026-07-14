@@ -13,6 +13,10 @@ Usage:
   fayz extract [dir]                      Assisted code-config → manifest migration
   fayz db apply [dir] --dry-run           Plan the Supabase migration order (spine → drizzle → seed → plugins)
   fayz db apply [dir] [--yes]             Apply the plan via the Supabase Management API (prompts unless --yes)
+  fayz db pool status                     Show each industry pool's migration ledger (Runner v2)
+  fayz db pool apply <name> --app <dir>   Ledger-gated apply of an app's plan to one industry pool
+  fayz db pool move-tenant                Print the (manual, not-yet-automated) tenant-move procedure
+  fayz db fan-out --app <dir>             Apply an app's plan across pools: canary first, then the rest
   fayz --help                             Show this help
   fayz --version                          Show version
 
@@ -23,10 +27,23 @@ fayz db apply flags:
   --plugins-only     Apply only plugin + incubator migrations
   --only-plugins a,b Restrict the plugin step to the named plugin ids
 
+fayz db pool / fan-out (industry pools — Runner v2):
+  Applies are ALWAYS ledger-gated: an unchanged file is skipped; an already-applied
+  file whose checksum changed is a HARD STOP (never edit an applied migration —
+  author a new file). Pool refs come from cli/pools.config.json (--pools-file to
+  override); the access token comes from SUPABASE_PAT / SUPABASE_ACCESS_TOKEN.
+  --pools-file f     Use an alternate pools registry file
+  --app <dir>        App whose installed packages determine the plugin set
+  --industry all|<s> fan-out scope (default: all pools)
+  --canary <pool>    Override the canary (default: the pool flagged canary:true)
+  --allow-critical   Required (with --yes) to touch a dataCritical pool
+  PROVISIONING pools are skipped in fan-out unless named explicitly.
+
 fayz db apply env (required for a real apply; never for --dry-run):
   SUPABASE_PROJECT_REF   Project ref (alias: SUPABASE_REF) — dashboard → Project Settings → General
   SUPABASE_PAT           Access token (alias: SUPABASE_ACCESS_TOKEN) — dashboard → Account → Access Tokens
   Read from process env, then <app>/.env.local, then <app>/.env (files never override process env).
+  (pool/fan-out need only the token; each pool's ref comes from the pools file.)
 
 Docs: fayz-sdk/docs/architecture-boundaries.md
 `

@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -44,8 +45,9 @@ function planWithFiles(spec) {
     const files = s.files.map((name) => {
       const p = join(root, name)
       mkdirSync(join(p, '..'), { recursive: true })
-      writeFileSync(p, `-- ${name}\nSELECT 1;\n`)
-      return p
+      const content = `-- ${name}\nSELECT 1;\n`
+      writeFileSync(p, content)
+      return { path: p, checksum: createHash('sha256').update(content).digest('hex') }
     })
     return { order: i + 1, source: s.source, id: s.id, files }
   })
@@ -147,7 +149,7 @@ test('ManagementApiError carries status + body; runQuery surfaces status', async
 test('executor reports an unreadable SQL file without a network call', async () => {
   const plan = {
     appDir: '/nope',
-    steps: [{ order: 1, source: 'spine', id: '@fayz-ai/db', files: ['/nope/does-not-exist.sql'] }],
+    steps: [{ order: 1, source: 'spine', id: '@fayz-ai/db', files: [{ path: '/nope/does-not-exist.sql', checksum: 'x' }] }],
     notes: [],
     totalFiles: 1,
   }

@@ -9,6 +9,7 @@ import {
   missingEnvMessage,
   resolveSupabaseEnv,
 } from '../lib/supabase-management.js'
+import { fanOut, pool } from './pool.js'
 
 // `fayz db apply [dir]` — provision an app's Supabase database from its INSTALLED
 // @fayz-ai/* packages. A3a shipped the pure planner + `--dry-run` (zero network).
@@ -50,7 +51,7 @@ function printPlan(plan: MigrationPlan): void {
     }
     console.log(`  ${String(step.order).padStart(2)}. [${label}] ${step.id}  (${step.files.length} file(s))`)
     for (const f of step.files) {
-      console.log(`        ${displayPath(plan.appDir, f)}`)
+      console.log(`        ${displayPath(plan.appDir, f.path)}`)
     }
   }
   if (plan.notes.length > 0) {
@@ -104,8 +105,14 @@ async function promptConfirm(question: string): Promise<boolean> {
 }
 
 export async function db(sub: string | undefined, args: string[]): Promise<number> {
+  // Runner v2 pool orchestration lives in commands/pool.ts.
+  if (sub === 'pool') return pool(args[0], args.slice(1))
+  if (sub === 'fan-out') return fanOut(args)
+
   if (sub !== 'apply') {
-    console.error(`✗ Unknown 'fayz db' subcommand "${sub ?? ''}". Try: fayz db apply [dir] --dry-run`)
+    console.error(
+      `✗ Unknown 'fayz db' subcommand "${sub ?? ''}". Try: apply [dir] --dry-run | pool status | fan-out --app <dir>`,
+    )
     return 1
   }
 
