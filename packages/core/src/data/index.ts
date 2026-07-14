@@ -1,4 +1,5 @@
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './supabase'
+export { getFayzCloudClient, FAYZ_CLOUD_URL, FAYZ_CLOUD_PUBLISHABLE_KEY } from './cloud'
 export { createFayzApiProvider } from './platform-api'
 export { createMockProvider } from './mock'
 export { resolveDataProvider } from './resolve'

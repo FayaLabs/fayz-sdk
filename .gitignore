@@ -10,3 +10,6 @@ dist
 # Playwright MCP browser-automation artifacts
 .playwright-mcp/
 
+# Throwaway release worktrees (see .claude/skills/release-sdk)
+.claude/worktrees/
+

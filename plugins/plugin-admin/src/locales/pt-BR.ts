@@ -1,0 +1,17 @@
+export const ptBR: Record<string, string> = {
+  'admin.layout.title': 'Layout',
+  'admin.layout.sidebar': 'Barra lateral',
+  'admin.layout.topbar': 'Barra superior',
+  'admin.layout.minimal': 'Minimalista',
+  'admin.moduleNav.title': 'Navegação dos módulos',
+  'admin.moduleNav.rail': 'Barra lateral para os módulos instalados',
+  'admin.moduleNav.tabs': 'Abas para os módulos instalados',
+  'admin.mobileHeader.title': 'Cabeçalho mobile',
+  'admin.mobileHeader.minimal': 'Cabeçalho minimalista',
+  'admin.mobileHeader.transparent': 'Transparente, conteúdo de ponta a ponta',
+  'admin.mobileHeader.hidden': 'Oculto',
+  'admin.branding.title': 'Identidade visual',
+  'admin.branding.on': 'As configurações de marca estão visíveis para operadores',
+  'admin.branding.off': 'As configurações de marca estão ocultas',
+  'admin.readOnlyNotice': 'Pré-visualização somente leitura. A edição por aqui chega em breve — por enquanto essas opções são definidas na configuração do app.',
+}

@@ -137,6 +137,9 @@ export function createCrmPlugin(options?: CrmPluginOptions): PluginManifest {
     version: '1.0.0',
     scope: options?.scope ?? 'universal',
     verticalId: options?.verticalId,
+    // Sales-pipeline/lead-management is a business-ops tool — targets the
+    // saas/admin Panel world, not the ecommerce storefront.
+    scaffolds: ['saas'],
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [

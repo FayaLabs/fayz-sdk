@@ -8,7 +8,7 @@
 // upserts) runs in the data plane — typically a Supabase Edge Function — while
 // the control plane (a settings tab + this contract) lives in the app/plugin.
 //
-// Design notes live in docs/bling-integration-brief.md. Proven precedents:
+// Design notes live in docs/design/bling-integration-brief.md. Proven precedents:
 // the Fayz runtime OAuth broker (packages/core/src/runtime/oauth.ts) and the
 // bank-statement edge functions in the predecessor app.
 import type * as React from 'react'

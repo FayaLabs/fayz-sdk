@@ -7,7 +7,7 @@ Accounts payable/receivable, cash registers, bank statements, and financial repo
 ```typescript
 import { createFinancialPlugin } from '@fayz-ai/saas-core/plugins/financial'
 
-// In your createSaasApp config:
+// In your defineSaas config:
 plugins: [
   createFinancialPlugin({
     currency: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' },

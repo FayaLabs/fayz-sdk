@@ -15,6 +15,7 @@ import {
   Package,
   Activity,
   BarChart3,
+  Clapperboard,
   FileText,
   Mail,
   DollarSign,
@@ -206,7 +207,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   Contact, Building2, ChevronDown, Filter, Plus, Shield, List, ListChecks, FolderOpen, Dog, Cat, PawPrint, Heart, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
   ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, Plug, SlidersHorizontal, TableProperties, Landmark, Receipt, TrendingUp, CircleDollarSign, Clock, AlertTriangle, Sparkles, Wallet, Warehouse, Ruler, ArrowUpRight, ArrowDownRight, UserPlus, UserX, TreePalm,
   Boxes, Box, FileCheck2, PartyPopper, Radio, CalendarDays, BadgeDollarSign, Banknote, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
-  CalendarCheck2, CalendarX, ListPlus, Map, Ban, Clock3, Inbox, UserCheck, Star, Zap,
+  CalendarCheck2, CalendarX, ListPlus, Map, Ban, Clock3, Inbox, UserCheck, Star, Zap, Clapperboard,
 }
 
 function getIcon(name: string): LucideIcon {

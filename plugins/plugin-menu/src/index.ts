@@ -92,6 +92,10 @@ export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
     version: '1.0.0',
     scope: options?.scope ?? 'vertical',
     verticalId: options?.verticalId,
+    // Digital menu serves both internal ops (saas) and online ordering
+    // (ecommerce) — genuinely dual-surface, low confidence, revisit if a
+    // real host disagrees.
+    scaffolds: ['saas', 'ecommerce'],
     defaultEnabled: true,
     dependencies: [],
     navigation: [

@@ -4,7 +4,7 @@ import { isSupportedPackage } from '../../../packages/sdk/src/supported-surface'
 
 // Boundary diagnostics for `fayz doctor`. These are ALWAYS warnings — the
 // architecture boundaries are enforced by visibility, not build-failures
-// (see docs/architecture-boundaries.md §6). Nothing here returns an error.
+// (see docs/ARCHITECTURE.md (boundary model)). Nothing here returns an error.
 
 export interface BoundaryFinding {
   rule: string
@@ -12,7 +12,7 @@ export interface BoundaryFinding {
 }
 
 /** Provider SDKs a generated app must not import directly (talk to Fayz, not the
- *  provider — docs/architecture-boundaries.md §4). Server-side adapters live in
+ *  provider — docs/ARCHITECTURE.md (boundary model)). Server-side adapters live in
  *  supabase/functions, which this scan does not touch. */
 const PROVIDER_SDKS = [
   '@supabase/supabase-js',

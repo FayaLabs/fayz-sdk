@@ -55,8 +55,12 @@ export function AuthProvider({ adapter, children }: AuthProviderProps) {
           reset()
           // Keep isLoading false after an explicit sign-out
           setLoading(false)
+          return
         }
-        // Positive auth state changes are handled via setSession after signIn/signUp
+        // Positive change (adapter-driven sign-in — e.g. an external callback,
+        // another tab, or a direct adapter.signUp bridge) — sync the session so
+        // consumers reflect it even when the call didn't go through ctx.signIn.
+        void adapterRef.current.getSession().then((result) => setSession(result?.session ?? null)).catch(() => {})
       })
     }
 

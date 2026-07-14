@@ -12,12 +12,24 @@ export type { LocaleConfig } from './types/i18n'
 
 // Data providers
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './data/supabase'
+export { getFayzCloudClient, FAYZ_CLOUD_URL, FAYZ_CLOUD_PUBLISHABLE_KEY } from './data/cloud'
 export { createFayzApiProvider } from './data/platform-api'
 export { createMockProvider } from './data/mock'
 export { createArchetypeProvider } from './data/archetype'
 export { withCache } from './data/cached'
 export { resolveDataProvider } from './data/resolve'
 export { createSafeDataProvider } from './plugin/createSafeDataProvider'
+export {
+  COUNTRIES, DEFAULT_COUNTRY, getCountry, unmaskPhone, maskPhone, maskDigitCount,
+} from './phone'
+export type { CountryDef } from './phone'
+export type {
+  PaymentProvider, PaymentMethod, ChargeStatus, CreateChargeInput, PixCharge,
+} from './types/payment'
+export {
+  useSeo, applySeo, absoluteUrl, seoOrigin, breadcrumbJsonLd, organizationJsonLd,
+} from './seo'
+export type { SeoConfig, BreadcrumbItem } from './seo'
 export type { DataProvider, CrudQuery, CrudResult, SupabaseProviderConfig, FayzApiProviderConfig } from './data/index'
 
 // Tenant context (runtime DI for the data layer)

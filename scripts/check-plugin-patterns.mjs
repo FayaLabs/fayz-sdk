@@ -67,7 +67,7 @@ if (existsSync(PLUGINS_DIR)) {
 if (problems.length > 0) {
   console.error('Plugin pattern check failed:')
   for (const p of problems) console.error(`  - ${p}`)
-  console.error('\nSee PLUGIN_PATTERNS.md for the canonical plugin anatomy.')
+  console.error('\nSee docs/PLUGIN-PATTERNS.md for the canonical plugin anatomy.')
   process.exit(1)
 }
 

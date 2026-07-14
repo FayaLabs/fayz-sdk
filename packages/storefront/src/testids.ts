@@ -3,6 +3,7 @@
 export const TID = {
   // header
   headerSearch: 'header-search',
+  headerSearchToggle: 'header-search-toggle',
   cartButton: 'cart-button',
   cartCount: 'cart-count',
   accountLink: 'account-link',

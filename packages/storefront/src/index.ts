@@ -144,6 +144,7 @@ export {
   sertaoTemplate,
   voltTemplate,
   atelierTemplate,
+  foodTemplate,
 } from './presets'
 export type { StorefrontTemplate, StorefrontTemplateId } from './presets'
 

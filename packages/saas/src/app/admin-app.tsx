@@ -117,7 +117,15 @@ function resolveOrgAdapter(config: FayzAppConfig, authAdapter?: AuthAdapter): Or
   }))
   // Inject the resolved auth adapter so the org adapter can DELIVER invites (send
   // the e-mail + create the auth user) — org owns the audit row + role, auth owns delivery.
-  if (strategy === 'supabase') return createSupabaseOrgAdapter({ roles: declaredRoles, authAdapter })
+  // siteUrl is the deployment-fixed origin the container injects as VITE_APP_URL, so
+  // invite links point at the real host instead of the admin's current window origin
+  // (which is a preview/localhost URL during dev). Must also be allow-listed in Supabase.
+  if (strategy === 'supabase')
+    return createSupabaseOrgAdapter({
+      roles: declaredRoles,
+      authAdapter,
+      siteUrl: import.meta.env.VITE_APP_URL,
+    })
   return createMockOrgAdapter(config.permissions?.defaultProfiles)
 }
 

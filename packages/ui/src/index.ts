@@ -98,6 +98,11 @@ export {
   SegmentedControl,
   type SegmentedControlProps,
   type SegmentedOption,
+  Markdown,
+  renderMarkdown,
+  type MarkdownProps,
+  MarkdownEditor,
+  type MarkdownEditorProps,
 } from './primitives'
 
 // Layout
@@ -118,6 +123,8 @@ export {
   type TopbarProps,
   ModulePage,
   SubpageHeader,
+  ContentSplit,
+  ContentSplitTrigger,
   ModuleLayoutProvider,
   useModuleLayout,
   PageHeaderActions,
@@ -138,6 +145,8 @@ export {
   type ModuleNavItem,
   type ModuleNavVariant,
   type SubpageHeaderProps,
+  type ContentSplitProps,
+  type ContentSplitTriggerProps,
   type BackButtonStyle,
 } from './layout'
 

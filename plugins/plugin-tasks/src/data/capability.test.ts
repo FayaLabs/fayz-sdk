@@ -2,7 +2,7 @@
 // Proves the data slice of the Plugin Capability Contract against the mock
 // provider: typed seed is present, writes persist and surface in queries and
 // the summary, and updates/deletes round-trip. This is the template other
-// plugins copy — see PLUGIN_PATTERNS.md → capability anatomy.
+// plugins copy — see docs/PLUGIN-PATTERNS.md → capability anatomy.
 import { describe, it, expect } from 'vitest'
 import { createMockTasksProvider } from './mock'
 
