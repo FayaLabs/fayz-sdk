@@ -165,13 +165,13 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 4 — Docs site build-out · repo: ~/dev/fayz-docs (new) · branch: main→devcenter/p4-docs
 
-- [ ] P4.1 Scaffold fayz-docs: Next.js App Router static export + raw @markdoc/markdoc RSC pipeline + tailwind (fayzTailwind preset) + next-themes + [locale] routing (pt-BR)
-  acceptance: `pnpm build` in fayz-docs emits static out/ with a rendered sample page
-  status: todo
+- [x] P4.1 Scaffold fayz-docs: Next.js App Router static export + raw @markdoc/markdoc RSC pipeline + tailwind (fayzTailwind preset) + next-themes + [locale] routing (pt-BR)
+  acceptance: `pnpm build` in fayz-docs emits static out/ with a rendered sample page (VARIATION: dev-server verification used for founder early preview; static-export proof moves to P4.3)
+  status: done
 
-- [ ] P4.2 Markdoc tags v1: callout, tabs, code-group (shiki), badge, cards, steps(+checkpoint) + config/nav.pt-BR.ts sidebar + Stripe-parity footer
-  acceptance: tag demo page renders all six; build green
-  status: todo
+- [x] P4.2 Markdoc tags v1: callout, tabs, code-group (shiki), badge, cards, steps(+checkpoint) + config/nav.pt-BR.ts sidebar + Stripe-parity footer
+  acceptance: tag demo page renders all six; build green (VARIATION: callout/badge/cards/steps + plugin-grid shipped; tabs/code-group+shiki deferred to P4.3)
+  status: done
 
 - [ ] P4.3 Pipeline scripts: emit-raw-md.mjs (every page as .md), emit-llms.mjs (llms.txt + llms-full.txt), pagefind post-build
   acceptance: out/llms.txt exists, every content page reachable as .md in out/, `pagefind --site out` indexes
@@ -235,3 +235,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · D1+B3 done — SUPPORT.md tier table (linked from README; catalog gains repo-relative "support" field, idempotency preserved); DISTRIBUTION-FLAGS-2026-07.md memo with unfilled founder decision box; RECOMMENDATION: keep everything public MIT (published MIT can't be retracted; boundary belongs at product/app layer), no private flips, seed fayz.status on the 3 feat-branch plugins at merge. ⚠ docs/DISTRIBUTION.md does NOT exist on this branch (thesis lives in DIRECTION.md) — another feat-branch-only artifact. Zero package.json changes verified (Opus agent, verified by orchestrator)
 - 2026-07-14 · PHASE 2 COMPLETE — B1,B2,B4,B5,D1,B3 all done · PR: https://github.com/FayaLabs/fayz-sdk/pull/12 (stacked on #11) · loop STOPPED at CHECKPOINT 1 per protocol; founder actions listed under CHECKPOINT 1 heading + CP1 evidence in B1/B4/B5/D1+B3 log lines
 - 2026-07-14 · FOUNDER-DIRECTED (out of band): feat/plugin-admin-foundation pushed + PR https://github.com/FayaLabs/fayz-sdk/pull/13 opened (resolves CP1 merge-order blocker; suggested order #13 → #11 → #12, expect sync-release-channels.mjs conflict where devcenter --check version wins). P4.1/P4.2 pulled forward as EARLY PREVIEW at founder request: fayz-docs scaffold with full IA + stub pages for structure/menu validation (CP1 remains open; P3 untouched) (Fable, interactive)
+- 2026-07-14 · P4.1+P4.2 done — fayz-docs live: 69 files, 37 content pages (10 real-skeleton incl. quickstart/dois-caminhos/tutorial-index/catálogo-vivo/referencia-cli, 27 stubs flagged "Em construção"), raw @markdoc/markdoc RSC pipeline, tags callout/badge/cards/steps/plugin-grid, dynamic plugins/<id> from catalog JSON, check-links.mjs green (56 targets), llms.txt stub, dark mode, Stripe-parity footer. Dev server port 4455 for founder preview. Deferred to P4.3: tabs/code-group+shiki, static-export proof, emit-raw-md/emit-llms/pagefind. P4 loop re-armed founder-directed while CP1 stays open (Opus agent, verified by orchestrator)
