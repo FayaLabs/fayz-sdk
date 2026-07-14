@@ -11,6 +11,7 @@ import type {
 } from '../types'
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getFinancialTenantId } from '../lib/tenant'
+import { T } from './tables'
 
 function getTenantId(): string | undefined {
   // Local override wins; else use the app's active tenant so writes pass RLS.
@@ -37,7 +38,9 @@ function camelToSnake(obj: Record<string, unknown>): Record<string, unknown> {
 function getClients() {
   const supabase = getSupabaseClientOptional() as any
   if (!supabase) throw new Error('Supabase not initialized')
-  return { core: supabase.schema('saas_core'), pub: supabase }
+  // Core tables now live in PUBLIC (legacy dedicated core schema is gone). Both
+  // handles are the single public client; `core` retained for call-site readability.
+  return { core: supabase, pub: supabase }
 }
 
 /** Map order stage to InvoiceStatus for the financial UI */
@@ -64,7 +67,7 @@ async function sweepOverdue() {
     const today = new Date().toISOString().slice(0, 10)
 
     // Mark overdue movements
-    const { data: overdueMovs } = await pub.from('financial_movements')
+    const { data: overdueMovs } = await pub.from(T.movements)
       .update({ status: 'overdue' })
       .in('status', ['pending', 'partial'])
       .lt('due_date', today)
@@ -74,7 +77,7 @@ async function sweepOverdue() {
     if (overdueMovs && overdueMovs.length > 0) {
       const invoiceIds = [...new Set(overdueMovs.map((m: any) => m.invoice_id).filter(Boolean))]
       for (const invId of invoiceIds) {
-        const { data: allMovs } = await pub.from('financial_movements')
+        const { data: allMovs } = await pub.from(T.movements)
           .select('status')
           .eq('invoice_id', invId)
           .eq('movement_kind', 'bill')
@@ -137,7 +140,7 @@ async function findOrderIdsByItemMetadata(
 /** Card/MDR fee percent for a configured payment method (0 when none / not a fee method). */
 async function getMethodFeePct(pub: any, paymentMethodId?: string): Promise<number> {
   if (!paymentMethodId) return 0
-  const { data } = await pub.from('payment_methods').select('discount_value').eq('id', paymentMethodId).single()
+  const { data } = await pub.from(T.paymentMethods).select('discount_value').eq('id', paymentMethodId).single()
   return Number(data?.discount_value) || 0
 }
 
@@ -220,7 +223,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       const meta = data.metadata ?? {}
       // Paid amount + status are DERIVED from the ledger view (single source of truth).
       const balance = (await fetchInvoiceBalances(pub, [id])).get(id)
-      const { data: movs } = await pub.from('financial_movements')
+      const { data: movs } = await pub.from(T.movements)
         .select('paid_amount')
         .eq('invoice_id', id)
         .eq('movement_kind', 'bill')
@@ -303,7 +306,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
       // Create installment movements
       if (order && input.installments.length > 0) {
-        await pub.from('financial_movements').insert(
+        await pub.from(T.movements).insert(
           input.installments.map((inst, i) => ({
             tenant_id: tenantId, invoice_id: order.id,
             direction: input.direction, movement_kind: inst.movementKind,
@@ -335,13 +338,13 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
     async cancelInvoice(id: string): Promise<void> {
       const { core, pub } = getClients()
       await core.from('orders').update({ status: 'cancelled' }).eq('id', id)
-      await pub.from('financial_movements').update({ status: 'cancelled' }).eq('invoice_id', id).eq('status', 'pending')
+      await pub.from(T.movements).update({ status: 'cancelled' }).eq('invoice_id', id).eq('status', 'pending')
     },
 
     // --- Movements (public.financial_movements) ---
     async getMovements(query: MovementQuery): Promise<PaginatedResult<FinancialMovement>> {
       const { core, pub } = getClients()
-      let qb = pub.from('financial_movements').select('*', { count: 'exact' })
+      let qb = pub.from(T.movements).select('*', { count: 'exact' })
       if (query.direction) qb = qb.eq('direction', query.direction)
       if (query.status) {
         const statuses = Array.isArray(query.status) ? query.status : [query.status]
@@ -359,7 +362,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
     async payMovement(input: PayMovementInput): Promise<FinancialMovement> {
       const { core, pub } = getClients()
-      const { data: mov } = await pub.from('financial_movements').select('*').eq('id', input.movementId).single()
+      const { data: mov } = await pub.from(T.movements).select('*').eq('id', input.movementId).single()
       if (!mov) throw new Error('Movement not found')
       const tenantId = mov.tenant_id ?? getTenantId()
 
@@ -389,11 +392,11 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
         card_installments: input.cardInstallments ?? null,
         notes: input.notes ?? null,
       }
-      let { data, error } = await pub.from('financial_movements').insert(paymentRow).select().single()
+      let { data, error } = await pub.from(T.movements).insert(paymentRow).select().single()
       // Graceful fallback if the fee_amount migration hasn't been applied yet.
       if (error && /fee_amount/i.test(error.message ?? '')) {
         const { fee_amount, ...rest } = paymentRow
-        ;({ data, error } = await pub.from('financial_movements').insert(rest).select().single())
+        ;({ data, error } = await pub.from(T.movements).insert(rest).select().single())
       }
       if (error) throw error
 
@@ -404,13 +407,13 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       const billStatus = newPaid >= mov.amount ? 'paid' : 'partial'
       // Clear the bill's cash fields so it stops being a cash event (the payment row is now
       // the cash event) — prevents double-counting legacy in-place-paid bills.
-      await pub.from('financial_movements')
+      await pub.from(T.movements)
         .update({ paid_amount: newPaid, status: billStatus, payment_date: null, bank_account_id: null })
         .eq('id', mov.id)
 
       // 3. Update invoice (order) status based on its bills
       if (mov.invoice_id) {
-        const { data: allMovs } = await pub.from('financial_movements')
+        const { data: allMovs } = await pub.from(T.movements)
           .select('status, amount, paid_amount')
           .eq('invoice_id', mov.invoice_id)
           .eq('movement_kind', 'bill')
@@ -423,7 +426,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
         const { data: order } = await core.from('orders').select('metadata').eq('id', mov.invoice_id).single()
         const meta = (order?.metadata as any) ?? {}
         const invoiceStage = allPaid ? 'paid' : anyPaid ? 'partial' : 'invoiced'
-        // Only update financial order status. Agenda status lives on saas_core.bookings.
+        // Only update financial order status. Agenda status lives on public.appointments.
         await core.from('orders').update({
           status: invoiceStage,
           metadata: { ...meta, paidAmount: totalPaid },
@@ -435,7 +438,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
     async cancelMovement(id: string): Promise<void> {
       const { core, pub } = getClients()
-      await pub.from('financial_movements').update({ status: 'cancelled' }).eq('id', id)
+      await pub.from(T.movements).update({ status: 'cancelled' }).eq('id', id)
     },
 
     // --- Transfers (between accounts) ---
@@ -472,11 +475,11 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
           metadata: { transferId, transferRole: 'in', counterAccountId: input.fromAccountId },
         },
       ]
-      let { data, error } = await pub.from('financial_movements').insert(rowsToInsert).select('id, direction')
+      let { data, error } = await pub.from(T.movements).insert(rowsToInsert).select('id, direction')
       // Graceful fallback if the fee_amount migration hasn't been applied yet.
       if (error && /fee_amount/i.test(error.message ?? '')) {
         const stripped = rowsToInsert.map(({ fee_amount, ...rest }) => rest)
-        ;({ data, error } = await pub.from('financial_movements').insert(stripped).select('id, direction'))
+        ;({ data, error } = await pub.from(T.movements).insert(stripped).select('id, direction'))
       }
       if (error) throw error
       const rows = (data ?? []) as Array<{ id: string; direction: string }>
@@ -488,14 +491,14 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
     // --- Bank Accounts ---
     async getBankAccounts(): Promise<BankAccount[]> {
       const { core, pub } = getClients()
-      const { data } = await pub.from('bank_accounts').select('*').eq('is_active', true).order('name')
+      const { data } = await pub.from(T.bankAccounts).select('*').eq('is_active', true).order('name')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as BankAccount)
     },
 
     async createBankAccount(input: CreateBankAccountInput): Promise<BankAccount> {
       const { core, pub } = getClients()
       const tenantId = getTenantId()
-      const { data } = await pub.from('bank_accounts').insert({
+      const { data } = await pub.from(T.bankAccounts).insert({
         ...camelToSnake(input as any), tenant_id: tenantId, current_balance: input.initialBalance ?? 0,
       }).select().single()
       return snakeToCamel(data!) as unknown as BankAccount
@@ -505,14 +508,14 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       const { core, pub } = getClients()
       const row = camelToSnake(partial as any)
       delete row.id; delete row.tenant_id
-      const { data } = await pub.from('bank_accounts').update(row).eq('id', id).select().single()
+      const { data } = await pub.from(T.bankAccounts).update(row).eq('id', id).select().single()
       return snakeToCamel(data!) as unknown as BankAccount
     },
 
     // --- Cash Sessions ---
     async getCashSessions(bankAccountId?: string): Promise<CashSession[]> {
       const { core, pub } = getClients()
-      let qb = pub.from('cash_register_sessions').select('*')
+      let qb = pub.from(T.cashRegisterSessions).select('*')
       if (bankAccountId) qb = qb.eq('bank_account_id', bankAccountId)
       const { data } = await qb.order('opened_at', { ascending: false })
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as CashSession)
@@ -520,14 +523,14 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
     async getOpenSession(bankAccountId: string): Promise<CashSession | null> {
       const { core, pub } = getClients()
-      const { data } = await pub.from('cash_register_sessions').select('*').eq('bank_account_id', bankAccountId).eq('status', 'open').single()
+      const { data } = await pub.from(T.cashRegisterSessions).select('*').eq('bank_account_id', bankAccountId).eq('status', 'open').single()
       return data ? snakeToCamel(data) as unknown as CashSession : null
     },
 
     async openCashSession(input: OpenCashSessionInput): Promise<CashSession> {
       const { core, pub } = getClients()
       const tenantId = getTenantId()
-      const { data } = await pub.from('cash_register_sessions').insert({
+      const { data } = await pub.from(T.cashRegisterSessions).insert({
         tenant_id: tenantId, bank_account_id: input.bankAccountId,
         status: 'open', opening_balance: input.openingBalance,
         opened_by_user_id: input.openedByUserId, opened_by_name: input.openedByName,
@@ -538,7 +541,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
     async closeCashSession(input: CloseCashSessionInput): Promise<CashSession> {
       const { core, pub } = getClients()
-      const { data } = await pub.from('cash_register_sessions').update({
+      const { data } = await pub.from(T.cashRegisterSessions).update({
         status: 'closed', closing_balance: input.closingBalance,
         closed_at: new Date().toISOString(),
         closed_by_user_id: input.closedByUserId, closed_by_name: input.closedByName,
@@ -549,8 +552,8 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
     async getCashSessionSummary(sessionId: string): Promise<CashSessionSummary> {
       const { core, pub } = getClients()
-      const session = (await pub.from('cash_register_sessions').select('*').eq('id', sessionId).single()).data
-      const { data: movs } = await pub.from('financial_movements').select('direction, paid_amount').eq('cash_session_id', sessionId).eq('status', 'paid')
+      const session = (await pub.from(T.cashRegisterSessions).select('*').eq('id', sessionId).single()).data
+      const { data: movs } = await pub.from(T.movements).select('direction, paid_amount').eq('cash_session_id', sessionId).eq('status', 'paid')
       const movements = movs ?? []
       return {
         session: snakeToCamel(session!) as unknown as CashSession,
@@ -563,26 +566,26 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
     // --- Payment Methods ---
     async getPaymentMethods(): Promise<PaymentMethod[]> {
       const { core, pub } = getClients()
-      const { data } = await pub.from('payment_methods').select('*').eq('is_active', true).order('name')
+      const { data } = await pub.from(T.paymentMethods).select('*').eq('is_active', true).order('name')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as PaymentMethod)
     },
 
     async getPaymentMethodTypes(): Promise<PaymentMethodType[]> {
       const { core, pub } = getClients()
-      const { data } = await pub.from('payment_method_types').select('*').eq('is_active', true).order('name')
+      const { data } = await pub.from(T.paymentMethodTypes).select('*').eq('is_active', true).order('name')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as PaymentMethodType)
     },
 
     // --- Chart of Accounts ---
     async getChartOfAccounts(): Promise<ChartOfAccountsNode[]> {
       const { core, pub } = getClients()
-      const { data } = await pub.from('chart_of_accounts').select('*').eq('is_active', true).order('code')
+      const { data } = await pub.from(T.chartOfAccounts).select('*').eq('is_active', true).order('code')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as ChartOfAccountsNode)
     },
 
     async getCostCenters(): Promise<CostCenter[]> {
       const { core, pub } = getClients()
-      const { data } = await pub.from('cost_centers').select('*').eq('is_active', true).order('code')
+      const { data } = await pub.from(T.costCenters).select('*').eq('is_active', true).order('code')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as CostCenter)
     },
 
@@ -604,7 +607,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
       // 1. Resolve in-scope accounts. No bankAccountId => consolidated: ALL realized cash
       // (including movements with no bank_account_id, e.g. cash/card payments not tied to an account).
-      const { data: acctRows } = await pub.from('bank_accounts').select('id, name, initial_balance, is_active')
+      const { data: acctRows } = await pub.from(T.bankAccounts).select('id, name, initial_balance, is_active')
       const allAccounts = (acctRows ?? []) as any[]
       const consolidated = !query.bankAccountId
       const scopeAccounts = consolidated
@@ -626,7 +629,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
       // 2. Opening balance = Σ initial_balance + prior net (payment_date < from).
       // Select '*' so this still works before the fee_amount migration lands (fee → 0).
-      const { data: priorRows } = await scopeFilter(pub.from('financial_movements')
+      const { data: priorRows } = await scopeFilter(pub.from(T.movements)
         .select('*')
         .neq('status', 'cancelled')
         .lt('payment_date', query.dateRange.from))
@@ -634,7 +637,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       const openingBalance = round2(initialSum + priorNet)
 
       // 3. In-range realized rows.
-      const { data: movs } = await scopeFilter(pub.from('financial_movements')
+      const { data: movs } = await scopeFilter(pub.from(T.movements)
         .select('*')
         .neq('status', 'cancelled')
         .gte('payment_date', query.dateRange.from).lte('payment_date', query.dateRange.to)
@@ -687,7 +690,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       // extract row can link to the internal transaction it was conciliated with.
       const matchedIds = [...new Set(entries.map((e) => e.movement.matchedMovementId).filter(Boolean))] as string[]
       if (matchedIds.length) {
-        const { data: matched } = await pub.from('financial_movements').select('id, invoice_id, notes').in('id', matchedIds)
+        const { data: matched } = await pub.from(T.movements).select('id, invoice_id, notes').in('id', matchedIds)
         const matchedById = new Map<string, any>((matched ?? []).map((m: any) => [m.id, m]))
         const matchedInvoiceIds = [...new Set((matched ?? []).map((m: any) => m.invoice_id).filter(Boolean))] as string[]
         const invById = new Map<string, any>()
@@ -711,7 +714,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       }
 
       // 6. Account current balance (ledger as-of-today).
-      const { data: todayRows } = await scopeFilter(pub.from('financial_movements')
+      const { data: todayRows } = await scopeFilter(pub.from(T.movements)
         .select('*')
         .neq('status', 'cancelled')
         .lte('payment_date', today))
@@ -735,10 +738,10 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       // Sweep overdue on first load (background, non-blocking)
       sweepOverdue()
       const { core, pub } = getClients()
-      const { data: accounts } = await pub.from('bank_accounts').select('current_balance').eq('is_active', true)
+      const { data: accounts } = await pub.from(T.bankAccounts).select('current_balance').eq('is_active', true)
       const totalBalance = (accounts ?? []).reduce((s: number, a: any) => s + (a.current_balance ?? 0), 0)
 
-      const { data: movs } = await pub.from('financial_movements').select('direction, movement_kind, amount, paid_amount, status, due_date, payment_date')
+      const { data: movs } = await pub.from(T.movements).select('direction, movement_kind, amount, paid_amount, status, due_date, payment_date')
       const allMovs = movs ?? []
       const unpaid = allMovs.filter((m: any) => ['pending', 'partial', 'overdue'].includes(m.status))
       const today = new Date().toISOString().slice(0, 10)
@@ -778,7 +781,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       const tenantId = getTenantId()
       let imported = 0, duplicates = 0
       for (const line of input.lines) {
-        const { error } = await pub.from('financial_movements').insert({
+        const { error } = await pub.from(T.movements).insert({
           tenant_id: tenantId,
           direction: line.direction,
           movement_kind: 'payment',
@@ -803,7 +806,7 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
     async getUnreconciled(query) {
       const { pub } = getClients()
-      let qb = pub.from('financial_movements').select('*')
+      let qb = pub.from(T.movements).select('*')
         .not('external_source', 'is', null)
         .is('reconciled_at', null)
       if (query?.bankAccountId) qb = qb.eq('bank_account_id', query.bankAccountId)
@@ -814,13 +817,13 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
 
     async suggestReconciliation(bankMovementId) {
       const { core, pub } = getClients()
-      const { data: line } = await pub.from('financial_movements').select('*').eq('id', bankMovementId).single()
+      const { data: line } = await pub.from(T.movements).select('*').eq('id', bankMovementId).single()
       if (!line) return []
       const amount = Number(line.amount) || 0
       const lineDate = line.payment_date ?? line.due_date
       // Candidates: app-native (non-imported), same direction, not reconciled, amount within ±2%.
       const tol = Math.max(0.01, round2(amount * 0.02))
-      const { data } = await pub.from('financial_movements').select('*')
+      const { data } = await pub.from(T.movements).select('*')
         .is('external_source', null)
         .is('reconciled_at', null)
         .eq('direction', line.direction)
@@ -857,22 +860,22 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
     async reconcileMovement(input) {
       const { pub } = getClients()
       const now = new Date().toISOString()
-      await pub.from('financial_movements').update({
+      await pub.from(T.movements).update({
         reconciled_at: now,
         matched_movement_id: input.matchedMovementId ?? null,
       }).eq('id', input.bankMovementId)
       if (input.matchedMovementId) {
         // The internal movement is now settled+reconciled by the bank line.
-        await pub.from('financial_movements').update({ reconciled_at: now }).eq('id', input.matchedMovementId)
+        await pub.from(T.movements).update({ reconciled_at: now }).eq('id', input.matchedMovementId)
       }
     },
 
     async unreconcileMovement(bankMovementId) {
       const { pub } = getClients()
-      const { data: line } = await pub.from('financial_movements').select('matched_movement_id').eq('id', bankMovementId).single()
-      await pub.from('financial_movements').update({ reconciled_at: null, matched_movement_id: null }).eq('id', bankMovementId)
+      const { data: line } = await pub.from(T.movements).select('matched_movement_id').eq('id', bankMovementId).single()
+      await pub.from(T.movements).update({ reconciled_at: null, matched_movement_id: null }).eq('id', bankMovementId)
       if (line?.matched_movement_id) {
-        await pub.from('financial_movements').update({ reconciled_at: null }).eq('id', line.matched_movement_id)
+        await pub.from(T.movements).update({ reconciled_at: null }).eq('id', line.matched_movement_id)
       }
     },
   }

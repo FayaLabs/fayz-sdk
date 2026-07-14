@@ -3,10 +3,10 @@
 -- The base migrations (001/002/003) ENABLE row-level security but relied on an
 -- external `project_rls.sql` auto-detection step to create the actual policies.
 -- That step does not run in the Drizzle/companion pipeline, so every table
--- except financial_movements was RLS-enabled with NO policy → all inserts denied
+-- except plg_financial_movements was RLS-enabled with NO policy → all inserts denied
 -- ("new row violates row-level security policy"). This creates the canonical
 -- per-tenant policies idempotently. Re-running is a no-op (IF NOT EXISTS guards;
--- financial_movements policies from 004 are skipped).
+-- plg_financial_movements policies from 004 are skipped).
 --
 -- Canonical RLS form: tenant_id IN (SELECT public.user_tenant_ids()).
 
@@ -14,9 +14,9 @@ DO $$
 DECLARE t text;
 BEGIN
   FOR t IN SELECT unnest(ARRAY[
-    'payment_method_types','payment_methods','bank_accounts',
-    'cash_register_sessions','financial_movements',
-    'chart_of_accounts','cost_centers','card_brands'
+    'plg_financial_payment_method_types','plg_financial_payment_methods','plg_financial_bank_accounts',
+    'plg_financial_cash_register_sessions','plg_financial_movements',
+    'plg_financial_chart_of_accounts','plg_financial_cost_centers','plg_financial_card_brands'
   ])
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);

@@ -16,7 +16,7 @@ const paymentMethodTypeEntity: EntityDef = {
     { key: 'transactionType', label: 'Transaction Type', type: 'select', options: ['cash', 'credit_card', 'debit_card', 'pix', 'bank_transfer', 'check', 'voucher'], showInTable: true, required: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'payment_method_types', tenantScoped: true },
+  data: { table: 'plg_financial_payment_method_types', tenantScoped: true },
 }
 
 // ---------------------------------------------------------------------------
@@ -33,14 +33,14 @@ const paymentMethodEntity: EntityDef = {
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
     // FK to the seeded payment_method_types catalog — load real ids at runtime
     // (a static enum select would write the string into the uuid column).
-    { key: 'paymentMethodTypeId', label: 'Type', type: 'relation', relation: { table: 'payment_method_types', labelField: 'name' }, showInTable: true, required: true },
+    { key: 'paymentMethodTypeId', label: 'Type', type: 'relation', relation: { table: 'plg_financial_payment_method_types', labelField: 'name' }, showInTable: true, required: true },
     { key: 'discountValue', label: 'Discount %', type: 'number', showInTable: true },
     { key: 'interestValue', label: 'Interest %', type: 'number', showInTable: true },
     { key: 'minInstallments', label: 'Min Installments', type: 'number', defaultValue: 1 },
     { key: 'maxInstallments', label: 'Max Installments', type: 'number', defaultValue: 1, showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'payment_methods', tenantScoped: true },
+  data: { table: 'plg_financial_payment_methods', tenantScoped: true },
 }
 
 // ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ const chartOfAccountsEntity: EntityDef = {
     { key: 'parentId', label: 'Parent', type: 'text', showInTable: false },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'chart_of_accounts', tenantScoped: true },
+  data: { table: 'plg_financial_chart_of_accounts', tenantScoped: true },
 }
 
 // ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ const costCenterEntity: EntityDef = {
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'cost_centers', tenantScoped: true },
+  data: { table: 'plg_financial_cost_centers', tenantScoped: true },
 }
 
 // ---------------------------------------------------------------------------
@@ -108,7 +108,7 @@ const bankAccountEntity: EntityDef = {
     { key: 'dueDay', label: 'Due Day', type: 'number' },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'bank_accounts', tenantScoped: true },
+  data: { table: 'plg_financial_bank_accounts', tenantScoped: true },
 }
 
 // ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ const cardBrandEntity: EntityDef = {
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'card_brands', tenantScoped: true },
+  data: { table: 'plg_financial_card_brands', tenantScoped: true },
 }
 
 // ---------------------------------------------------------------------------
