@@ -256,6 +256,10 @@ This app renders from \`app.manifest.json\` through the Fayz app-runtime (consum
 via the public \`@fayz-ai/sdk\` package). Most personalization is manifest edits,
 not new code.
 
+## Docs
+- https://developers.fayz.ai/llms.txt — read this first for the full map of the Fayz Dev Center (concepts, plugins, CLI reference, troubleshooting).
+- https://developers.fayz.ai — the Dev Center for humans.
+
 ## Layout
 - \`app.manifest.json\` — app config: surfaces, theme, locale, and \`backend.provider\`.
 - \`src/plugins.generated.ts\` — maps manifest plugin ids → platform-bundled factories (generated).
