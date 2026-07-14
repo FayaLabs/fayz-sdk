@@ -8,5 +8,5 @@
 // when an app composes its own tables with @fayz-ai/db spine refs + plugin schema).
 export * from 'drizzle-orm/pg-core'
 
-export { saasCore, tenants, persons, orders, bookings, products, orderItems } from './schema/spine'
+export { tenants, people, orders, appointments, products, orderItems } from './schema/spine'
 export { tenantId, timestamps, createdAt } from './helpers'

@@ -3,7 +3,7 @@ import { tenants } from './schema/spine'
 
 /**
  * Canonical tenant-scoping column: `tenant_id uuid NOT NULL REFERENCES
- * saas_core.tenants(id) ON DELETE CASCADE`. Every Ring-1 plugin table uses this
+ * public.tenants(id) ON DELETE CASCADE`. Every Ring-1 plugin table uses this
  * so tenancy is identical everywhere (and RLS can assume the column exists).
  */
 export const tenantId = () =>
