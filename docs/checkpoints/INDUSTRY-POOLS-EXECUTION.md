@@ -16,8 +16,8 @@ Supersedes: FAYZ-CLOUD-MIGRATION.md (single-shared-project model) and its pendin
 
 | ref | pool | data care |
 |---|---|---|
-| yfxutrkyhydgltakbqle | cluster-food-shop-br-01 | keeps artorious; booking tenants move OUT |
-| euzqjcusjloljlgwlkiw | cluster-retail-br-01 | legacy unprefixed shop dropped post-backup; reseeded |
+| yfxutrkyhydgltakbqle | cluster-**ecommerce**-br-01 | ONE pool for ALL e-commerce (founder 2026-07-14): artorious + pulse/tannat/shopfront/cristina (catalogs already here); booking tenants move OUT |
+| euzqjcusjloljlgwlkiw | ~~cluster-retail-br-01~~ DECOMMISSIONED | legacy unprefixed shop; catalog already copied to ecommerce pool; JSON backup retained (325 rows) |
 | coqpsuofwohzpqymoajb | cluster-creators-br-01 | CANARY (near-empty) |
 | mcbfebruhimlbvlvczsn | cluster-dentist-br-01 | WIPE legacy control-plane post-backup |
 | gphxclpkbtbucoqclbco | cluster-salon-br-01 | REAL clinic data — convert LAST, read-only gate |
@@ -37,11 +37,11 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
 
 ## Milestones
 
-- [ ] M0 Prep — status: in-progress
+- [x] M0 Prep — status: done (founder checkpoint pending)
   - [x] worktree fayz-sdk-cloud removed; branch feat/industry-pools = devcenter/p2-signaling + merge of feat/fayz-api-default (build 34/34, typecheck 45/45, CLI tests 23/23; pushed)
-  - [ ] JSON backups of all 8 pools verified (agent running → ~/dev/fayz-backups/2026-07-14-industry-pools/)
-  - [ ] Registry Prisma models + seed + hand-written migration on fayz repo branch feat/industry-pools-registry (agent running)
-  - [ ] ✋ FOUNDER: `prisma migrate deploy` + seed on platform Postgres
+  - [x] JSON backups of ALL 8 pools verified: 323 tables, 2088 rows, 0 verify failures → ~/dev/fayz-backups/2026-07-14-industry-pools/ (salon 6 tenants/67 persons/52 clients confirmed; dentist control-plane captured pre-wipe; school 25 leads intact)
+  - [x] Registry Prisma models+seed+hand-written migration: fayz repo branch feat/industry-pools-registry commit ce08ed5 (prisma validate + tsc clean; push classifier-blocked)
+  - [ ] ✋ FOUNDER: `git push -u origin feat/industry-pools-registry` (repo fayz) + `prisma migrate deploy` + seed on platform Postgres
 - [ ] M1 Core v1 + plg_ wave + Runner v2 — status: todo
   - db baseline rewrite → public (people/appointments); 000_core_v1_convert.sql; 000b_gphx_quarantine.sql; 010_migration_ledger.sql
   - plg_ renames in every plugin's SQL + tables.ts constants + providers (drop .schema('saas_core'))
@@ -50,7 +50,7 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
   - runner v2: checksums, ledger-gated executor, `fayz db pool status|apply|move-tenant`, `fayz db fan-out --canary`
   - acceptance: pnpm build + typecheck + cli tests green (old 23 + new ledger/registry/pool tests)
 - [ ] M2 Canary: fan-out --canary cluster-creators-br-01 + read-only smoke — ✋ FOUNDER validates
-- [ ] M3 Pools with data: euzq → mcbf(wipe) → pjug(preserve bespoke) → mgct → bcxu → yfxu → gphx(LAST) → tenant moves → prune yfxu
+- [ ] M3 Pools with data: mcbf(wipe) → pjug(preserve bespoke) → mgct → bcxu → yfxu-ecommerce → gphx(LAST) → tenant moves → prune yfxu (euzq: decommission only, no reseed)
 - [ ] M4 ✋ FOUNDER publish wave (db/core majors + saas + touched plugins + shop + courses + cli); apps flip tarball→ranges
 - [ ] M5 Apps + final report: course-admin, marketplace-saas, resto-saas, agency-os, artorious, beauty-saas (read-mostly), retail stores (post-WIP), booking sites. Per app: manifest backend block, env, build, auth smoke + create-record smoke, fixed dev port. Deliverable: table app × pool × DB-state × plugins × port.
 
