@@ -247,10 +247,10 @@ SUPABASE_PAT=
 `
 }
 
-function claudeMd(name: string, kind: Kind): string {
-  return `# CLAUDE.md — ${name}
+function agentsMd(name: string, kind: Kind): string {
+  return `# AGENTS.md — ${name}
 
-Guidance for Claude Code (and humans) working in this Fayz ${kind} app.
+Guidance for AI coding agents (and humans) working in this Fayz ${kind} app.
 
 This app renders from \`app.manifest.json\` through the Fayz app-runtime (consumed
 via the public \`@fayz-ai/sdk\` package). Most personalization is manifest edits,
@@ -324,7 +324,8 @@ export function create(kind: string, name: string): number {
   write(root, 'package.json', packageJson(name, k))
   write(root, '.gitignore', 'node_modules\ndist\n.env\n.env.*\n!.env.example\n.DS_Store\n')
   write(root, '.env.example', envExample())
-  write(root, 'CLAUDE.md', claudeMd(name, k))
+  write(root, 'AGENTS.md', agentsMd(name, k))
+  write(root, 'CLAUDE.md', 'See AGENTS.md — the agent guide for this app is agent-agnostic.\n')
   write(root, 'index.html', indexHtml(name))
   write(root, 'vite.config.ts', viteConfig())
   write(root, 'tsconfig.json', tsconfig())
