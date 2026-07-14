@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/sdk",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "description": "Fayz SDK — API client, app params, runtime broker helpers, and shared types for generated Fayz projects",
   "type": "module",
   "main": "./dist/index.cjs",
