@@ -100,10 +100,10 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 2 — Packaging & signaling (fayz-sdk) · branch: devcenter/p2-signaling
 
-- [ ] B1 README/CHANGELOG floor: plugin-blog + plugin-payments + audit all 22
+- [x] B1 README/CHANGELOG floor: plugin-blog + plugin-payments + audit all 22
   repo: fayz-sdk · files: plugins/plugin-blog/{README,CHANGELOG}.md, plugins/plugin-payments/{README,CHANGELOG}.md, scripts/check-package-docs.mjs (new: every publishable package has README with headings: what-it-is, status, install, capability level)
   acceptance: `node scripts/check-package-docs.mjs`
-  status: todo
+  status: done
 
 - [ ] B2 Machine-readable status field in all 33 package.jsons
   repo: fayz-sdk · files: packages/*/package.json + plugins/*/package.json gain `"fayz": {"status": "stable|beta|preview|internal"}` seeded from check-plugin-capability categories; scripts/check-package-status.mjs (new, cross-validates status vs capability gate)
@@ -228,3 +228,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · A4 done — scaffolds now emit .env.example (runtime VITE_* vs tooling REF/PAT split, commented) + CLAUDE.md (EN, personalization checklist + "Connecting a real Supabase": install → db apply dry-run/apply → flip backend.provider mock→supabase in app.manifest.json → doctor); contract script (real name: check-generated-app-contract.mjs) gates .env.example, gate bite proven; 16/16 contract tests, smoke green. NOTE for later: raw scaffolds fail the contract's public-only @fayz-ai/sdk dep rule (pre-existing, resolveFayzPackageDependencies writes full internal set — revisit at B-workstream or A5) (Opus agent, verified by orchestrator)
 - 2026-07-14 · A5+A6 done — CLI 0.3.0 (VERSION was 0.1.0 in BOTH files, npm has 0.2.0), engines node>=20 root+cli, changeset devcenter-cli-db-apply.md (cli minor, db+auth patch). docs/LOCAL-DEV.md + NEW docs/README.md index (didn't exist; customization doc's real name is customization-ladder.md — tracker wording was stale). ⚠ CP1 NOTE: @fayz-ai/auth IS in the changesets linked set — its patch pulls the whole linked group at version time. Untracked renova-*.png at repo root are founder's, left alone. Full suite green (Opus agent, verified by orchestrator)
 - 2026-07-14 · PHASE 1 COMPLETE — all 8 milestones done · PR: https://github.com/FayaLabs/fayz-sdk/pull/11 (base main) · P2 branch devcenter/p2-signaling cut from p1 (stacked; rebase after P1 merges)
+- 2026-07-14 · B1 done — check-package-docs.mjs gate (README + install + Status line + factory mention, 29 publishable pkgs green, bite proven); Status lines added to 19 READMEs; portal README + plugin-auth CHANGELOG/Install written. ⚠⚠ CP1 STRUCTURAL FINDING: plugin-blog + plugin-payments source is NOT on main — only on unmerged feat/plugin-admin-foundation (commit 02baea6 website-plugin release), yet both are PUBLISHED to npm (0.1.0/0.1.1). devcenter branches inherit the gap. Founder must decide merge order at CP1 (merge admin-foundation → main before/with P1). Accurate README/CHANGELOG for both authored anyway (committed as forward-prep; gate will enforce once source lands) (Opus agent, verified by orchestrator)

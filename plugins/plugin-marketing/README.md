@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-marketing.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-marketing)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-marketing.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Marketing analytics are always the same shape — channels, campaigns, a funnel, landing-page CVR — but what counts as a "conversion" changes per business. A salon converts a booking, a store converts an order, an agency converts a lead. `plugin-marketing` is one plugin that adapts to all of them: pick a `domain` preset (or pass an explicit conversion model + channels) and the funnel, channel performance, and cost-per-acquisition are computed generically on top of it.
 
 It ships a vertical-flavored mock today so the surface is real from the first install. Real attribution arrives through clean DI seams — an `AttributionBridge` to read conversions from CRM/agenda/orders, and a `SitesPerformanceBridge` to read landing-page numbers from your sites — so you wire reality in without rewriting the plugin. Campaigns and channels are first-class, and the whole thing exposes AI tools so your assistant can answer "which channel converts best?" out loud.

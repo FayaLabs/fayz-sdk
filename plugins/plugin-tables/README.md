@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-tables.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-tables)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-tables.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Restaurants don't run on records — they run on the room. plugin-tables gives the food vertical a real floor plan: zones, tables, and live status (available, occupied, reserved, cleaning), with seat and close flows wired to your own backend. It's the difference between a generic CRM and software a host can actually work a Friday night on.
 
 It snaps into a `defineSaas` app as the vertical surface for food. Configure zones, toggle reservations and session history, and hand the AI assistant the ability to answer "which tables are free?" or seat guests by table number — all permission-gated, all in the same app as bookings and payments.

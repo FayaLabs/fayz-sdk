@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-orders.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-orders)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-orders.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Orders are the heartbeat of an operations business. `plugin-orders` gives a restaurant — or any food vertical — a real-time order board: dine-in, takeout, and delivery flowing across a kanban, with history behind it. It's the surface the floor staff actually live in.
 
 It's built provider-first: a `MenuDataProvider`-aware orders flow that ships with a mock provider for instant demos and a `createFayzOrdersProvider` for real data. Order sources, currency, and labels are all configurable, and the host AI assistant can read today's summary, list active orders, and even create new ones. The point isn't a one-off POS — it's a plugin you snap into a `defineSaas` app next to menu and inventory to compose a complete restaurant SaaS.

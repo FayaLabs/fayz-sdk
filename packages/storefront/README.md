@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/storefront.svg)](https://www.npmjs.com/package/@fayz-ai/storefront)
 [![license](https://img.shields.io/npm/l/@fayz-ai/storefront.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 `@fayz-ai/storefront` is the customer-facing surface of the Fayz SDK: a storefront scaffold that renders a page as a tree of **blocks** (hero, products, manifesto, cart, …) defined in the app manifest. Two completely different brands come out of the same template with zero custom components — the storefront is *data*, not a fork.
 
 It reads commerce from `@fayz-ai/shop`, so the same engine powering an admin also powers the public store. Customize from labels to a fully bespoke section via the [customization ladder](../../docs/customization-ladder.md) — never by editing this package.

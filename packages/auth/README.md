@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/auth.svg)](https://www.npmjs.com/package/@fayz-ai/auth)
 [![license](https://img.shields.io/npm/l/@fayz-ai/auth.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 Auth shouldn't be the thing that couples your app to a backend. `@fayz-ai/auth` wraps authentication behind the core `AuthAdapter` contract so a Fayz app reads the same whether it's running on Supabase in production or a mock adapter in tests and previews. One provider, one `useAuth` hook, a Zustand-backed session store — the rest is an implementation detail you can swap.
 
 This is the auth layer for composed Fayz SaaS apps: drop in `AuthProvider`, pick an adapter, and every plugin gets a consistent user and session without knowing where it came from.

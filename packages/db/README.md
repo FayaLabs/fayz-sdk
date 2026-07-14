@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/db.svg)](https://www.npmjs.com/package/@fayz-ai/db)
 [![license](https://img.shields.io/npm/l/@fayz-ai/db.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 When apps are composed from plugins, their data models have to compose too. `@fayz-ai/db` is the schema spine: a small set of canonical Drizzle tables — tenants, persons, orders, bookings, products — plus the column helpers (tenant id, timestamps) that plugin schemas build on. Every plugin references the same spine, so a CRM's clients and an agenda's bookings agree on what a person and a tenant are.
 
 It also re-exports `drizzle-orm/pg-core` so the whole stack runs on one Drizzle instance — apps compose their own tables, the spine refs, and plugin schemas without the dual-copy `PgColumn` type clashes you get from mismatched drizzle-orm versions.
