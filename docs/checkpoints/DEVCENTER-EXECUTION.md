@@ -73,10 +73,10 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: `pnpm --filter @fayz-ai/cli build && node cli/dist/index.js db apply --dry-run <scaffolded-tmp-app>` prints ordered plan; unit test for migration-plan passes (`pnpm --filter @fayz-ai/cli test` or node test runner)
   status: done
 
-- [ ] A3b `fayz db apply` — Management-API executor + env contract
+- [x] A3b `fayz db apply` — Management-API executor + env contract
   repo: fayz-sdk · files: cli/src/lib/supabase-management.ts (new; POST api.supabase.com/v1/projects/{ref}/database/query; port from fayz-app/beauty-saas/scripts/db-apply.mjs), cli/src/commands/db.ts (env: SUPABASE_PROJECT_REF required no default, SUPABASE_PAT; read env → .env.local → .env; confirm-target prompt unless --yes; flags --spine-only --plugins-only --plugin <id>; ends NOTIFY pgrst)
   acceptance: mocked-fetch unit test green; `node cli/dist/index.js db apply --dry-run` still green; NO real network call in any test
-  status: todo
+  status: done
 
 - [ ] A3c Wire db apply into smoke + LOCKED-doc amendment
   repo: fayz-sdk · files: scripts/cli-smoke.mjs (scaffold tmp app → db apply --dry-run → assert plan lines), cli README/help text, docs/design/MIGRATION-ARCHITECTURE.md (append `## PROPOSED AMENDMENT (unsigned)` describing CLI executor)
@@ -223,3 +223,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · A1 done — @fayz-ai/db `files` += migrations (8 spine SQL files 001–008 confirmed in tarball); check-published-shape gains migrations rule; scoped build+typecheck green (Opus agent, verified by orchestrator)
 - 2026-07-14 · A2 done — auth main/module/types → dist (+ exports["."].types was also src, fixed); shape script gains no-src-entry-points rule for all 30 pkgs (auth was sole violator); external ESM tarball import simulated OK (workspace:^ rewrite caveat is publish-time normal); root typecheck 42/42 (Opus agent, verified by orchestrator)
 - 2026-07-14 · A3a done — cli/src/lib/migration-plan.ts (pure planner, 5-source resolution) + cli/src/commands/db.ts (`db apply --dry-run` + filter flags; non-dry-run stubbed exit 1) + `pnpm --filter @fayz-ai/cli test` (node --test, 9/9). KEY FINDING: require.resolve('@fayz-ai/db/package.json') fails (exports map omits ./package.json) — planner uses resolvePackageDir() node_modules walker; A3b must reuse it. Verified dry-run on scaffold: spine 8 + crm 4 files, dashboard skip noted (Opus agent, verified by orchestrator)
+- 2026-07-14 · A3b done — cli/src/lib/supabase-management.ts (injectable-fetch Management-API client, executeMigrationPlan + NOTIFY pgrst, dependency-free dotenv, confirmation gate) wired into db.ts; env contract SUPABASE_PROJECT_REF/SUPABASE_PAT (+aliases), files never override process env; non-TTY without --yes refuses fast. 23/23 cli tests; verified missing-env exit 1 + non-tty exit 1, zero network (Opus agent, verified by orchestrator)

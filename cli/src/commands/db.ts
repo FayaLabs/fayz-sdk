@@ -1,10 +1,21 @@
+import { createInterface } from 'node:readline'
 import { relative } from 'node:path'
 import { buildMigrationPlan, MigrationPlanError, type MigrationPlan } from '../lib/migration-plan.js'
+import {
+  confirmationGate,
+  createManagementClient,
+  executeMigrationPlan,
+  MigrationExecutionError,
+  missingEnvMessage,
+  resolveSupabaseEnv,
+} from '../lib/supabase-management.js'
 
-// `fayz db apply [dir] --dry-run` — provision an app's Supabase database from its
-// INSTALLED @fayz-ai/* packages. This milestone (A3a) ships the pure planning
-// layer + the dry-run path only; the Management-API executor lands in A3b and
-// plugs in where noted below. Dry-run performs zero network / no execution.
+// `fayz db apply [dir]` — provision an app's Supabase database from its INSTALLED
+// @fayz-ai/* packages. A3a shipped the pure planner + `--dry-run` (zero network).
+// A3b (this milestone) adds the Management-API executor: `fayz db apply` reads
+// the same MigrationPlan and applies it via the Supabase Management API. The only
+// network surface is the injectable fetch inside the executor; credentials come
+// from env vars (never defaulted) that unit tests never set.
 
 const SOURCE_LABEL: Record<MigrationPlan['steps'][number]['source'], string> = {
   spine: 'spine    ',
@@ -54,6 +65,7 @@ function printPlan(plan: MigrationPlan): void {
 
 interface DbApplyFlags {
   dryRun: boolean
+  yes: boolean
   spineOnly: boolean
   pluginsOnly: boolean
   onlyPlugins?: string[]
@@ -61,10 +73,11 @@ interface DbApplyFlags {
 }
 
 function parseFlags(args: string[]): DbApplyFlags {
-  const flags: DbApplyFlags = { dryRun: false, spineOnly: false, pluginsOnly: false }
+  const flags: DbApplyFlags = { dryRun: false, yes: false, spineOnly: false, pluginsOnly: false }
   for (let i = 0; i < args.length; i++) {
     const a = args[i]
     if (a === '--dry-run') flags.dryRun = true
+    else if (a === '--yes' || a === '-y') flags.yes = true
     else if (a === '--spine-only') flags.spineOnly = true
     else if (a === '--plugins-only') flags.pluginsOnly = true
     else if (a === '--only-plugins') {
@@ -79,7 +92,18 @@ function parseFlags(args: string[]): DbApplyFlags {
   return flags
 }
 
-export function db(sub: string | undefined, args: string[]): number {
+/** Interactive 'y' confirmation via readline. Only reached on a TTY. */
+async function promptConfirm(question: string): Promise<boolean> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    const answer = await new Promise<string>((res) => rl.question(question, res))
+    return answer.trim().toLowerCase() === 'y'
+  } finally {
+    rl.close()
+  }
+}
+
+export async function db(sub: string | undefined, args: string[]): Promise<number> {
   if (sub !== 'apply') {
     console.error(`✗ Unknown 'fayz db' subcommand "${sub ?? ''}". Try: fayz db apply [dir] --dry-run`)
     return 1
@@ -93,12 +117,36 @@ export function db(sub: string | undefined, args: string[]): number {
     return 1
   }
 
-  // A3a ships planning only. Execution (Management API) lands in A3b.
-  if (!flags.dryRun) {
-    console.error('execution lands in the next CLI release; use --dry-run')
+  // --- Dry-run: pure planning, zero network (unchanged from A3a). ---
+  if (flags.dryRun) {
+    let plan: MigrationPlan
+    try {
+      plan = buildMigrationPlan(dir, {
+        spineOnly: flags.spineOnly,
+        pluginsOnly: flags.pluginsOnly,
+        onlyPlugins: flags.onlyPlugins,
+      })
+    } catch (err) {
+      if (err instanceof MigrationPlanError) {
+        console.error(`✗ ${err.message}`)
+        return 1
+      }
+      throw err
+    }
+    printPlan(plan)
+    return 0
+  }
+
+  // --- Real apply: env contract → plan → confirm → execute. ---
+
+  // ① Resolve credentials (process env → .env.local → .env; never defaulted).
+  const env = resolveSupabaseEnv({ appDir: dir })
+  if (env.missing.length > 0 || !env.projectRef || !env.accessToken) {
+    console.error(`✗ ${missingEnvMessage(env.missing)}`)
     return 1
   }
 
+  // ② Build the same plan the dry-run would.
   let plan: MigrationPlan
   try {
     plan = buildMigrationPlan(dir, {
@@ -114,6 +162,44 @@ export function db(sub: string | undefined, args: string[]): number {
     throw err
   }
 
-  printPlan(plan)
+  if (plan.totalFiles === 0) {
+    console.log('▸ Nothing to apply — the plan resolved 0 SQL files.')
+    if (plan.notes.length > 0) for (const n of plan.notes) console.log(`    ⚠ ${n}`)
+    return 0
+  }
+
+  // ③ Confirm the target before touching the database.
+  console.log(`▸ About to apply migrations to Supabase project '${env.projectRef}'`)
+  console.log(`  ${plan.steps.length} step(s), ${plan.totalFiles} SQL file(s), then reload the PostgREST schema cache.`)
+  if (plan.notes.length > 0) for (const n of plan.notes) console.log(`    ⚠ ${n}`)
+
+  const gate = confirmationGate({ yes: flags.yes, isTTY: Boolean(process.stdin.isTTY) })
+  if (gate.error) {
+    console.error(`✗ ${gate.error}`)
+    return 1
+  }
+  if (gate.needsPrompt) {
+    const ok = await promptConfirm(`  Type 'y' to apply to '${env.projectRef}': `)
+    if (!ok) {
+      console.log('Aborted — nothing was applied.')
+      return 1
+    }
+  }
+
+  // ④ Execute. The client's fetch is the ONLY network surface.
+  const client = createManagementClient({
+    projectRef: env.projectRef,
+    accessToken: env.accessToken,
+  })
+  try {
+    await executeMigrationPlan(plan, client, { log: (m) => console.log(m) })
+  } catch (err) {
+    if (err instanceof MigrationExecutionError) {
+      console.error(`✗ ${err.message}`)
+      return 1
+    }
+    console.error(`✗ ${(err as Error).message}`)
+    return 1
+  }
   return 0
 }

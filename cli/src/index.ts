@@ -12,15 +12,28 @@ Usage:
   fayz doctor [dir]                       Validate manifest + architecture boundaries
   fayz extract [dir]                      Assisted code-config → manifest migration
   fayz db apply [dir] --dry-run           Plan the Supabase migration order (spine → drizzle → seed → plugins)
+  fayz db apply [dir] [--yes]             Apply the plan via the Supabase Management API (prompts unless --yes)
   fayz --help                             Show this help
   fayz --version                          Show version
+
+fayz db apply flags:
+  --dry-run          Print the ordered plan only; performs no network calls
+  --yes, -y          Skip the confirmation prompt (required in non-interactive shells)
+  --spine-only       Apply only the @fayz-ai/db spine
+  --plugins-only     Apply only plugin + incubator migrations
+  --only-plugins a,b Restrict the plugin step to the named plugin ids
+
+fayz db apply env (required for a real apply; never for --dry-run):
+  SUPABASE_PROJECT_REF   Project ref (alias: SUPABASE_REF) — dashboard → Project Settings → General
+  SUPABASE_PAT           Access token (alias: SUPABASE_ACCESS_TOKEN) — dashboard → Account → Access Tokens
+  Read from process env, then <app>/.env.local, then <app>/.env (files never override process env).
 
 Docs: fayz-sdk/docs/architecture-boundaries.md
 `
 
 const VERSION = '0.1.0'
 
-function main(argv: string[]): number {
+async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv
   switch (cmd) {
     case 'create':
@@ -48,4 +61,10 @@ function main(argv: string[]): number {
   }
 }
 
-process.exit(main(process.argv.slice(2)))
+main(process.argv.slice(2)).then(
+  (code) => process.exit(code),
+  (err) => {
+    console.error(err)
+    process.exit(1)
+  },
+)
