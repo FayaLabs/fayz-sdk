@@ -2,6 +2,7 @@ import type { TasksDataProvider } from './types'
 import type { Task, TaskLabel, TasksSummary, TaskStatus } from '../types'
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getTasksTenantId } from '../lib/tenant'
+import { T } from './tables'
 
 function getTenantId(): string | undefined {
   // Local override wins; else use the app's active tenant so writes pass RLS.
@@ -35,7 +36,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
       const tenantId = getTenantId()
       if (!tenantId) return []
       let q = getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .select('*')
         .eq('tenant_id', tenantId)
 
@@ -72,7 +73,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
 
     async getTaskById(id) {
       const { data } = await getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .select('*')
         .eq('id', id)
         .maybeSingle()
@@ -81,7 +82,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
 
     async getSubtasks(parentId) {
       const { data } = await getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .select('*')
         .eq('parent_id', parentId)
         .order('position', { ascending: true })
@@ -94,7 +95,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
 
       // Get max position for the status group
       const { data: maxData } = await getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .select('position')
         .eq('tenant_id', tenantId)
         .eq('status', input.status ?? 'todo')
@@ -104,7 +105,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
       const maxPos = maxData?.[0]?.position ?? -1
 
       const { data, error } = await getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .insert({
           tenant_id: tenantId,
           title: input.title,
@@ -135,7 +136,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
       if (input.position !== undefined) payload.position = input.position
 
       const { data, error } = await getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .update(payload)
         .eq('id', id)
         .select('*')
@@ -145,12 +146,12 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
     },
 
     async deleteTask(id) {
-      await getClient().from('tsk_tasks').delete().eq('id', id)
+      await getClient().from(T.tasks).delete().eq('id', id)
     },
 
     async reorderTask(id, newPosition, status) {
       await getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .update({ position: newPosition, status, updated_at: new Date().toISOString() })
         .eq('id', id)
     },
@@ -159,7 +160,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
       const tenantId = getTenantId()
       if (!tenantId) return []
       const { data } = await getClient()
-        .from('tsk_labels')
+        .from(T.labels)
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('is_active', true)
@@ -172,7 +173,7 @@ export function createSupabaseTasksProvider(): TasksDataProvider {
       if (!tenantId) return { total: 0, todo: 0, inProgress: 0, done: 0, overdue: 0, dueToday: 0, highPriority: 0 }
 
       const { data } = await getClient()
-        .from('tsk_tasks')
+        .from(T.tasks)
         .select('status, priority, due_date')
         .eq('tenant_id', tenantId)
         .is('parent_id', null)

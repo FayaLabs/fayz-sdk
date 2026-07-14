@@ -1,4 +1,22 @@
--- Tasks Plugin: Base Tables
+// AUTO-GENERATED from 000_plg_rename.sql, 001_tasks_base.sql — regenerate with scripts/embed-migrations.mjs
+// SQL files are the source of truth; this inline copy lets the manifest declare
+// migrations as data. Do not edit by hand — run the embed script instead.
+
+export const MIGRATION_000_PLG_RENAME = `-- 000_plg_rename.sql — rename legacy tasks tables to plg_tasks_* for pools
+-- provisioned before the industry-pool rename. Guarded: fires only when legacy
+-- name exists and target does not, so fresh pools skip every branch.
+DO $$
+BEGIN
+  IF to_regclass('public.tsk_tasks') IS NOT NULL AND to_regclass('public.plg_tasks_tasks') IS NULL THEN
+    ALTER TABLE public.tsk_tasks RENAME TO plg_tasks_tasks;
+  END IF;
+  IF to_regclass('public.tsk_labels') IS NOT NULL AND to_regclass('public.plg_tasks_labels') IS NULL THEN
+    ALTER TABLE public.tsk_labels RENAME TO plg_tasks_labels;
+  END IF;
+END $$;
+`
+
+export const MIGRATION_001_TASKS_BASE = `-- Tasks Plugin: Base Tables
 -- Prefix: plg_tasks_
 
 -- Label definitions for categorizing tasks
@@ -63,3 +81,9 @@ CREATE POLICY plg_tasks_labels_update ON public.plg_tasks_labels FOR UPDATE TO a
 DROP POLICY IF EXISTS plg_tasks_labels_delete ON public.plg_tasks_labels;
 CREATE POLICY plg_tasks_labels_delete ON public.plg_tasks_labels FOR DELETE TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.plg_tasks_labels TO authenticated;
+`
+
+export const MIGRATIONS: Array<{ id: string; sql: string }> = [
+  { id: "000_plg_rename", sql: MIGRATION_000_PLG_RENAME },
+  { id: "001_tasks_base", sql: MIGRATION_001_TASKS_BASE },
+]

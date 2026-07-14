@@ -11,7 +11,7 @@ import {
 // see src/migrations/001_content_planner.sql.
 // ---------------------------------------------------------------------------
 
-export const mktSocialAccounts = pgTable('mkt_social_accounts', {
+export const mktSocialAccounts = pgTable('plg_marketing_social_accounts', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: tenantId(),
   name: text('name').notNull(),
@@ -20,9 +20,9 @@ export const mktSocialAccounts = pgTable('mkt_social_accounts', {
   platforms: text('platforms').array().notNull().default(['instagram']),
   isActive: boolean('is_active').notNull().default(true),
   ...createdAt,
-}, (t) => [index('idx_mkt_social_accounts_tenant').on(t.tenantId)])
+}, (t) => [index('idx_plg_marketing_social_accounts_tenant').on(t.tenantId)])
 
-export const mktContentPlans = pgTable('mkt_content_plans', {
+export const mktContentPlans = pgTable('plg_marketing_content_plans', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: tenantId(),
   accountId: uuid('account_id').notNull().references(() => mktSocialAccounts.id, { onDelete: 'cascade' }),
@@ -38,11 +38,11 @@ export const mktContentPlans = pgTable('mkt_content_plans', {
   briefMd: text('brief_md').notNull().default(''),
   ...timestamps,
 }, (t) => [
-  index('idx_mkt_content_plans_tenant').on(t.tenantId),
-  index('idx_mkt_content_plans_account').on(t.accountId),
+  index('idx_plg_marketing_content_plans_tenant').on(t.tenantId),
+  index('idx_plg_marketing_content_plans_account').on(t.accountId),
 ])
 
-export const mktContentPosts = pgTable('mkt_content_posts', {
+export const mktContentPosts = pgTable('plg_marketing_content_posts', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: tenantId(),
   planId: uuid('plan_id').notNull().references(() => mktContentPlans.id, { onDelete: 'cascade' }),
@@ -63,7 +63,7 @@ export const mktContentPosts = pgTable('mkt_content_posts', {
   contentMd: text('content_md').notNull().default(''),
   ...timestamps,
 }, (t) => [
-  index('idx_mkt_content_posts_tenant').on(t.tenantId),
-  index('idx_mkt_content_posts_plan').on(t.planId, t.weekNumber, t.position),
-  index('idx_mkt_content_posts_status').on(t.tenantId, t.status),
+  index('idx_plg_marketing_content_posts_tenant').on(t.tenantId),
+  index('idx_plg_marketing_content_posts_plan').on(t.planId, t.weekNumber, t.position),
+  index('idx_plg_marketing_content_posts_status').on(t.tenantId, t.status),
 ])

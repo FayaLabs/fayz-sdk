@@ -12,7 +12,7 @@ const taskLabelEntity: EntityDef = {
     { key: 'color', label: 'Color', type: 'text', showInTable: true, defaultValue: '#6366f1' },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'tsk_labels', tenantScoped: true },
+  data: { table: 'plg_tasks_labels', tenantScoped: true },
 }
 
 export const tasksRegistries: PluginRegistryDef[] = [

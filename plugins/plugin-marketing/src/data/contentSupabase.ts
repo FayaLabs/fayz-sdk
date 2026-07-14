@@ -5,10 +5,11 @@ import type {
   ContentPost,
   SocialAccount,
 } from './contentTypes'
+import { T } from './tables'
 
 // ---------------------------------------------------------------------------
-// Supabase content-planner provider. Tables: mkt_social_accounts,
-// mkt_content_plans, mkt_content_posts (see src/migrations/001_content_planner.sql).
+// Supabase content-planner provider. Tables: plg_marketing_social_accounts,
+// plg_marketing_content_plans, plg_marketing_content_posts (see src/migrations/001_content_planner.sql).
 // RLS scopes rows to the user's tenants; we still filter tenant_id explicitly
 // on reads so multi-tenant sessions see only the active tenant.
 // ---------------------------------------------------------------------------
@@ -61,7 +62,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
       const tenantId = getActiveTenantId()
       if (!tenantId) return []
       const { data } = await getClient()
-        .from('mkt_social_accounts')
+        .from(T.socialAccounts)
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('is_active', true)
@@ -77,7 +78,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
         if (input.platforms !== undefined) payload.platforms = input.platforms
         if (input.isActive !== undefined) payload.is_active = input.isActive
         const { data, error } = await getClient()
-          .from('mkt_social_accounts')
+          .from(T.socialAccounts)
           .update(payload)
           .eq('id', input.id)
           .select('*')
@@ -86,7 +87,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
         return toAccount(data)
       }
       const { data, error } = await getClient()
-        .from('mkt_social_accounts')
+        .from(T.socialAccounts)
         .insert({
           tenant_id: requireTenantId(),
           name: input.name,
@@ -101,7 +102,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
     },
 
     async deleteAccount(id) {
-      const { error } = await getClient().from('mkt_social_accounts').delete().eq('id', id)
+      const { error } = await getClient().from(T.socialAccounts).delete().eq('id', id)
       if (error) throw error
     },
 
@@ -109,7 +110,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
       const tenantId = getActiveTenantId()
       if (!tenantId) return []
       const { data } = await getClient()
-        .from('mkt_content_plans')
+        .from(T.contentPlans)
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('account_id', accountId)
@@ -119,7 +120,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
 
     async getPlan(id) {
       const { data } = await getClient()
-        .from('mkt_content_plans')
+        .from(T.contentPlans)
         .select('*')
         .eq('id', id)
         .maybeSingle()
@@ -140,7 +141,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
         if (input.weeklyFrequency !== undefined) payload.weekly_frequency = input.weeklyFrequency
         if (input.briefMd !== undefined) payload.brief_md = input.briefMd
         const { data, error } = await getClient()
-          .from('mkt_content_plans')
+          .from(T.contentPlans)
           .update(payload)
           .eq('id', input.id)
           .select('*')
@@ -150,7 +151,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
       }
       if (!input.accountId) throw new Error('accountId is required')
       const { data, error } = await getClient()
-        .from('mkt_content_plans')
+        .from(T.contentPlans)
         .insert({
           tenant_id: requireTenantId(),
           account_id: input.accountId,
@@ -172,12 +173,12 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
     },
 
     async deletePlan(id) {
-      await getClient().from('mkt_content_plans').delete().eq('id', id)
+      await getClient().from(T.contentPlans).delete().eq('id', id)
     },
 
     async listPosts(planId) {
       const { data } = await getClient()
-        .from('mkt_content_posts')
+        .from(T.contentPosts)
         .select('*')
         .eq('plan_id', planId)
         .order('week_number', { ascending: true })
@@ -187,7 +188,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
 
     async getPost(id) {
       const { data } = await getClient()
-        .from('mkt_content_posts')
+        .from(T.contentPosts)
         .select('*')
         .eq('id', id)
         .maybeSingle()
@@ -210,7 +211,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
         if (input.cta !== undefined) payload.cta = input.cta
         if (input.contentMd !== undefined) payload.content_md = input.contentMd
         const { data, error } = await getClient()
-          .from('mkt_content_posts')
+          .from(T.contentPosts)
           .update(payload)
           .eq('id', input.id)
           .select('*')
@@ -223,7 +224,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
 
       // Next position within the (plan, week) group.
       const { data: maxData } = await getClient()
-        .from('mkt_content_posts')
+        .from(T.contentPosts)
         .select('position')
         .eq('plan_id', input.planId)
         .eq('week_number', week)
@@ -232,7 +233,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
       const maxPos = maxData?.[0]?.position ?? -1
 
       const { data, error } = await getClient()
-        .from('mkt_content_posts')
+        .from(T.contentPosts)
         .insert({
           tenant_id: requireTenantId(),
           plan_id: input.planId,
@@ -256,7 +257,7 @@ export function createSupabaseContentPlannerProvider(): ContentPlannerProvider {
     },
 
     async deletePost(id) {
-      await getClient().from('mkt_content_posts').delete().eq('id', id)
+      await getClient().from(T.contentPosts).delete().eq('id', id)
     },
   }
 }
