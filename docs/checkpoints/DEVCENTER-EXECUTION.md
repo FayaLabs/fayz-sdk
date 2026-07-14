@@ -120,15 +120,15 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: seeded-violation test exits non-zero; real state green (`node scripts/sync-release-channels.mjs --check` or equivalent)
   status: done
 
-- [ ] D1 SUPPORT.md tier table
+- [x] D1 SUPPORT.md tier table
   repo: fayz-sdk · files: SUPPORT.md (status → promise: semver discipline, docs coverage, response), linked from README; pre-1.0 caveat
   acceptance: file exists; README links it; emit-plugin-catalog includes tier URL
-  status: todo
+  status: done
 
-- [ ] B3 Distribution-flags decision memo (MEMO ONLY — no flag changes)
+- [x] B3 Distribution-flags decision memo (MEMO ONLY — no flag changes)
   repo: fayz-sdk · files: docs/checkpoints/DISTRIBUTION-FLAGS-2026-07.md (per-package table: current flag, proposed flag, rationale; registry mechanism reco for private network; migration steps incl. npm deprecate)
   acceptance: memo exists; `git diff --name-only` contains no package.json
-  status: todo
+  status: done
 
 ## CHECKPOINT 1 — FOUNDER MANUAL (loop STOPS here)
 
@@ -232,3 +232,5 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · B2 done — `fayz.status` seeded into all 31 tree-present package.jsons (11 packages + 19 plugins + cli); NOT 33 — plugin-admin/blog/payments have no package.json on this branch (same B1 source gap), so 31 not 33 is correct. scripts/check-package-status.mjs (new): enum-valid + private⇔internal + plugin visual≠beta cross-check (imports inspectPlugin from check-plugin-capability.mjs — refactored to export it behind an IS_MAIN guard, single source of truth, no fork) + soft README-vs-status drift warning. All package.json edits are pure insertions after the `name` line (zero deletions verified). Seed: substrate+kits+cli+capability/partial-beta-README plugins → beta (23); visual + experimental-README partials → preview (7); app-runtime private → internal (1). One soft warning: plugin-auth README says beta but is visual→preview (B1 wording overclaims; not fixed here, B2 is package.json-only). Gate bite proven 3 ways (invalid enum / private-not-internal / visual-claims-beta). build 31/31 + typecheck 42/42 + plugin-capability + published-shape 30/30 + package-docs all green (Opus agent)
 - 2026-07-14 · B4 done — emit-plugin-catalog.mjs → docs/plugin-catalog.json (19 plugins + 12 packages, idempotent, zero absolute paths; reuses inspectPlugin). ⚠ MORE CP1 EVIDENCE: no ./public|./website subpath exports exist anywhere on this branch (agenda publicSurface=false; branch agenda=0.1.8 vs npm 0.3.0) — main lags npm; published website-surface work is on feat/plugin-admin-foundation. Also: release-channels.json covers only 15 pkgs, all three channels byte-identical caret ranges drifting behind source versions (B5 input) (Opus agent, verified by orchestrator)
 - 2026-07-14 · B5 done — sync-release-channels.mjs created (--check mode = check:release-channels root script; hard rule stable-channel-must-not-pin-internal, gate bite proven; soft drift warnings; default sync mode NOT run — CP1 release-wave tool). CP1 DRIFT REPORT: 6 stable pins behind tree (sdk ^0.1.5→0.6.5, core/auth/ui/saas ^0.1.6→0.6.0, plugin-crm ^0.1.1→0.2.3). ⚠ NOTE: a different sync-release-channels.mjs exists on feat/plugin-admin-foundation (47 lines) — reconcile at CP1 merge (Opus agent, verified by orchestrator)
+- 2026-07-14 · D1+B3 done — SUPPORT.md tier table (linked from README; catalog gains repo-relative "support" field, idempotency preserved); DISTRIBUTION-FLAGS-2026-07.md memo with unfilled founder decision box; RECOMMENDATION: keep everything public MIT (published MIT can't be retracted; boundary belongs at product/app layer), no private flips, seed fayz.status on the 3 feat-branch plugins at merge. ⚠ docs/DISTRIBUTION.md does NOT exist on this branch (thesis lives in DIRECTION.md) — another feat-branch-only artifact. Zero package.json changes verified (Opus agent, verified by orchestrator)
+- 2026-07-14 · PHASE 2 COMPLETE — B1,B2,B4,B5,D1,B3 all done · loop STOPS at CHECKPOINT 1 per protocol

@@ -30,6 +30,13 @@
 //   - NO timestamps, NO absolute paths, NO founder-specific data — this file
 //     ships to a PUBLIC docs repo. Running the emitter twice must produce a
 //     zero git diff.
+//
+// Top-level `support` field (D1):
+//   Points the docs site at the support/stability-tier contract. We emit a
+//   REPO-RELATIVE path ("SUPPORT.md") rather than an absolute github.com URL so
+//   the catalog stays host-agnostic — the consumer (fayz-docs) resolves it
+//   against whatever base it publishes under, and the value never has to change
+//   if the repo moves hosts or the docs site rewrites links.
 // ---------------------------------------------------------------------------
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -40,6 +47,8 @@ const SCRIPT_DIR = fileURLToPath(new URL('.', import.meta.url))
 const ROOT = resolve(SCRIPT_DIR, '..')
 const SCHEMA_VERSION = 1
 const GENERATED_FROM = 'scripts/emit-plugin-catalog.mjs'
+// Repo-relative (host-agnostic) pointer to the support/stability-tier contract.
+const SUPPORT_DOC = 'SUPPORT.md'
 const OUT_PATH = join(ROOT, 'docs', 'plugin-catalog.json')
 
 const VALID_STATUS = new Set(['stable', 'beta', 'preview', 'internal'])
@@ -204,6 +213,7 @@ packages.sort(byId)
 const catalog = {
   generatedFrom: GENERATED_FROM,
   schemaVersion: SCHEMA_VERSION,
+  support: SUPPORT_DOC,
   plugins,
   packages,
 }

@@ -50,6 +50,7 @@ fayz create plugin loyalty   # scaffold an app-local (incubator) plugin
 - [Plugin patterns](PLUGIN_PATTERNS.md) · [Plugin model](docs/plugin-model.md) — how to build a plugin
 - [Private plugins](docs/private-plugins.md) — the partner extension path
 - [AI Builder taxonomy](docs/ai-builder-request-taxonomy.md) — request classes → boundary layers
+- [Support & stability tiers](SUPPORT.md) — what `stable` / `beta` / `preview` / `internal` promise
 - [Roadmap](docs/ROADMAP.md) · [Contributing](docs/contributing.md)
 
 ## License

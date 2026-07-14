@@ -1,6 +1,7 @@
 {
   "generatedFrom": "scripts/emit-plugin-catalog.mjs",
   "schemaVersion": 1,
+  "support": "SUPPORT.md",
   "plugins": [
     {
       "id": "plugin-agenda",
