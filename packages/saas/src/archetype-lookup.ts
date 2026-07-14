@@ -35,7 +35,7 @@ const ARCHETYPE_DISPLAY: Record<ArchetypeType, {
   priceField?: string
   groupField?: string
 }> = {
-  person: { table: 'persons', labelField: 'name', subtitleFields: ['phone'], groupField: 'kind' },
+  person: { table: 'people', labelField: 'name', subtitleFields: ['phone'], groupField: 'kind' },
   product: { table: 'products', labelField: 'name', subtitleFields: ['sku', 'description'], priceField: 'price' },
   service: { table: 'services', labelField: 'name', subtitleFields: ['duration_minutes', 'description'], priceField: 'price' },
   location: { table: 'locations', labelField: 'name', subtitleFields: ['city', 'address'], groupField: 'kind' },
@@ -80,7 +80,7 @@ function toResult(
 }
 
 /**
- * Create an EntityLookup that queries a saas_core archetype table via Supabase.
+ * Create an EntityLookup that queries a core archetype table via Supabase.
  * Returns empty results if Supabase is not configured.
  */
 export function createArchetypeLookup(config: ArchetypeLookupConfig): EntityLookup {
@@ -105,7 +105,6 @@ export function createArchetypeLookup(config: ArchetypeLookupConfig): EntityLook
       if (!supabase) return []
 
       let qb = supabase
-        .schema('saas_core')
         .from(display.table)
         .select('*')
         .eq('is_active', true)
@@ -126,7 +125,6 @@ export function createArchetypeLookup(config: ArchetypeLookupConfig): EntityLook
       if (!supabase) return []
 
       let qb = supabase
-        .schema('saas_core')
         .from(display.table)
         .select('*')
         .eq('is_active', true)
@@ -146,7 +144,6 @@ export function createArchetypeLookup(config: ArchetypeLookupConfig): EntityLook
       if (!supabase) return null
 
       const { data } = await supabase
-        .schema('saas_core')
         .from(display.table)
         .select('*')
         .eq('id', id)

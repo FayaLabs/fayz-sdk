@@ -3,7 +3,8 @@
 // Works outside the agenda plugin context — uses Supabase directly.
 // ---------------------------------------------------------------------------
 
-import { getCoreSchemaClient as getCoreClient } from '../supabase/client'
+// Core tables now live in the public schema — use the plain client directly.
+import { getFayzSupabaseClient as getCoreClient } from '../supabase/client'
 import { useOrganizationStore } from '../org'
 
 // ---------------------------------------------------------------------------

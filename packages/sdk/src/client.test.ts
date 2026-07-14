@@ -53,7 +53,7 @@ describe('createFayzClient', () => {
 
     const result = await client.data.listRows<{ id: string }>({
       projectId: 'project 1',
-      table: 'v_bookings',
+      table: 'v_appointments',
       filters: [
         { column: 'starts_at', operator: 'gte', value: '2026-06-14T00:00:00.000Z' },
         { column: 'status', operator: 'neq', value: 'cancelled' },
@@ -68,7 +68,7 @@ describe('createFayzClient', () => {
     expect(result.total).toBe(12)
 
     const [url, init] = fetcher.mock.calls[0] ?? []
-    expect(url).toContain('https://api.fayz.ai/api/v1/runtime/projects/project%201/database/tables/v_bookings/rows?')
+    expect(url).toContain('https://api.fayz.ai/api/v1/runtime/projects/project%201/database/tables/v_appointments/rows?')
     expect(url).toContain('filters=')
     expect(url).toContain('sortColumn=starts_at')
     expect(url).toContain('sortDirection=asc')

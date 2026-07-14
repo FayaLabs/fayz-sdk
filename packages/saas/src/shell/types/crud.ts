@@ -109,7 +109,7 @@ export interface EntityDef<T = Record<string, any>> {
     searchColumns?: string[]
     selectColumns?: string
     columnMap?: Record<string, string>
-    /** Which saas_core archetype this entity extends (requires a project extension table) */
+    /** Which public-schema archetype this entity extends (requires a project extension table) */
     archetype?: EntityArchetype
     /** The `kind` discriminator value for the archetype table */
     archetypeKind?: string

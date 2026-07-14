@@ -24,7 +24,6 @@ export const locationEntityDef: EntityDef = {
   ],
   data: {
     table: 'locations',
-    schema: 'saas_core',
     tenantScoped: true,
     searchColumns: ['name', 'city', 'state'],
     defaults: { kind: 'branch' },

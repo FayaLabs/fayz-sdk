@@ -8,7 +8,7 @@ import type {
   Invite,
 } from '@fayz-ai/core'
 import type { PermissionProfile, SystemPermission, AuthAdapter } from '@fayz-ai/core'
-import { getFayzSupabaseClient, CORE_SCHEMA } from '../../supabase/client'
+import { getFayzSupabaseClient } from '../../supabase/client'
 
 // ---------------------------------------------------------------------------
 // Request dedup — prevents duplicate in-flight requests (React StrictMode etc.)
@@ -241,7 +241,7 @@ function buildPermissionProfiles(
 // ---------------------------------------------------------------------------
 
 export interface SupabaseOrgAdapterConfig {
-  /** Override the core schema name (default: 'saas_core') */
+  /** Deprecated — core tables now live in the public schema; this field is ignored. */
   coreSchema?: string
   /** Business roles the host app declares (config.permissions.defaultProfiles).
    *  Falls back to the generic five when omitted. */
@@ -261,7 +261,6 @@ export interface SupabaseOrgAdapterConfig {
 }
 
 export function createSupabaseOrgAdapter(config?: SupabaseOrgAdapterConfig): OrgAdapter {
-  const schema = config?.coreSchema ?? CORE_SCHEMA
   const roles: RoleIdentity[] = config?.roles && config.roles.length > 0 ? config.roles : DEFAULT_ROLES
   const authAdapter = config?.authAdapter
   const originBase =
@@ -274,7 +273,7 @@ export function createSupabaseOrgAdapter(config?: SupabaseOrgAdapterConfig): Org
   }
 
   function core() {
-    return supabase().schema(schema)
+    return supabase()
   }
 
   return {

@@ -52,7 +52,7 @@ export const KANBAN_COLUMNS: KanbanColumn[] = ['new', 'confirmed', 'preparing', 
 // CORE ENTITIES
 // ============================================================
 
-/** Restaurant order — saas_core.orders + public.orders extension */
+/** Restaurant order — public.orders + public.orders extension */
 export interface RestaurantOrder {
   id: string
   referenceNumber: string

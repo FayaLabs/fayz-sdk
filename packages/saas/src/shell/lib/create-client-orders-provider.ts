@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Factory: creates a ClientOrdersProvider that queries saas_core.orders
+// Factory: creates a ClientOrdersProvider that queries public.orders
 // for a given client (party_id). The UI keeps the historical "stage" language,
 // but current archetype schemas expose this lifecycle as orders.status.
 // ---------------------------------------------------------------------------
@@ -44,7 +44,6 @@ export function createClientOrdersProvider(): ClientOrdersProvider {
 
       try {
         let qb = supabase
-          .schema('saas_core')
           .from('orders')
           .select('id, kind, status, total, reference_number, notes, metadata, created_at', { count: 'exact' })
           .eq('party_id', query.clientId)
@@ -67,8 +66,7 @@ export function createClientOrdersProvider(): ClientOrdersProvider {
         const bookingStartsByOrderId = new Map<string, string>()
         if (orderIds.length > 0) {
           const { data: bookings } = await supabase
-            .schema('saas_core')
-            .from('bookings')
+            .from('appointments')
             .select('order_id, starts_at')
             .in('order_id', orderIds)
 
