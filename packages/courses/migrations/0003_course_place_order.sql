@@ -22,7 +22,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_offer       public.course_offers%ROWTYPE;
+  v_offer       public.plg_courses_offers%ROWTYPE;
   v_fee_bps     integer := 500;
   v_customer_id uuid;
   v_order_id    uuid;
@@ -33,31 +33,31 @@ BEGIN
     RAISE EXCEPTION 'course_place_order: email required' USING ERRCODE = '22023';
   END IF;
 
-  SELECT * INTO v_offer FROM public.course_offers
+  SELECT * INTO v_offer FROM public.plg_courses_offers
     WHERE id = p_offer_id AND tenant_id = p_tenant_id
     FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'course_place_order: offer % not found', p_offer_id USING ERRCODE = '23503';
   END IF;
 
-  SELECT platform_fee_bps INTO v_fee_bps FROM public.course_creator_accounts WHERE tenant_id = p_tenant_id;
+  SELECT platform_fee_bps INTO v_fee_bps FROM public.plg_courses_creator_accounts WHERE tenant_id = p_tenant_id;
   v_fee_bps := COALESCE(v_fee_bps, 500);
   v_platform := round(v_offer.price * v_fee_bps / 10000.0, 2);
 
   -- Resolve / create the customer (find-or-create by tenant + email), linking
   -- auth.uid when the shopper is authenticated so their reads are RLS-scoped.
-  SELECT id INTO v_customer_id FROM public.course_customers
+  SELECT id INTO v_customer_id FROM public.plg_courses_customers
     WHERE tenant_id = p_tenant_id AND lower(email) = v_email LIMIT 1;
   IF v_customer_id IS NULL THEN
-    INSERT INTO public.course_customers (tenant_id, name, email, auth_user_id)
+    INSERT INTO public.plg_courses_customers (tenant_id, name, email, auth_user_id)
     VALUES (p_tenant_id, COALESCE(NULLIF(trim(p_customer_name), ''), v_email), v_email, auth.uid())
     RETURNING id INTO v_customer_id;
   ELSIF auth.uid() IS NOT NULL THEN
-    UPDATE public.course_customers SET auth_user_id = auth.uid()
+    UPDATE public.plg_courses_customers SET auth_user_id = auth.uid()
       WHERE id = v_customer_id AND auth_user_id IS NULL;
   END IF;
 
-  INSERT INTO public.course_orders (
+  INSERT INTO public.plg_courses_orders (
     tenant_id, course_id, offer_id, customer_id, customer_name, customer_email,
     currency, total, platform_fee, net_value, payment_method, financial_status
   ) VALUES (
@@ -87,10 +87,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_order public.course_orders%ROWTYPE;
-  v_offer public.course_offers%ROWTYPE;
+  v_order public.plg_courses_orders%ROWTYPE;
+  v_offer public.plg_courses_offers%ROWTYPE;
 BEGIN
-  SELECT * INTO v_order FROM public.course_orders WHERE id = p_order_id FOR UPDATE;
+  SELECT * INTO v_order FROM public.plg_courses_orders WHERE id = p_order_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'course_confirm_payment: order % not found', p_order_id USING ERRCODE = '23503';
   END IF;
@@ -98,22 +98,22 @@ BEGIN
     RETURN; -- idempotent: webhook re-delivery is a no-op
   END IF;
 
-  UPDATE public.course_orders
+  UPDATE public.plg_courses_orders
     SET financial_status = 'paid', stripe_payment_intent_id = COALESCE(p_stripe_pi, stripe_payment_intent_id)
     WHERE id = p_order_id;
 
   -- Grant access (idempotent thanks to the UNIQUE(course_id, customer_id)).
   IF v_order.customer_id IS NOT NULL THEN
-    INSERT INTO public.course_enrollments (tenant_id, course_id, customer_id, status)
+    INSERT INTO public.plg_courses_enrollments (tenant_id, course_id, customer_id, status)
     VALUES (v_order.tenant_id, v_order.course_id, v_order.customer_id, 'active')
     ON CONFLICT (course_id, customer_id) DO UPDATE SET status = 'active';
   END IF;
 
   -- Subscription offer → open a subscription row.
   IF v_order.offer_id IS NOT NULL THEN
-    SELECT * INTO v_offer FROM public.course_offers WHERE id = v_order.offer_id;
+    SELECT * INTO v_offer FROM public.plg_courses_offers WHERE id = v_order.offer_id;
     IF FOUND AND v_offer.kind = 'subscription' THEN
-      INSERT INTO public.course_subscriptions (
+      INSERT INTO public.plg_courses_subscriptions (
         tenant_id, course_id, offer_id, customer_id, customer_name, customer_email,
         currency, net_value, interval, status
       ) VALUES (
@@ -124,7 +124,7 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO public.course_payment_events (tenant_id, type, payload)
+  INSERT INTO public.plg_courses_payment_events (tenant_id, type, payload)
   VALUES (v_order.tenant_id, 'payment.confirmed',
           jsonb_build_object('order_id', p_order_id, 'stripe_payment_intent_id', p_stripe_pi));
 END;

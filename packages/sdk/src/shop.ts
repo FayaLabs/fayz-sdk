@@ -464,14 +464,14 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
   return {
     async listProducts(options?: FayzShopListProductsOptions) {
       const query = tenantQuery()
-      query.set('select', '*,images:shop_product_images(*),category:shop_categories(name)')
+      query.set('select', '*,images:plg_shop_product_images(*),category:plg_shop_categories(name)')
       if (options?.status) query.set('status', `eq.${options.status}`)
       if (options?.slug) query.set('slug', `eq.${options.slug}`)
       if (options?.search) query.set('name', `ilike.*${options.search}*`)
       query.set('order', `${options?.orderBy ?? 'sort_order'}.${options?.order ?? 'asc'}`)
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      const products = (await request<ProductRow[]>('shop_products', { query })).map((row) => rowToProduct(row, productMetadataOverlay))
+      const products = (await request<ProductRow[]>('plg_shop_products', { query })).map((row) => rowToProduct(row, productMetadataOverlay))
       return options?.categoryId ? products.filter((product) => product.categoryId === options.categoryId) : products
     },
     async getProduct(id: string) {
@@ -480,8 +480,8 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       // (invalid uuid), so treat any non-uuid id as "not found" instead.
       if (!asUuid(id)) return null
       const query = singleById(id)
-      query.set('select', '*,images:shop_product_images(*),category:shop_categories(name)')
-      const rows = await request<ProductRow[]>('shop_products', { query })
+      query.set('select', '*,images:plg_shop_product_images(*),category:plg_shop_categories(name)')
+      const rows = await request<ProductRow[]>('plg_shop_products', { query })
       return rows[0] ? rowToProduct(rows[0], productMetadataOverlay) : null
     },
     async createProduct() {
@@ -503,14 +503,14 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       const productQuery = tenantQuery()
       productQuery.set('select', 'metadata')
       productQuery.set('order', 'sort_order.asc')
-      const products = await request<ProductRow[]>('shop_products', { query: productQuery })
+      const products = await request<ProductRow[]>('plg_shop_products', { query: productQuery })
       const storeCategories = deriveStoreCategories(products, storeId)
       if (storeCategories.length > 0) return storeCategories
 
       const query = new URLSearchParams()
       query.set('select', '*')
       query.set('order', 'sort_order.asc')
-      return (await request<CategoryRow[]>('shop_categories', { query })).map(rowToCategory)
+      return (await request<CategoryRow[]>('plg_shop_categories', { query })).map(rowToCategory)
     },
     async createCategory() {
       throw new FayzShopError('Category writes require the Fayz admin/broker API.', 501)
@@ -523,7 +523,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
     },
     async listOrders(options?: FayzShopListOrdersOptions) {
       const query = tenantQuery()
-      query.set('select', '*,items:shop_order_items(*)')
+      query.set('select', '*,items:plg_shop_order_items(*)')
       if (options?.status) query.set('status', `eq.${options.status}`)
       if (options?.financialStatus) query.set('financial_status', `eq.${options.financialStatus}`)
       if (options?.fulfillmentStatus) query.set('fulfillment_status', `eq.${options.fulfillmentStatus}`)
@@ -533,14 +533,14 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       query.set('order', 'created_at.desc')
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      return (await request<OrderRow[]>('shop_orders', { query })).map(rowToOrder)
+      return (await request<OrderRow[]>('plg_shop_orders', { query })).map(rowToOrder)
     },
     async getOrder(id: string) {
       const query = singleById(id)
-      query.set('select', '*,items:shop_order_items(*)')
-      const rows = await request<OrderRow[]>('shop_orders', { query })
+      query.set('select', '*,items:plg_shop_order_items(*)')
+      const rows = await request<OrderRow[]>('plg_shop_orders', { query })
       if (rows[0]) return rowToOrder(rows[0])
-      // Anon storefronts can't SELECT shop_orders (RLS); the order uuid acts
+      // Anon storefronts can't SELECT plg_shop_orders (RLS); the order uuid acts
       // as the read capability through the whitelisted RPC.
       try {
         const row = await request<OrderRow | null>('rpc/shop_get_order', {
@@ -567,7 +567,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       const discountTotal = input.discountTotal ?? 0
       const shippingTotal = input.shippingTotal ?? 0
       const total = Math.round((subtotal - discountTotal + shippingTotal) * 100) / 100
-      const [order] = await request<OrderRow[]>('shop_orders', {
+      const [order] = await request<OrderRow[]>('plg_shop_orders', {
         method: 'POST',
         body: JSON.stringify({
           tenant_id: storeId,
@@ -588,7 +588,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       })
       if (!order) throw new FayzShopError('Order insert did not return a row.', 500)
       if (input.items.length) {
-        await request<OrderItemRow[]>('shop_order_items', {
+        await request<OrderItemRow[]>('plg_shop_order_items', {
           method: 'POST',
           body: JSON.stringify(input.items.map((item) => ({
             order_id: order.id,
@@ -605,7 +605,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       return this.getOrder(order.id)
     },
     async updateOrder(id: string, input: Parameters<typeof updateOrderPayload>[0]) {
-      await request<OrderRow[]>('shop_orders', {
+      await request<OrderRow[]>('plg_shop_orders', {
         method: 'PATCH',
         query: singleById(id),
         body: JSON.stringify(updateOrderPayload(input)),
@@ -654,10 +654,10 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       if (options?.search) query.set('or', `(first_name.ilike.*${options.search}*,last_name.ilike.*${options.search}*,email.ilike.*${options.search}*)`)
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      return (await request<CustomerRow[]>('shop_customers', { query })).map(rowToCustomer)
+      return (await request<CustomerRow[]>('plg_shop_customers', { query })).map(rowToCustomer)
     },
     async getCustomer(id: string) {
-      const rows = await request<CustomerRow[]>('shop_customers', { query: singleById(id) })
+      const rows = await request<CustomerRow[]>('plg_shop_customers', { query: singleById(id) })
       return rows[0] ? rowToCustomer(rows[0]) : null
     },
     async resolveCustomer(input: { email: string; name?: string }) {
@@ -674,7 +674,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       return rowToCustomer(customer)
     },
     async createCustomer(input: { firstName: string; lastName?: string; email?: string; phone?: string; notes?: string }) {
-      const [customer] = await request<CustomerRow[]>('shop_customers', {
+      const [customer] = await request<CustomerRow[]>('plg_shop_customers', {
         method: 'POST',
         body: JSON.stringify({
           tenant_id: storeId,
@@ -695,7 +695,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       if (input.email !== undefined) updates.email = input.email
       if (input.phone !== undefined) updates.phone = input.phone
       if (input.notes !== undefined) updates.notes = input.notes
-      const [customer] = await request<CustomerRow[]>('shop_customers', {
+      const [customer] = await request<CustomerRow[]>('plg_shop_customers', {
         method: 'PATCH',
         query: singleById(id),
         body: JSON.stringify(updates),
@@ -704,7 +704,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       return rowToCustomer(customer)
     },
     async deleteCustomer(id: string) {
-      await request<unknown>('shop_customers', { method: 'DELETE', query: singleById(id) })
+      await request<unknown>('plg_shop_customers', { method: 'DELETE', query: singleById(id) })
     },
     async listDiscounts(options?: FayzShopListDiscountsOptions) {
       const query = tenantQuery()
@@ -715,10 +715,10 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       if (options?.search) query.set('title', `ilike.*${options.search}*`)
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      return (await request<DiscountRow[]>('shop_discounts', { query })).map(rowToDiscount)
+      return (await request<DiscountRow[]>('plg_shop_discounts', { query })).map(rowToDiscount)
     },
     async getDiscount(id: string) {
-      const rows = await request<DiscountRow[]>('shop_discounts', { query: singleById(id) })
+      const rows = await request<DiscountRow[]>('plg_shop_discounts', { query: singleById(id) })
       return rows[0] ? rowToDiscount(rows[0]) : null
     },
     async createDiscount() {

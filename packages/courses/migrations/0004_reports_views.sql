@@ -14,8 +14,8 @@ SELECT
   count(co.id) AS sales_count,
   coalesce(sum(co.total), 0) AS revenue,
   cc.created_at
-FROM public.course_courses cc
-LEFT JOIN public.course_orders co
+FROM public.plg_courses_courses cc
+LEFT JOIN public.plg_courses_orders co
   ON co.course_id = cc.id AND co.financial_status = 'paid'
 GROUP BY cc.tenant_id, cc.id, cc.title, cc.currency, cc.created_at;
 

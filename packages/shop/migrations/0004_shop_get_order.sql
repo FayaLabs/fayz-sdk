@@ -2,7 +2,7 @@
 -- 0004 — shop_get_order: anon-readable order confirmation by uuid capability.
 --
 -- Guest storefront checkouts have no auth session, and 0002's RLS (correctly)
--- hides shop_orders from anon. The order uuid — returned only to the buyer by
+-- hides plg_shop_orders from anon. The order uuid — returned only to the buyer by
 -- shop_place_order — acts as the read capability: whoever holds it may read
 -- THAT order (whitelisted columns + items), nothing else. Same pattern as
 -- e-commerce "order status" links.
@@ -19,12 +19,12 @@ AS $$
     'items',
     COALESCE(
       (SELECT jsonb_agg(to_jsonb(i.*) ORDER BY i.created_at)
-       FROM public.shop_order_items i
+       FROM public.plg_shop_order_items i
        WHERE i.order_id = o.id),
       '[]'::jsonb
     )
   )
-  FROM public.shop_orders o
+  FROM public.plg_shop_orders o
   WHERE o.id = p_order_id;
 $$;
 

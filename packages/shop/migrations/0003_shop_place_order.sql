@@ -30,8 +30,8 @@ DECLARE
   v_customer_id uuid          := p_customer_id;
   v_order_id    uuid;
   v_item        jsonb;
-  v_product     public.shop_products%ROWTYPE;
-  v_disc        public.shop_discounts%ROWTYPE;
+  v_product     public.plg_shop_products%ROWTYPE;
+  v_disc        public.plg_shop_discounts%ROWTYPE;
   v_qty         integer;
   v_label       text;
   v_name        text;
@@ -51,15 +51,15 @@ BEGIN
   -- auth.uid when the shopper is authenticated so order reads are RLS-scoped.
   IF v_customer_id IS NULL AND v_email IS NOT NULL THEN
     SELECT id INTO v_customer_id
-      FROM public.shop_customers
+      FROM public.plg_shop_customers
       WHERE tenant_id = p_tenant_id AND lower(email) = v_email
       LIMIT 1;
     IF v_customer_id IS NULL THEN
-      INSERT INTO public.shop_customers (tenant_id, first_name, last_name, email, auth_user_id)
+      INSERT INTO public.plg_shop_customers (tenant_id, first_name, last_name, email, auth_user_id)
       VALUES (p_tenant_id, COALESCE(NULLIF(trim(p_customer_name), ''), v_email), '', v_email, auth.uid())
       RETURNING id INTO v_customer_id;
     ELSIF auth.uid() IS NOT NULL THEN
-      UPDATE public.shop_customers SET auth_user_id = auth.uid()
+      UPDATE public.plg_shop_customers SET auth_user_id = auth.uid()
         WHERE id = v_customer_id AND auth_user_id IS NULL;
     END IF;
   END IF;
@@ -71,7 +71,7 @@ BEGIN
     CONTINUE WHEN v_qty = 0;
 
     SELECT * INTO v_product
-      FROM public.shop_products
+      FROM public.plg_shop_products
       WHERE id = (v_item->>'product_id')::uuid AND tenant_id = p_tenant_id
       FOR UPDATE;
     IF NOT FOUND THEN
@@ -91,7 +91,7 @@ BEGIN
   -- Validate + apply the discount server-side (also under a row lock).
   IF p_discount_code IS NOT NULL AND length(trim(p_discount_code)) > 0 THEN
     SELECT * INTO v_disc
-      FROM public.shop_discounts
+      FROM public.plg_shop_discounts
       WHERE tenant_id = p_tenant_id AND lower(code) = lower(trim(p_discount_code))
       FOR UPDATE;
     IF FOUND
@@ -100,7 +100,7 @@ BEGIN
        AND (v_disc.ends_at IS NULL OR v_disc.ends_at >= v_now)
        AND (v_disc.usage_limit IS NULL OR v_disc.times_used < v_disc.usage_limit)
        AND (NOT v_disc.once_per_customer OR v_customer_id IS NULL OR NOT EXISTS (
-             SELECT 1 FROM public.shop_orders o
+             SELECT 1 FROM public.plg_shop_orders o
              WHERE o.tenant_id = p_tenant_id
                AND o.customer_id = v_customer_id
                AND lower(o.discount_code) = lower(v_disc.code)))
@@ -114,7 +114,7 @@ BEGIN
         v_shipping := 0;
       END IF;
       -- buy_x_get_y is not supported in v1: code recorded, no monetary effect.
-      UPDATE public.shop_discounts SET times_used = times_used + 1 WHERE id = v_disc.id;
+      UPDATE public.plg_shop_discounts SET times_used = times_used + 1 WHERE id = v_disc.id;
     END IF;
   END IF;
 
@@ -122,7 +122,7 @@ BEGIN
   v_total := GREATEST(round(v_subtotal - v_discount + v_shipping, 2), 0);
 
   -- Create the order (financial_status pending until payment confirms).
-  INSERT INTO public.shop_orders (
+  INSERT INTO public.plg_shop_orders (
     tenant_id, status, financial_status, fulfillment_status, currency,
     subtotal, tax_total, discount_total, shipping_total, total,
     customer_id, customer_name, customer_email, discount_code, notes
@@ -140,19 +140,19 @@ BEGIN
     CONTINUE WHEN v_qty = 0;
 
     SELECT * INTO v_product
-      FROM public.shop_products
+      FROM public.plg_shop_products
       WHERE id = (v_item->>'product_id')::uuid AND tenant_id = p_tenant_id;
     v_label := NULLIF(v_item->>'options_label', '');
     v_name := CASE WHEN v_label IS NULL THEN v_product.name ELSE v_product.name || ' (' || v_label || ')' END;
 
-    INSERT INTO public.shop_order_items (order_id, product_id, name, sku, quantity, unit_price, total, image_url)
+    INSERT INTO public.plg_shop_order_items (order_id, product_id, name, sku, quantity, unit_price, total, image_url)
     VALUES (
       v_order_id, v_product.id, v_name, v_product.sku, v_qty, v_product.price, round(v_product.price * v_qty, 2),
-      (SELECT url FROM public.shop_product_images
+      (SELECT url FROM public.plg_shop_product_images
          WHERE product_id = v_product.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1)
     );
 
-    UPDATE public.shop_products
+    UPDATE public.plg_shop_products
       SET inventory_count = inventory_count - v_qty
       WHERE id = v_product.id;
   END LOOP;
