@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-auth",
+  "fayz": { "status": "preview" },
   "version": "0.1.0",
   "description": "Fayz SDK — reusable auth runtime and UI integration plugin",
   "type": "module",

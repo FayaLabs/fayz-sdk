@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/shop",
+  "fayz": { "status": "beta" },
   "version": "0.6.0",
   "description": "Fayz SDK ecommerce layer — products, orders, customers, discounts, shipping",
   "type": "module",

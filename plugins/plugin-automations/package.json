@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-automations",
+  "fayz": { "status": "preview" },
   "version": "0.2.2",
   "description": "[experimental] Fayz SDK — workflows & automations plugin",
   "type": "module",

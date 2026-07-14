@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-crm",
+  "fayz": { "status": "beta" },
   "version": "0.2.3",
   "description": "Fayz SDK — plugin-crm plugin",
   "type": "module",

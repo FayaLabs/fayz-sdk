@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-menu",
+  "fayz": { "status": "beta" },
   "version": "0.2.3",
   "description": "Fayz SDK — plugin-menu plugin",
   "type": "module",

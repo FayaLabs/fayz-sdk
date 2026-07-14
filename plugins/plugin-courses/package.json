@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-courses",
+  "fayz": { "status": "preview" },
   "version": "0.2.2",
   "description": "[experimental] Fayz SDK — courses admin management plugin",
   "type": "module",

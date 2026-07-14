@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-tasks",
+  "fayz": { "status": "beta" },
   "version": "0.1.6",
   "description": "Fayz SDK — plugin-tasks plugin",
   "type": "module",
