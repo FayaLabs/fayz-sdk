@@ -225,6 +225,68 @@ function tsconfig(): string {
   )
 }
 
+function envExample(): string {
+  return `# .env.example — copy this file to .env.local and fill in real values.
+# .env.local is git-ignored (see .gitignore); NEVER commit real keys.
+
+# --- Runtime (client-side) -------------------------------------------------
+# Bundled into the browser by Vite. The VITE_ prefix is what exposes them to
+# client code, so only public/anon values belong here. From your Supabase
+# project: Dashboard → Project Settings → API.
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+
+# --- Tooling (used by \`fayz db apply\`) -------------------------------------
+# NOT exposed to the browser. Keep the REAL values in .env.local (git-ignored).
+# SUPABASE_PROJECT_REF — your project ref (alias: SUPABASE_REF).
+#   Dashboard → Project Settings → General.
+SUPABASE_PROJECT_REF=
+# SUPABASE_PAT — a personal access token (alias: SUPABASE_ACCESS_TOKEN).
+#   Dashboard → Account → Access Tokens.
+SUPABASE_PAT=
+`
+}
+
+function claudeMd(name: string, kind: Kind): string {
+  return `# CLAUDE.md — ${name}
+
+Guidance for Claude Code (and humans) working in this Fayz ${kind} app.
+
+This app renders from \`app.manifest.json\` through the Fayz app-runtime (consumed
+via the public \`@fayz-ai/sdk\` package). Most personalization is manifest edits,
+not new code.
+
+## Layout
+- \`app.manifest.json\` — app config: surfaces, theme, locale, and \`backend.provider\`.
+- \`src/plugins.generated.ts\` — maps manifest plugin ids → platform-bundled factories (generated).
+- \`src/registry.tsx\` — app-local custom blocks/pages/components (customization ladder levels 5–7).
+- \`.env.example\` — copy to \`.env.local\` and fill in Supabase values (see below).
+
+## Personalization checklist
+- Rename / retheme: edit \`name\`, \`theme\`, and the surface \`options\` in \`app.manifest.json\`.
+- Content: edit the surface \`options\` (home sections, footer, announcement, etc.).
+- Custom code: register blocks/components in \`src/registry.tsx\`, then reference them
+  from \`app.manifest.json\` by their \`custom:\` id.
+
+## Connecting a real Supabase
+The scaffold ships with \`backend.provider: "mock"\` so it runs with zero setup. To
+point it at a real Supabase project:
+
+1. Create a Supabase project — https://supabase.com/dashboard.
+2. Copy \`.env.example\` to \`.env.local\` and fill in the values:
+   - \`VITE_SUPABASE_URL\` / \`VITE_SUPABASE_ANON_KEY\` — runtime (Project Settings → API).
+   - \`SUPABASE_PROJECT_REF\` / \`SUPABASE_PAT\` — tooling for \`fayz db apply\`. Keep these
+     in \`.env.local\` (git-ignored); the PAT comes from Account → Access Tokens.
+3. Install dependencies: \`npm install\`.
+4. Provision the database schema:
+   - \`npx fayz db apply --dry-run\`   # preview the ordered migration plan (no network)
+   - \`npx fayz db apply\`             # apply it via the Supabase Management API
+5. Flip the app to the real backend: in \`app.manifest.json\`, change \`backend.provider\`
+   from \`"mock"\` to \`"supabase"\` (add \`"projectRef": "<your-ref>"\` under \`backend\`).
+6. Verify: \`npx fayz doctor\`.
+`
+}
+
 function indexHtml(name: string): string {
   return `<!doctype html>
 <html lang="pt-BR">
@@ -261,6 +323,8 @@ export function create(kind: string, name: string): number {
   write(root, 'app.manifest.json', manifestJson(name, k))
   write(root, 'package.json', packageJson(name, k))
   write(root, '.gitignore', 'node_modules\ndist\n.env\n.env.*\n!.env.example\n.DS_Store\n')
+  write(root, '.env.example', envExample())
+  write(root, 'CLAUDE.md', claudeMd(name, k))
   write(root, 'index.html', indexHtml(name))
   write(root, 'vite.config.ts', viteConfig())
   write(root, 'tsconfig.json', tsconfig())

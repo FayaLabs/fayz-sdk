@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -16,6 +16,7 @@ function write(path, content = '') {
 
 function createGeneratedApp() {
   const appRoot = mkdtempSync(join(tmpdir(), 'fayz-contract-app-'))
+  write(join(appRoot, '.env.example'), 'VITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nSUPABASE_PROJECT_REF=\nSUPABASE_PAT=\n')
   write(
     join(appRoot, 'package.json'),
     JSON.stringify({
@@ -66,6 +67,16 @@ describe('generated app contract gate', () => {
 
     assert.equal(result.status, 0)
     assert.match(result.stdout, /Generated app contract check passed/)
+  })
+
+  it('fails when the committed .env.example is missing', () => {
+    const appRoot = createGeneratedApp()
+    rmSync(join(appRoot, '.env.example'))
+
+    const result = runContract(appRoot)
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /\.env\.example not found/)
   })
 
   it('warns on path-only custom route refs and fails them in strict mode', () => {

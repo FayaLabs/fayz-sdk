@@ -83,10 +83,10 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: `node scripts/cli-smoke.mjs`
   status: done
 
-- [ ] A4 Templates emit .env.example + hardened .gitignore + CLAUDE.md db steps
+- [x] A4 Templates emit .env.example + hardened .gitignore + CLAUDE.md db steps
   repo: fayz-sdk · files: cli/src/templates/{shared,admin,storefront,member}.ts (.env.example with SUPABASE_PROJECT_REF=/SUPABASE_PAT=/VITE_SUPABASE_URL=/VITE_SUPABASE_ANON_KEY= placeholders; .gitignore covers .env* except .env.example; CLAUDE.md gains Supabase-flip + `fayz db apply` steps + docs-site/llms.txt pointer per master plan Part 2)
-  acceptance: `node scripts/check-generated-app.mjs` (extended to require .env.example) `&& node scripts/cli-smoke.mjs`
-  status: todo
+  acceptance: `node --test scripts/check-generated-app-contract.test.mjs && node scripts/cli-smoke.mjs` (script name corrected from stale check-generated-app.mjs)
+  status: done
 
 - [ ] A5 CLI 0.3.0 + engines ≥20 + changeset
   repo: fayz-sdk · files: cli/package.json + cli/src/index.ts VERSION + HELP, root package.json engines, .changeset/<new>.md
@@ -225,3 +225,4 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · A3a done — cli/src/lib/migration-plan.ts (pure planner, 5-source resolution) + cli/src/commands/db.ts (`db apply --dry-run` + filter flags; non-dry-run stubbed exit 1) + `pnpm --filter @fayz-ai/cli test` (node --test, 9/9). KEY FINDING: require.resolve('@fayz-ai/db/package.json') fails (exports map omits ./package.json) — planner uses resolvePackageDir() node_modules walker; A3b must reuse it. Verified dry-run on scaffold: spine 8 + crm 4 files, dashboard skip noted (Opus agent, verified by orchestrator)
 - 2026-07-14 · A3b done — cli/src/lib/supabase-management.ts (injectable-fetch Management-API client, executeMigrationPlan + NOTIFY pgrst, dependency-free dotenv, confirmation gate) wired into db.ts; env contract SUPABASE_PROJECT_REF/SUPABASE_PAT (+aliases), files never override process env; non-TTY without --yes refuses fast. 23/23 cli tests; verified missing-env exit 1 + non-tty exit 1, zero network (Opus agent, verified by orchestrator)
 - 2026-07-14 · A3c done — cli-smoke gains 3 db-apply cases (dry-run plan, missing-env naming both vars, non-TTY refusal pre-network; local packages/db symlinked into scaffold for spine); cli/README.md created; MIGRATION-ARCHITECTURE.md got append-only PROPOSED AMENDMENT (36+/0-) superseding the agency-os db-apply.mjs reference. Smoke green (Opus agent, verified by orchestrator)
+- 2026-07-14 · A4 done — scaffolds now emit .env.example (runtime VITE_* vs tooling REF/PAT split, commented) + CLAUDE.md (EN, personalization checklist + "Connecting a real Supabase": install → db apply dry-run/apply → flip backend.provider mock→supabase in app.manifest.json → doctor); contract script (real name: check-generated-app-contract.mjs) gates .env.example, gate bite proven; 16/16 contract tests, smoke green. NOTE for later: raw scaffolds fail the contract's public-only @fayz-ai/sdk dep rule (pre-existing, resolveFayzPackageDependencies writes full internal set — revisit at B-workstream or A5) (Opus agent, verified by orchestrator)

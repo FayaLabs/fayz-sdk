@@ -263,6 +263,10 @@ function collectCommerceProductMetadataFields(text) {
   return Array.from(fields).sort()
 }
 
+if (!hasFile('.env.example')) {
+  fail('.env.example not found. Generated apps must ship a committed .env.example documenting Supabase runtime + tooling vars (real values go in git-ignored .env.local).')
+}
+
 const packageJsonPath = join(root, 'package.json')
 if (!existsSync(packageJsonPath)) fail('package.json not found')
 
