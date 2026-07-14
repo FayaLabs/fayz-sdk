@@ -11,7 +11,7 @@
 // Shipped by plugins/plugin-agenda/src/migrations/001_public_booking.sql.
 // ---------------------------------------------------------------------------
 
-import { getSupabaseClientOptional } from '@fayz-ai/core'
+import { getFayzCloudClient, getSupabaseClientOptional } from '@fayz-ai/core'
 import type { TimeSlot } from '../types'
 import type { PublicService } from './types'
 import type { PublicBookingDataProvider } from './data'
@@ -26,10 +26,10 @@ interface SupabaseLikeClient {
   rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: { message: string } | null }>
 }
 
+// App-registered client (BYO backend) wins; otherwise Fayz Cloud — the shared
+// hosted project every tenantId-only app books against by default.
 function getClient(): SupabaseLikeClient {
-  const client = getSupabaseClientOptional() as SupabaseLikeClient | null
-  if (!client) throw new Error('[plugin-agenda/public] Supabase client not initialized')
-  return client
+  return (getSupabaseClientOptional() ?? getFayzCloudClient()) as SupabaseLikeClient
 }
 
 /** Digits-only phone (RPC normalizes again server-side; keep the dial code). */

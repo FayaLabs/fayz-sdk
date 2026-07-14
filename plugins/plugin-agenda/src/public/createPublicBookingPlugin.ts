@@ -1,7 +1,6 @@
 import { createElement, type FC, type ReactNode } from 'react'
 import { CalendarCheck, ShieldCheck, Video } from 'lucide-react'
 import type { PluginManifest, PluginScope, VerticalId, PaymentProvider } from '@fayz-ai/core'
-import { createSafeDataProvider } from '@fayz-ai/core'
 import type { Professional, Schedule } from '../types'
 import type { MockAgendaSeed } from '../data/mock'
 import { createMockPublicBookingProvider, type PublicBookingDataProvider } from './data'
@@ -202,24 +201,28 @@ export function createPublicBookingPlugin(options: PublicBookingOptions): Public
     bookings: [],
   }
 
-  const provider =
-    options.dataProvider ??
-    createSafeDataProvider<PublicBookingDataProvider>(
-      () => {
-        if (!options.tenantId) {
-          throw new Error(
-            '[plugin-agenda/public] `tenantId` is required when a Supabase client is configured (setGlobalSupabaseClient).',
-          )
-        }
-        return createSupabasePublicBookingProvider({ tenantId: options.tenantId })
-      },
-      () =>
-        createMockPublicBookingProvider({
-          seed: mockSeed,
-          services: staticServices ?? [],
-          professionalId: mockProfessionalId,
-        }),
-    )
+  // Resolution: explicit dataProvider → Supabase whenever a tenantId is
+  // declared (the app's global client if registered, else Fayz Cloud — the
+  // shared hosted backend) → seeded mock. The mock fallback is LOUD on
+  // purpose: the old silent fallback hid missing-env bugs as empty catalogs.
+  let provider: PublicBookingDataProvider
+  if (options.dataProvider) {
+    provider = options.dataProvider
+  } else if (options.tenantId) {
+    provider = createSupabasePublicBookingProvider({ tenantId: options.tenantId })
+  } else {
+    if (typeof console !== 'undefined') {
+      console.warn(
+        '[plugin-agenda/public] no `tenantId` and no `dataProvider` — falling back to the seeded MOCK provider. ' +
+          'Pass `tenantId` to book against Fayz Cloud, or inject a dataProvider.',
+      )
+    }
+    provider = createMockPublicBookingProvider({
+      seed: mockSeed,
+      services: staticServices ?? [],
+      professionalId: mockProfessionalId,
+    })
+  }
 
   const base: Omit<PublicBookingContextValue, 'services' | 'servicesLoading'> = {
     provider,
@@ -250,7 +253,7 @@ export function createPublicBookingPlugin(options: PublicBookingOptions): Public
     id: 'booking',
     name: 'Agendamento',
     icon: 'CalendarCheck',
-    version: '0.3.0',
+    version: '0.4.0',
     scope: options.scope ?? 'universal',
     verticalId: options.verticalId,
     scaffolds: ['website', 'landing_page'],
