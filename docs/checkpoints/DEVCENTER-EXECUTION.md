@@ -173,13 +173,13 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: tag demo page renders all six; build green (VARIATION: callout/badge/cards/steps + plugin-grid shipped; tabs/code-group+shiki deferred to P4.3)
   status: done
 
-- [ ] P4.3 Pipeline scripts: emit-raw-md.mjs (every page as .md), emit-llms.mjs (llms.txt + llms-full.txt), pagefind post-build
+- [x] P4.3 Pipeline scripts: emit-raw-md.mjs (every page as .md), emit-llms.mjs (llms.txt + llms-full.txt), pagefind post-build
   acceptance: out/llms.txt exists, every content page reachable as .md in out/, `pagefind --site out` indexes
-  status: todo
+  status: done
 
 - [ ] P4.4 Começar section: visao-geral, quickstart, conceitos, dois-caminhos (adapt from fayz-sdk docs/ — sanitize ALL internal refs)
   acceptance: build green; no `FAY-`, `~/dev`, or `fayz-app` strings in content (`grep -rE 'FAY-[0-9]|~/dev|fayz-app' content/` empty)
-  status: todo
+  status: in-progress
 
 - [ ] P4.5 Tutorial spine 01–07 (golden path; step 05 written against `fayz db apply`)
   acceptance: every command in tutorial verified by actually running it against a scaffolded app (docs-honesty: record command outputs in Log)
