@@ -31,7 +31,7 @@ fayz db apply env (required for a real apply; never for --dry-run):
 Docs: fayz-sdk/docs/architecture-boundaries.md
 `
 
-const VERSION = '0.1.0'
+const VERSION = '0.3.0'
 
 async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv

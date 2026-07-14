@@ -25,6 +25,10 @@ Provisions an app's Supabase database by resolving SQL from the app's **installe
 `@fayz-ai/*` packages (never a sibling `../../fayz-sdk` checkout), so an external
 developer with only published deps can provision a fresh project.
 
+> Working inside the monorepo? See [`docs/LOCAL-DEV.md`](../docs/LOCAL-DEV.md) for how an
+> app resolves `@fayz-ai/*` from local SDK source vs. published packages
+> (`FAYZ_SDK_SOURCE`, the `*:published-sdk` scripts).
+
 The plan is ordered:
 
 1. **spine** — `@fayz-ai/db` `migrations/*.sql` (Ring-0 `saas_core`)

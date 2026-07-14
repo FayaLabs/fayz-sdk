@@ -97,3 +97,5 @@ When customization is a reusable capability (its own entities, migrations, nav, 
 - Overrides are keyed by id and receive the original's typed props → SDK internals change without breaking you.
 - Custom code is confined to `src/registry.tsx` + your components + your plugins; you never copy an SDK page, so `fayz upgrade` (bump `@fayz-ai/core` + run manifest migrations) touches everything you *didn't* customize and leaves your overrides intact.
 - The registry is introspectable (`listBlocks`, `listComponents`, `listMetrics`, `listPluginFactories`), so the platform always knows exactly what a given app overrides — which is also how `fayz doctor` reports drift.
+
+> Working at levels 5–7 (repo code) locally? See [LOCAL-DEV.md](./LOCAL-DEV.md) for how `@fayz-ai/*` resolves to local SDK source vs. published packages (`FAYZ_SDK_SOURCE`, the `*:published-sdk` scripts).

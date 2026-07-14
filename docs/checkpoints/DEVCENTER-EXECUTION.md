@@ -88,15 +88,15 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: `node --test scripts/check-generated-app-contract.test.mjs && node scripts/cli-smoke.mjs` (script name corrected from stale check-generated-app.mjs)
   status: done
 
-- [ ] A5 CLI 0.3.0 + engines ≥20 + changeset
+- [x] A5 CLI 0.3.0 + engines ≥20 + changeset
   repo: fayz-sdk · files: cli/package.json + cli/src/index.ts VERSION + HELP, root package.json engines, .changeset/<new>.md
   acceptance: `node cli/dist/index.js --version` prints 0.3.0 after build; `pnpm build && pnpm typecheck`
-  status: todo
+  status: done
 
-- [ ] A6 Document FAYZ_SDK_SOURCE / local-source resolution
+- [x] A6 Document FAYZ_SDK_SOURCE / local-source resolution
   repo: fayz-sdk · files: docs/LOCAL-DEV.md (new), pointer from docs/CUSTOMIZATION.md + cli README
   acceptance: file exists, `grep -l FAYZ_SDK_SOURCE docs/LOCAL-DEV.md`
-  status: todo
+  status: done
 
 ## Phase 2 — Packaging & signaling (fayz-sdk) · branch: devcenter/p2-signaling
 
@@ -226,3 +226,5 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · A3b done — cli/src/lib/supabase-management.ts (injectable-fetch Management-API client, executeMigrationPlan + NOTIFY pgrst, dependency-free dotenv, confirmation gate) wired into db.ts; env contract SUPABASE_PROJECT_REF/SUPABASE_PAT (+aliases), files never override process env; non-TTY without --yes refuses fast. 23/23 cli tests; verified missing-env exit 1 + non-tty exit 1, zero network (Opus agent, verified by orchestrator)
 - 2026-07-14 · A3c done — cli-smoke gains 3 db-apply cases (dry-run plan, missing-env naming both vars, non-TTY refusal pre-network; local packages/db symlinked into scaffold for spine); cli/README.md created; MIGRATION-ARCHITECTURE.md got append-only PROPOSED AMENDMENT (36+/0-) superseding the agency-os db-apply.mjs reference. Smoke green (Opus agent, verified by orchestrator)
 - 2026-07-14 · A4 done — scaffolds now emit .env.example (runtime VITE_* vs tooling REF/PAT split, commented) + CLAUDE.md (EN, personalization checklist + "Connecting a real Supabase": install → db apply dry-run/apply → flip backend.provider mock→supabase in app.manifest.json → doctor); contract script (real name: check-generated-app-contract.mjs) gates .env.example, gate bite proven; 16/16 contract tests, smoke green. NOTE for later: raw scaffolds fail the contract's public-only @fayz-ai/sdk dep rule (pre-existing, resolveFayzPackageDependencies writes full internal set — revisit at B-workstream or A5) (Opus agent, verified by orchestrator)
+- 2026-07-14 · A5+A6 done — CLI 0.3.0 (VERSION was 0.1.0 in BOTH files, npm has 0.2.0), engines node>=20 root+cli, changeset devcenter-cli-db-apply.md (cli minor, db+auth patch). docs/LOCAL-DEV.md + NEW docs/README.md index (didn't exist; customization doc's real name is customization-ladder.md — tracker wording was stale). ⚠ CP1 NOTE: @fayz-ai/auth IS in the changesets linked set — its patch pulls the whole linked group at version time. Untracked renova-*.png at repo root are founder's, left alone. Full suite green (Opus agent, verified by orchestrator)
+- 2026-07-14 · PHASE 1 COMPLETE — all 8 milestones done, PR to follow
