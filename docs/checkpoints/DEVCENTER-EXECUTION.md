@@ -177,13 +177,13 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: out/llms.txt exists, every content page reachable as .md in out/, `pagefind --site out` indexes
   status: done
 
-- [ ] P4.4 Começar section: visao-geral, quickstart, conceitos, dois-caminhos (adapt from fayz-sdk docs/ — sanitize ALL internal refs)
+- [x] P4.4 Começar section: visao-geral, quickstart, conceitos, dois-caminhos (adapt from fayz-sdk docs/ — sanitize ALL internal refs)
   acceptance: build green; no `FAY-`, `~/dev`, or `fayz-app` strings in content (`grep -rE 'FAY-[0-9]|~/dev|fayz-app' content/` empty)
-  status: in-progress
+  status: done
 
 - [ ] P4.5 Tutorial spine 01–07 (golden path; step 05 written against `fayz db apply`)
   acceptance: every command in tutorial verified by actually running it against a scaffolded app (docs-honesty: record command outputs in Log)
-  status: todo
+  status: in-progress
 
 - [ ] P4.6 Construir section (9 v1 pages) + Referência (cli, plugin-manifest)
   acceptance: build green; sanitization grep empty
