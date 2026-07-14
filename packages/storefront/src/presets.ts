@@ -248,11 +248,77 @@ export const atelierTemplate: StorefrontTemplate = {
   }),
 }
 
+/** food — warm appetizing delivery (steakhouse / burger / comfort food): dark inviting
+ *  header, ember CTA, cream canvas, rounded cards, menu-first home with "mais pedidos"
+ *  rail and social proof. Built for restaurant/food stores — override to go fully dark. */
+export const foodTemplate: StorefrontTemplate = {
+  id: 'food',
+  inspiration: 'Delivery / restaurant storefront',
+  announcement: 'ENTREGA GRÁTIS ACIMA DE R$ 150 · PEÇA JÁ',
+  theme: {
+    name: 'food',
+    colors: {
+      background: '30 33% 97%',
+      foreground: '20 14% 15%',
+      primary: '14 84% 50%',
+      primaryForeground: '0 0% 100%',
+      card: '30 33% 99%',
+      cardForeground: '20 14% 15%',
+      muted: '28 20% 92%',
+      mutedForeground: '22 10% 42%',
+      border: '28 18% 85%',
+      headerBackground: '20 14% 11%',
+      headerForeground: '30 24% 96%',
+      announcementBackground: '14 84% 50%',
+      announcementForeground: '0 0% 100%',
+    },
+    font: { heading: 'Poppins', body: 'Inter' },
+    radius: 'round',
+    header: { variant: 'classic' },
+    productCard: { style: 'card', imageAspect: 'square' },
+  },
+  home: (storeName, images) => ({
+    sections: [
+      {
+        type: 'hero',
+        variant: 'banner',
+        height: 'tall',
+        slides: [
+          { title: 'Sabor de verdade, na sua porta', subtitle: `${storeName} — feito na hora, do jeito que você ama.`, cta: 'Ver cardápio', href: '/catalog', hue: 20, image: images?.hero?.[0] },
+        ],
+      },
+      {
+        type: 'benefits',
+        items: [
+          { icon: 'Flame', title: 'Feito na hora', text: 'Preparado com capricho' },
+          { icon: 'Truck', title: 'Entrega rápida', text: 'Frete grátis acima de R$ 150' },
+          { icon: 'CreditCard', title: 'Pagamento fácil', text: 'Pix, cartão e mais' },
+        ],
+      },
+      { type: 'categories', style: 'tiles', title: 'Nosso cardápio' },
+      { type: 'products', title: 'Mais pedidos', eyebrow: 'favoritos da casa', filter: 'all', limit: 8 },
+      { type: 'banner', title: 'Combo do dia', eyebrow: 'oferta', subtitle: 'Seleção especial com desconto', cta: 'Aproveitar', hue: 14, image: images?.banners?.[0] },
+      { type: 'products', title: 'Novidades no cardápio', filter: 'new', limit: 4 },
+      {
+        type: 'testimonials',
+        title: 'O que dizem por aí',
+        items: [
+          { quote: 'Chegou quentinho e absurdo de bom. Virei cliente!', author: 'Rafael M.' },
+          { quote: 'Sabor de restaurante em casa, sem complicação.', author: 'Beatriz L.' },
+          { quote: 'Entrega rápida e porção generosa. Recomendo demais.', author: 'Diego S.' },
+        ],
+      },
+      { type: 'newsletter', title: 'Receba nossas ofertas', subtitle: 'Promoções e novidades do cardápio, direto no seu e-mail.' },
+    ],
+  }),
+}
+
 export const storefrontTemplates = {
   mare: mareTemplate,
   sertao: sertaoTemplate,
   volt: voltTemplate,
   atelier: atelierTemplate,
+  food: foodTemplate,
 } as const
 
 export type StorefrontTemplateId = keyof typeof storefrontTemplates

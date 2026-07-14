@@ -99,23 +99,47 @@ function UtilityBar() {
   )
 }
 
-function SearchInput({ className }: { className?: string }) {
+function SearchInput({ className, iconOnly = false }: { className?: string; iconOnly?: boolean }) {
   const config = useStorefrontConfig()
   const search = useCatalogStore((s) => s.search)
   const setSearch = useCatalogStore((s) => s.setSearch)
   const path = useHashPath()
+  const [open, setOpen] = useState(false)
+
+  // Icon-only: a compact search button that expands into the input on click and
+  // collapses again on Escape / blur-when-empty.
+  if (iconOnly && !open) {
+    return (
+      <button
+        type="button"
+        aria-label="Buscar produtos"
+        data-testid={TID.headerSearchToggle}
+        onClick={() => setOpen(true)}
+        className="rounded-full p-2.5 transition-opacity hover:opacity-70"
+      >
+        <Search className="h-5 w-5" />
+      </button>
+    )
+  }
 
   return (
-    <div className={`relative ${className ?? ''}`}>
+    <div className={`relative ${iconOnly ? 'w-full max-w-xs' : (className ?? '')}`}>
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
       <input
         data-testid={TID.headerSearch}
         type="search"
         placeholder="Buscar produtos..."
         value={search}
+        autoFocus={iconOnly}
         onChange={(e) => {
           setSearch(e.target.value)
           if (path !== config.catalogPath) navigateTo(config.catalogPath)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' && iconOnly) setOpen(false)
+        }}
+        onBlur={() => {
+          if (iconOnly && !search) setOpen(false)
         }}
         className="w-full border bg-white/10 py-2 pl-9 pr-4 text-sm outline-none transition-colors placeholder:opacity-60 focus:border-primary focus:bg-white focus:text-gray-900"
         style={{
@@ -277,6 +301,7 @@ export function StorefrontHeader() {
   const variant = config.theme?.header?.variant ?? 'classic'
   const scrolled = useScrolled()
   const showSearch = config.theme?.header?.showSearch !== false
+  const iconSearch = config.theme?.header?.searchStyle === 'icon'
   const logo = (
     <Link to="/" className="sf-heading shrink-0 text-xl font-bold tracking-tight">
       {config.logo ?? config.name}
@@ -295,7 +320,7 @@ export function StorefrontHeader() {
         // Rio/Flex pattern: centered logo row, nav row below
         <>
           <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6">
-            {showSearch ? <SearchInput className="hidden w-full max-w-xs sm:block" /> : <div />}
+            {showSearch ? <SearchInput iconOnly={iconSearch} className="hidden w-full max-w-xs sm:block" /> : <div />}
             <div className="text-center">{logo}</div>
             <div className="justify-self-end">
               <HeaderActions />
@@ -309,7 +334,7 @@ export function StorefrontHeader() {
         // Brasília pattern: prominent search left, logo center, actions right; nav row below
         <>
           <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-4 sm:px-6">
-            {showSearch ? <SearchInput className="hidden w-full max-w-sm sm:block" /> : <div />}
+            {showSearch ? <SearchInput iconOnly={iconSearch} className="hidden w-full max-w-sm sm:block" /> : <div />}
             <div className="text-center">{logo}</div>
             <div className="justify-self-end">
               <HeaderActions />
@@ -329,17 +354,19 @@ export function StorefrontHeader() {
           </div>
           <div className="text-center">{logo}</div>
           <div className="flex items-center justify-end gap-3">
-            {showSearch && <SearchInput className="hidden w-44 lg:block" />}
+            {showSearch && <SearchInput iconOnly={iconSearch} className="hidden w-44 lg:block" />}
             <HeaderActions />
           </div>
         </div>
       ) : (
-        // classic: logo left, search center-right, actions right (original layout)
+        // classic: logo left, nav, then a right-aligned search + actions cluster
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
           {logo}
           <NavLinks className="hidden md:flex" />
-          {showSearch && <SearchInput className="ml-auto hidden w-full max-w-sm sm:block" />}
-          <HeaderActions />
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {showSearch && <SearchInput iconOnly={iconSearch} className={iconSearch ? '' : 'hidden w-full max-w-sm sm:block'} />}
+            <HeaderActions />
+          </div>
         </div>
       )}
     </header>

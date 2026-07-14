@@ -475,6 +475,10 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       return options?.categoryId ? products.filter((product) => product.categoryId === options.categoryId) : products
     },
     async getProduct(id: string) {
+      // Cart lines can carry non-uuid ids (mock catalog, or a cart persisted in
+      // an earlier mock-mode session). PostgREST would 400 on `id=eq.p-05`
+      // (invalid uuid), so treat any non-uuid id as "not found" instead.
+      if (!asUuid(id)) return null
       const query = singleById(id)
       query.set('select', '*,images:product_images(*),category:categories(name)')
       const rows = await request<ProductRow[]>('products', { query })

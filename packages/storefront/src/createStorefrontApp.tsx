@@ -1,5 +1,5 @@
 import React from 'react'
-import { setShopProvider } from '@fayz-ai/shop/runtime'
+import { setShopProvider, getShopProvider } from '@fayz-ai/shop/runtime'
 import { createMockShopProvider } from '@fayz-ai/shop/mock'
 import type { MockShopSeed } from '@fayz-ai/shop/mock'
 import type { Discount } from '@fayz-ai/shop/types'
@@ -10,6 +10,7 @@ import type { StorefrontConfig, StorefrontDiscountConfig } from './config'
 import type { StorefrontComponents } from './component-contracts'
 import type { StorefrontSection } from './sections'
 import { useHashPath, matchPath } from './router'
+import { useCartStore } from './stores/cart.store'
 import { StorefrontThemeStyle } from './theme'
 import { StorefrontHeader } from './components/StorefrontHeader'
 import { StorefrontFooter } from './components/StorefrontFooter'
@@ -127,6 +128,22 @@ export function initStorefrontRuntime(config: StorefrontConfig): void {
   } else {
     setShopProvider(createMockShopProvider(buildMockSeed(config)))
   }
+
+  // Drop any persisted cart line the active backend can't resolve (e.g. a cart
+  // built in an earlier mock-mode session, whose ids don't exist live) so stale
+  // ids never reach checkout and 400 the order. Keeps a line on any error so a
+  // transient failure never discards a valid item. Runs AFTER the persisted cart
+  // has hydrated — zustand/persist rehydrates asynchronously, so reconciling at
+  // init would see an empty cart and no-op.
+  const reconcileCart = () => {
+    const provider = getShopProvider()
+    void useCartStore.getState().reconcile(async (line) => {
+      const product = await provider.getProduct(line.productId)
+      return product != null
+    })
+  }
+  if (useCartStore.persist.hasHydrated()) reconcileCart()
+  else useCartStore.persist.onFinishHydration(reconcileCart)
 
   if (config.supabaseUrl || config.supabaseAnonKey) {
     console.warn(
