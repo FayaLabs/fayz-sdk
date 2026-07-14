@@ -1,16 +1,22 @@
 // AUTO-GENERATED from 001_public_booking.sql — regenerate with scripts/embed-migrations.mjs
-// (kept in sync so the manifest can declare migrations as data, plugin-tasks pattern)
+// SQL files are the source of truth; this inline copy lets the manifest declare
+// migrations as data. Do not edit by hand — run the embed script instead.
 
 export const MIGRATION_001_PUBLIC_BOOKING = `-- ============================================================================
 -- plugin-agenda 001: booking read model + public (anon) booking surface
 --
 -- Ships the objects the agenda providers reference but the spine (packages/db
--- migrations 001–008) does not define:
+-- migrations 001–010) does not define:
+--   §0  converted-pool cleanup — drop the pre-rename v_bookings view / indexes
 --   §1  order_items columns the admin provider writes (duration/assignee)
---   §2  public.v_bookings        — admin read model (authenticated, RLS applies)
+--   §2  public.v_appointments    — admin read model (authenticated, RLS applies)
 --   §3  public.v_public_services — anon-readable service catalog
 --   §4  public.get_available_slots      — anon RPC (mirrors the mock algorithm)
 --   §5  public.create_public_booking    — anon RPC (validated, race-safe write)
+--
+-- Core v1 lives directly in PUBLIC (no separate core schema): people (was
+-- persons), appointments (was bookings). This migration is written against public
+-- names and is idempotent + safe on both fresh and converted pools.
 --
 -- Anon-access design: public booking pages run with the publishable key and no
 -- session, so the canonical tenant RLS yields nothing. Anon access is granted
@@ -18,23 +24,31 @@ export const MIGRATION_001_PUBLIC_BOOKING = `-- ================================
 -- with tight input validation and hardcoded statuses.
 -- ============================================================================
 
+-- §0 — converted-pool cleanup. The pre-industry-pool shape shipped a v_bookings
+-- view and persons_/bookings_-named indexes; drop them so this file re-emits the
+-- canonical v_appointments view + people_/appointments_ indexes without leaving
+-- duplicates. All guarded with IF EXISTS → no-ops on a fresh pool.
+DROP VIEW IF EXISTS public.v_bookings;
+DROP INDEX IF EXISTS public.persons_tenant_customer_phone;
+DROP INDEX IF EXISTS public.bookings_assignee_time;
+
 -- §1 — columns the agenda provider writes but 004_archetypes lacks
-ALTER TABLE saas_core.order_items
+ALTER TABLE public.order_items
   ADD COLUMN IF NOT EXISTS duration_minutes integer,
-  ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES saas_core.persons(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES public.people(id) ON DELETE SET NULL;
 
 -- Upsert key for public customers (per tenant, by normalized phone)
-CREATE UNIQUE INDEX IF NOT EXISTS persons_tenant_customer_phone
-  ON saas_core.persons(tenant_id, phone)
+CREATE UNIQUE INDEX IF NOT EXISTS people_tenant_customer_phone
+  ON public.people(tenant_id, phone)
   WHERE kind = 'customer' AND phone IS NOT NULL;
 
 -- Slot-conflict scan
-CREATE INDEX IF NOT EXISTS bookings_assignee_time
-  ON saas_core.bookings(assignee_id, starts_at, ends_at)
+CREATE INDEX IF NOT EXISTS appointments_assignee_time
+  ON public.appointments(assignee_id, starts_at, ends_at)
   WHERE status NOT IN ('cancelled', 'no_show');
 
 -- §2 — admin read model (security_invoker → underlying RLS applies; anon sees 0 rows)
-CREATE OR REPLACE VIEW public.v_bookings
+CREATE OR REPLACE VIEW public.v_appointments
 WITH (security_invoker = true) AS
 SELECT
   b.id, b.tenant_id, b.kind, b.starts_at, b.ends_at, b.status, b.notes,
@@ -52,14 +66,14 @@ SELECT
   o.status                                AS order_status,
   (EXTRACT(EPOCH FROM (COALESCE(b.ends_at, b.starts_at) - b.starts_at))::int / 60)
                                           AS total_duration_minutes
-FROM saas_core.bookings b
-LEFT JOIN saas_core.persons   pc ON pc.id = b.party_id
-LEFT JOIN saas_core.persons   ps ON ps.id = b.assignee_id
-LEFT JOIN saas_core.locations l  ON l.id  = b.location_id
-LEFT JOIN saas_core.orders    o  ON o.id  = b.order_id;
+FROM public.appointments b
+LEFT JOIN public.people    pc ON pc.id = b.party_id
+LEFT JOIN public.people    ps ON ps.id = b.assignee_id
+LEFT JOIN public.locations l  ON l.id  = b.location_id
+LEFT JOIN public.orders    o  ON o.id  = b.order_id;
 
-GRANT SELECT ON public.v_bookings TO authenticated, service_role;
-REVOKE SELECT ON public.v_bookings FROM anon;
+GRANT SELECT ON public.v_appointments TO authenticated, service_role;
+REVOKE SELECT ON public.v_appointments FROM anon;
 
 -- §3 — anon-readable public catalog (owner-rights view = deliberate, whitelisted)
 CREATE OR REPLACE VIEW public.v_public_services AS
@@ -68,7 +82,7 @@ SELECT
   COALESCE(s.duration_minutes, 30)                AS duration_minutes,
   s.image_url,
   COALESCE((s.metadata->>'sort_order')::int, 0)   AS sort_order
-FROM saas_core.services s
+FROM public.services s
 WHERE s.is_active AND s.status = 'active';
 
 GRANT SELECT ON public.v_public_services TO anon, authenticated, service_role;
@@ -82,7 +96,7 @@ CREATE OR REPLACE FUNCTION public.get_available_slots(
   p_slot_interval integer DEFAULT 30
 ) RETURNS TABLE (slot_start timestamptz, slot_end timestamptz)
 LANGUAGE plpgsql STABLE SECURITY DEFINER
-SET search_path = saas_core, public
+SET search_path = public
 AS $$
 DECLARE
   v_tz text;
@@ -130,7 +144,7 @@ BEGIN
   SELECT DISTINCT c.s_start, c.s_end
   FROM candidate c
   WHERE NOT EXISTS (
-    SELECT 1 FROM bookings b
+    SELECT 1 FROM appointments b
     WHERE b.tenant_id = p_tenant_id
       AND b.assignee_id = c.assignee_id
       AND b.status NOT IN ('cancelled', 'no_show')
@@ -156,7 +170,7 @@ CREATE OR REPLACE FUNCTION public.create_public_booking(
   p_notes text DEFAULT NULL
 ) RETURNS TABLE (booking_id uuid, starts_at timestamptz, ends_at timestamptz)
 LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = saas_core, public
+SET search_path = public
 AS $$
 DECLARE
   v_service record;
@@ -218,7 +232,7 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtextextended(p_tenant_id::text || v_assignee::text, 0));
 
   IF EXISTS (
-    SELECT 1 FROM bookings b
+    SELECT 1 FROM appointments b
     WHERE b.tenant_id = p_tenant_id
       AND b.assignee_id = v_assignee
       AND b.status NOT IN ('cancelled', 'no_show')
@@ -230,8 +244,8 @@ BEGIN
 
   -- anti-spam: cap open future public bookings per phone per tenant
   IF (
-    SELECT count(*) FROM bookings b
-    JOIN persons p ON p.id = b.party_id
+    SELECT count(*) FROM appointments b
+    JOIN people p ON p.id = b.party_id
     WHERE b.tenant_id = p_tenant_id
       AND p.phone = v_phone
       AND b.starts_at > now()
@@ -240,14 +254,14 @@ BEGIN
     RAISE EXCEPTION 'too many open bookings for this phone';
   END IF;
 
-  -- upsert the customer by (tenant, phone) — matches persons_tenant_customer_phone
-  INSERT INTO persons (tenant_id, kind, name, phone, email, metadata)
+  -- upsert the customer by (tenant, phone) — matches people_tenant_customer_phone
+  INSERT INTO people (tenant_id, kind, name, phone, email, metadata)
   VALUES (p_tenant_id, 'customer', trim(p_name), v_phone, p_email,
           jsonb_build_object('source', 'public_booking'))
   ON CONFLICT (tenant_id, phone) WHERE kind = 'customer' AND phone IS NOT NULL
   DO UPDATE SET
     name = EXCLUDED.name,
-    email = COALESCE(EXCLUDED.email, persons.email),
+    email = COALESCE(EXCLUDED.email, people.email),
     updated_at = now()
   RETURNING id INTO v_person_id;
 
@@ -260,7 +274,7 @@ BEGIN
                              'contactName', trim(p_name)))
   RETURNING id INTO v_order;
 
-  INSERT INTO bookings (tenant_id, kind, party_id, assignee_id, order_id,
+  INSERT INTO appointments (tenant_id, kind, party_id, assignee_id, order_id,
                         starts_at, ends_at, status, notes, metadata)
   VALUES (p_tenant_id, 'appointment', v_person_id, v_assignee, v_order,
           p_starts_at, v_ends, 'scheduled', v_notes,
@@ -280,3 +294,7 @@ REVOKE ALL ON FUNCTION public.create_public_booking(uuid, uuid, timestamptz, tex
 GRANT EXECUTE ON FUNCTION public.create_public_booking(uuid, uuid, timestamptz, text, text, text, text)
   TO anon, authenticated, service_role;
 `
+
+export const MIGRATIONS: Array<{ id: string; sql: string }> = [
+  { id: "001_public_booking", sql: MIGRATION_001_PUBLIC_BOOKING },
+]

@@ -5,7 +5,7 @@
 // Google) is automatic via a DB trigger; inbound (Google → booking) via pg_cron
 // or a Google watch webhook. The data plane is the google-calendar-sync edge
 // function (see ./functions/google-calendar-sync). The booking↔event link lives
-// on saas_core.bookings.metadata.googleCalendarEventId.
+// on public.appointments.metadata.googleCalendarEventId.
 //
 // Graduation path: extract to its own `@fayz-ai/plugin-google-calendar` package.
 import type { PluginManifest } from '@fayz-ai/core'

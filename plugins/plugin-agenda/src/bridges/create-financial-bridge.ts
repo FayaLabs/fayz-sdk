@@ -54,12 +54,11 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
       try {
         const [{ data: orders }, { data: movements }] = await Promise.all([
           supabase
-            .schema('saas_core')
             .from('orders')
             .select('id, kind, status, total, reference_number, metadata')
             .in('id', orderIds),
           supabase
-            .from('financial_movements')
+            .from('plg_financial_movements')
             .select('invoice_id, status, paid_amount')
             .in('invoice_id', orderIds),
         ])
@@ -97,8 +96,8 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
 
       // Single query: get order + movements in parallel
       const [orderRes, movRes] = await Promise.all([
-        supabase.schema('saas_core').from('orders').select('id, status, total, reference_number, metadata').eq('id', orderId).single(),
-        supabase.from('financial_movements').select('*').eq('invoice_id', orderId).order('due_date'),
+        supabase.from('orders').select('id, status, total, reference_number, metadata').eq('id', orderId).single(),
+        supabase.from('plg_financial_movements').select('*').eq('invoice_id', orderId).order('due_date'),
       ])
 
       const order = orderRes.data
@@ -109,7 +108,7 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
       const typeIds = [...new Set((movRes.data ?? []).map((m: any) => m.payment_method_type_id).filter(Boolean))]
       let typeNames: Record<string, string> = {}
       if (typeIds.length > 0) {
-        const { data: types } = await supabase.from('payment_method_types').select('id, name').in('id', typeIds)
+        const { data: types } = await supabase.from('plg_financial_payment_method_types').select('id, name').in('id', typeIds)
         typeNames = Object.fromEntries((types ?? []).map((t: any) => [t.id, t.name]))
       }
 
@@ -176,7 +175,6 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
 
       // Order carries the assigned professional (assignee_id) and realized total.
       const { data: order } = await supabase
-        .schema('saas_core')
         .from('orders')
         .select('id, tenant_id, assignee_id, total')
         .eq('id', orderId)
@@ -197,7 +195,7 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
 
       // Idempotent: one commission accrual per order. Reuse if already present.
       const { data: existing } = await supabase
-        .from('financial_movements')
+        .from('plg_financial_movements')
         .select('id')
         .eq('invoice_id', orderId)
         .eq('movement_kind', 'commission')
@@ -207,7 +205,7 @@ export function createFinancialBridge(provider: FinancialDataProvider): AgendaFi
       const dueDate = options?.dueDate ?? new Date().toISOString().slice(0, 10)
 
       const { data: inserted } = await supabase
-        .from('financial_movements')
+        .from('plg_financial_movements')
         .insert({
           tenant_id: order.tenant_id,
           invoice_id: orderId,
