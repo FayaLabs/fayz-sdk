@@ -1,6 +1,8 @@
 {
   "name": "@fayz-ai/plugin-auth",
-  "fayz": { "status": "preview" },
+  "fayz": {
+    "status": "preview"
+  },
   "version": "0.1.0",
   "description": "Fayz SDK — reusable auth runtime and UI integration plugin",
   "type": "module",
@@ -32,7 +34,9 @@
   "dependencies": {
     "@fayz-ai/auth": "workspace:^",
     "@fayz-ai/core": "workspace:^",
-    "@fayz-ai/ui": "workspace:^"
+    "@fayz-ai/ui": "workspace:^",
+    "@radix-ui/react-dialog": "^1.1.0",
+    "lucide-react": "^0.400.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
