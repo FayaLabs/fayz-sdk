@@ -1,0 +1,18 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-school",
+  "name": "Pool profile \u2014 cluster-school-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": [
+        {
+          "id": "agenda",
+          "enabled": true
+        }
+      ]
+    }
+  }
+}

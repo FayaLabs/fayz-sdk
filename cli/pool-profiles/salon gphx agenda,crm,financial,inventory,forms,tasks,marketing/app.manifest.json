@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-salon gphx agenda,crm,financial,inventory,forms,tasks,marketing",
+  "name": "Pool profile \u2014 cluster-salon gphx agenda,crm,financial,inventory,forms,tasks,marketing-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": []
+    }
+  }
+}

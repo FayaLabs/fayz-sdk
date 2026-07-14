@@ -50,6 +50,13 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
   - runner v2: checksums, ledger-gated executor, `fayz db pool status|apply|move-tenant`, `fayz db fan-out --canary`
   - acceptance: pnpm build + typecheck + cli tests green (old 23 + new ledger/registry/pool tests)
 - [ ] M2 Canary: fan-out --canary cluster-creators-br-01 + read-only smoke — ✋ FOUNDER validates
+  - [x] Runner v2 shipped (commit 5977fd2; 48/48 tests); pool profiles authored (cli/pool-profiles/* + workspace symlink bridge); dry-runs green (creators=17 files, ecommerce=17, restaurant=33, agency=27, school=13)
+  - [x] Read-only smoke script: cli/pool-profiles/smoke.mjs
+  - [ ] ✋ FOUNDER GATE (classifier blocks agent DDL-apply via CLI): run
+        `node cli/dist/index.js db pool apply creators --app cli/pool-profiles/creators --yes`
+        (repo fayz-sdk, needs SUPABASE_ACCESS_TOKEN in env) — OR add a Bash permission rule
+        allowing `node cli/dist/index.js db *` so the loop can run M2+M3 unattended.
+        After apply: agent runs smoke + proceeds.
 - [ ] M3 Pools with data: mcbf(wipe) → pjug(preserve bespoke) → mgct → bcxu → yfxu-ecommerce → gphx(LAST) → tenant moves → prune yfxu (euzq: decommission only, no reseed)
 - [ ] M4 ✋ FOUNDER publish wave (db/core majors + saas + touched plugins + shop + courses + cli); apps flip tarball→ranges
 - [ ] M5 Apps + final report: course-admin, marketplace-saas, resto-saas, agency-os, artorious, beauty-saas (read-mostly), retail stores (post-WIP), booking sites. Per app: manifest backend block, env, build, auth smoke + create-record smoke, fixed dev port. Deliverable: table app × pool × DB-state × plugins × port.

@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-agency bcxu crm,financial",
+  "name": "Pool profile \u2014 cluster-agency bcxu crm,financial-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": []
+    }
+  }
+}

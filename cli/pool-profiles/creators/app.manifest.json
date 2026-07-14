@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-creators",
+  "name": "Pool profile — cluster-creators-br-01",
+  "backend": { "provider": "supabase", "projectRef": "coqpsuofwohzpqymoajb" },
+  "surfaces": {
+    "panel": {
+      "plugins": [
+        { "id": "courses", "enabled": true }
+      ]
+    }
+  }
+}

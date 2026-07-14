@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-restaurant mgct crm,financial,inventory,tasks",
+  "name": "Pool profile \u2014 cluster-restaurant mgct crm,financial,inventory,tasks-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": []
+    }
+  }
+}

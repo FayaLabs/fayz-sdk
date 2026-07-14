@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-dentist mcbf agenda",
+  "name": "Pool profile \u2014 cluster-dentist mcbf agenda-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": []
+    }
+  }
+}
