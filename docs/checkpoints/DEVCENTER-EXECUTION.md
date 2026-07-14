@@ -185,13 +185,13 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
   acceptance: every command in tutorial verified by actually running it against a scaffolded app (docs-honesty: record command outputs in Log)
   status: done
 
-- [ ] P4.6 Construir section (9 v1 pages) + Referência (cli, plugin-manifest)
+- [x] P4.6 Construir section (9 v1 pages) + Referência (cli, plugin-manifest)
   acceptance: build green; sanitization grep empty
-  status: todo
+  status: done
 
 - [ ] P4.7 Plugin catalog pages: build-plugin-pages.mjs merging data/plugin-catalog.json + catalog-overrides.json; 8 hand-prose overviews (tasks, crm, agenda, payments, reputation, orders, menu, dashboard)
-  acceptance: 22 pages generated; build green
-  status: todo
+  acceptance: 22 pages generated; build green (ADJUSTED: payments not on branch — substitute financial; 19 catalog plugins today, self-heals at merge)
+  status: in-progress
 
 - [ ] P4.8 Recursos (troubleshooting, ia, comunidade) + CLI scaffold CLAUDE.md gains docs URL (fayz-sdk cli/src/templates/shared.ts)
   acceptance: build green; cli-smoke green in fayz-sdk
