@@ -13,6 +13,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./public": {
+      "source": "./src/public/index.tsx",
+      "types": "./dist/public/index.d.ts",
+      "import": "./dist/public/index.js",
+      "require": "./dist/public/index.cjs"
     }
   },
   "files": [

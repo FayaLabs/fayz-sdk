@@ -15,6 +15,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./website": {
+      "source": "./src/website/index.tsx",
+      "types": "./dist/website/index.d.ts",
+      "import": "./dist/website/index.js",
+      "require": "./dist/website/index.cjs"
     }
   },
   "files": [
