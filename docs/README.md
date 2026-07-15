@@ -13,6 +13,7 @@
 | [LOCAL-DEV.md](./LOCAL-DEV.md) | canonical | 2026-07-14 | Local SDK-source vs published resolution (`fayzVite`, `FAYZ_SDK_SOURCE`, `*:published-sdk`) |
 | [data-model.md](./data-model.md) | reference | — | The three-ring archetype data model |
 | [data-model-refactor.md](./data-model-refactor.md) | working | — | Order-to-cash spine refactor (execution plan, not current state) |
+| [PLUGIN-CONTRACT.md](./PLUGIN-CONTRACT.md) | canonical | 2026-07-15 | The publishable-package contract: tables.ts, migrations+embed+ledger, exports, manifest/config, RLS/grants + anon seam |
 | [plugin-model.md](./plugin-model.md) | reference | — | Curated capability without becoming *engessado* |
 | [private-plugins.md](./private-plugins.md) | reference | — | Partner / app-local extension path |
 | [ai-builder-request-taxonomy.md](./ai-builder-request-taxonomy.md) | reference | — | How builder requests map onto the customization ladder |
