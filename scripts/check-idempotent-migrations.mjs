@@ -139,6 +139,16 @@ function checkFile(sql) {
   return violations
 }
 
+// Files applied to live pools BEFORE the replay-safety rule existed. Their
+// bytes are frozen forever — editing an applied migration changes its ledger
+// checksum and hard-stops every future `db apply` on converted pools
+// (MigrationDriftError). New migrations must be born replay-safe; never add
+// to this list to excuse a new file.
+const LEGACY_APPLIED_ALLOWLIST = new Set([
+  'packages/shop/migrations/0001_shop_tables.sql',
+  'packages/courses/migrations/0001_course_tables.sql',
+])
+
 function run() {
   const dirs = migrationDirs()
   let totalViolations = 0
@@ -150,6 +160,8 @@ function run() {
       .sort()
     for (const file of files) {
       totalFiles++
+      const rel = join(dir, file).slice(ROOT.length + 1)
+      if (LEGACY_APPLIED_ALLOWLIST.has(rel)) continue
       const violations = checkFile(readFileSync(join(dir, file), 'utf8'))
       if (violations.length > 0) {
         totalViolations += violations.length

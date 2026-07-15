@@ -35,7 +35,6 @@ CREATE TABLE IF NOT EXISTS public.plg_courses_courses (
 );
 CREATE INDEX IF NOT EXISTS plg_courses_courses_tenant_idx ON public.plg_courses_courses (tenant_id);
 CREATE INDEX IF NOT EXISTS plg_courses_courses_status_idx ON public.plg_courses_courses (tenant_id, status);
-DROP TRIGGER IF EXISTS plg_courses_courses_updated_at ON public.plg_courses_courses;
 CREATE TRIGGER plg_courses_courses_updated_at BEFORE UPDATE ON public.plg_courses_courses
   FOR EACH ROW EXECUTE FUNCTION public.course_set_updated_at();
 
@@ -198,7 +197,6 @@ CREATE TABLE IF NOT EXISTS public.plg_courses_creator_accounts (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
 );
-DROP TRIGGER IF EXISTS plg_courses_creator_accounts_updated_at ON public.plg_courses_creator_accounts;
 CREATE TRIGGER plg_courses_creator_accounts_updated_at BEFORE UPDATE ON public.plg_courses_creator_accounts
   FOR EACH ROW EXECUTE FUNCTION public.course_set_updated_at();
 

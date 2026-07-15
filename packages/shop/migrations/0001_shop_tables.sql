@@ -59,7 +59,6 @@ CREATE INDEX IF NOT EXISTS plg_shop_products_tenant_idx   ON public.plg_shop_pro
 CREATE INDEX IF NOT EXISTS plg_shop_products_status_idx   ON public.plg_shop_products (tenant_id, status);
 CREATE INDEX IF NOT EXISTS plg_shop_products_category_idx ON public.plg_shop_products (category_id);
 
-DROP TRIGGER IF EXISTS plg_shop_products_updated_at ON public.plg_shop_products;
 CREATE TRIGGER plg_shop_products_updated_at
   BEFORE UPDATE ON public.plg_shop_products
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
@@ -100,7 +99,6 @@ CREATE INDEX IF NOT EXISTS plg_shop_customers_tenant_idx ON public.plg_shop_cust
 CREATE UNIQUE INDEX IF NOT EXISTS plg_shop_customers_tenant_email_idx
   ON public.plg_shop_customers (tenant_id, email) WHERE email IS NOT NULL;
 
-DROP TRIGGER IF EXISTS plg_shop_customers_updated_at ON public.plg_shop_customers;
 CREATE TRIGGER plg_shop_customers_updated_at
   BEFORE UPDATE ON public.plg_shop_customers
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
@@ -135,7 +133,6 @@ CREATE TABLE IF NOT EXISTS public.plg_shop_orders (
 CREATE INDEX IF NOT EXISTS plg_shop_orders_tenant_idx   ON public.plg_shop_orders (tenant_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS plg_shop_orders_customer_idx ON public.plg_shop_orders (customer_id);
 
-DROP TRIGGER IF EXISTS plg_shop_orders_updated_at ON public.plg_shop_orders;
 CREATE TRIGGER plg_shop_orders_updated_at
   BEFORE UPDATE ON public.plg_shop_orders
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
@@ -159,7 +156,6 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS plg_shop_orders_customer_stats ON public.plg_shop_orders;
 CREATE TRIGGER plg_shop_orders_customer_stats
   AFTER INSERT OR UPDATE OR DELETE
   ON public.plg_shop_orders
@@ -208,7 +204,6 @@ CREATE INDEX IF NOT EXISTS plg_shop_discounts_tenant_idx ON public.plg_shop_disc
 CREATE UNIQUE INDEX IF NOT EXISTS plg_shop_discounts_tenant_code_idx
   ON public.plg_shop_discounts (tenant_id, code) WHERE code IS NOT NULL;
 
-DROP TRIGGER IF EXISTS plg_shop_discounts_updated_at ON public.plg_shop_discounts;
 CREATE TRIGGER plg_shop_discounts_updated_at
   BEFORE UPDATE ON public.plg_shop_discounts
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
