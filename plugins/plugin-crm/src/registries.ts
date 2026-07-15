@@ -1,5 +1,6 @@
 import type { PluginRegistryDef } from '@fayz-ai/core'
 import type { EntityDef } from '@fayz-ai/core'
+import { T } from './data/tables'
 
 const leadSourceEntity: EntityDef = {
   name: 'Lead Source',
@@ -11,7 +12,7 @@ const leadSourceEntity: EntityDef = {
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'plg_crm_lead_sources', tenantScoped: true },
+  data: { table: T.leadSources, tenantScoped: true },
 }
 
 const tagEntity: EntityDef = {
@@ -25,7 +26,7 @@ const tagEntity: EntityDef = {
     { key: 'color', label: 'Color', type: 'color', showInTable: true, defaultValue: '#6366f1' },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'plg_crm_tags', tenantScoped: true },
+  data: { table: T.tags, tenantScoped: true },
 }
 
 const pipelineStageEntity: EntityDef = {
@@ -40,7 +41,7 @@ const pipelineStageEntity: EntityDef = {
       key: 'pipelineId',
       label: 'Pipeline',
       type: 'relation',
-      relation: { table: 'plg_crm_pipelines', labelField: 'name' },
+      relation: { table: T.pipelines, labelField: 'name' },
       required: true,
       showInTable: true,
     },
@@ -50,7 +51,7 @@ const pipelineStageEntity: EntityDef = {
     { key: 'isWon', label: 'Won Stage', type: 'boolean', showInTable: true, defaultValue: false },
     { key: 'isLost', label: 'Lost Stage', type: 'boolean', showInTable: true, defaultValue: false },
   ],
-  data: { table: 'plg_crm_pipeline_stages', tenantScoped: true },
+  data: { table: T.pipelineStages, tenantScoped: true },
 }
 
 const activityTypeEntity: EntityDef = {
@@ -63,7 +64,7 @@ const activityTypeEntity: EntityDef = {
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'plg_crm_activity_types', tenantScoped: true },
+  data: { table: T.activityTypes, tenantScoped: true },
 }
 
 export const crmRegistries: PluginRegistryDef[] = [

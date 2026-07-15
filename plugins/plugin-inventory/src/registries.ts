@@ -1,5 +1,6 @@
 import type { PluginRegistryDef } from '@fayz-ai/core'
 import type { EntityDef } from '@fayz-ai/core'
+import { T } from './data/tables'
 
 const supplierEntity: EntityDef = {
   name: 'Supplier',
@@ -36,7 +37,7 @@ const measurementUnitEntity: EntityDef = {
     { key: 'abbreviation', label: 'Abbreviation', type: 'text', required: true, showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'plg_inventory_measurement_units', tenantScoped: true },
+  data: { table: T.measurementUnits, tenantScoped: true },
 }
 
 const productCategoryEntity: EntityDef = {
@@ -50,7 +51,7 @@ const productCategoryEntity: EntityDef = {
     { key: 'parentId', label: 'Parent', type: 'text', showInTable: false },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'plg_inventory_product_categories', tenantScoped: true },
+  data: { table: T.productCategories, tenantScoped: true },
 }
 
 const stockLocationEntity: EntityDef = {
@@ -64,7 +65,7 @@ const stockLocationEntity: EntityDef = {
     { key: 'description', label: 'Description', type: 'textarea', showInTable: true },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'plg_inventory_stock_locations', tenantScoped: true },
+  data: { table: T.stockLocations, tenantScoped: true },
 }
 
 export const inventoryRegistries: PluginRegistryDef[] = [
