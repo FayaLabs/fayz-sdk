@@ -10,6 +10,7 @@ export default defineConfig({
     'lib/supabase-management': 'src/lib/supabase-management.ts',
     'lib/ledger': 'src/lib/ledger.ts',
     'lib/pools': 'src/lib/pools.ts',
+    'lib/move-tenant': 'src/lib/move-tenant.ts',
   },
   format: ['esm'],
   target: 'node18',

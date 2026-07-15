@@ -1,6 +1,16 @@
 import { createInterface } from 'node:readline'
-import { basename } from 'node:path'
+import { basename, join } from 'node:path'
+import { homedir } from 'node:os'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { buildMigrationPlan, MigrationPlanError, type MigrationPlan } from '../lib/migration-plan.js'
+import {
+  createPoolGateway,
+  planTenantMove,
+  executeTenantMove,
+  TenantMoveError,
+  TenantMoveVerifyError,
+  type TenantMovePlan,
+} from '../lib/move-tenant.js'
 import {
   confirmationGate,
   createManagementClient,
@@ -42,7 +52,13 @@ interface PoolFlags {
   allowCritical: boolean
   spineOnly: boolean
   pluginsOnly: boolean
+  /** apply: allow applying to a PROVISIONING pool (e.g. the dentist baseline post-wipe). */
+  includeProvisioning: boolean
   onlyPlugins?: string[]
+  /** move-tenant: source pool, target pool, tenant uuid. */
+  from?: string
+  to?: string
+  tenant?: string
   /** First non-flag positional (e.g. the industry-or-pool-name for `pool apply`). */
   target?: string
 }
@@ -54,6 +70,7 @@ function parseFlags(args: string[]): PoolFlags {
     allowCritical: false,
     spineOnly: false,
     pluginsOnly: false,
+    includeProvisioning: false,
   }
   const take = (i: number): [string, number] => {
     const inline = args[i]
@@ -68,8 +85,12 @@ function parseFlags(args: string[]): PoolFlags {
     else if (a === '--allow-critical') f.allowCritical = true
     else if (a === '--spine-only') f.spineOnly = true
     else if (a === '--plugins-only') f.pluginsOnly = true
+    else if (a === '--include-provisioning') f.includeProvisioning = true
     else if (a.startsWith('--pools-file')) { const [v, ni] = take(i); f.poolsFile = v; i = ni }
     else if (a.startsWith('--app')) { const [v, ni] = take(i); f.app = v; i = ni }
+    else if (a.startsWith('--from')) { const [v, ni] = take(i); f.from = v; i = ni }
+    else if (a.startsWith('--tenant')) { const [v, ni] = take(i); f.tenant = v; i = ni }
+    else if (a.startsWith('--to')) { const [v, ni] = take(i); f.to = v; i = ni }
     else if (a.startsWith('--industry')) { const [v, ni] = take(i); f.industry = v; i = ni }
     else if (a.startsWith('--canary')) { const [v, ni] = take(i); f.canary = v; i = ni }
     else if (a.startsWith('--only-plugins')) {
@@ -233,8 +254,15 @@ async function poolApply(f: PoolFlags): Promise<number> {
   }
 
   if (pool.status === 'PROVISIONING') {
-    console.error(`✗ pool '${pool.name}' is PROVISIONING — not ready for apply.`)
-    return 1
+    if (!f.includeProvisioning) {
+      console.error(
+        `✗ pool '${pool.name}' is PROVISIONING — not ready for apply.\n` +
+          `  Pass --include-provisioning to baseline it anyway (e.g. the dentist pool post-wipe), ` +
+          `then flip its status to ACTIVE in pools.config.json.`,
+      )
+      return 1
+    }
+    console.log(`⚠ pool '${pool.name}' is PROVISIONING — proceeding (--include-provisioning).`)
   }
 
   const critical = poolCriticalGate(pool, { yes: f.yes, allowCritical: f.allowCritical })
@@ -306,26 +334,142 @@ async function poolApply(f: PoolFlags): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// `fayz db pool move-tenant` — STUB (manual procedure only; automation in M3)
+// `fayz db pool move-tenant --from <pool> --to <pool> --tenant <uuid> [--yes]`
 // ---------------------------------------------------------------------------
 
-function poolMoveTenant(): number {
-  console.log(`▸ fayz db pool move-tenant — NOT YET AUTOMATED
+/** Print the read-only move plan as a per-table table. */
+function printMovePlan(plan: TenantMovePlan): void {
+  console.log(`\n▸ Move plan for tenant ${plan.tenantId}:`)
+  console.log(
+    `    ${'table'.padEnd(20)} ${'src'.padStart(5)} ${'filter'.padEnd(12)} ` +
+      `${'target'.padEnd(8)} ${'conflict'.padStart(8)}  cols`,
+  )
+  for (const r of plan.rows) {
+    if (r.skipped) {
+      console.log(`    ${r.table.padEnd(20)} ${'—'.padStart(5)} skip: ${r.skipped}`)
+      continue
+    }
+    const tgt = r.targetExists ? 'present' : 'MISSING'
+    const colsWarn =
+      (r.sourceOnly.length ? ` src-only:${r.sourceOnly.length}` : '') +
+      (r.targetOnly.length ? ` tgt-only:${r.targetOnly.length}` : '')
+    console.log(
+      `    ${r.table.padEnd(20)} ${String(r.rowCount).padStart(5)} ${r.filter.padEnd(12)} ` +
+        `${tgt.padEnd(8)} ${String(r.conflicts).padStart(8)} ${colsWarn}`,
+    )
+  }
+}
 
-Move a tenant between industry pools by hand, in this order (verify at each step):
+async function poolMoveTenant(f: PoolFlags): Promise<number> {
+  if (!f.from || !f.to || !f.tenant) {
+    console.error(
+      '✗ usage: fayz db pool move-tenant --from <pool> --to <pool> --tenant <uuid> [--yes]',
+    )
+    return 1
+  }
+  if (f.from === f.to) {
+    console.error('✗ --from and --to must be different pools.')
+    return 1
+  }
 
-  1. BACKUP    Snapshot BOTH source and destination pools (JSON export per table).
-  2. COPY      For every table, copy rows WHERE tenant_id = <tenant> from source
-               into destination (preserve ids; respect FK order: core before plg_*).
-  3. VERIFY    Row counts per table match between source-selection and destination;
-               spot-check people/appointments/orders for the tenant.
-  4. DELETE    Only after verification: DELETE the tenant's rows from the source pool.
-  5. REGISTRY  Update TenantPoolRoute (platform Prisma DB) to point the tenant at
-               the destination pool ref.
+  let config: PoolsConfig
+  let source: Pool
+  let target: Pool
+  try {
+    config = loadPools(f)
+    source = requirePool(config, f.from)
+    target = requirePool(config, f.to)
+  } catch (err) {
+    console.error(`✗ ${(err as Error).message}`)
+    return 1
+  }
 
-Guardrail: backups verified BEFORE the DELETE step; one tenant at a time.
-Automation lands in M3 if the manual procedure proves too slow.`)
-  return 1
+  // Source must merely exist; the target must be ready to receive (not PROVISIONING).
+  if (target.status === 'PROVISIONING') {
+    console.error(`✗ target pool '${target.name}' is PROVISIONING — not ready to receive tenants.`)
+    return 1
+  }
+
+  const { token, error } = resolveToken(f.app ?? process.cwd())
+  if (!token) {
+    console.error(`✗ ${error}`)
+    return 1
+  }
+
+  const sourceClient = createManagementClient({ projectRef: source.ref, accessToken: token })
+  const targetClient = createManagementClient({ projectRef: target.ref, accessToken: token })
+  const sourceGw = createPoolGateway((sql) => sourceClient.runQuery(sql))
+  const targetGw = createPoolGateway((sql) => targetClient.runQuery(sql))
+
+  console.log(
+    `▸ Move tenant ${f.tenant}\n    from ${source.name} (${source.ref})\n    to   ${target.name} (${target.ref})`,
+  )
+
+  let plan: TenantMovePlan
+  try {
+    plan = await planTenantMove({
+      tenantId: f.tenant,
+      source: sourceGw,
+      target: targetGw,
+      log: (m) => console.log(m),
+    })
+  } catch (err) {
+    console.error(`✗ plan failed: ${(err as Error).message}`)
+    return 1
+  }
+  printMovePlan(plan)
+
+  const total = plan.rows.reduce((n, r) => n + r.rowCount, 0)
+  if (!f.yes) {
+    console.log(
+      `\n▸ [dry-run] ${total} row(s) across ${plan.rows.filter((r) => r.rowCount > 0).length} table(s) would move. ` +
+        `Re-run with --yes to execute (JSON backup written BEFORE any write).`,
+    )
+    return 0
+  }
+  if (total === 0) {
+    console.log('\n▸ Nothing to move — the tenant has 0 rows on the source. Aborting.')
+    return 0
+  }
+
+  // Execute: backups land under ~/dev/fayz-backups/tenant-moves/<date>-<tenant>/.
+  const date = new Date().toISOString().slice(0, 10)
+  const backupDir = join(homedir(), 'dev', 'fayz-backups', 'tenant-moves', `${date}-${f.tenant}`)
+  try {
+    mkdirSync(backupDir, { recursive: true })
+  } catch (err) {
+    console.error(`✗ could not create backup dir ${backupDir}: ${(err as Error).message}`)
+    return 1
+  }
+  console.log(`\n▸ Executing — backups → ${backupDir}`)
+
+  try {
+    const result = await executeTenantMove({
+      plan,
+      source: sourceGw,
+      target: targetGw,
+      writeBackup: (rel, contents) => writeFileSync(join(backupDir, rel), contents),
+      log: (m) => console.log(m),
+    })
+    console.log('\n▸ Move complete:')
+    for (const m of result.moved) {
+      console.log(`    ${m.table.padEnd(20)} moved ${m.rowCount}, deleted from source ${m.deleted}`)
+    }
+    console.log(
+      `\n✋ Next: fetch the target pool's anon key and update TenantPoolRoute (platform Prisma DB) ` +
+        `to point ${f.tenant} at ${target.name}.`,
+    )
+    return 0
+  } catch (err) {
+    if (err instanceof TenantMoveVerifyError || err instanceof TenantMoveError) {
+      console.error(`\n✗ ${err.message}`)
+      console.error(`  Source pool was NOT modified. Backups are at ${backupDir}.`)
+      return 1
+    }
+    console.error(`\n✗ move failed: ${(err as Error).message}`)
+    console.error(`  Inspect target manually before retrying. Backups are at ${backupDir}.`)
+    return 1
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -445,7 +589,7 @@ export async function pool(sub: string | undefined, args: string[]): Promise<num
     case 'apply':
       return poolApply(f)
     case 'move-tenant':
-      return poolMoveTenant()
+      return poolMoveTenant(f)
     default:
       console.error(
         `✗ Unknown 'fayz db pool' subcommand "${sub ?? ''}". Try: status | apply <name> --app <dir> | move-tenant`,

@@ -15,7 +15,7 @@ Usage:
   fayz db apply [dir] [--yes]             Apply the plan via the Supabase Management API (prompts unless --yes)
   fayz db pool status                     Show each industry pool's migration ledger (Runner v2)
   fayz db pool apply <name> --app <dir>   Ledger-gated apply of an app's plan to one industry pool
-  fayz db pool move-tenant                Print the (manual, not-yet-automated) tenant-move procedure
+  fayz db pool move-tenant --from <p> --to <p> --tenant <uuid> [--yes]  Move one tenant between pools (dry-run unless --yes)
   fayz db fan-out --app <dir>             Apply an app's plan across pools: canary first, then the rest
   fayz --help                             Show this help
   fayz --version                          Show version
@@ -37,7 +37,11 @@ fayz db pool / fan-out (industry pools — Runner v2):
   --industry all|<s> fan-out scope (default: all pools)
   --canary <pool>    Override the canary (default: the pool flagged canary:true)
   --allow-critical   Required (with --yes) to touch a dataCritical pool
+  --from/--to/--tenant  move-tenant: source pool, target pool, tenant uuid
   PROVISIONING pools are skipped in fan-out unless named explicitly.
+  move-tenant is dry-run by default; --yes backs up (JSON, before any write),
+  inserts parents-first, verifies counts (HARD STOP leaves source untouched),
+  then deletes children-first. Target must not be PROVISIONING.
 
 fayz db apply env (required for a real apply; never for --dry-run):
   SUPABASE_PROJECT_REF   Project ref (alias: SUPABASE_REF) — dashboard → Project Settings → General

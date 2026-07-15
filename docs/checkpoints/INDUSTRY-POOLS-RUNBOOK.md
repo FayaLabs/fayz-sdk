@@ -22,12 +22,20 @@ node cli/pool-profiles/smoke.mjs yfxutrkyhydgltakbqle
 Notes: shop 0000_plg_rename renames shop_*→plg_shop_* (keeps 70 products / orders). OLD agenda RPCs/views (get_available_slots, create_public_booking, v_public_services, v_bookings) keep working post-convert (OID-based) — production booking sites stay live until their tenants move. Do NOT drop them yet.
 
 ### 2. dentist (mcbfebruhimlbvlvczsn) — WIPE first (backup exists: 27 tables/167 rows)
-Wipe (drop all public user tables — legacy control-plane), then fresh baseline:
+Wipe (drop ALL public user tables/views/matviews/functions — legacy control-plane; keeps
+schema `public` + extensions), then fresh baseline. The wipe script triple-guards on the exact
+ref, `--yes`, and the presence of the pre-wipe backup:
 ```sh
-node -e "…DROP TABLE loop via Management API — see wipe-mcbf.sql in scratch/runbook…"
-node cli/dist/index.js db pool apply dentist --app cli/pool-profiles/dentist --yes   # needs pools.config status flip PROVISIONING→or use explicit name
+node cli/pool-profiles/wipe-mcbf.mjs mcbfebruhimlbvlvczsn --yes
+node cli/dist/index.js db pool apply dentist --app cli/pool-profiles/dentist --yes --include-provisioning
 node cli/pool-profiles/smoke.mjs mcbfebruhimlbvlvczsn
 ```
+PROVISIONING handling: the dentist pool is `PROVISIONING` in pools.config.json (never baselined).
+`db pool apply` refuses a PROVISIONING pool unless you pass `--include-provisioning` (an explicit
+opt-in — cleaner than editing config state before the baseline exists). AFTER the baseline + smoke
+pass, flip the dentist pool `status` from `"PROVISIONING"` to `"ACTIVE"` in `cli/pools.config.json`
+— this is REQUIRED before the hempdent tenant move, because `db pool move-tenant` refuses a
+PROVISIONING **target** pool.
 
 ### 3. school (pjugfwxomeohuaxyjtyu) — bespoke tables PRESERVED
 Fresh baseline coexists (IF NOT EXISTS; no name collisions with alunos/professores/turmas/leads).
@@ -60,11 +68,28 @@ Post checks (read-only, BEFORE any app write): people=67, appointments=25, clien
 
 ## Tenant moves (after both pools of a pair are converted)
 
-Per tenant (espaco 33333333-…0001 yfxu→gphx; hempdent 11111111-…0001 yfxu→mcbf; great-djs 22222222-…0001 yfxu→pjug):
-1. JSON backup of the tenant's rows (tenants/people/services/schedules/appointments/orders/order_items filtered by tenant_id) from yfxu.
-2. INSERT the rows into the target pool (same UUIDs; parents before children: tenants→people→services→schedules→orders→appointments→order_items).
-3. Verify counts source==target.
-4. DELETE from yfxu (children first).
+Automated by `fayz db pool move-tenant` (Runner v2). It runs the fixed table order
+tenants→people→services→schedules→orders→appointments→appointment_items→order_items→transactions
+(children join their parent when they have no `tenant_id`), dry-runs by default (per-table counts,
+target existence, PK conflicts, column-mismatch warnings), and on `--yes`: (a) writes a JSON backup
+of every selected table to `~/dev/fayz-backups/tenant-moves/<date>-<tenant>/` BEFORE any write,
+(b) inserts parents-first via `jsonb_populate_recordset` (ON CONFLICT (id) DO NOTHING, columns =
+source∩target), (c) verifies target counts == source per table and HARD STOPs (leaving the source
+untouched) on any mismatch, (d) re-verifies then deletes children-first from the source.
+
+Dry-run first, then execute (target pool must be `ACTIVE`, not `PROVISIONING`):
+```sh
+# espaço-renova  ecommerce → salon
+node cli/dist/index.js db pool move-tenant --from ecommerce --to salon    --tenant 33333333-3333-4333-8333-000000000001
+node cli/dist/index.js db pool move-tenant --from ecommerce --to salon    --tenant 33333333-3333-4333-8333-000000000001 --yes
+# hempdent       ecommerce → dentist   (flip dentist PROVISIONING→ACTIVE first, see M3 step 2)
+node cli/dist/index.js db pool move-tenant --from ecommerce --to dentist  --tenant 11111111-1111-4111-8111-000000000001
+node cli/dist/index.js db pool move-tenant --from ecommerce --to dentist  --tenant 11111111-1111-4111-8111-000000000001 --yes
+# great-djs      ecommerce → school
+node cli/dist/index.js db pool move-tenant --from ecommerce --to school   --tenant 22222222-2222-4222-8222-000000000001
+node cli/dist/index.js db pool move-tenant --from ecommerce --to school   --tenant 22222222-2222-4222-8222-000000000001 --yes
+```
+Then per tenant:
 5. Fetch the target pool's anon key: `GET /v1/projects/<ref>/api-keys` → fill the booking app's env/fallback (feat/industry-pools branches have PENDING_POOL_ANON_KEY placeholders).
 6. Booking e2e on the site against the new pool.
 
