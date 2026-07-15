@@ -208,8 +208,6 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 5 — Polish (post-launch, optional)
 
-- [ ] P5.0 RECOMMENDATION (founder feedback 14/07: manifest theme "é só isso? mto simples"): widen the manifest `theme` contract beyond {brand-enum, radius, mode} — expose the engine's existing internal SaasTheme surface (free HSL brand, 11-font map, shadow levels, sidebar brand/neutral, presets, and eventually rich tokens à la design/fayz-tokens.css). Requires: packages/core theme types + app-manifest schema + doctor validation + platform runtime mapping (fayz repo) honoring the new keys — cross-repo, founder-scoped. Docs currently handle it honestly via an "Além das 3 chaves" experimental block. — status: todo
-
 - [ ] D2 CONTRIBUTING-INVITED.md + CI gauntlet on PRs — status: todo
 - [ ] D3 .github/CODEOWNERS + branch-protection checklist — status: todo
 - [ ] B6 Document saas→plugin-auth edge in catalog/SUPPORT — status: todo
