@@ -538,7 +538,15 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
     async getOrder(id: string) {
       const query = singleById(id)
       query.set('select', '*,items:plg_shop_order_items(*)')
-      const rows = await request<OrderRow[]>('plg_shop_orders', { query })
+      // Anon storefronts have no table grant at all — the direct read throws
+      // (401) rather than returning empty, so it must not short-circuit the
+      // RPC fallback below.
+      let rows: OrderRow[] = []
+      try {
+        rows = await request<OrderRow[]>('plg_shop_orders', { query })
+      } catch {
+        /* fall through to shop_get_order */
+      }
       if (rows[0]) return rowToOrder(rows[0])
       // Anon storefronts can't SELECT plg_shop_orders (RLS); the order uuid acts
       // as the read capability through the whitelisted RPC.
