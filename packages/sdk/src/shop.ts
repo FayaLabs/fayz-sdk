@@ -560,6 +560,16 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
         return null
       }
     },
+    async confirmPayment(id: string, reference?: string) {
+      // Mock/dev payment seam: anon has no UPDATE grant on plg_shop_orders,
+      // so the pending->paid transition goes through the whitelisted RPC
+      // (order uuid = capability, same contract as shop_get_order).
+      const row = await request<OrderRow | null>('rpc/shop_confirm_payment', {
+        method: 'POST',
+        body: JSON.stringify({ p_order_id: id, p_reference: reference ?? null }),
+      })
+      return row ? rowToOrder(row) : null
+    },
     async createOrder(input: {
       customerId?: string
       customerName?: string
