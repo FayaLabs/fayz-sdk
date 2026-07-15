@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-agenda",
+  "fayz": { "status": "beta" },
   "version": "0.1.8",
   "description": "Fayz SDK — plugin-agenda plugin",
   "type": "module",

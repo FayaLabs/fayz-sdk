@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-financial",
+  "fayz": { "status": "beta" },
   "version": "0.1.7",
   "description": "Fayz SDK — plugin-financial plugin",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-inventory",
+  "fayz": { "status": "beta" },
   "version": "0.1.6",
   "description": "Fayz SDK — plugin-inventory plugin",
   "type": "module",

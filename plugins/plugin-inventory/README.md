@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-inventory.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-inventory)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-inventory.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Inventory is the universal organ — a salon counts product, a restaurant counts ingredients, a clinic counts supplies. `plugin-inventory` is that organ as a plugin: a product catalog, stock entry/exit/history, optional recipes (bill of materials), and a dashboard that surfaces stock value and what's running low. It's `scope: universal`, so it snaps into any vertical.
 
 It ships real data out of the box: a Supabase provider with an automatic mock fallback, so a fresh app demos immediately and a configured one persists for real. Recipes, stock locations, and batch tracking are opt-in modules; product types, currency, and labels are configurable. The host dashboard gets inventory KPI widgets, and the AI assistant can answer "what's running low?" The intent: stop rebuilding stock control per app — compose it from one plugin into a real SaaS.

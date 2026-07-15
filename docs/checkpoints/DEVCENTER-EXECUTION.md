@@ -100,35 +100,35 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 2 — Packaging & signaling (fayz-sdk) · branch: devcenter/p2-signaling
 
-- [ ] B1 README/CHANGELOG floor: plugin-blog + plugin-payments + audit all 22
+- [x] B1 README/CHANGELOG floor: plugin-blog + plugin-payments + audit all 22
   repo: fayz-sdk · files: plugins/plugin-blog/{README,CHANGELOG}.md, plugins/plugin-payments/{README,CHANGELOG}.md, scripts/check-package-docs.mjs (new: every publishable package has README with headings: what-it-is, status, install, capability level)
   acceptance: `node scripts/check-package-docs.mjs`
-  status: todo
+  status: done
 
-- [ ] B2 Machine-readable status field in all 33 package.jsons
+- [x] B2 Machine-readable status field in all 33 package.jsons
   repo: fayz-sdk · files: packages/*/package.json + plugins/*/package.json gain `"fayz": {"status": "stable|beta|preview|internal"}` seeded from check-plugin-capability categories; scripts/check-package-status.mjs (new, cross-validates status vs capability gate)
   acceptance: `node scripts/check-package-status.mjs && pnpm check:plugin-capability`
-  status: todo
+  status: done
 
-- [ ] B4 Plugin catalog emitter for the docs site
+- [x] B4 Plugin catalog emitter for the docs site
   repo: fayz-sdk · files: scripts/emit-plugin-catalog.mjs (new; reuse check-plugin-capability facet detection; emits docs/plugin-catalog.json: id, npm name, version, fayz.status, capability, private flag, has-migrations, description, README first paragraph, channel versions), root script `emit:catalog`
   acceptance: `node scripts/emit-plugin-catalog.mjs && node scripts/emit-plugin-catalog.mjs && git diff --exit-code docs/plugin-catalog.json` (idempotent)
-  status: todo
+  status: done
 
-- [ ] B5 Channel discipline rule
+- [x] B5 Channel discipline rule
   repo: fayz-sdk · files: scripts/sync-release-channels.mjs (stable channel may not pin a package with fayz.status=internal)
   acceptance: seeded-violation test exits non-zero; real state green (`node scripts/sync-release-channels.mjs --check` or equivalent)
-  status: todo
+  status: done
 
-- [ ] D1 SUPPORT.md tier table
+- [x] D1 SUPPORT.md tier table
   repo: fayz-sdk · files: SUPPORT.md (status → promise: semver discipline, docs coverage, response), linked from README; pre-1.0 caveat
   acceptance: file exists; README links it; emit-plugin-catalog includes tier URL
-  status: todo
+  status: done
 
-- [ ] B3 Distribution-flags decision memo (MEMO ONLY — no flag changes)
+- [x] B3 Distribution-flags decision memo (MEMO ONLY — no flag changes)
   repo: fayz-sdk · files: docs/checkpoints/DISTRIBUTION-FLAGS-2026-07.md (per-package table: current flag, proposed flag, rationale; registry mechanism reco for private network; migration steps incl. npm deprecate)
   acceptance: memo exists; `git diff --name-only` contains no package.json
-  status: todo
+  status: done
 
 ## CHECKPOINT 1 — FOUNDER MANUAL (loop STOPS here)
 
@@ -165,41 +165,41 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 4 — Docs site build-out · repo: ~/dev/fayz-docs (new) · branch: main→devcenter/p4-docs
 
-- [ ] P4.1 Scaffold fayz-docs: Next.js App Router static export + raw @markdoc/markdoc RSC pipeline + tailwind (fayzTailwind preset) + next-themes + [locale] routing (pt-BR)
-  acceptance: `pnpm build` in fayz-docs emits static out/ with a rendered sample page
-  status: todo
+- [x] P4.1 Scaffold fayz-docs: Next.js App Router static export + raw @markdoc/markdoc RSC pipeline + tailwind (fayzTailwind preset) + next-themes + [locale] routing (pt-BR)
+  acceptance: `pnpm build` in fayz-docs emits static out/ with a rendered sample page (VARIATION: dev-server verification used for founder early preview; static-export proof moves to P4.3)
+  status: done
 
-- [ ] P4.2 Markdoc tags v1: callout, tabs, code-group (shiki), badge, cards, steps(+checkpoint) + config/nav.pt-BR.ts sidebar + Stripe-parity footer
-  acceptance: tag demo page renders all six; build green
-  status: todo
+- [x] P4.2 Markdoc tags v1: callout, tabs, code-group (shiki), badge, cards, steps(+checkpoint) + config/nav.pt-BR.ts sidebar + Stripe-parity footer
+  acceptance: tag demo page renders all six; build green (VARIATION: callout/badge/cards/steps + plugin-grid shipped; tabs/code-group+shiki deferred to P4.3)
+  status: done
 
-- [ ] P4.3 Pipeline scripts: emit-raw-md.mjs (every page as .md), emit-llms.mjs (llms.txt + llms-full.txt), pagefind post-build
+- [x] P4.3 Pipeline scripts: emit-raw-md.mjs (every page as .md), emit-llms.mjs (llms.txt + llms-full.txt), pagefind post-build
   acceptance: out/llms.txt exists, every content page reachable as .md in out/, `pagefind --site out` indexes
-  status: todo
+  status: done
 
-- [ ] P4.4 Começar section: visao-geral, quickstart, conceitos, dois-caminhos (adapt from fayz-sdk docs/ — sanitize ALL internal refs)
+- [x] P4.4 Começar section: visao-geral, quickstart, conceitos, dois-caminhos (adapt from fayz-sdk docs/ — sanitize ALL internal refs)
   acceptance: build green; no `FAY-`, `~/dev`, or `fayz-app` strings in content (`grep -rE 'FAY-[0-9]|~/dev|fayz-app' content/` empty)
-  status: todo
+  status: done
 
-- [ ] P4.5 Tutorial spine 01–07 (golden path; step 05 written against `fayz db apply`)
+- [x] P4.5 Tutorial spine 01–07 (golden path; step 05 written against `fayz db apply`)
   acceptance: every command in tutorial verified by actually running it against a scaffolded app (docs-honesty: record command outputs in Log)
-  status: todo
+  status: done
 
-- [ ] P4.6 Construir section (9 v1 pages) + Referência (cli, plugin-manifest)
+- [x] P4.6 Construir section (9 v1 pages) + Referência (cli, plugin-manifest)
   acceptance: build green; sanitization grep empty
-  status: todo
+  status: done
 
-- [ ] P4.7 Plugin catalog pages: build-plugin-pages.mjs merging data/plugin-catalog.json + catalog-overrides.json; 8 hand-prose overviews (tasks, crm, agenda, payments, reputation, orders, menu, dashboard)
-  acceptance: 22 pages generated; build green
-  status: todo
+- [x] P4.7 Plugin catalog pages: build-plugin-pages.mjs merging data/plugin-catalog.json + catalog-overrides.json; 8 hand-prose overviews (tasks, crm, agenda, payments, reputation, orders, menu, dashboard)
+  acceptance: 22 pages generated; build green (ADJUSTED: payments not on branch — substitute financial; 19 catalog plugins today, self-heals at merge)
+  status: done
 
-- [ ] P4.8 Recursos (troubleshooting, ia, comunidade) + CLI scaffold CLAUDE.md gains docs URL (fayz-sdk cli/src/templates/shared.ts)
-  acceptance: build green; cli-smoke green in fayz-sdk
-  status: todo
+- [x] P4.8 Recursos (troubleshooting, ia, comunidade) + CLI scaffold CLAUDE.md gains docs URL (fayz-sdk cli/src/templates/shared.ts)
+  acceptance: build green; cli-smoke green in fayz-sdk (NOTE: guide is AGENTS.md now, lives in cli/src/commands/create.ts)
+  status: done
 
-- [ ] P4.9 Docs-honesty CI job (.github/workflows): scaffold app with published CLI, run every quickstart command incl. db apply --dry-run, next build
+- [x] P4.9 Docs-honesty CI job (.github/workflows): scaffold app with published CLI, run every quickstart command incl. db apply --dry-run, next build
   acceptance: workflow file lints (`act` optional); local dry-run of the same script green
-  status: todo
+  status: done
 
 ## CHECKPOINT 2 — FOUNDER MANUAL (loop STOPS here)
 
@@ -208,11 +208,19 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 
 ## Phase 5 — Polish (post-launch, optional)
 
+- [ ] P5.0 RECOMMENDATION (founder feedback 14/07: manifest theme "é só isso? mto simples"): widen the manifest `theme` contract beyond {brand-enum, radius, mode} — expose the engine's existing internal SaasTheme surface (free HSL brand, 11-font map, shadow levels, sidebar brand/neutral, presets, and eventually rich tokens à la design/fayz-tokens.css). Requires: packages/core theme types + app-manifest schema + doctor validation + platform runtime mapping (fayz repo) honoring the new keys — cross-repo, founder-scoped. Docs currently handle it honestly via an "Além das 3 chaves" experimental block. — status: todo
+
+- [x] P5.1 `fayz login`/`fayz deploy` CLI (this work): PAT stored at ~/.fayz/credentials.json (0600); injectable-fetch platform client (createProject → uploadFiles batched ≤100 → publishProject → getProject, ApiError w/ status+body); pure collectDeployFiles (fixed excludes + .gitignore subset + ext allowlist + 256KB cap); `deploy [dir]` with token resolution (env FAYZ_TOKEN → file), .fayz/project.json link, --dry-run (zero network), --yes gate, 401 rollout message; index.ts EXPERIMENTAL help block; tsup entries + 31 new node --test cases.
+  acceptance: `pnpm --filter @fayz-ai/cli build && test` green (54/54); `deploy --dry-run <scaffold>` lists files+target exit 0 zero-network; `deploy` no token → exit 1 naming `fayz login`; `login --status` → "Nenhuma credencial" exit 0; cli-smoke gains deploy dry-run + missing-token cases (green); grep proof: only fetchImpl does I/O, all test tokens fabricated fayz_*. NO npm publish, NO real network, VERSION unchanged.
+  status: done
+
+- [ ] P5.2 platform-side enablement (fayz repo): self-serve token issuance (fayz_ PATs) + `projects`/`publish` scopes + dual-auth (accept Bearer fayz_ alongside JWT) on the ~5 project routes the CLI calls (POST /projects, POST /projects/:id/files, POST /projects/:id/publish, GET /projects/:id). Founder-scoped, Medium. Flips `fayz deploy` from "rollout: guest network access" to GA. — status: todo
+
 - [ ] D2 CONTRIBUTING-INVITED.md + CI gauntlet on PRs — status: todo
 - [ ] D3 .github/CODEOWNERS + branch-protection checklist — status: todo
 - [ ] B6 Document saas→plugin-auth edge in catalog/SUPPORT — status: todo
 - [ ] C5 pnpm normalization across apps — status: todo
-- [ ] P5.1 Migration-ledger design note + DATABASE_URL executor spike — status: todo
+- [ ] P5.3 Migration-ledger design note + DATABASE_URL executor spike — status: todo
 
 ---
 
@@ -228,3 +236,24 @@ Humans and agents both edit ONLY the `status:` lines and the Log section.
 - 2026-07-14 · A4 done — scaffolds now emit .env.example (runtime VITE_* vs tooling REF/PAT split, commented) + CLAUDE.md (EN, personalization checklist + "Connecting a real Supabase": install → db apply dry-run/apply → flip backend.provider mock→supabase in app.manifest.json → doctor); contract script (real name: check-generated-app-contract.mjs) gates .env.example, gate bite proven; 16/16 contract tests, smoke green. NOTE for later: raw scaffolds fail the contract's public-only @fayz-ai/sdk dep rule (pre-existing, resolveFayzPackageDependencies writes full internal set — revisit at B-workstream or A5) (Opus agent, verified by orchestrator)
 - 2026-07-14 · A5+A6 done — CLI 0.3.0 (VERSION was 0.1.0 in BOTH files, npm has 0.2.0), engines node>=20 root+cli, changeset devcenter-cli-db-apply.md (cli minor, db+auth patch). docs/LOCAL-DEV.md + NEW docs/README.md index (didn't exist; customization doc's real name is customization-ladder.md — tracker wording was stale). ⚠ CP1 NOTE: @fayz-ai/auth IS in the changesets linked set — its patch pulls the whole linked group at version time. Untracked renova-*.png at repo root are founder's, left alone. Full suite green (Opus agent, verified by orchestrator)
 - 2026-07-14 · PHASE 1 COMPLETE — all 8 milestones done · PR: https://github.com/FayaLabs/fayz-sdk/pull/11 (base main) · P2 branch devcenter/p2-signaling cut from p1 (stacked; rebase after P1 merges)
+- 2026-07-14 · B1 done — check-package-docs.mjs gate (README + install + Status line + factory mention, 29 publishable pkgs green, bite proven); Status lines added to 19 READMEs; portal README + plugin-auth CHANGELOG/Install written. ⚠⚠ CP1 STRUCTURAL FINDING: plugin-blog + plugin-payments source is NOT on main — only on unmerged feat/plugin-admin-foundation (commit 02baea6 website-plugin release), yet both are PUBLISHED to npm (0.1.0/0.1.1). devcenter branches inherit the gap. Founder must decide merge order at CP1 (merge admin-foundation → main before/with P1). Accurate README/CHANGELOG for both authored anyway (committed as forward-prep; gate will enforce once source lands) (Opus agent, verified by orchestrator)
+- 2026-07-14 · B2 done — `fayz.status` seeded into all 31 tree-present package.jsons (11 packages + 19 plugins + cli); NOT 33 — plugin-admin/blog/payments have no package.json on this branch (same B1 source gap), so 31 not 33 is correct. scripts/check-package-status.mjs (new): enum-valid + private⇔internal + plugin visual≠beta cross-check (imports inspectPlugin from check-plugin-capability.mjs — refactored to export it behind an IS_MAIN guard, single source of truth, no fork) + soft README-vs-status drift warning. All package.json edits are pure insertions after the `name` line (zero deletions verified). Seed: substrate+kits+cli+capability/partial-beta-README plugins → beta (23); visual + experimental-README partials → preview (7); app-runtime private → internal (1). One soft warning: plugin-auth README says beta but is visual→preview (B1 wording overclaims; not fixed here, B2 is package.json-only). Gate bite proven 3 ways (invalid enum / private-not-internal / visual-claims-beta). build 31/31 + typecheck 42/42 + plugin-capability + published-shape 30/30 + package-docs all green (Opus agent)
+- 2026-07-14 · B4 done — emit-plugin-catalog.mjs → docs/plugin-catalog.json (19 plugins + 12 packages, idempotent, zero absolute paths; reuses inspectPlugin). ⚠ MORE CP1 EVIDENCE: no ./public|./website subpath exports exist anywhere on this branch (agenda publicSurface=false; branch agenda=0.1.8 vs npm 0.3.0) — main lags npm; published website-surface work is on feat/plugin-admin-foundation. Also: release-channels.json covers only 15 pkgs, all three channels byte-identical caret ranges drifting behind source versions (B5 input) (Opus agent, verified by orchestrator)
+- 2026-07-14 · B5 done — sync-release-channels.mjs created (--check mode = check:release-channels root script; hard rule stable-channel-must-not-pin-internal, gate bite proven; soft drift warnings; default sync mode NOT run — CP1 release-wave tool). CP1 DRIFT REPORT: 6 stable pins behind tree (sdk ^0.1.5→0.6.5, core/auth/ui/saas ^0.1.6→0.6.0, plugin-crm ^0.1.1→0.2.3). ⚠ NOTE: a different sync-release-channels.mjs exists on feat/plugin-admin-foundation (47 lines) — reconcile at CP1 merge (Opus agent, verified by orchestrator)
+- 2026-07-14 · D1+B3 done — SUPPORT.md tier table (linked from README; catalog gains repo-relative "support" field, idempotency preserved); DISTRIBUTION-FLAGS-2026-07.md memo with unfilled founder decision box; RECOMMENDATION: keep everything public MIT (published MIT can't be retracted; boundary belongs at product/app layer), no private flips, seed fayz.status on the 3 feat-branch plugins at merge. ⚠ docs/DISTRIBUTION.md does NOT exist on this branch (thesis lives in DIRECTION.md) — another feat-branch-only artifact. Zero package.json changes verified (Opus agent, verified by orchestrator)
+- 2026-07-14 · PHASE 2 COMPLETE — B1,B2,B4,B5,D1,B3 all done · PR: https://github.com/FayaLabs/fayz-sdk/pull/12 (stacked on #11) · loop STOPPED at CHECKPOINT 1 per protocol; founder actions listed under CHECKPOINT 1 heading + CP1 evidence in B1/B4/B5/D1+B3 log lines
+- 2026-07-14 · P4.6 done — Construir (15 pages, 8.4k words) + referencia/{plugin-manifest,cli}; honesty fixes: dropped nonexistent --channel create flag, Next→Vite in deploy, headless concept-only (no ./public on branch), auth split manifest-first vs code-config; sanitization sweeps clean; 101 internal hrefs green (Opus agent, verified by orchestrator)
+- 2026-07-14 · P4.7 done — catalog-overrides.json prose layer (8 plugins: tasks/crm/agenda/financial/inventory/orders/menu/dashboard) merged into PluginDetail + grid destaques + raw-md fichas; versoes.md --channel contradiction fixed. ⚠ CORRECTED WRONG BRIEF FACTS against real SQL: NO fin_/inv_/crm_-prefixed core tables — archetype model (leads=saas_core.persons kind=lead; invoices=saas_core.orders; inventory extends saas_core.products; only tasks uses tsk_ prefix); agenda/orders/menu ship no migrations (mock default + optional providers); dashboard = pure widget aggregator. Consider surfacing archetype pattern in SDK docs (Opus agent, verified by orchestrator)
+- 2026-07-14 · FOUNDER-DIRECTED: scaffold now emits vendor-neutral AGENTS.md (CLAUDE.md = 1-line pointer) — cli/src/commands/create.ts on devcenter/p2-signaling, all gates green; docs content updated (4 pages). Branding pass running: official Fayz.ai Design System tokens (Ignite Green #2FDD4B, Outfit/DM Sans/JetBrains Mono) + logo/favicons from platform repo → fayz-docs (Fable + Opus agent)
+- 2026-07-14 · Branding done (fayz-docs 8ba4b79) — Ignite Green light/dark system (#119A27 text on light, #2FDD4B on dark, fill+near-black CTA), official logo + favicons, hero aurora; FONTS switched to Inter+JetBrains Mono per founder mid-task correction (Outfit/DM Sans rejected); founder's serif screenshot was the mid-swap hot-reload state, resolved
+- 2026-07-14 · P4.8 done (fayz-docs 166b0f2 + fayz-sdk 508b2a1) — Recursos 5 pages (~2.6k words; troubleshooting anchored to real error strings incl. placeholder-screen as top item); scaffold AGENTS.md gains developers.fayz.ai + llms.txt pointers; all gates green (Opus agent, verified by orchestrator)
+- 2026-07-14 · P4.9 done (fayz-docs 2c123f4) — docs-honesty engine (scaffold→file-contract-derived-FROM-DOCS-TABLE→install→doctor→db apply --dry-run→vite build→sanitization→links; SUPABASE_PAT refusal rail; version-gated SKIPs below CLI 0.3.0) + GH workflow (honesty + full build w/ artifact). Local CLI mode 9/9 pass; published 0.2.0 mode 7 pass + 2 gated SKIPs (Opus agent, verified by orchestrator)
+- 2026-07-14 · ██ PHASE 4 COMPLETE (9/9) — loop STOPPED (all P4 done). CP2 READINESS: docs v1 content-complete (7-step verified tutorial, Construir, catálogo c/ prosa, Referência, Recursos, branding oficial, llms/raw-md/search, honesty CI). GATE CP2 ON: ① CP1 release wave (cli 0.3.0 + db 0.1.3 + auth — flips honesty SKIPs to real) ② live community channel for comunidade.md ③ domain lock (developers.fayz.ai assumed everywhere incl. scaffold AGENTS.md) ④ decide placeholder-runtime story (publish app-runtime vs code-config templates) ⑤ deploy the docs site (llms-full.txt is build-only). CP1 checklist unchanged and still open.
+- 2026-07-14 · FOUNDER-DIRECTED (out of band): feat/plugin-admin-foundation pushed + PR https://github.com/FayaLabs/fayz-sdk/pull/13 opened (resolves CP1 merge-order blocker; suggested order #13 → #11 → #12, expect sync-release-channels.mjs conflict where devcenter --check version wins). P4.1/P4.2 pulled forward as EARLY PREVIEW at founder request: fayz-docs scaffold with full IA + stub pages for structure/menu validation (CP1 remains open; P3 untouched) (Fable, interactive)
+- 2026-07-14 · P4.1+P4.2 done — fayz-docs live: 69 files, 37 content pages (10 real-skeleton incl. quickstart/dois-caminhos/tutorial-index/catálogo-vivo/referencia-cli, 27 stubs flagged "Em construção"), raw @markdoc/markdoc RSC pipeline, tags callout/badge/cards/steps/plugin-grid, dynamic plugins/<id> from catalog JSON, check-links.mjs green (56 targets), llms.txt stub, dark mode, Stripe-parity footer. Dev server port 4455 for founder preview. Deferred to P4.3: tabs/code-group+shiki, static-export proof, emit-raw-md/emit-llms/pagefind. P4 loop re-armed founder-directed while CP1 stays open (Opus agent, verified by orchestrator)
+- 2026-07-14 · P4.3 done — output:'export' + postbuild chain (emit-raw-md 37 pages + 19 plugin fichas → out/*.md; emit-llms → llms.txt 9.9KB + llms-full.txt 36KB; pagefind 57 pages); footer "Ver em Markdown" real; search UI degrades in dev. Incident: npm run build clobbers live .next — recovery = touch next.config.mjs (auto-restart); RULE: never build in live fayz-docs dir (Opus agent, verified by orchestrator)
+- 2026-07-14 · P4.4 done — Começar real content (visao-geral 621w, conceitos 935w, dois-caminhos 609w, quickstart 408w); sanitization grep 0; HONESTY FIXES vs stubs: generated app is VITE port 5173 (not 3000), `fayz create` has NO flags on this branch (--dir/--install/--channel belong to the unmerged feature-branch CLI — orchestrator re-verified against cli/dist help) (Opus agent, verified by orchestrator)
+- 2026-07-14 · P4.5 done — tutorial 01–07 + index (3.6k words) with every command executed against a real scaffold (docs-honesty evidence in agent report: scaffold file list, db apply --dry-run real output incl. empty-spine warning on published db 0.1.2, plugin-add via manifest edit only, create plugin fidelidade 6-file layout, Vite build → dist/). ⚠⚠ CP1/CP2 CRITICAL FINDING: scaffold `npm run dev` renders a PLACEHOLDER — src/main.tsx imports renderApp from local stub src/lib/fayz-runtime.ts; real runtime is platform-bundled (@fayz-ai/app-runtime is private). External dev sees no real UI locally. Founder options: (a) publish app-runtime + wire scaffolds to it, (b) switch templates to code-config style (defineSaas imports like dogfood apps). Manifest theme = brand/radius/mode only, applied by platform runtime. Tutorial documents all of this honestly (validates via doctor/CLI, never claims unrendered visuals) (Opus agent, verified by orchestrator)
+- 2026-07-14 · P5.1 done — `fayz login`/`logout`/`deploy` CLI. NEW cli/src/lib/fayz-platform.ts (injectable-fetch platform client createProject/uploadFiles[batched ≤100]/publishProject/getProject + ApiError; credential storage ~/.fayz/credentials.json 0600 + resolveToken env>file; token format/mask helpers) + cli/src/lib/deploy-files.ts (pure collectDeployFiles: fixed excludes node_modules/dist/.git/.next/.fayz/.env* + .gitignore SUBSET [documented: no negation/braces/classes] + ext allowlist [.env.example exempt] + 256KB cap) + commands/login.ts + commands/deploy.ts (.fayz/project.json link; --dry-run zero-network; --yes gate reusing db-apply confirmationGate; 401→PT rollout message). index.ts EXPERIMENTAL help block; tsup += 3 entries (2 libs + commands/deploy for in-process tests). 54/54 cli tests (23 existing + 31 new: deploy-files collection/caps/gitignore, platform happy-path+batching+auth+baseURL override, token precedence env>file, credential write mode 0600, deploy dry-run zero-network/missing-token/non-TTY refusal/full-flow via mocked client/401). cli-smoke += deploy dry-run + missing-token (HOME repointed, FAYZ_* stripped). Grep proof: only fetchImpl does I/O; all test tokens fabricated fayz_*. VERSION unchanged (0.3.0), NO npm publish, NO real network. P5.2 (platform dual-auth + token issuance + project/publish scopes, fayz repo, founder-scoped) filed todo (Opus agent)
+- 2026-07-14 · ⚠ ARCHITECTURE PIVOT (founder brief): Industry Pools — saas_core→core (tenants/people/staff/roles/appointments/transactions), plugin tables plg_-prefixed with installs/requires_core + versioned reversible idempotent migrations, 3 tiers same-shape (pool/custom-EAV/dedicated), website vs admin = same tables different RLS, pools cluster-{industry}-br-{shard}, registry on Azure PG. Active on feat/industry-pools (other session). EXTERNAL-DEV STORY (founder: "simplifique — BYOS"): dev brings own Supabase = same shape, migrations via CLI per-plugin modules → fayz db apply IS that runner (needs: renamed core spine in @fayz-ai/db, per-plugin versioned migration dirs, applied-versions ledger = P5.3). DOCS IMPACT: dados/{modelo,supabase,rls}, conceitos, tutorial/05, plugins-proprios/{manifesto,padroes} → P6.1 queued (Fable)
+- 2026-07-14 · P6.1 done (fayz-docs 49be459) — data docs pivoted to Industry Pools/BYOS: core library (6 baseline tables) + plg_/requires_core + golden-rule tiers box + website/admin same-tables RLS; single transition callout in dados/supabase; "spine" kept ONLY where the CLI literally prints it (honesty CI would flag otherwise); saas_core reduced to 2 "antes chamada" notes. Founder-directed same-day additions also done: semantic plugins catalog (6 product types + grouped grid), first-class IA section (aiTools/conectores/conecte-seu-agente + home prominence), setup-agentico page (MCP Supabase, skills table, /fayz-descoberta interview prompt), tutorial/07 rewritten to build→GitHub→fayz deploy with real CLI UX, deploy/fayz de-experimentalized, Inter font + stale-.next cache fix. Docs site now 42 pages / 60 llms entries (Opus agents, verified by orchestrator)

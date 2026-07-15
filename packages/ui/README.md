@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/ui.svg)](https://www.npmjs.com/package/@fayz-ai/ui)
 [![license](https://img.shields.io/npm/l/@fayz-ai/ui.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 A composed Fayz app needs to look like one product, not a pile of plugins. `@fayz-ai/ui` is the design layer that makes that true: accessible Radix-backed primitives, a data table, layout shells (app shell, sidebar, module pages), a themeable token system, and a dashboard widget kit that plugins contribute KPIs, charts, and tables into. Salon, restaurant, clinic — same shell, same widgets, different brand.
 
 The philosophy: plugins describe behavior, the UI renders it consistently. Define a KPI widget once and it lands in the dashboard grid with layout, ranges, and customization already wired. Drop in `AppShell` and `Sidebar` and the navigation a plugin declared just appears.

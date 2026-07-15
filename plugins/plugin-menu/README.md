@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-menu.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-menu)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-menu.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 A menu is the product catalog of a food business — and it changes by the hour. `plugin-menu` is the management surface for that: items, categories, allergens, and modifiers, with sold-out toggles that take effect instantly. It's the foundation the orders flow reads from, so the two compose into a working restaurant.
 
 It's provider-first by design. Ship a demo on the bundled mock provider, then drop in `createFayzMenuProvider` (or your own `MenuDataProvider`) for real data. Modifiers and delivery pricing are opt-in modules, labels and currency are configurable, and the host AI can list items and flip availability by name. The intent: menu management shouldn't be a bespoke build — it's a plugin you snap into a `defineSaas` app to compose a real food SaaS.

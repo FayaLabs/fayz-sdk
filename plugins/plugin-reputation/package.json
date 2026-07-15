@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/plugin-reputation",
+  "fayz": { "status": "preview" },
   "version": "0.2.2",
   "description": "[experimental] Fayz SDK — reviews & reputation management plugin",
   "type": "module",

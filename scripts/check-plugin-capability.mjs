@@ -59,6 +59,8 @@ const SCRIPT_DIR = fileURLToPath(new URL('.', import.meta.url))
 const ROOT = resolve(SCRIPT_DIR, '..')
 const PLUGINS_DIR = join(ROOT, 'plugins')
 const STRICT = process.argv.includes('--strict')
+// True only when this file is executed directly (not imported by a sibling gate).
+const IS_MAIN = process.argv[1] === fileURLToPath(import.meta.url)
 
 // Plugins that MUST be capability-complete under --strict. Add a plugin here
 // once it reaches the bar — never remove. This is the foundation ratchet.
@@ -78,7 +80,9 @@ function walk(dir, out = []) {
 }
 
 // Detect the capability facets of one plugin from its source tree.
-function inspectPlugin(pluginDir) {
+// Exported so sibling gates (e.g. check-package-status) can reuse the single
+// source of truth for a plugin's capability classification instead of forking it.
+export function inspectPlugin(pluginDir) {
   const srcDir = join(pluginDir, 'src')
   if (!existsSync(srcDir)) return null
 
@@ -152,6 +156,8 @@ function inspectPlugin(pluginDir) {
   return { facets, missing, klass }
 }
 
+// --- Report + strict gate (runs only when invoked directly) ----------------
+if (IS_MAIN) {
 const yes = (b) => (b ? '✓' : '·')
 const rows = []
 const failures = []
@@ -245,3 +251,4 @@ console.log(
         `\nRLS convention LOCKED: all plugins on canonical/deferred — 0 divergent · 0 no-rls · 0 other.`
     : '\nReport only (no --strict). Add plugins to ENFORCED as they reach the bar.',
 )
+} // end if (IS_MAIN)

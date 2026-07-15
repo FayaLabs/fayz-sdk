@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/shop.svg)](https://www.npmjs.com/package/@fayz-ai/shop)
 [![license](https://img.shields.io/npm/l/@fayz-ai/shop.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 `@fayz-ai/shop` is the headless ecommerce engine: a `ShopProvider` contract plus the domain types for products, carts, orders, customers, discounts, and shipping. It owns *what commerce means* so the storefront (`@fayz-ai/storefront`) and admin surfaces only have to render it.
 
 It's provider-first by design. Ship a demo on `createMockShopProvider`, then drop in `createSupabaseShopProvider` (or your own `ShopProvider`) for real data — the UI doesn't change. Tenancy is resolved through a pluggable resolver, so the same engine serves one store or a marketplace of thousands.

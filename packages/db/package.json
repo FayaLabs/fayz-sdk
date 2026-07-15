@@ -1,5 +1,6 @@
 {
   "name": "@fayz-ai/db",
+  "fayz": { "status": "beta" },
   "version": "0.1.2",
   "description": "Fayz SDK database layer — Drizzle schema primitives, spine references, and migration helpers shared across plugins.",
   "type": "module",

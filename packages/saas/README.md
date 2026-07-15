@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/saas.svg)](https://www.npmjs.com/package/@fayz-ai/saas)
 [![license](https://img.shields.io/npm/l/@fayz-ai/saas.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 This is where the Fayz pitch becomes a product. `@fayz-ai/saas` is the multi-tenant layer that wraps the headless core in everything a commercial app needs: organizations and tenancy, role-based permissions, billing, a native CRUD engine, and a full admin shell. You enable a set of plugins, call `defineSaas`, and get a running app with auth, org switching, permission gates, and a generated admin UI.
 
 A salon and a clinic ship from the same engine — `@fayz-ai/saas` is the part that makes each one a real, isolated, billable tenant. Plugins snap in; this layer gives them an org to live in, a user to act as, and a shell to render through.

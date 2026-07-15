@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/sdk.svg)](https://www.npmjs.com/package/@fayz-ai/sdk)
 [![license](https://img.shields.io/npm/l/@fayz-ai/sdk.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 Fayz builds real, multi-tenant SaaS apps by composing plugins. `@fayz-ai/sdk` is the seam between a generated Fayz project and the platform behind it: a typed API client, the shared manifest/user/params types, a runtime broker for OAuth-backed integrations, and the release-channel resolver that keeps every package on a coherent version set.
 
 This is the lowest-trust, zero-React layer — no UI, no framework, just the contract. Generated apps call Fayz through the SDK instead of importing provider clients directly, so OAuth secrets and tenant authority stay server-side where they belong. If you're reading Fayz tables, exchanging plugin OAuth grants, or pinning a package channel, you start here.
