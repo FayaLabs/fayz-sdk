@@ -3,7 +3,7 @@
   "fayz": {
     "status": "beta"
   },
-  "version": "0.1.6",
+  "version": "0.8.0",
   "description": "Fayz SDK — marketing campaigns & broadcasts plugin",
   "type": "module",
   "main": "./dist/index.cjs",

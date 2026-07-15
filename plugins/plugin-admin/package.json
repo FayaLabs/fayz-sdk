@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-admin",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "[experimental] Fayz SDK — admin shell settings plugin (read-only foundation)",
   "type": "module",
   "main": "./dist/index.cjs",

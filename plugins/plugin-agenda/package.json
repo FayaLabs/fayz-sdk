@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/plugin-agenda",
-  "fayz": { "status": "beta" },
-  "version": "0.1.8",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK — plugin-agenda plugin",
   "type": "module",
   "main": "./dist/index.cjs",

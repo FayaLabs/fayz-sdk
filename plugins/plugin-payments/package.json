@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-payments",
-  "version": "0.1.1",
+  "version": "0.8.0",
   "description": "[experimental] Fayz SDK — payments plugin (Pix charge provider + website surface)",
   "type": "module",
   "main": "./dist/index.cjs",

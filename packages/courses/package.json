@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/courses",
-  "fayz": { "status": "beta" },
-  "version": "0.6.0",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK education domain — courses, modules, lessons, enrollments, progress",
   "type": "module",
   "main": "./dist/index.cjs",

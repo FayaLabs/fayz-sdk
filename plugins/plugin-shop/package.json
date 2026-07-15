@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/plugin-shop",
-  "fayz": { "status": "preview" },
-  "version": "0.2.4",
+  "fayz": {
+    "status": "preview"
+  },
+  "version": "0.8.0",
   "description": "[experimental] Fayz SDK — plugin-shop plugin",
   "type": "module",
   "main": "./dist/index.cjs",

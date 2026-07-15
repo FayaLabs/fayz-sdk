@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/plugin-orders",
-  "fayz": { "status": "beta" },
-  "version": "0.2.3",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK — plugin-orders plugin",
   "type": "module",
   "main": "./dist/index.cjs",
