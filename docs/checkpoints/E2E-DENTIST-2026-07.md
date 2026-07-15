@@ -49,6 +49,9 @@ Qualidade alvo: beauty-saas. Plano aprovado em
 | F21 | storefront blocks nativos (DX) | Gaps recorrentes de landing que forçaram registerBlock no figurinhas: hero multi-CTA, FAQ accordion, passos numerados, blocos com estado de runtime (countdown). benefits/products/testimonials/footer cobriram nativo | média | candidatos a blocos nativos do @fayz-ai/storefront |
 | F22 | RBAC keying (docs/DX) | Grants casam por PROFILE ID (`administrador`), não pelo nome intuitivo (`admin`) — SDK descarta silenciosamente roles desconhecidos (buildPermissionProfiles). Verbo é `edit` (não `update` como no beauty) | média | documentar em dados/rls + warning no doctor p/ role sem profile |
 
+| F23 | Skills 1ª classe | Direção founder: skills oficiais primeiro (trilho da CLI) → comunidade skills.sh → internas. ENTREGUE: página ia/skills + `fayz skill list/add` (registry 13 skills, official-first, --json, 70/70 testes, e36db58) | — | ✅ entregue |
+| F24 | Plugin-as-skill + Integrações | Ficha do plugin = contrato agent-consumable (modelo de dados parseado das migrations, aiTools completos, integrações hospedadas, callout "use como skill" via .md). Seção Integrações da seed real do fayz (connectors.seed.ts — 22 conectores, não 25). ENTREGUE em fayz-docs (348e56d, 57b821e, fe47ec1); `fayz skill add plugin-<id>` = follow-up CLI (mesma extração) | — | ✅ entregue (docs); CLI follow-up |
+
 ### Achados que CONFIRMARAM as docs (auditoria limpa)
 - Lane IA: 18 claims estruturais conferem (14/22 aiTools, tipos, BYO endpoint, conectores, WhatsApp=roadmap honesto). Só 1 baixa (rótulo de diagrama, corrigida).
 - dados/rls, auth/visao-geral, plugins-proprios/incubator, deploy/estatico, deploy/fayz, headless, visao-geral, dois-caminhos: limpos.

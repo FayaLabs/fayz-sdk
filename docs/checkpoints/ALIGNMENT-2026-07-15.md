@@ -77,6 +77,17 @@ recepcao`). Auth user `teste@teste.com` (senha, email_confirm) = owner.
 - **F1**: a CLI 0.3.0 publicada precisa ser a UNIÃO dos branches (pools tem
   db pool/fan-out; p5-deploy tem login/deploy; e2e-dentist tem skill + doctor fix).
 
+## 3b. Adendo (mesmo dia, pós-digest)
+- fayz-docs agora vive em **github.com/FayaLabs/fayz-docs** (main).
+- **Plugin-as-skill + Integrações** (commits 348e56d/57b821e/fe47ec1): fichas de
+  plugin viraram contratos agent-consumable — data/plugin-details.json (tabelas
+  plg_ parseadas das migrations do SDK, aiTools completos, conectores hospedados)
+  + data/integrations.json (seed real: fayz/packages/db/prisma/seeds/
+  connectors.seed.ts, 22 conectores) + página plugins/integracoes + costura de
+  cross-links. WIP do founder no PluginDetail preservado em commit isolado
+  (348e56d). Follow-up de CLI: `fayz skill add plugin-<id>` gerado da mesma
+  extração.
+
 ## 4. O que esta sessão NÃO tocou
 Checkout principal do fayz-sdk (feat/industry-pools — tudo via worktrees),
 beauty-saas, refs Supabase do founder, npm publish/tags, main do fayz-sdk.
