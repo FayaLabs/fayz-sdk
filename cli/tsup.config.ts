@@ -11,6 +11,7 @@ export default defineConfig({
     'lib/ledger': 'src/lib/ledger.ts',
     'lib/pools': 'src/lib/pools.ts',
     'lib/move-tenant': 'src/lib/move-tenant.ts',
+    'lib/app-checks': 'src/lib/app-checks.ts',
   },
   format: ['esm'],
   target: 'node18',

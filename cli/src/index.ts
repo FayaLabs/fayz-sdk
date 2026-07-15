@@ -9,7 +9,7 @@ const HELP = `fayz — Fayz SDK CLI
 Usage:
   fayz create <storefront|admin|member> <name>   Scaffold a new repo-per-app project
   fayz create plugin <name>               Scaffold an app-local (incubator) plugin
-  fayz doctor [dir]                       Validate manifest + architecture boundaries
+  fayz doctor [dir] [--remote] [--full]   Validate deps, hygiene, manifest + architecture boundaries
   fayz extract [dir]                      Assisted code-config → manifest migration
   fayz db apply [dir] --dry-run           Plan the Supabase migration order (spine → drizzle → seed → plugins)
   fayz db apply [dir] [--yes]             Apply the plan via the Supabase Management API (prompts unless --yes)
@@ -19,6 +19,18 @@ Usage:
   fayz db fan-out --app <dir>             Apply an app's plan across pools: canary first, then the rest
   fayz --help                             Show this help
   fayz --version                          Show version
+
+fayz doctor flags:
+  --remote           Opt into a network pass: check each @fayz-ai/* semver range
+                     against the npm registry (default is offline). Unsatisfiable
+                     range → error.
+  --full             After the static checks pass with zero errors, run the app's
+                     build (and test, if present); a failure is an error carrying
+                     the last ~20 lines of output.
+  Categories: deps (no file:/link:/workspace:/portal:/.tgz specs), hygiene
+  (no tracked .env* secrets, env vars documented in .env.example, single lockfile),
+  manifest structure, plugin references, locale coverage, architecture boundaries.
+  Errors block (exit 1); warnings are visibility-only. Ends with "N error(s), M warning(s)".
 
 fayz db apply flags:
   --dry-run          Print the ordered plan only; performs no network calls
@@ -63,7 +75,7 @@ async function main(argv: string[]): Promise<number> {
     case 'db':
       return db(rest[0], rest.slice(1))
     case 'doctor':
-      return doctor(rest[0])
+      return doctor(rest)
     case 'extract':
       return extract(rest[0])
     case '--version':
