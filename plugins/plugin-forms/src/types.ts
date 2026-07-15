@@ -46,7 +46,7 @@ export interface FormSchema {
 }
 
 // ============================================================
-// TEMPLATE (maps to frm_templates)
+// TEMPLATE (maps to plg_forms_templates)
 // ============================================================
 
 export type TemplateCategory =
@@ -78,7 +78,7 @@ export interface FormTemplate {
 }
 
 // ============================================================
-// DOCUMENT (maps to frm_documents)
+// DOCUMENT (maps to plg_forms_documents)
 // ============================================================
 
 export type DocumentStatus = 'draft' | 'completed' | 'signed' | 'archived'
@@ -103,7 +103,7 @@ export interface FormDocument {
   updatedBy?: string
   createdAt: string
   updatedAt: string
-  /** Document kind from saas_core.documents */
+  /** Document kind from public.documents */
   kind?: string
   /** File URL for image/attachment documents */
   fileUrl?: string
@@ -113,7 +113,7 @@ export interface FormDocument {
 }
 
 // ============================================================
-// DOCUMENT FILE (maps to frm_document_files)
+// DOCUMENT FILE (maps to plg_forms_document_files)
 // ============================================================
 
 export interface DocumentFile {

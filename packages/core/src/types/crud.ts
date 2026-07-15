@@ -23,7 +23,7 @@ export interface FieldRelation {
   labelField?: string
   /** Scope options to the active tenant via tenant_id. Default true. */
   tenantScoped?: boolean
-  /** Schema the table lives in (e.g. 'saas_core'). Default public. */
+  /** Schema the table lives in (rarely needed now core is in public). Default public. */
   schema?: string
   /** Extra equality filters applied to the option query. */
   filter?: Record<string, unknown>

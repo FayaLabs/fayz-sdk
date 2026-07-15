@@ -97,3 +97,39 @@ can be *deleted* (it's currently *archived*).
 
 **Invariant going forward:** new schema is authored as Drizzle (tables) or plugin companion SQL
 (everything else); nothing new is written into `supabase/migrations/`.
+
+---
+
+## PROPOSED AMENDMENT (unsigned) — CLI executor (2026-07-14)
+
+> Appended below the locked v1 spec; nothing above this line is edited. This amendment
+> proposes the executor that supersedes the per-app `scripts/db-apply.mjs` referenced in §2.
+
+**The shift.** Provisioning moves from a per-app `scripts/db-apply.mjs` copied into each
+project to a single SDK command, `fayz db apply` (`@fayz-ai/cli`). The apply order and the
+"a plugin owns all of its SQL" model are unchanged — what changes is *where the executor
+lives* and *how it resolves the SQL*. The command resolves everything from the app's
+**installed** `@fayz-ai/*` packages (never a sibling `../../fayz-sdk` checkout), so an
+external developer holding only published deps can provision a fresh Supabase project.
+This supersedes the hardcoded `../../fayz-app/agency-os/scripts/db-apply.mjs` reference in
+§2 (that per-app script becomes the reference implementation the CLI generalizes; the §2
+line is left intact as provenance).
+
+**Resolution order** (all via node_modules resolution from the app dir):
+
+1. **spine** — `@fayz-ai/db` tarball `migrations/*.sql`
+2. **drizzle** — app `drizzle/*.sql`
+3. **seed** — app `supabase/seed-saas-core.sql`
+4. **plugin** — each enabled plugin's `src/migrations/*.sql`, in `app.manifest.json` order
+5. **incubator** — app-local `src/plugins/<name>/migrations/*.sql`
+
+**Executor.** `fayz db apply` executes the ordered plan via the Supabase Management API
+(`POST /v1/projects/{ref}/database/query`, bearer `SUPABASE_PAT`), running each step's SQL
+files in plan order and finishing with `NOTIFY pgrst, 'reload schema'`. Credentials resolve
+from process env → `<app>/.env.local` → `<app>/.env` (files never override an already-set
+process var); `SUPABASE_PROJECT_REF` (alias `SUPABASE_REF`) and `SUPABASE_PAT` (alias
+`SUPABASE_ACCESS_TOKEN`) are required and never defaulted. Apply prompts for confirmation of
+the target project ref unless `--yes`, and refuses (rather than hangs) in non-interactive
+shells. Failure stops at the first bad file and names the step/file; because spine and plugin
+SQL is authored idempotent, the recovery is to fix and re-run. A checksum ledger
+(skip-applied + drift detection) remains the productionization step.

@@ -1,9 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { setGlobalSupabaseClient } from '@fayz-ai/core'
 
-/** Schema name for core platform tables */
-export const CORE_SCHEMA = 'saas_core'
-
 let _client: SupabaseClient | null = null
 
 /**
@@ -46,9 +43,4 @@ export function getFayzSupabaseClient(): SupabaseClient {
 /** Safe getter — returns null if not initialised (mock/offline mode) */
 export function getFayzSupabaseClientOptional(): SupabaseClient | null {
   return _client
-}
-
-/** Get a client scoped to the core platform schema */
-export function getCoreSchemaClient(): ReturnType<SupabaseClient['schema']> {
-  return getFayzSupabaseClient().schema(CORE_SCHEMA)
 }

@@ -2,7 +2,7 @@ import type { PluginRegistryDef } from '@fayz-ai/core'
 import type { EntityDef } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
-// Holidays (saas_core.holidays — tenant-scoped)
+// Holidays (public.holidays — tenant-scoped)
 // ---------------------------------------------------------------------------
 
 const holidayEntity: EntityDef = {
@@ -21,7 +21,6 @@ const holidayEntity: EntityDef = {
   ],
   data: {
     table: 'holidays',
-    schema: 'saas_core',
     tenantScoped: true,
   },
 }

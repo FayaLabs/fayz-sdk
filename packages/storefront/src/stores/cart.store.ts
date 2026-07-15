@@ -40,11 +40,16 @@ export interface CartState {
   clear(): void
   openDrawer(): void
   closeDrawer(): void
+  /** Drop persisted lines the active backend can no longer resolve (e.g. a cart
+   *  built in an earlier mock-mode session, whose ids don't exist live). The
+   *  resolver returns false only for a definitive "not found"; on error it must
+   *  return true so a transient failure never discards a legit line. */
+  reconcile(resolve: (line: CartLine) => Promise<boolean>): Promise<void>
 }
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       lines: [],
       discountCode: null,
       discountPercent: 0,
@@ -106,6 +111,16 @@ export const useCartStore = create<CartState>()(
       clear: () => set({ lines: [], discountCode: null, discountPercent: 0 }),
       openDrawer: () => set({ isOpen: true }),
       closeDrawer: () => set({ isOpen: false, justAddedLineId: null }),
+
+      reconcile: async (resolve) => {
+        const lines = get().lines
+        if (lines.length === 0) return
+        const keep = await Promise.all(
+          lines.map((line) => resolve(line).catch(() => true)),
+        )
+        const kept = lines.filter((_, i) => keep[i])
+        if (kept.length !== lines.length) set({ lines: kept })
+      },
     }),
     {
       name: 'fayz.storefront.cart.v1',

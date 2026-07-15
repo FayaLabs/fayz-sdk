@@ -22,7 +22,7 @@ import { createMockContentPlannerProvider } from './data/contentMock'
 import { createSupabaseContentPlannerProvider } from './data/contentSupabase'
 import { createMarketingStore } from './store'
 import { createContentPlannerStore } from './views/content/contentStore'
-import { MIGRATION_001_CONTENT_PLANNER, MIGRATION_002_MULTI_PLATFORM, MIGRATION_003_RECORDING_OPS } from './migrations'
+import { MIGRATION_000_PLG_RENAME, MIGRATION_001_CONTENT_PLANNER, MIGRATION_002_MULTI_PLATFORM, MIGRATION_003_RECORDING_OPS } from './migrations'
 import { DEFAULT_CURRENCY, type MarketingCurrency } from './format'
 import { MARKETING_PRESETS, type MarketingDomain, type MarketingDomainModules } from './presets'
 import type { AcquisitionChannel, ConversionModel } from './types'
@@ -181,10 +181,16 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
     ],
     migrations: [
       {
+        id: 'marketing-000-plg-rename',
+        version: '1.0.0',
+        sql: MIGRATION_000_PLG_RENAME,
+        description: 'Rename legacy mkt_* tables to plg_marketing_* in-place for pools provisioned before the industry-pool rename (guarded no-op on fresh pools)',
+      },
+      {
         id: 'marketing-001-content-planner',
         version: '1.0.0',
         sql: MIGRATION_001_CONTENT_PLANNER,
-        description: 'Create mkt_social_accounts, mkt_content_plans and mkt_content_posts tables',
+        description: 'Create plg_marketing_social_accounts, plg_marketing_content_plans and plg_marketing_content_posts',
       },
       {
         id: 'marketing-002-multi-platform',
@@ -196,7 +202,7 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
         id: 'marketing-003-recording-ops',
         version: '1.2.0',
         sql: MIGRATION_003_RECORDING_OPS,
-        description: 'Recording-day checklist + media asset URL on posts; mkt-media storage bucket',
+        description: 'Recording-day checklist + media asset URL on posts; content-media storage bucket',
       },
     ],
     aiTools: [

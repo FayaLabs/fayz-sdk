@@ -2,7 +2,7 @@ import type { OrgAdapter, Organization, OrgMember, OrgMembership, CreateOrgOptio
 import type { Location } from '../../types/tenant'
 import type { PermissionProfile, SystemPermission, PermissionAction } from '../../types/permissions'
 import type { Invite } from '../../types/invite'
-import { getSupabaseClient, getCoreClient, CORE_SCHEMA } from '../supabase'
+import { getSupabaseClient, getCoreClient } from '../supabase'
 
 // ---------------------------------------------------------------------------
 // Request dedup — prevents duplicate in-flight requests (React StrictMode, etc.)
@@ -233,8 +233,8 @@ function buildPermissionProfiles(
 
 export function createSupabaseOrgAdapter(): OrgAdapter {
   const supabase = getSupabaseClient()
-  /** Core-schema scoped queries */
-  const core = () => supabase.schema(CORE_SCHEMA)
+  /** Core tables now live in the public schema — same client. */
+  const core = () => supabase
 
   return {
     async listUserOrgs(userId: string): Promise<OrgMembership[]> {

@@ -1,6 +1,9 @@
 {
   "name": "@fayz-ai/app-runtime",
-  "version": "0.7.0",
+  "fayz": {
+    "status": "internal"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK umbrella runtime — single-pin re-export of core, auth, saas, ui, shop, storefront for generated apps",
   "type": "module",
   "main": "./dist/index.cjs",

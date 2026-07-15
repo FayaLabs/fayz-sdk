@@ -7,8 +7,8 @@ DO $$
 DECLARE t text;
 BEGIN
   FOR t IN SELECT unnest(ARRAY[
-    'pipelines','pipeline_stages','lead_sources','crm_tags',
-    'deal_extensions','crm_activity_types','crm_activities'
+    'plg_crm_pipelines','plg_crm_pipeline_stages','plg_crm_lead_sources','plg_crm_tags',
+    'plg_crm_deal_extensions','plg_crm_activity_types','plg_crm_activities'
   ])
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
@@ -28,7 +28,7 @@ BEGIN
   END LOOP;
 END $$;
 
--- v_leads: saas_core.persons (kind='lead')
+-- v_leads: public.people (kind='lead')
 CREATE OR REPLACE VIEW public.v_leads WITH (security_invoker=true) AS
 SELECT
   p.id, p.tenant_id, p.name, p.email, p.phone, p.notes, p.tags, p.is_active,
@@ -39,11 +39,11 @@ SELECT
   p.metadata->>'value'         AS lead_value,
   p.metadata->>'assignedToId'  AS assigned_to_id,
   p.created_at, p.updated_at
-FROM saas_core.persons p
+FROM public.people p
 WHERE p.kind = 'lead';
 GRANT SELECT ON public.v_leads TO authenticated;
 
--- v_deals: saas_core.orders (kind='deal') JOIN deal_extensions JOIN pipeline_stages
+-- v_deals: public.orders (kind='deal') JOIN plg_crm_deal_extensions JOIN plg_crm_pipeline_stages
 CREATE OR REPLACE VIEW public.v_deals WITH (security_invoker=true) AS
 SELECT
   o.id, o.tenant_id, o.status,
@@ -54,8 +54,8 @@ SELECT
   de.pipeline_id, de.stage_id, de.probability, de.expected_close_date,
   de.lead_id, de.lost_reason,
   ps.name AS stage_name, ps.color AS stage_color, ps."order" AS stage_order
-FROM saas_core.orders o
-LEFT JOIN public.deal_extensions de ON de.order_id = o.id
-LEFT JOIN public.pipeline_stages ps ON ps.id = de.stage_id
+FROM public.orders o
+LEFT JOIN public.plg_crm_deal_extensions de ON de.order_id = o.id
+LEFT JOIN public.plg_crm_pipeline_stages ps ON ps.id = de.stage_id
 WHERE o.kind = 'deal';
 GRANT SELECT ON public.v_deals TO authenticated;

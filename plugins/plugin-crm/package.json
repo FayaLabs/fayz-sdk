@@ -1,6 +1,9 @@
 {
   "name": "@fayz-ai/plugin-crm",
-  "version": "0.3.0",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK — plugin-crm plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -56,5 +59,8 @@
     "fayz",
     "fayz-plugin",
     "fayz-sdk"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -1,6 +1,9 @@
 {
   "name": "@fayz-ai/plugin-courses",
-  "version": "0.2.3",
+  "fayz": {
+    "status": "preview"
+  },
+  "version": "0.8.0",
   "description": "[experimental] Fayz SDK — courses admin management plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -31,10 +34,10 @@
   "dependencies": {
     "@fayz-ai/core": "workspace:^",
     "@fayz-ai/ui": "workspace:^",
-    "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/courses": "workspace:^",
-    "@tanstack/react-table": "^8.20.0",
-    "lucide-react": "^0.400.0"
+    "lucide-react": "^0.400.0",
+    "@fayz-ai/saas": "workspace:^",
+    "@tanstack/react-table": "^8.20.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
@@ -49,5 +52,7 @@
     "fayz-sdk",
     "courses"
   ],
-  "private": true
+  "publishConfig": {
+    "access": "public"
+  }
 }

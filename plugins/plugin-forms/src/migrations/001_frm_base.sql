@@ -2,16 +2,16 @@
 -- Custom Forms Plugin — Base Tables
 -- ============================================================
 
--- frm_templates: form template definitions (versioned)
-CREATE TABLE IF NOT EXISTS public.frm_templates (
+-- plg_forms_templates: form template definitions (versioned)
+CREATE TABLE IF NOT EXISTS public.plg_forms_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES saas_core.tenants(id) ON DELETE CASCADE,
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   name text NOT NULL,
   description text,
   category text NOT NULL DEFAULT 'general',
   version integer NOT NULL DEFAULT 1,
   is_current boolean NOT NULL DEFAULT true,
-  parent_id uuid REFERENCES public.frm_templates(id),
+  parent_id uuid REFERENCES public.plg_forms_templates(id),
   schema jsonb NOT NULL DEFAULT '{"fields":[],"layout":{"columns":12}}',
   specialty text,
   tags text[] DEFAULT '{}',
@@ -24,37 +24,41 @@ CREATE TABLE IF NOT EXISTS public.frm_templates (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.frm_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plg_forms_templates ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_frm_templates_tenant
-  ON public.frm_templates(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_frm_templates_parent
-  ON public.frm_templates(parent_id);
-CREATE INDEX IF NOT EXISTS idx_frm_templates_category
-  ON public.frm_templates(tenant_id, category);
-CREATE INDEX IF NOT EXISTS idx_frm_templates_current
-  ON public.frm_templates(tenant_id, is_current, is_active)
+CREATE INDEX IF NOT EXISTS idx_plg_forms_templates_tenant
+  ON public.plg_forms_templates(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_plg_forms_templates_parent
+  ON public.plg_forms_templates(parent_id);
+CREATE INDEX IF NOT EXISTS idx_plg_forms_templates_category
+  ON public.plg_forms_templates(tenant_id, category);
+CREATE INDEX IF NOT EXISTS idx_plg_forms_templates_current
+  ON public.plg_forms_templates(tenant_id, is_current, is_active)
   WHERE is_current = true AND is_active = true AND is_deleted = false;
 
-CREATE POLICY "frm_templates_select" ON public.frm_templates
+DROP POLICY IF EXISTS "plg_forms_templates_select" ON public.plg_forms_templates;
+CREATE POLICY "plg_forms_templates_select" ON public.plg_forms_templates
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_templates_insert" ON public.frm_templates
+DROP POLICY IF EXISTS "plg_forms_templates_insert" ON public.plg_forms_templates;
+CREATE POLICY "plg_forms_templates_insert" ON public.plg_forms_templates
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_templates_update" ON public.frm_templates
+DROP POLICY IF EXISTS "plg_forms_templates_update" ON public.plg_forms_templates;
+CREATE POLICY "plg_forms_templates_update" ON public.plg_forms_templates
   FOR UPDATE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_templates_delete" ON public.frm_templates
+DROP POLICY IF EXISTS "plg_forms_templates_delete" ON public.plg_forms_templates;
+CREATE POLICY "plg_forms_templates_delete" ON public.plg_forms_templates
   FOR DELETE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
--- frm_documents: filled form instances
-CREATE TABLE IF NOT EXISTS public.frm_documents (
+-- plg_forms_documents: filled form instances
+CREATE TABLE IF NOT EXISTS public.plg_forms_documents (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES saas_core.tenants(id) ON DELETE CASCADE,
-  template_id uuid NOT NULL REFERENCES public.frm_templates(id),
-  person_id uuid REFERENCES saas_core.persons(id) ON DELETE SET NULL,
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  template_id uuid NOT NULL REFERENCES public.plg_forms_templates(id),
+  person_id uuid REFERENCES public.people(id) ON DELETE SET NULL,
   title text,
   data jsonb NOT NULL DEFAULT '{}',
   status text NOT NULL DEFAULT 'draft',
@@ -69,35 +73,51 @@ CREATE TABLE IF NOT EXISTS public.frm_documents (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.frm_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plg_forms_documents ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_frm_documents_tenant
-  ON public.frm_documents(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_frm_documents_person
-  ON public.frm_documents(person_id);
-CREATE INDEX IF NOT EXISTS idx_frm_documents_template
-  ON public.frm_documents(template_id);
-CREATE INDEX IF NOT EXISTS idx_frm_documents_status
-  ON public.frm_documents(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_plg_forms_documents_tenant
+  ON public.plg_forms_documents(tenant_id);
+-- person_id/status only exist in the pre-archetype shape this file creates;
+-- converted pools (salon) already carry the archetype extension shape
+-- (document_id PK, no person_id) — 002 owns that shape, so guard these.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'plg_forms_documents'
+      AND column_name = 'person_id'
+  ) THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_plg_forms_documents_person
+      ON public.plg_forms_documents(person_id)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_plg_forms_documents_status
+      ON public.plg_forms_documents(tenant_id, status)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_plg_forms_documents_template
+  ON public.plg_forms_documents(template_id);
 
-CREATE POLICY "frm_documents_select" ON public.frm_documents
+DROP POLICY IF EXISTS "plg_forms_documents_select" ON public.plg_forms_documents;
+CREATE POLICY "plg_forms_documents_select" ON public.plg_forms_documents
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_documents_insert" ON public.frm_documents
+DROP POLICY IF EXISTS "plg_forms_documents_insert" ON public.plg_forms_documents;
+CREATE POLICY "plg_forms_documents_insert" ON public.plg_forms_documents
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_documents_update" ON public.frm_documents
+DROP POLICY IF EXISTS "plg_forms_documents_update" ON public.plg_forms_documents;
+CREATE POLICY "plg_forms_documents_update" ON public.plg_forms_documents
   FOR UPDATE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_documents_delete" ON public.frm_documents
+DROP POLICY IF EXISTS "plg_forms_documents_delete" ON public.plg_forms_documents;
+CREATE POLICY "plg_forms_documents_delete" ON public.plg_forms_documents
   FOR DELETE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
--- frm_document_files: file attachments for image/gallery/drawing fields
-CREATE TABLE IF NOT EXISTS public.frm_document_files (
+-- plg_forms_document_files: file attachments for image/gallery/drawing fields
+CREATE TABLE IF NOT EXISTS public.plg_forms_document_files (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES saas_core.tenants(id) ON DELETE CASCADE,
-  document_id uuid NOT NULL REFERENCES public.frm_documents(id) ON DELETE CASCADE,
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  document_id uuid NOT NULL REFERENCES public.plg_forms_documents(id) ON DELETE CASCADE,
   field_key text NOT NULL,
   file_url text NOT NULL,
   file_name text,
@@ -108,31 +128,47 @@ CREATE TABLE IF NOT EXISTS public.frm_document_files (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.frm_document_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plg_forms_document_files ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_frm_document_files_document
-  ON public.frm_document_files(document_id);
+CREATE INDEX IF NOT EXISTS idx_plg_forms_document_files_document
+  ON public.plg_forms_document_files(document_id);
 
-CREATE POLICY "frm_document_files_select" ON public.frm_document_files
+DROP POLICY IF EXISTS "plg_forms_document_files_select" ON public.plg_forms_document_files;
+CREATE POLICY "plg_forms_document_files_select" ON public.plg_forms_document_files
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_document_files_insert" ON public.frm_document_files
+DROP POLICY IF EXISTS "plg_forms_document_files_insert" ON public.plg_forms_document_files;
+CREATE POLICY "plg_forms_document_files_insert" ON public.plg_forms_document_files
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_document_files_update" ON public.frm_document_files
+DROP POLICY IF EXISTS "plg_forms_document_files_update" ON public.plg_forms_document_files;
+CREATE POLICY "plg_forms_document_files_update" ON public.plg_forms_document_files
   FOR UPDATE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
-CREATE POLICY "frm_document_files_delete" ON public.frm_document_files
+DROP POLICY IF EXISTS "plg_forms_document_files_delete" ON public.plg_forms_document_files;
+CREATE POLICY "plg_forms_document_files_delete" ON public.plg_forms_document_files
   FOR DELETE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
--- View: frm_documents with template name joined
-CREATE OR REPLACE VIEW public.v_frm_documents AS
-SELECT
-  d.*,
-  t.name AS template_name,
-  t.category AS template_category,
-  p.name AS person_name
-FROM public.frm_documents d
-LEFT JOIN public.frm_templates t ON t.id = d.template_id
-LEFT JOIN saas_core.persons p ON p.id = d.person_id;
+-- View: pre-archetype read model (needs person_id; archetype pools get
+-- v_documents from 002 instead, which also drops this view when migrating).
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'plg_forms_documents'
+      AND column_name = 'person_id'
+  ) THEN
+    EXECUTE $v$
+      CREATE OR REPLACE VIEW public.v_frm_documents AS
+      SELECT
+        d.*,
+        t.name AS template_name,
+        t.category AS template_category,
+        p.name AS person_name
+      FROM public.plg_forms_documents d
+      LEFT JOIN public.plg_forms_templates t ON t.id = d.template_id
+      LEFT JOIN public.people p ON p.id = d.person_id
+    $v$;
+  END IF;
+END $$;

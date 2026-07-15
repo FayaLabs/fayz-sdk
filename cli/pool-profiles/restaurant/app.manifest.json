@@ -1,0 +1,30 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-restaurant",
+  "name": "Pool profile \u2014 cluster-restaurant-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": [
+        {
+          "id": "crm",
+          "enabled": true
+        },
+        {
+          "id": "financial",
+          "enabled": true
+        },
+        {
+          "id": "inventory",
+          "enabled": true
+        },
+        {
+          "id": "tasks",
+          "enabled": true
+        }
+      ]
+    }
+  }
+}

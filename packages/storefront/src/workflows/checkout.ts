@@ -84,7 +84,10 @@ export async function placeStorefrontOrder({
   })
 
   if (markPaid) {
-    await provider.updateOrder(order.id, { financialStatus: 'paid' })
+    // Prefer the RPC seam — anon storefronts have no UPDATE grant on the
+    // orders table, so a direct updateOrder 401s on pool backends.
+    if (provider.confirmPayment) await provider.confirmPayment(order.id)
+    else await provider.updateOrder(order.id, { financialStatus: 'paid' })
   }
 
   return { order, customerId: customerId ?? order.customerId ?? '' }

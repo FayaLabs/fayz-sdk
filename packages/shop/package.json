@@ -1,6 +1,9 @@
 {
   "name": "@fayz-ai/shop",
-  "version": "0.7.0",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK ecommerce layer — products, orders, customers, discounts, shipping",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -92,5 +95,8 @@
     "shop",
     "supabase"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

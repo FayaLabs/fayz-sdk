@@ -1,6 +1,9 @@
 {
   "name": "@fayz-ai/plugin-forms",
-  "version": "0.2.0",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK — plugin-forms plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -51,5 +54,8 @@
     "fayz",
     "fayz-plugin",
     "fayz-sdk"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

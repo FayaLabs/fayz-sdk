@@ -100,11 +100,11 @@ Accessible via gear icon in Financial module or in global Settings > Financial t
 
 Run in order:
 
-1. `001_financial_base.sql` — Core tables: payment_method_types, payment_methods, bank_accounts, cash_register_sessions, invoices, invoice_items, financial_movements
-2. `002_chart_of_accounts.sql` — chart_of_accounts (self-referencing tree), cost_centers
-3. `003_card_brands.sql` — card_brands
+1. `001_financial_base.sql` — Core tables: plg_financial_payment_method_types, plg_financial_payment_methods, plg_financial_bank_accounts, plg_financial_cash_register_sessions, invoices, invoice_items, plg_financial_movements
+2. `002_chart_of_accounts.sql` — plg_financial_chart_of_accounts (self-referencing tree), plg_financial_cost_centers
+3. `003_card_brands.sql` — plg_financial_card_brands
 
-All tables use `tenant_id` referencing `saas_core.tenants(id)` for multi-tenant isolation.
+All tables use `tenant_id` referencing `public.tenants(id)` for multi-tenant isolation.
 
 ## Views
 

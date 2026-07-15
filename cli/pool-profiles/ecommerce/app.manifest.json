@@ -1,0 +1,18 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-ecommerce",
+  "name": "Pool profile \u2014 cluster-ecommerce-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": [
+        {
+          "id": "shop",
+          "enabled": true
+        }
+      ]
+    }
+  }
+}

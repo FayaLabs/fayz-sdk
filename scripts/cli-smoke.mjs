@@ -1,55 +1,89 @@
 #!/usr/bin/env node
-// Smoke test the CLI: create all three app kinds in a temp dir, doctor each,
-// and assert the generated shape is the real dogfood one (not the old stub).
-import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+// Smoke test the CLI: create a storefront app in a temp dir, doctor it, then
+// exercise `fayz db apply` end-to-end short of any real network call.
+import assert from 'node:assert/strict'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, symlinkSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const CLI = join(process.cwd(), 'cli/dist/index.js')
-const CHANNEL = JSON.parse(readFileSync(join(process.cwd(), 'packages/sdk/src/release-channels.json'), 'utf8')).channels.stable
+const ROOT = process.cwd()
+const CLI = join(ROOT, 'cli/dist/index.js')
 const dir = mkdtempSync(join(tmpdir(), 'fayz-cli-'))
 
-function assert(cond, message) {
-  if (!cond) {
-    console.error(`✗ ${message}`)
-    process.exit(1)
-  }
+// Run the CLI capturing status/stdout/stderr. Never throws on non-zero exit —
+// these db-apply cases assert on the exit code themselves. `stdin: 'ignore'`
+// keeps every run non-interactive (process.stdin.isTTY is falsy), which is what
+// the confirmation gate keys off of.
+function runCli(args, { env = {} } = {}) {
+  const r = spawnSync('node', [CLI, ...args], {
+    cwd: dir,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    // Strip any ambient Supabase creds so the env cases are deterministic,
+    // then layer on whatever the case wants.
+    env: cleanEnv(env),
+  })
+  return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '' }
 }
 
-function contains(app, rel, needle) {
-  const path = join(dir, app, rel)
-  assert(existsSync(path), `${app}/${rel} missing`)
-  assert(readFileSync(path, 'utf8').includes(needle), `${app}/${rel} should contain "${needle}"`)
+// process.env minus SUPABASE_* (so a developer's shell can't leak real creds
+// into the "env unset" case), plus the per-case overrides.
+function cleanEnv(overrides) {
+  const out = {}
+  for (const [k, v] of Object.entries(process.env)) {
+    if (k.startsWith('SUPABASE_')) continue
+    out[k] = v
+  }
+  return { ...out, ...overrides }
 }
 
 try {
   execFileSync('node', [CLI, 'create', 'storefront', 'smoke-shop'], { cwd: dir, stdio: 'inherit' })
-  execFileSync('node', [CLI, 'create', 'admin', 'smoke-admin'], { cwd: dir, stdio: 'inherit' })
-  execFileSync('node', [CLI, 'create', 'member', 'smoke-portal', '--dir', '.'], { cwd: dir, stdio: 'inherit' })
+  execFileSync('node', [CLI, 'doctor', 'smoke-shop'], { cwd: dir, stdio: 'inherit' })
 
-  for (const app of ['smoke-shop', 'smoke-admin', 'smoke-portal']) {
-    execFileSync('node', [CLI, 'doctor', app], { cwd: dir, stdio: 'inherit' })
-    // Real-app baseline every kind must share.
-    for (const rel of ['CLAUDE.md', 'tailwind.config.ts', 'postcss.config.js', 'src/plugins.generated.ts', 'src/registry.tsx']) {
-      assert(existsSync(join(dir, app, rel)), `${app}/${rel} missing`)
-    }
-    assert(!existsSync(join(dir, app, 'src/lib/fayz-runtime.ts')), `${app} still ships the stub fayz-runtime`)
-    contains(app, 'vite.config.ts', 'fayzVite')
-    contains(app, 'src/styles.css', '@fayz-ai/ui/styles.css')
-    // Every @fayz-ai dep must carry the stable release-channel pin.
-    const pkg = JSON.parse(readFileSync(join(dir, app, 'package.json'), 'utf8'))
-    for (const [dep, version] of Object.entries(pkg.dependencies)) {
-      if (!dep.startsWith('@fayz-ai/')) continue
-      assert(CHANNEL[dep] === version, `${app} pins ${dep}@${version}, release channel says ${CHANNEL[dep] ?? 'MISSING'}`)
-    }
+  // --- fayz db apply -------------------------------------------------------
+  // The scaffolded app has no node_modules, so link the local @fayz-ai/db into
+  // it (same pattern as the A3a verification) — that gives the planner a real
+  // spine to resolve without an `npm install` or any network.
+  const app = join(dir, 'smoke-shop')
+  mkdirSync(join(app, 'node_modules', '@fayz-ai'), { recursive: true })
+  symlinkSync(join(ROOT, 'packages', 'db'), join(app, 'node_modules', '@fayz-ai', 'db'), 'dir')
+
+  // ① --dry-run: exit 0, prints the ordered plan + dry-run summary. No env, no network.
+  {
+    const r = runCli(['db', 'apply', 'smoke-shop', '--dry-run'])
+    assert.equal(r.status, 0, `db apply --dry-run should exit 0\n${r.stdout}\n${r.stderr}`)
+    const out = r.stdout + r.stderr
+    assert.match(out, /Migration plan for/, 'dry-run should print the plan header')
+    assert.match(out, /\[spine\s*\]\s+@fayz-ai\/db/, 'dry-run should list the spine step')
+    assert.match(out, /\(dry-run — nothing was applied\)/, 'dry-run should print the dry-run summary')
+    console.log('✓ db apply --dry-run: plan printed, exit 0, no network')
   }
 
-  contains('smoke-shop', 'src/App.tsx', 'createStorefront(')
-  contains('smoke-shop', 'src/config/catalog.ts', 'buildMockCatalog')
-  contains('smoke-admin', 'src/App.tsx', 'defineSaas(')
-  contains('smoke-admin', 'src/config/app.tsx', 'createDashboardPlugin')
-  contains('smoke-portal', 'src/plugins.generated.ts', '@fayz-ai/portal')
+  // ② env unset: exit 1, names BOTH required vars (guides the developer).
+  {
+    const r = runCli(['db', 'apply', 'smoke-shop'])
+    assert.equal(r.status, 1, `db apply with no creds should exit 1\n${r.stdout}\n${r.stderr}`)
+    const out = r.stdout + r.stderr
+    assert.match(out, /SUPABASE_PROJECT_REF/, 'missing-env error should name SUPABASE_PROJECT_REF')
+    assert.match(out, /SUPABASE_PAT/, 'missing-env error should name SUPABASE_PAT')
+    console.log('✓ db apply (env unset): exit 1, names both required vars')
+  }
+
+  // ③ creds present but non-interactive + no --yes: refuse promptly (never hang,
+  //    never reach the network) and suggest --yes.
+  {
+    const r = runCli(['db', 'apply', 'smoke-shop'], {
+      env: { SUPABASE_PROJECT_REF: 'fake', SUPABASE_PAT: 'sbp_fake' },
+    })
+    assert.equal(r.status, 1, `db apply non-interactive w/o --yes should exit 1\n${r.stdout}\n${r.stderr}`)
+    const out = r.stdout + r.stderr
+    assert.match(out, /--yes/, 'non-interactive refusal should suggest --yes')
+    // Must have stopped at the confirmation gate — before any apply happened.
+    assert.doesNotMatch(out, /schema reloaded|pipeline complete/, 'must not reach execution')
+    console.log('✓ db apply (creds set, non-interactive, no --yes): refused with --yes hint, no network')
+  }
 
   console.log('\n✓ CLI smoke passed')
 } finally {

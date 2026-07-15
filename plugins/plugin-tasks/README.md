@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-tasks.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-tasks)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-tasks.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — capability-complete (Supabase/mock data provider, bundled migration, end-to-end tests). Pre-1.0: APIs may change before 1.0.
+
 Work happens between the records. A salon owner needs to "call the supplier," a clinic admin needs to "follow up on lab results" — small things that never fit neatly into a booking or an invoice. `plugin-tasks` gives every Fayz app a lightweight, always-available task list: a topbar button that opens a drawer for quick-add, statuses, priorities, due dates, labels, and assignees.
 
 It's deliberately small and zero-config. Drop it in and it owns its own tables (via a bundled migration), picks Supabase or an in-memory mock automatically, and exposes its summary to the AI assistant — so "what's overdue?" just works. No page to wire, no nav slot to claim; tasks ride along with whatever vertical you compose.

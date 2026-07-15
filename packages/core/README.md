@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/core.svg)](https://www.npmjs.com/package/@fayz-ai/core)
 [![license](https://img.shields.io/npm/l/@fayz-ai/core.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
+
 A salon, a restaurant, and a clinic are the same engine with different plugins enabled. `@fayz-ai/core` is that engine — headless and UI-free. It defines the plugin contract, the entity/CRUD model, the data-provider abstraction, and the manifest format that describes an entire app as data. Plugins declare what they are; core resolves them into navigation, routes, widgets, and tools at runtime.
 
 The bet: a SaaS app should be composable and portable, not hand-wired. Swap Supabase for the Fayz API or a mock with one provider call. Describe an app as a manifest and render it. Register an entity once and get list/form/detail behavior everywhere. Core is the substrate that makes plugins "snap in."

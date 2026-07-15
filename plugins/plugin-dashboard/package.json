@@ -1,6 +1,9 @@
 {
   "name": "@fayz-ai/plugin-dashboard",
-  "version": "0.1.6",
+  "fayz": {
+    "status": "preview"
+  },
+  "version": "0.8.0",
   "description": "[experimental] Fayz SDK — plugin-dashboard plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -45,5 +48,8 @@
     "fayz",
     "fayz-plugin",
     "fayz-sdk"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -8,14 +8,14 @@ Fayz turns "one abstraction set → N vertical products" into reality. A new pro
 
 ## Why it's not AI slop
 
-Generated apps don't fork the SDK. They sit on a strict **ownership boundary** (see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)):
+Generated apps don't fork the SDK. They sit on a strict **ownership boundary** (see [`docs/architecture-boundaries.md`](docs/architecture-boundaries.md)):
 
 1. **Generated app** — pages, routes, theme, copy, app config, app-local plugins.
 2. **Plugin config** — fields, statuses, rules, flags, modules (manifest data).
 3. **Private extension** — partner/customer logic as an app-local plugin (same contract as official plugins).
 4. **Fayz SDK / plugins** — engines, provider authority, security, tenancy, migrations, upgrades.
 
-Because no layer forks another, an SDK upgrade across thousands of apps is one migration, not thousands of PRs — and customers customize from a label to a fully bespoke page **without ever ejecting** ([the customization ladder](docs/CUSTOMIZATION.md)).
+Because no layer forks another, an SDK upgrade across thousands of apps is one migration, not thousands of PRs — and customers customize from a label to a fully bespoke page **without ever ejecting** ([the customization ladder](docs/customization-ladder.md)).
 
 ## Packages
 
@@ -42,15 +42,16 @@ fayz create plugin loyalty   # scaffold an app-local (incubator) plugin
 
 ## Docs
 
-- [docs/README.md](docs/README.md) — **the doc map and reading order** (canonical set, rewritten 2026-07)
-- [AGENTS.md](AGENTS.md) — agents/new sessions start here: deploy model, conventions
-- [Architecture](docs/ARCHITECTURE.md) — the north star: topology, ownership layers, invariants
-- [Plugins](docs/PLUGINS.md) · [Plugin patterns](docs/PLUGIN-PATTERNS.md) — the contract and the enforced anatomy
-- [Customization](docs/CUSTOMIZATION.md) — config → fully bespoke, no forking
-- [Data model](docs/DATA-MODEL.md) · [Connectors](docs/CONNECTORS.md) · [Security](docs/SECURITY.md) · [Themes](docs/THEMES.md)
-- [AI Builder contract](docs/AI-BUILDER.md) — how the fayz builder operates SDK apps (v0.1)
-- [Roadmap](docs/ROADMAP.md) — milestones, feasibility, gap register
-- [Direction](docs/DIRECTION.md) — thesis, validation waves · [Decisions](docs/DECISIONS.md) — locked decision log
+- [AGENTS.md](AGENTS.md) — **agents/new sessions start here**: deploy model, conventions, doc map
+- [Direction](docs/DIRECTION.md) — thesis, roadmap, validation waves · [Decisions](docs/DECISIONS.md) — locked decision log
+- [Architecture boundaries](docs/architecture-boundaries.md) — the ownership contract
+- [Customization ladder](docs/customization-ladder.md) — config → fully bespoke, no forking
+- [Architecture v2](docs/architecture-v2.md) — manifest-first design
+- [Plugin patterns](PLUGIN_PATTERNS.md) · [Plugin model](docs/plugin-model.md) — how to build a plugin
+- [Private plugins](docs/private-plugins.md) — the partner extension path
+- [AI Builder taxonomy](docs/ai-builder-request-taxonomy.md) — request classes → boundary layers
+- [Support & stability tiers](SUPPORT.md) — what `stable` / `beta` / `preview` / `internal` promise
+- [Roadmap](docs/ROADMAP.md) · [Contributing](docs/contributing.md)
 
 ## License
 

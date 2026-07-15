@@ -1,7 +1,10 @@
 {
   "name": "@fayz-ai/plugin-auth",
-  "version": "0.1.2",
-  "description": "Fayz SDK \u2014 reusable auth runtime and UI integration plugin",
+  "fayz": {
+    "status": "preview"
+  },
+  "version": "0.8.0",
+  "description": "Fayz SDK — reusable auth runtime and UI integration plugin",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -12,6 +15,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./website": {
+      "source": "./src/website/index.tsx",
+      "types": "./dist/website/index.d.ts",
+      "import": "./dist/website/index.js",
+      "require": "./dist/website/index.cjs"
     }
   },
   "files": [
@@ -31,7 +40,9 @@
   "dependencies": {
     "@fayz-ai/auth": "workspace:^",
     "@fayz-ai/core": "workspace:^",
-    "@fayz-ai/ui": "workspace:^"
+    "@fayz-ai/ui": "workspace:^",
+    "@radix-ui/react-dialog": "^1.1.0",
+    "lucide-react": "^0.400.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",

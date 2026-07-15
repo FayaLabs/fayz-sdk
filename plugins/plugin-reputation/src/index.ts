@@ -6,6 +6,10 @@ import { ReputationHome } from './views/ReputationHome'
 // @fayz-ai/plugin-reputation — reviews & reputation (GoHighLevel "Reputation").
 // Universal plugin. M1 ships a rich mock home; Google/Facebook review sync +
 // automated review requests (over connectors + automations) come later.
+//
+// The public/website surface (createReputationWebsite + hooks + ReviewsList)
+// lives in the lean './public' subpath so a marketing-site host imports it
+// WITHOUT pulling the admin view's @fayz-ai/ui graph.
 // ---------------------------------------------------------------------------
 
 export interface ReputationPluginOptions {

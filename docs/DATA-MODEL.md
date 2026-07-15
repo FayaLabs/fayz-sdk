@@ -5,6 +5,14 @@ Owner-of-truth: `packages/db/src/schema/spine.ts` + `scripts/check-plugin-capabi
 
 The data architecture in one sentence: **a small fixed spine of universal archetypes, plugin-owned prefixed tables around it, app-owned 1:1 extensions on top — every row tenant-scoped, every schema change delivered as a plugin migration.** This document is the canon; the two RFCs in `design/` hold the rationale and remain the deep reference.
 
+> **Industry-pool update (2026-07).** The spine no longer lives in a dedicated `saas_core`
+> schema — the industry-pool model provisions core **directly in `public`** (tables
+> `public.people`, `public.orders`, `public.appointments`, …; tenant helper
+> `public.user_tenant_ids()`), with plugin tables prefixed `plg_<plugin>_*` also in
+> `public`. References to `saas_core.*` below and in the `design/` RFCs describe the earlier
+> schema-qualified design; read them as `public.*`. The end-to-end packaging rules live in
+> [PLUGIN-CONTRACT.md](./PLUGIN-CONTRACT.md).
+
 ---
 
 ## 1. The three rings

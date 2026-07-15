@@ -28,7 +28,8 @@ function snakeToCamel(obj: Record<string, unknown>): Record<string, unknown> {
 function getClients() {
   const supabase = getSupabaseClientOptional() as any
   if (!supabase) throw new Error('Supabase not initialized')
-  return { core: supabase.schema('saas_core'), pub: supabase }
+  // Core v1 lives in PUBLIC — a single client serves both core and view reads.
+  return { core: supabase, pub: supabase }
 }
 
 function mapBooking(row: Record<string, unknown>): CalendarBooking {
@@ -97,7 +98,7 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
     { data: items, error: itemsError },
   ] = await Promise.all([
     personIds.length
-      ? core.from('persons').select('id, name, phone, email, avatar_url').in('id', personIds)
+      ? core.from('people').select('id, name, phone, email, avatar_url').in('id', personIds)
       : Promise.resolve({ data: [], error: null }),
     locationIds.length
       ? core.from('locations').select('id, name').in('id', locationIds)
@@ -170,7 +171,7 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
 }
 
 async function getCanonicalBookings(core: any, query: BookingQuery): Promise<CalendarBooking[]> {
-  let q = core.from('bookings')
+  let q = core.from('appointments')
     .select('id, tenant_id, kind, starts_at, ends_at, status, notes, order_id, location_id, metadata, party_id, assignee_id, created_at, updated_at')
     .gte('starts_at', query.dateRange.start)
     .lte('starts_at', query.dateRange.end)
@@ -187,11 +188,11 @@ async function getCanonicalBookings(core: any, query: BookingQuery): Promise<Cal
 
 async function getCanonicalBookingById(core: any, id: string): Promise<CalendarBooking | null> {
   const columns = 'id, tenant_id, kind, starts_at, ends_at, status, notes, order_id, location_id, metadata, party_id, assignee_id, created_at, updated_at'
-  let { data, error } = await core.from('bookings').select(columns).eq('id', id).maybeSingle()
+  let { data, error } = await core.from('appointments').select(columns).eq('id', id).maybeSingle()
   if (error) throw error
 
   if (!data) {
-    const fallback = await core.from('bookings').select(columns).eq('order_id', id).maybeSingle()
+    const fallback = await core.from('appointments').select(columns).eq('order_id', id).maybeSingle()
     if (fallback.error) throw fallback.error
     data = fallback.data
   }
@@ -207,10 +208,10 @@ async function getCanonicalBookingById(core: any, id: string): Promise<CalendarB
 
 export function createSupabaseAgendaProvider(): AgendaDataProvider {
   return {
-    // v_bookings is in public schema (PostgREST default)
+    // v_appointments is in public schema (PostgREST default)
     async getBookings(query: BookingQuery): Promise<CalendarBooking[]> {
       const { core, pub } = getClients()
-      let q = pub.from('v_bookings').select('*')
+      let q = pub.from('v_appointments').select('*')
         .gte('starts_at', query.dateRange.start)
         .lte('starts_at', query.dateRange.end)
 
@@ -230,7 +231,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
     async getBookingById(id: string): Promise<CalendarBooking | null> {
       const { core, pub } = getClients()
-      const { data, error } = await pub.from('v_bookings').select('*').eq('id', id).maybeSingle()
+      const { data, error } = await pub.from('v_appointments').select('*').eq('id', id).maybeSingle()
       if (error) throw error
       if (data) return mapBooking(data as Record<string, unknown>)
       return getCanonicalBookingById(core, id)
@@ -250,7 +251,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       // Resolve client name for metadata (used by financial detail view)
       let contactName: string | undefined
       if (input.clientId) {
-        const { data: person } = await core.from('persons').select('name').eq('id', input.clientId).single()
+        const { data: person } = await core.from('people').select('name').eq('id', input.clientId).single()
         contactName = person?.name as string | undefined
       }
 
@@ -277,7 +278,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       }).select('id').single()
       if (orderErr) throw orderErr
 
-      const { data: booking, error: bookingErr } = await core.from('bookings').insert({
+      const { data: booking, error: bookingErr } = await core.from('appointments').insert({
         tenant_id: tenantId,
         kind: input.kind ?? 'appointment',
         party_id: input.clientId || null,
@@ -321,7 +322,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
     async updateBooking(id: string, data: UpdateBookingInput): Promise<CalendarBooking> {
       const { core } = getClients()
-      const { data: existing, error: existingErr } = await core.from('bookings')
+      const { data: existing, error: existingErr } = await core.from('appointments')
         .select('id, order_id, starts_at, assignee_id, metadata')
         .eq('id', id)
         .single()
@@ -357,7 +358,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
       const effectiveAssigneeId = data.professionalId ?? (existing?.assignee_id as string | null | undefined) ?? null
 
-      const { error } = await core.from('bookings').update(updates).eq('id', id)
+      const { error } = await core.from('appointments').update(updates).eq('id', id)
       if (error) throw error
 
       // S4: services are updated only in order_items below (booking_items deprecated).
@@ -405,7 +406,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
     async deleteBooking(id: string): Promise<void> {
       const { core, pub } = getClients()
-      const { data: booking, error: bookingErr } = await core.from('bookings')
+      const { data: booking, error: bookingErr } = await core.from('appointments')
         .select('order_id')
         .eq('id', id)
         .single()
@@ -413,22 +414,22 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
       const orderId = booking?.order_id as string | null | undefined
       const { count, error: movementErr } = orderId
-        ? await pub.from('financial_movements').select('id', { count: 'exact', head: true }).eq('invoice_id', orderId)
+        ? await pub.from('plg_financial_movements').select('id', { count: 'exact', head: true }).eq('invoice_id', orderId)
         : { count: 0, error: null }
       if (movementErr) throw movementErr
 
       if (orderId && (count ?? 0) > 0) {
         // Cancel movements + order (don't delete financial records)
-        await pub.from('financial_movements').update({ status: 'cancelled' }).eq('invoice_id', orderId)
+        await pub.from('plg_financial_movements').update({ status: 'cancelled' }).eq('invoice_id', orderId)
         await core.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
-        const { error } = await core.from('bookings').update({ status: 'cancelled' }).eq('id', id)
+        const { error } = await core.from('appointments').update({ status: 'cancelled' }).eq('id', id)
         if (error) throw error
       } else {
         // Safe to delete — remove any movements first (FK constraint)
         if (orderId) {
-          await pub.from('financial_movements').delete().eq('invoice_id', orderId)
+          await pub.from('plg_financial_movements').delete().eq('invoice_id', orderId)
         }
-        const { error } = await core.from('bookings').delete().eq('id', id)
+        const { error } = await core.from('appointments').delete().eq('id', id)
         if (error) throw error
         if (orderId) {
           const { error: orderErr } = await core.from('orders').delete().eq('id', orderId)
@@ -443,7 +444,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
     async checkConflict(params: ConflictCheckParams): Promise<boolean> {
       const { core } = getClients()
-      let q = core.from('bookings').select('id', { count: 'exact', head: true })
+      let q = core.from('appointments').select('id', { count: 'exact', head: true })
         .eq('assignee_id', params.assigneeId)
         .eq('kind', 'appointment')
         .not('status', 'in', '("cancelled","no_show")')
@@ -513,7 +514,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
     async getProfessionals(): Promise<Professional[]> {
       const { core } = getClients()
-      const { data, error } = await core.from('persons')
+      const { data, error } = await core.from('people')
         .select('id, name, avatar_url, is_active')
         .eq('kind', 'staff')
         .eq('is_active', true)
@@ -541,7 +542,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       const cutoff = new Date()
       cutoff.setDate(cutoff.getDate() + daysAhead)
 
-      const { data, error } = await pub.from('v_bookings').select('*')
+      const { data, error } = await pub.from('v_appointments').select('*')
         .eq('status', 'scheduled')
         .gte('starts_at', now)
         .lte('starts_at', cutoff.toISOString())
@@ -552,22 +553,22 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
 
     async sendConfirmation(bookingId: string, channel: string): Promise<void> {
       const { core } = getClients()
-      const { data: booking } = await core.from('bookings').select('metadata').eq('id', bookingId).single()
+      const { data: booking } = await core.from('appointments').select('metadata').eq('id', bookingId).single()
       const metadata = (booking?.metadata ?? {}) as Record<string, unknown>
       const confirmations = (metadata.confirmations as any[] ?? [])
       confirmations.push({ channel, sentAt: new Date().toISOString(), status: 'sent' })
-      await core.from('bookings').update({ metadata: { ...metadata, confirmations } }).eq('id', bookingId)
+      await core.from('appointments').update({ metadata: { ...metadata, confirmations } }).eq('id', bookingId)
     },
 
     async completeBooking(bookingId: string): Promise<{ booking: CalendarBooking; orderId: string }> {
       const { core } = getClients()
-      const { data: existing, error: existingErr } = await core.from('bookings')
+      const { data: existing, error: existingErr } = await core.from('appointments')
         .select('order_id')
         .eq('id', bookingId)
         .single()
       if (existingErr) throw existingErr
 
-      const { error } = await core.from('bookings')
+      const { error } = await core.from('appointments')
         .update({ status: 'completed' })
         .eq('id', bookingId)
       if (error) throw error

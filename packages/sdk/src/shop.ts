@@ -464,20 +464,24 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
   return {
     async listProducts(options?: FayzShopListProductsOptions) {
       const query = tenantQuery()
-      query.set('select', '*,images:product_images(*),category:categories(name)')
+      query.set('select', '*,images:plg_shop_product_images(*),category:plg_shop_categories(name)')
       if (options?.status) query.set('status', `eq.${options.status}`)
       if (options?.slug) query.set('slug', `eq.${options.slug}`)
       if (options?.search) query.set('name', `ilike.*${options.search}*`)
       query.set('order', `${options?.orderBy ?? 'sort_order'}.${options?.order ?? 'asc'}`)
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      const products = (await request<ProductRow[]>('products', { query })).map((row) => rowToProduct(row, productMetadataOverlay))
+      const products = (await request<ProductRow[]>('plg_shop_products', { query })).map((row) => rowToProduct(row, productMetadataOverlay))
       return options?.categoryId ? products.filter((product) => product.categoryId === options.categoryId) : products
     },
     async getProduct(id: string) {
+      // Cart lines can carry non-uuid ids (mock catalog, or a cart persisted in
+      // an earlier mock-mode session). PostgREST would 400 on `id=eq.p-05`
+      // (invalid uuid), so treat any non-uuid id as "not found" instead.
+      if (!asUuid(id)) return null
       const query = singleById(id)
-      query.set('select', '*,images:product_images(*),category:categories(name)')
-      const rows = await request<ProductRow[]>('products', { query })
+      query.set('select', '*,images:plg_shop_product_images(*),category:plg_shop_categories(name)')
+      const rows = await request<ProductRow[]>('plg_shop_products', { query })
       return rows[0] ? rowToProduct(rows[0], productMetadataOverlay) : null
     },
     async createProduct() {
@@ -499,14 +503,14 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       const productQuery = tenantQuery()
       productQuery.set('select', 'metadata')
       productQuery.set('order', 'sort_order.asc')
-      const products = await request<ProductRow[]>('products', { query: productQuery })
+      const products = await request<ProductRow[]>('plg_shop_products', { query: productQuery })
       const storeCategories = deriveStoreCategories(products, storeId)
       if (storeCategories.length > 0) return storeCategories
 
       const query = new URLSearchParams()
       query.set('select', '*')
       query.set('order', 'sort_order.asc')
-      return (await request<CategoryRow[]>('categories', { query })).map(rowToCategory)
+      return (await request<CategoryRow[]>('plg_shop_categories', { query })).map(rowToCategory)
     },
     async createCategory() {
       throw new FayzShopError('Category writes require the Fayz admin/broker API.', 501)
@@ -519,7 +523,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
     },
     async listOrders(options?: FayzShopListOrdersOptions) {
       const query = tenantQuery()
-      query.set('select', '*,items:order_items(*)')
+      query.set('select', '*,items:plg_shop_order_items(*)')
       if (options?.status) query.set('status', `eq.${options.status}`)
       if (options?.financialStatus) query.set('financial_status', `eq.${options.financialStatus}`)
       if (options?.fulfillmentStatus) query.set('fulfillment_status', `eq.${options.fulfillmentStatus}`)
@@ -529,13 +533,42 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       query.set('order', 'created_at.desc')
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      return (await request<OrderRow[]>('orders', { query })).map(rowToOrder)
+      return (await request<OrderRow[]>('plg_shop_orders', { query })).map(rowToOrder)
     },
     async getOrder(id: string) {
       const query = singleById(id)
-      query.set('select', '*,items:order_items(*)')
-      const rows = await request<OrderRow[]>('orders', { query })
-      return rows[0] ? rowToOrder(rows[0]) : null
+      query.set('select', '*,items:plg_shop_order_items(*)')
+      // Anon storefronts have no table grant at all — the direct read throws
+      // (401) rather than returning empty, so it must not short-circuit the
+      // RPC fallback below.
+      let rows: OrderRow[] = []
+      try {
+        rows = await request<OrderRow[]>('plg_shop_orders', { query })
+      } catch {
+        /* fall through to shop_get_order */
+      }
+      if (rows[0]) return rowToOrder(rows[0])
+      // Anon storefronts can't SELECT plg_shop_orders (RLS); the order uuid acts
+      // as the read capability through the whitelisted RPC.
+      try {
+        const row = await request<OrderRow | null>('rpc/shop_get_order', {
+          method: 'POST',
+          body: JSON.stringify({ p_order_id: id }),
+        })
+        return row ? rowToOrder(row) : null
+      } catch {
+        return null
+      }
+    },
+    async confirmPayment(id: string, reference?: string) {
+      // Mock/dev payment seam: anon has no UPDATE grant on plg_shop_orders,
+      // so the pending->paid transition goes through the whitelisted RPC
+      // (order uuid = capability, same contract as shop_get_order).
+      const row = await request<OrderRow | null>('rpc/shop_confirm_payment', {
+        method: 'POST',
+        body: JSON.stringify({ p_order_id: id, p_reference: reference ?? null }),
+      })
+      return row ? rowToOrder(row) : null
     },
     async createOrder(input: {
       customerId?: string
@@ -552,7 +585,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       const discountTotal = input.discountTotal ?? 0
       const shippingTotal = input.shippingTotal ?? 0
       const total = Math.round((subtotal - discountTotal + shippingTotal) * 100) / 100
-      const [order] = await request<OrderRow[]>('orders', {
+      const [order] = await request<OrderRow[]>('plg_shop_orders', {
         method: 'POST',
         body: JSON.stringify({
           tenant_id: storeId,
@@ -573,7 +606,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       })
       if (!order) throw new FayzShopError('Order insert did not return a row.', 500)
       if (input.items.length) {
-        await request<OrderItemRow[]>('order_items', {
+        await request<OrderItemRow[]>('plg_shop_order_items', {
           method: 'POST',
           body: JSON.stringify(input.items.map((item) => ({
             order_id: order.id,
@@ -590,7 +623,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       return this.getOrder(order.id)
     },
     async updateOrder(id: string, input: Parameters<typeof updateOrderPayload>[0]) {
-      await request<OrderRow[]>('orders', {
+      await request<OrderRow[]>('plg_shop_orders', {
         method: 'PATCH',
         query: singleById(id),
         body: JSON.stringify(updateOrderPayload(input)),
@@ -607,50 +640,30 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       shippingTotal?: number
       items: Array<{ productId: string; quantity: number; optionsLabel?: string }>
     }) {
-      // Trusted placement over the legacy REST path: re-read prices from the
-      // catalog so the browser can never set what it pays.
-      const orderItems: Array<{ productId?: string; name: string; sku?: string; quantity: number; unitPrice: number; imageUrl?: string }> = []
-      let subtotal = 0
-      for (const line of input.items) {
-        const product = await this.getProduct(line.productId)
-        if (!product || product.status !== 'active') throw new FayzShopError(`Product unavailable: ${line.productId}`, 409)
-        if (product.inventoryCount < line.quantity) throw new FayzShopError(`Insufficient stock for ${product.name}`, 409)
-        const name = line.optionsLabel ? `${product.name} (${line.optionsLabel})` : product.name
-        subtotal += product.price * line.quantity
-        orderItems.push({ productId: product.id, name, sku: product.sku ?? undefined, quantity: line.quantity, unitPrice: product.price, imageUrl: product.images[0]?.url })
-      }
-      subtotal = Math.round(subtotal * 100) / 100
-
-      let shippingTotal = Math.max(input.shippingTotal ?? 0, 0)
-      let discountTotal = 0
-      let appliedCode: string | undefined
-      if (input.discountCode) {
-        const code = input.discountCode.trim().toLowerCase()
-        const discount = (await this.listDiscounts()).find((d) => (d.code ?? '').toLowerCase() === code)
-        const ts = nowIso()
-        const valid = !!discount && discount.status === 'active' && discount.startsAt <= ts
-          && (!discount.endsAt || discount.endsAt >= ts)
-          && (discount.usageLimit == null || discount.timesUsed < discount.usageLimit)
-        if (valid && discount) {
-          appliedCode = discount.code ?? undefined
-          if (discount.type === 'percentage') discountTotal = Math.round(subtotal * discount.value) / 100
-          else if (discount.type === 'fixed_amount') discountTotal = Math.min(discount.value, subtotal)
-          else if (discount.type === 'free_shipping') shippingTotal = 0
-        }
-      }
-      discountTotal = Math.round(Math.min(Math.max(discountTotal, 0), subtotal) * 100) / 100
-
-      return this.createOrder({
-        customerId: input.customerId,
-        customerName: input.customer?.name,
-        customerEmail: input.customer?.email,
-        currency: input.currency,
-        notes: input.notes,
-        discountCode: appliedCode,
-        discountTotal,
-        shippingTotal,
-        items: orderItems,
+      // Trusted placement: the shop_place_order SECURITY DEFINER RPC re-reads
+      // prices, validates discount/stock and writes order+items atomically.
+      // Direct INSERTs are blocked for anon by RLS on the shared FayzApi.
+      const orderId = await request<string>('rpc/shop_place_order', {
+        method: 'POST',
+        body: JSON.stringify({
+          p_tenant_id: input.tenantId ?? storeId,
+          p_items: input.items.map((line) => ({
+            product_id: line.productId,
+            quantity: line.quantity,
+            options_label: line.optionsLabel ?? null,
+          })),
+          p_customer_id: asUuid(input.customerId ?? undefined),
+          p_customer_name: input.customer?.name ?? null,
+          p_customer_email: input.customer?.email ?? null,
+          p_currency: input.currency ?? 'BRL',
+          p_discount_code: input.discountCode ?? null,
+          p_shipping_total: input.shippingTotal ?? 0,
+          p_notes: input.notes ?? null,
+        }),
       })
+      const order = await this.getOrder(orderId)
+      if (!order) throw new FayzShopError('Order was placed but could not be read back.', 500)
+      return order
     },
     async listCustomers(options?: FayzShopListCustomersOptions) {
       const query = tenantQuery()
@@ -659,14 +672,27 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       if (options?.search) query.set('or', `(first_name.ilike.*${options.search}*,last_name.ilike.*${options.search}*,email.ilike.*${options.search}*)`)
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      return (await request<CustomerRow[]>('customers', { query })).map(rowToCustomer)
+      return (await request<CustomerRow[]>('plg_shop_customers', { query })).map(rowToCustomer)
     },
     async getCustomer(id: string) {
-      const rows = await request<CustomerRow[]>('customers', { query: singleById(id) })
+      const rows = await request<CustomerRow[]>('plg_shop_customers', { query: singleById(id) })
       return rows[0] ? rowToCustomer(rows[0]) : null
     },
+    async resolveCustomer(input: { email: string; name?: string }) {
+      const row = await request<CustomerRow | CustomerRow[]>('rpc/shop_resolve_customer', {
+        method: 'POST',
+        body: JSON.stringify({
+          p_tenant_id: storeId,
+          p_email: input.email,
+          p_name: input.name ?? null,
+        }),
+      })
+      const customer = Array.isArray(row) ? row[0] : row
+      if (!customer) throw new FayzShopError('shop_resolve_customer returned no row.', 500)
+      return rowToCustomer(customer)
+    },
     async createCustomer(input: { firstName: string; lastName?: string; email?: string; phone?: string; notes?: string }) {
-      const [customer] = await request<CustomerRow[]>('customers', {
+      const [customer] = await request<CustomerRow[]>('plg_shop_customers', {
         method: 'POST',
         body: JSON.stringify({
           tenant_id: storeId,
@@ -687,7 +713,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       if (input.email !== undefined) updates.email = input.email
       if (input.phone !== undefined) updates.phone = input.phone
       if (input.notes !== undefined) updates.notes = input.notes
-      const [customer] = await request<CustomerRow[]>('customers', {
+      const [customer] = await request<CustomerRow[]>('plg_shop_customers', {
         method: 'PATCH',
         query: singleById(id),
         body: JSON.stringify(updates),
@@ -696,7 +722,7 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       return rowToCustomer(customer)
     },
     async deleteCustomer(id: string) {
-      await request<unknown>('customers', { method: 'DELETE', query: singleById(id) })
+      await request<unknown>('plg_shop_customers', { method: 'DELETE', query: singleById(id) })
     },
     async listDiscounts(options?: FayzShopListDiscountsOptions) {
       const query = tenantQuery()
@@ -707,10 +733,10 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       if (options?.search) query.set('title', `ilike.*${options.search}*`)
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      return (await request<DiscountRow[]>('discounts', { query })).map(rowToDiscount)
+      return (await request<DiscountRow[]>('plg_shop_discounts', { query })).map(rowToDiscount)
     },
     async getDiscount(id: string) {
-      const rows = await request<DiscountRow[]>('discounts', { query: singleById(id) })
+      const rows = await request<DiscountRow[]>('plg_shop_discounts', { query: singleById(id) })
       return rows[0] ? rowToDiscount(rows[0]) : null
     },
     async createDiscount() {

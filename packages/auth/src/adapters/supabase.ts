@@ -157,7 +157,7 @@ export function createSupabaseAuthAdapter(config: SupabaseAuthConfig): AuthAdapt
       // Native, edge-function-free invite: a passwordless magic link. Sends the
       // e-mail + creates the auth user (anon-callable, no service-role/admin).
       // Membership is NOT granted from `data` (a client could forge it) — the
-      // accept-time trigger trusts the RLS-protected saas_core.invitations row.
+      // accept-time trigger trusts the RLS-protected public.invitations row.
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {

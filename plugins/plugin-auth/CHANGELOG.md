@@ -1,17 +1,9 @@
 # @fayz-ai/plugin-auth
 
-## 0.1.2
+## 0.1.0
 
-### Patch Changes
+### Initial release
 
-- Republish with live internal dep ranges (`@fayz-ai/auth@^0.6.6`) — 0.1.1 pinned the abandoned 0.7.0 line and broke resolution with ETARGET (see release-sdk skill gotcha).
-
-## 0.1.1
-
-### Patch Changes
-
-- Updated dependencies [c88dd5c]
-- Updated dependencies [d04bf96]
-  - @fayz-ai/core@0.7.0
-  - @fayz-ai/ui@0.7.0
-  - @fayz-ai/auth@0.7.0
+- Extracted the reusable auth surface out of the SaaS shell into `@fayz-ai/plugin-auth`: a thin layer over `@fayz-ai/auth` that resolves Supabase/mock/custom adapters and renders the login / signup / recovery / reset / callback screens.
+- `createAuthPlugin(options)` factory: provider selection, `requireAuth`, split/centered layout, and OAuth provider config.
+- Extended the auth adapter contract to back app-owned RBAC and native team invites.

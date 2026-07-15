@@ -724,7 +724,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                         for (const [k, v] of Object.entries(data)) {
                           dbData[k.replace(/[A-Z]/g, (m) => '_' + m.toLowerCase())] = v
                         }
-                        await supabase.schema('saas_core').from('persons').update(dbData).eq('id', clientId)
+                        await supabase.from('people').update(dbData).eq('id', clientId)
                         setClientData({ ...clientData, ...data })
                         setClientEditing(false)
                       } catch { /* toast */ }
@@ -851,8 +851,8 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                             const tenantId = getAgendaTenantId()
                             if (!supabase || !tenantId) throw new Error('Not initialized')
 
-                            // 1. Insert into saas_core.persons (archetype table)
-                            const { data: personRow, error: personError } = await supabase.schema('saas_core').from('persons').insert({
+                            // 1. Insert into public.people (archetype base table)
+                            const { data: personRow, error: personError } = await supabase.from('people').insert({
                               tenant_id: tenantId, kind: config.clientKind, name: newClientName.trim(),
                               phone: newClientPhone.trim() || null, email: newClientEmail.trim() || null,
                             }).select('id, name').single()
@@ -864,7 +864,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                             })
                             if (clientError) {
                               // Rollback person if extension insert fails
-                              await supabase.schema('saas_core').from('persons').delete().eq('id', personRow.id)
+                              await supabase.from('people').delete().eq('id', personRow.id)
                               throw clientError
                             }
 

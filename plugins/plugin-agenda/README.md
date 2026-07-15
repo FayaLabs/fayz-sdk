@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-agenda.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-agenda)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-agenda.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Every service business runs on a calendar. Salons book stylists, clinics book doctors, studios book rooms — the same primitive, rebuilt badly a thousand times. `plugin-agenda` is that primitive done once: a resource-aware calendar with appointments, blocks, working hours, conflict detection, and drag-and-drop, all driven by config instead of forks.
 
 It snaps into any `defineSaas` app and reshapes itself per vertical — booking types, statuses, professional/client/service lookups, and locations are all options. Pair it with `@fayz-ai/plugin-financial` and a booking can auto-create an order, so scheduling and revenue stay in sync from the first appointment. One engine, every vertical, no rewrite.

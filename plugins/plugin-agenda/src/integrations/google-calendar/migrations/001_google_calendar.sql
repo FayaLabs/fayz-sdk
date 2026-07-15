@@ -1,15 +1,15 @@
 -- ---------------------------------------------------------------------------
 -- Google Calendar integration (bidirectional) — connection + audit + triggers
 -- ---------------------------------------------------------------------------
--- Outbound (Fayz booking → Google event) fires from a trigger on saas_core.bookings
+-- Outbound (Fayz booking → Google event) fires from a trigger on public.appointments
 -- via pg_net to the google-calendar-sync edge function (push_event). Inbound
 -- (Google → booking) runs on a pg_cron schedule (pull_events) and/or a Google
 -- watch-channel webhook. The booking↔event link is stored on
--- saas_core.bookings.metadata.googleCalendarEventId (no schema change there).
+-- public.appointments.metadata.googleCalendarEventId (no schema change there).
 
 CREATE TABLE IF NOT EXISTS public.calendar_integrations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES saas_core.tenants(id) ON DELETE CASCADE,
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   provider text NOT NULL DEFAULT 'google',
   oauth_refresh_token text,
   oauth_access_token text,
@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_calendar_integrations_tenant ON public.calendar_i
 
 CREATE TABLE IF NOT EXISTS public.calendar_sync_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES saas_core.tenants(id) ON DELETE CASCADE,
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   direction text NOT NULL,                 -- inbound | outbound
   trigger text,                            -- on-write | scheduled | webhook | manual
   status text NOT NULL DEFAULT 'success',  -- success | partial | error
@@ -80,9 +80,9 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END $$;
 
-DROP TRIGGER IF EXISTS trg_gcal_push ON saas_core.bookings;
+DROP TRIGGER IF EXISTS trg_gcal_push ON public.appointments;
 CREATE TRIGGER trg_gcal_push
-  AFTER INSERT OR UPDATE OR DELETE ON saas_core.bookings
+  AFTER INSERT OR UPDATE OR DELETE ON public.appointments
   FOR EACH ROW EXECUTE FUNCTION public.fn_gcal_push_booking();
 
 -- Inbound schedule (optional): pull external changes every 10 minutes.

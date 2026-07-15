@@ -35,6 +35,12 @@ export interface ShopProvider {
   createOrder(input: CreateOrderInput): Promise<Order>
   updateOrder(id: string, input: UpdateOrderInput): Promise<Order>
   /**
+   * Mock/dev payment seam: pending->paid transition via a whitelisted RPC
+   * (anon storefronts have no UPDATE grant on the orders table). Real PSPs
+   * confirm via webhook with service_role instead.
+   */
+  confirmPayment?(id: string, reference?: string): Promise<Order | null>
+  /**
    * Trusted order placement: the server re-reads product prices + stock,
    * validates the discount, computes totals, and decrements inventory
    * atomically. Storefront checkout MUST use this instead of createOrder so the

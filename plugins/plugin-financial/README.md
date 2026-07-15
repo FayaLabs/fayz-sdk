@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-financial.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-financial)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-financial.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Most vertical SaaS bolts on finance as an afterthought: a "total" field, a spreadsheet export, and a prayer. `plugin-financial` makes money a first-class part of the app. It models the full order-to-cash loop — receivables, payables, cash registers, statements, card reconciliation, and commission rules — as composable modules you toggle per business.
 
 It's built to be the financial spine other plugins lean on. Agenda creates orders against it, reports read from it, and the dashboard surfaces balance, cash flow, and overdue alerts without bespoke glue. Every module is optional, every label and currency is configurable, and item lines can resolve products and services from other plugins via entity lookups. Compose a real, money-aware SaaS instead of stitching one together.

@@ -1,6 +1,7 @@
 import { getSupabaseClientOptional } from '@fayz-ai/core'
 import type { CoursesProvider } from './provider'
 import { getCoursesTenantId } from './tenant'
+import { T } from './tables'
 import type {
   Course, Module, Lesson, Enrollment, Progress,
   CreateCourseInput, UpdateCourseInput,
@@ -103,7 +104,7 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
   return {
     // Courses ---------------------------------------------------------------
     async listCourses(opts?: ListCoursesOptions): Promise<Course[]> {
-      let q = scoped(getDb().from('course_courses').select('*'))
+      let q = scoped(getDb().from(T.courses).select('*'))
       if (opts?.status) q = q.eq('status', opts.status)
       if (opts?.slug) q = q.eq('slug', opts.slug)
       if (opts?.search) q = q.ilike('title', `%${opts.search}%`)
@@ -113,12 +114,12 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
     },
     async getCourse(idOrSlug: string): Promise<Course | null> {
       const col = /^[0-9a-f-]{36}$/i.test(idOrSlug) ? 'id' : 'slug'
-      const { data, error } = await scoped(getDb().from('course_courses').select('*').eq(col, idOrSlug)).maybeSingle()
+      const { data, error } = await scoped(getDb().from(T.courses).select('*').eq(col, idOrSlug)).maybeSingle()
       if (error) throw error
       return data ? rowToCourse(data) : null
     },
     async createCourse(input: CreateCourseInput): Promise<Course> {
-      const { data, error } = await getDb().from('course_courses').insert({
+      const { data, error } = await getDb().from(T.courses).insert({
         tenant_id: getTenantId(),
         slug: input.slug ?? slugify(input.title),
         title: input.title, subtitle: input.subtitle ?? null, description: input.description ?? null,
@@ -139,23 +140,23 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
       if (input.currency !== undefined) patch.currency = input.currency
       if (input.status !== undefined) patch.status = input.status
       if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder
-      const { data, error } = await scoped(getDb().from('course_courses').update(patch).eq('id', id)).select('*').single()
+      const { data, error } = await scoped(getDb().from(T.courses).update(patch).eq('id', id)).select('*').single()
       if (error) throw error
       return rowToCourse(data)
     },
     async deleteCourse(id: string): Promise<void> {
-      const { error } = await scoped(getDb().from('course_courses').delete().eq('id', id))
+      const { error } = await scoped(getDb().from(T.courses).delete().eq('id', id))
       if (error) throw error
     },
 
     // Modules ---------------------------------------------------------------
     async listModules(courseId: string): Promise<Module[]> {
-      const { data, error } = await scoped(getDb().from('course_modules').select('*').eq('course_id', courseId)).order('sort_order', { ascending: true })
+      const { data, error } = await scoped(getDb().from(T.modules).select('*').eq('course_id', courseId)).order('sort_order', { ascending: true })
       if (error) throw error
       return (data ?? []).map(rowToModule)
     },
     async createModule(input: CreateModuleInput): Promise<Module> {
-      const { data, error } = await getDb().from('course_modules').insert({
+      const { data, error } = await getDb().from(T.modules).insert({
         tenant_id: getTenantId(), course_id: input.courseId, title: input.title, sort_order: input.sortOrder ?? 0,
       }).select('*').single()
       if (error) throw error
@@ -165,28 +166,28 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
       const patch: any = {}
       if (input.title !== undefined) patch.title = input.title
       if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder
-      const { data, error } = await scoped(getDb().from('course_modules').update(patch).eq('id', id)).select('*').single()
+      const { data, error } = await scoped(getDb().from(T.modules).update(patch).eq('id', id)).select('*').single()
       if (error) throw error
       return rowToModule(data)
     },
     async deleteModule(id: string): Promise<void> {
-      const { error } = await scoped(getDb().from('course_modules').delete().eq('id', id))
+      const { error } = await scoped(getDb().from(T.modules).delete().eq('id', id))
       if (error) throw error
     },
 
     // Lessons ---------------------------------------------------------------
     async listLessons(courseId: string): Promise<Lesson[]> {
-      const { data, error } = await scoped(getDb().from('course_lessons').select('*').eq('course_id', courseId)).order('sort_order', { ascending: true })
+      const { data, error } = await scoped(getDb().from(T.lessons).select('*').eq('course_id', courseId)).order('sort_order', { ascending: true })
       if (error) throw error
       return (data ?? []).map(rowToLesson)
     },
     async getLesson(id: string): Promise<Lesson | null> {
-      const { data, error } = await scoped(getDb().from('course_lessons').select('*').eq('id', id)).maybeSingle()
+      const { data, error } = await scoped(getDb().from(T.lessons).select('*').eq('id', id)).maybeSingle()
       if (error) throw error
       return data ? rowToLesson(data) : null
     },
     async createLesson(input: CreateLessonInput): Promise<Lesson> {
-      const { data, error } = await getDb().from('course_lessons').insert({
+      const { data, error } = await getDb().from(T.lessons).insert({
         tenant_id: getTenantId(), course_id: input.courseId, module_id: input.moduleId,
         title: input.title, description: input.description ?? null, video_url: input.videoUrl,
         duration_sec: input.durationSec ?? 600, sort_order: input.sortOrder ?? 0,
@@ -201,23 +202,23 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
       if (input.videoUrl !== undefined) patch.video_url = input.videoUrl
       if (input.durationSec !== undefined) patch.duration_sec = input.durationSec
       if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder
-      const { data, error } = await scoped(getDb().from('course_lessons').update(patch).eq('id', id)).select('*').single()
+      const { data, error } = await scoped(getDb().from(T.lessons).update(patch).eq('id', id)).select('*').single()
       if (error) throw error
       return rowToLesson(data)
     },
     async deleteLesson(id: string): Promise<void> {
-      const { error } = await scoped(getDb().from('course_lessons').delete().eq('id', id))
+      const { error } = await scoped(getDb().from(T.lessons).delete().eq('id', id))
       if (error) throw error
     },
 
     // Enrollments + progress ------------------------------------------------
     async listEnrollments(customerId: string): Promise<Enrollment[]> {
-      const { data, error } = await getDb().from('course_enrollments').select('*').eq('customer_id', customerId)
+      const { data, error } = await getDb().from(T.enrollments).select('*').eq('customer_id', customerId)
       if (error) throw error
       return (data ?? []).map(rowToEnrollment)
     },
     async enroll(courseId: string, customerId: string): Promise<Enrollment> {
-      const { data, error } = await getDb().from('course_enrollments')
+      const { data, error } = await getDb().from(T.enrollments)
         .upsert({ tenant_id: getTenantId(), course_id: courseId, customer_id: customerId, status: 'active' },
           { onConflict: 'course_id,customer_id' })
         .select('*').single()
@@ -225,7 +226,7 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
       return rowToEnrollment(data)
     },
     async listProgress(enrollmentId: string): Promise<Progress[]> {
-      const { data, error } = await getDb().from('course_progress').select('*').eq('enrollment_id', enrollmentId)
+      const { data, error } = await getDb().from(T.progress).select('*').eq('enrollment_id', enrollmentId)
       if (error) throw error
       return (data ?? []).map(rowToProgress)
     },
@@ -233,7 +234,7 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
       const row: any = { tenant_id: getTenantId(), enrollment_id: enrollmentId, lesson_id: lessonId }
       if (patch.completed !== undefined) { row.completed = patch.completed; row.completed_at = patch.completed ? new Date().toISOString() : null }
       if (patch.lastPositionSec !== undefined) row.last_position_sec = patch.lastPositionSec
-      const { data, error } = await getDb().from('course_progress')
+      const { data, error } = await getDb().from(T.progress)
         .upsert(row, { onConflict: 'enrollment_id,lesson_id' }).select('*').single()
       if (error) throw error
       return rowToProgress(data)
@@ -241,12 +242,12 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
 
     // Offers ----------------------------------------------------------------
     async listOffers(courseId: string): Promise<Offer[]> {
-      const { data, error } = await scoped(getDb().from('course_offers').select('*').eq('course_id', courseId)).order('sort_order', { ascending: true })
+      const { data, error } = await scoped(getDb().from(T.offers).select('*').eq('course_id', courseId)).order('sort_order', { ascending: true })
       if (error) throw error
       return (data ?? []).map(rowToOffer)
     },
     async createOffer(input: CreateOfferInput): Promise<Offer> {
-      const { data, error } = await getDb().from('course_offers').insert({
+      const { data, error } = await getDb().from(T.offers).insert({
         tenant_id: getTenantId(), course_id: input.courseId, name: input.name, price: input.price,
         currency: input.currency ?? 'BRL', kind: input.kind ?? 'one_time',
         recurring_interval: input.recurringInterval ?? (input.kind === 'subscription' ? 'month' : null),
@@ -265,18 +266,18 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
       if (input.isDefault !== undefined) patch.is_default = input.isDefault
       if (input.isOrderBump !== undefined) patch.is_order_bump = input.isOrderBump
       if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder
-      const { data, error } = await scoped(getDb().from('course_offers').update(patch).eq('id', id)).select('*').single()
+      const { data, error } = await scoped(getDb().from(T.offers).update(patch).eq('id', id)).select('*').single()
       if (error) throw error
       return rowToOffer(data)
     },
     async deleteOffer(id: string): Promise<void> {
-      const { error } = await scoped(getDb().from('course_offers').delete().eq('id', id))
+      const { error } = await scoped(getDb().from(T.offers).delete().eq('id', id))
       if (error) throw error
     },
 
     // Sales -----------------------------------------------------------------
     async listOrders(opts?: ListOrdersOptions): Promise<Order[]> {
-      let q = scoped(getDb().from('course_orders').select('*'))
+      let q = scoped(getDb().from(T.orders).select('*'))
       if (opts?.courseId) q = q.eq('course_id', opts.courseId)
       if (opts?.financialStatus) q = q.eq('financial_status', opts.financialStatus)
       if (opts?.search) q = q.or(`customer_name.ilike.%${opts.search}%,customer_email.ilike.%${opts.search}%`)
@@ -287,7 +288,7 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
 
     // Subscriptions ---------------------------------------------------------
     async listSubscriptions(opts?: ListSubscriptionsOptions): Promise<Subscription[]> {
-      let q = scoped(getDb().from('course_subscriptions').select('*'))
+      let q = scoped(getDb().from(T.subscriptions).select('*'))
       if (opts?.courseId) q = q.eq('course_id', opts.courseId)
       if (opts?.status) q = q.eq('status', opts.status)
       const { data, error } = await q.order('started_at', { ascending: false })
@@ -298,9 +299,9 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
     // Financial -------------------------------------------------------------
     async getFinancialSummary(): Promise<FinancialSummary> {
       const [orders, subs, payouts] = await Promise.all([
-        scoped(getDb().from('course_orders').select('total,platform_fee,net_value,financial_status')),
-        scoped(getDb().from('course_subscriptions').select('net_value,interval,status')),
-        scoped(getDb().from('course_payouts').select('amount,status')),
+        scoped(getDb().from(T.orders).select('total,platform_fee,net_value,financial_status')),
+        scoped(getDb().from(T.subscriptions).select('net_value,interval,status')),
+        scoped(getDb().from(T.payouts).select('amount,status')),
       ])
       const orderRows: any[] = orders.data ?? []
       const paid = orderRows.filter((o) => o.financial_status === 'paid')
@@ -324,13 +325,13 @@ export function createSupabaseCoursesProvider(): CoursesProvider {
       }
     },
     async listPayouts(): Promise<Payout[]> {
-      const { data, error } = await scoped(getDb().from('course_payouts').select('*')).order('created_at', { ascending: false })
+      const { data, error } = await scoped(getDb().from(T.payouts).select('*')).order('created_at', { ascending: false })
       if (error) throw error
       return (data ?? []).map(rowToPayout)
     },
     async getCreatorAccount(): Promise<CreatorAccount> {
       const tenantId = getTenantId()
-      const { data } = await scoped(getDb().from('course_creator_accounts').select('*')).maybeSingle()
+      const { data } = await scoped(getDb().from(T.creatorAccounts).select('*')).maybeSingle()
       return {
         tenantId: tenantId ?? '',
         stripeAccountId: data?.stripe_account_id ?? null,

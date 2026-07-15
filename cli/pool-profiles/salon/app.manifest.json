@@ -1,0 +1,42 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-salon",
+  "name": "Pool profile \u2014 cluster-salon-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": [
+        {
+          "id": "agenda",
+          "enabled": true
+        },
+        {
+          "id": "crm",
+          "enabled": true
+        },
+        {
+          "id": "financial",
+          "enabled": true
+        },
+        {
+          "id": "inventory",
+          "enabled": true
+        },
+        {
+          "id": "forms",
+          "enabled": true
+        },
+        {
+          "id": "tasks",
+          "enabled": true
+        },
+        {
+          "id": "marketing",
+          "enabled": true
+        }
+      ]
+    }
+  }
+}

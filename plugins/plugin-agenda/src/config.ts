@@ -70,13 +70,13 @@ export interface AgendaPluginOptions {
   labels?: Partial<AgendaPluginLabels>
   currency?: { code?: string; locale?: string; symbol?: string }
 
-  /** Booking kind used in saas_core.bookings.kind (default: 'appointment') */
+  /** Booking kind used in public.appointments.kind (default: 'appointment') */
   bookingKind?: string
 
   /** Order kind for financial records (default: 'service_order') */
   orderKind?: string
 
-  /** Schedule kind in saas_core.schedules.kind (default: 'working_hours') */
+  /** Schedule kind in public.schedules.kind (default: 'working_hours') */
   scheduleKind?: string
 
   /** Booking type tabs shown in the appointment modal */

@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-crm.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-crm)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-crm.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Every business that sells anything needs a way to track who's interested, what's in motion, and what's about to close. Most verticals end up rebuilding the same CRM badly. `plugin-crm` is the one sales engine — leads, a drag-style pipeline, deals, quotes, and activities — that snaps into a `defineSaas` app and adapts to the vertical underneath it.
 
 A salon tracks "customers", a clinic tracks "patients", an agency tracks "clients" — same engine, different labels and stages. The plugin ships a full UI today, a vertical-aware label/stage/source config, AI tools your assistant can call, and a data-provider seam that runs on a mock or a Supabase backend. When a lead is approved it can convert a person into a real client record in your domain schema. This is what "compose a real SaaS from plugins" means in practice.

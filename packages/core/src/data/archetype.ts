@@ -6,7 +6,7 @@ import type { EntityArchetype } from '../types/entities'
 const HAS_KIND = new Set<EntityArchetype>(['person', 'category', 'order', 'transaction', 'schedule', 'location'])
 
 const ARCHETYPE_CONFIG: Record<EntityArchetype, { table: string; fkColumn: string }> = {
-  person: { table: 'persons', fkColumn: 'person_id' },
+  person: { table: 'people', fkColumn: 'person_id' },
   category: { table: 'categories', fkColumn: 'category_id' },
   product: { table: 'products', fkColumn: 'product_id' },
   service: { table: 'services', fkColumn: 'service_id' },
@@ -66,8 +66,11 @@ export function createArchetypeProvider<T extends { id: string }>(
     return supabase
   }
 
+  // Core v1 lives in PUBLIC — the archetype base tables and the public extension
+  // tables share one client/schema. `coreClient()` is kept as a thin alias so the
+  // core/extension split below still reads clearly at each call site.
   function coreClient() {
-    return getClient().schema('saas_core')
+    return getClient()
   }
 
   function splitFields(data: Record<string, unknown>): { archetypeData: Record<string, unknown>; projectData: Record<string, unknown> } {
@@ -93,8 +96,8 @@ export function createArchetypeProvider<T extends { id: string }>(
   const viewName = VIEW_MAP[config.projectTable] ?? `v_${config.projectTable}`
 
   // Pure-archetype entity: the project table IS the archetype base (e.g. a
-  // customers list configured with `table: 'persons'`, no separate public
-  // extension table). Read/write saas_core.<base> directly — there is no public
+  // customers list configured with `table: 'people'`, no separate public
+  // extension table). Read/write public.<base> directly — there is no public
   // extension row and no v_ view to join. Extension-table entities (clients,
   // staff_members, …) are unaffected.
   const isPure = config.projectTable === ac.table
@@ -104,8 +107,8 @@ export function createArchetypeProvider<T extends { id: string }>(
       const tenantId = config.tenantId()
       if (!tenantId) return { data: [], total: 0 }
 
-      // Pure archetype → read saas_core.<base> directly (filtered by kind);
-      // otherwise the v_ view (JOINs public extension with saas_core archetype).
+      // Pure archetype → read public.<base> directly (filtered by kind);
+      // otherwise the v_ view (JOINs public extension with the public archetype).
       let q = isPure
         ? coreClient().from(ac.table).select('*', { count: 'exact' }).eq('tenant_id', tenantId)
         : getClient().from(viewName).select('*', { count: 'exact' }).eq('tenant_id', tenantId)

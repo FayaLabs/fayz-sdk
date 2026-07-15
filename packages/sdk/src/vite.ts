@@ -10,8 +10,8 @@ const SDK_PACKAGES = [
 ] as const
 
 const SDK_PLUGINS = [
-  'agenda', 'automations', 'conversations', 'courses', 'crm', 'dashboard',
-  'financial', 'forms', 'inventory', 'marketing', 'menu', 'orders', 'reports',
+  'agenda', 'auth', 'automations', 'blog', 'conversations', 'courses', 'crm', 'dashboard',
+  'financial', 'forms', 'inventory', 'marketing', 'menu', 'orders', 'payments', 'reports',
   'reputation', 'shop', 'sites', 'tables', 'tasks',
 ] as const
 

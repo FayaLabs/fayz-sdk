@@ -1,6 +1,9 @@
 {
   "name": "@fayz-ai/courses",
-  "version": "0.7.0",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK education domain — courses, modules, lessons, enrollments, progress",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -43,5 +46,7 @@
     "education",
     "lms"
   ],
-  "private": true
+  "publishConfig": {
+    "access": "public"
+  }
 }

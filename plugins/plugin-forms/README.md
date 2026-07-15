@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@fayz-ai/plugin-forms.svg)](https://www.npmjs.com/package/@fayz-ai/plugin-forms)
 [![license](https://img.shields.io/npm/l/@fayz-ai/plugin-forms.svg)](https://github.com/FayaLabs/fayz-sdk/blob/main/LICENSE)
 
+**Status:** beta — pre-1.0. Core surface is stable; some backend facets (see `PLUGIN_PATTERNS.md`) are still landing. APIs may change before 1.0.
+
 Every real business runs on forms it never wanted to build: anamnesis sheets, evolution notes, consent contracts, intake docs. plugin-forms kills that busywork. Define a template once, attach a filled document to a person, and the data lives in your tenant — not in a PDF nobody can query.
 
 It snaps into a `defineSaas` app as the document engine. A clinic fills health anamnesis, a salon collects consent forms, a studio signs contracts — same plugin, same `frm_*` tables, different templates. Documents surface right inside the person record via a detail-tab widget, and the AI assistant can list templates and a client's documents on demand.
