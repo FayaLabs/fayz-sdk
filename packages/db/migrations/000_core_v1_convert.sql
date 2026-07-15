@@ -62,7 +62,32 @@ BEGIN
   END IF;
 
   -- --------------------------------------------------------------------------
-  -- 3a. Re-emit the core functions in public (bodies do not follow a move).
+  -- 1. Move every core table saas_core.* -> public.* (guarded, idempotent).
+  -- --------------------------------------------------------------------------
+  FOREACH t IN ARRAY core_tables LOOP
+    IF to_regclass('saas_core.' || quote_ident(t)) IS NOT NULL
+       AND to_regclass('public.' || quote_ident(t)) IS NULL THEN
+      EXECUTE format('ALTER TABLE saas_core.%I SET SCHEMA public', t);
+    END IF;
+  END LOOP;
+
+  -- --------------------------------------------------------------------------
+  -- 2. Rename the three entities that changed (only if source present, target free).
+  -- --------------------------------------------------------------------------
+  IF to_regclass('public.persons') IS NOT NULL AND to_regclass('public.people') IS NULL THEN
+    ALTER TABLE public.persons RENAME TO people;
+  END IF;
+  IF to_regclass('public.bookings') IS NOT NULL AND to_regclass('public.appointments') IS NULL THEN
+    ALTER TABLE public.bookings RENAME TO appointments;
+  END IF;
+  IF to_regclass('public.booking_items') IS NOT NULL AND to_regclass('public.appointment_items') IS NULL THEN
+    ALTER TABLE public.booking_items RENAME TO appointment_items;
+  END IF;
+
+  -- --------------------------------------------------------------------------
+  -- 3. Re-emit the core functions in public (bodies do not follow a move).
+  --    MUST run after the moves/renames: LANGUAGE sql bodies are validated at
+  --    CREATE time, so public.tenant_members etc. have to exist already.
   -- --------------------------------------------------------------------------
   EXECUTE $q$
     CREATE OR REPLACE FUNCTION public.handle_updated_at()
@@ -119,29 +144,6 @@ BEGIN
   DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
   CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
-  -- --------------------------------------------------------------------------
-  -- 1. Move every core table saas_core.* -> public.* (guarded, idempotent).
-  -- --------------------------------------------------------------------------
-  FOREACH t IN ARRAY core_tables LOOP
-    IF to_regclass('saas_core.' || quote_ident(t)) IS NOT NULL
-       AND to_regclass('public.' || quote_ident(t)) IS NULL THEN
-      EXECUTE format('ALTER TABLE saas_core.%I SET SCHEMA public', t);
-    END IF;
-  END LOOP;
-
-  -- --------------------------------------------------------------------------
-  -- 2. Rename the three entities that changed (only if source present, target free).
-  -- --------------------------------------------------------------------------
-  IF to_regclass('public.persons') IS NOT NULL AND to_regclass('public.people') IS NULL THEN
-    ALTER TABLE public.persons RENAME TO people;
-  END IF;
-  IF to_regclass('public.bookings') IS NOT NULL AND to_regclass('public.appointments') IS NULL THEN
-    ALTER TABLE public.bookings RENAME TO appointments;
-  END IF;
-  IF to_regclass('public.booking_items') IS NOT NULL AND to_regclass('public.appointment_items') IS NULL THEN
-    ALTER TABLE public.booking_items RENAME TO appointment_items;
-  END IF;
 
   -- --------------------------------------------------------------------------
   -- 4. Re-create updated_at triggers to call public.handle_updated_at.
