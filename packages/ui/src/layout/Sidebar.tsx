@@ -218,24 +218,45 @@ function NavItem({
   return content
 }
 
+/** How specifically `route` matches `path` (-1 = no match; higher = more specific).
+ *  An exact match beats a prefix match; a longer prefix beats a shorter one. */
+function routeMatchScore(route: string, path: string): number {
+  if (path === route) return route.length + 1
+  if (route !== '/' && path.startsWith(route + '/')) return route.length
+  return -1
+}
+
+/** The single most-specific nav route that matches the current path (longest wins).
+ *  Prevents a parent like `/courses` from staying active on `/courses/sales`. */
+function resolveActiveRoute(navigation: NavigationItem[], path: string): string | null {
+  let best: string | null = null
+  let bestScore = 0
+  const consider = (route?: string) => {
+    if (!route) return
+    const score = routeMatchScore(route, path)
+    if (score > bestScore) { bestScore = score; best = route }
+  }
+  for (const item of navigation) {
+    consider(item.route)
+    for (const child of item.children ?? []) consider(child.route)
+  }
+  return best
+}
+
 function NavGroup({
   item,
   collapsed,
-  currentPath,
+  activeRoute,
   onNavigate,
 }: {
   item: NavigationItem
   collapsed: boolean
-  currentPath: string
+  activeRoute: string | null
   onNavigate: (route: string) => void
 }) {
-  const [open, setOpen] = React.useState(() =>
-    item.children?.some((c) => currentPath === c.route || currentPath.startsWith(c.route + '/')) ?? false
-  )
+  const isChildActive = item.children?.some((c) => c.route === activeRoute)
+  const [open, setOpen] = React.useState(() => isChildActive ?? false)
   const Icon = getIcon(item.icon)
-  const isChildActive = item.children?.some(
-    (c) => currentPath === c.route || currentPath.startsWith(c.route + '/')
-  )
 
   if (collapsed) {
     return (
@@ -280,7 +301,7 @@ function NavGroup({
         <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 pl-3">
           {item.children?.map((child) => {
             const ChildIcon = getIcon(child.icon)
-            const isActive = currentPath === child.route || currentPath.startsWith(child.route + '/')
+            const isActive = child.route === activeRoute
             return (
               <button
                 key={child.id}
@@ -321,6 +342,10 @@ export function Sidebar({
 }: SidebarProps) {
   const currentPath = currentPathProp
   const setCommandPaletteOpen = useLayoutStore((s) => s.setCommandPaletteOpen)
+
+  // Most-specific match wins, so sibling routes that share a prefix (e.g.
+  // /courses vs /courses/sales) don't both light up.
+  const activeRoute = resolveActiveRoute(navigation, currentPath)
 
   const mainItems = navigation.filter((item) => item.section === 'main')
   const secondaryItems = navigation.filter((item) => item.section === 'secondary')
@@ -379,13 +404,13 @@ export function Sidebar({
             <div className="space-y-1">
               {mainItems.map((item) =>
                 item.children && item.children.length > 0 ? (
-                  <NavGroup key={item.id} item={item} collapsed={collapsed} currentPath={currentPath} onNavigate={handleNavigate} />
+                  <NavGroup key={item.id} item={item} collapsed={collapsed} activeRoute={activeRoute} onNavigate={handleNavigate} />
                 ) : (
                   <NavItem
                     key={item.id}
                     item={item}
                     collapsed={collapsed}
-                    isActive={currentPath === item.route || currentPath.startsWith(item.route + '/')}
+                    isActive={item.route === activeRoute}
                     onNavigate={handleNavigate}
                   />
                 )
@@ -397,13 +422,13 @@ export function Sidebar({
             <div className="mt-6 space-y-1">
               {secondaryItems.map((item) =>
                 item.children && item.children.length > 0 ? (
-                  <NavGroup key={item.id} item={item} collapsed={collapsed} currentPath={currentPath} onNavigate={handleNavigate} />
+                  <NavGroup key={item.id} item={item} collapsed={collapsed} activeRoute={activeRoute} onNavigate={handleNavigate} />
                 ) : (
                   <NavItem
                     key={item.id}
                     item={item}
                     collapsed={collapsed}
-                    isActive={currentPath === item.route || currentPath.startsWith(item.route + '/')}
+                    isActive={item.route === activeRoute}
                     onNavigate={handleNavigate}
                   />
                 )
@@ -420,7 +445,7 @@ export function Sidebar({
                 key={item.id}
                 item={item}
                 collapsed={collapsed}
-                isActive={currentPath === item.route || currentPath.startsWith(item.route + '/')}
+                isActive={item.route === activeRoute}
                 onNavigate={handleNavigate}
               />
             ))}

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import type { MigrationPlan, MigrationStep } from './migration-plan.js'
 
 // Management-API executor for `fayz db apply` (milestone A3b). Consumes the
@@ -101,14 +101,53 @@ export class MigrationExecutionError extends Error {
   }
 }
 
+/** Thrown when an already-applied migration file's checksum no longer matches — a HARD STOP. */
+export class MigrationDriftError extends Error {
+  constructor(
+    readonly step: MigrationStep,
+    readonly file: string,
+    readonly appliedChecksum: string,
+    readonly localChecksum: string,
+  ) {
+    super(
+      `migration drift at step ${step.order} [${step.source}] ${step.id}\n` +
+        `  file: ${file}\n` +
+        `  applied checksum: ${appliedChecksum}\n` +
+        `  local checksum:   ${localChecksum}\n` +
+        `  This file was already applied to this pool with a different checksum. ` +
+        `Never edit an applied migration; author a new file.`,
+    )
+    this.name = 'MigrationDriftError'
+  }
+}
+
+/**
+ * Ledger-gate handed to the executor. Encapsulates the (plugin_id, file_name)
+ * keying so the executor never has to agree on a key format with the ledger lib.
+ *   • lookup → the checksum already recorded for this file, or undefined.
+ *   • record → persist a freshly applied file.
+ */
+export interface LedgerGate {
+  lookup(pluginId: string, fileName: string): string | undefined
+  record(entry: { pluginId: string; fileName: string; checksum: string }): Promise<void>
+}
+
 export interface ExecuteMigrationPlanOptions {
   /** Progress sink; defaults to a no-op so the lib stays silent unless asked. */
   log?: (message: string) => void
+  /**
+   * When set, apply is ledger-gated: absent file → apply + record; present &
+   * equal → skip; present & different → MigrationDriftError (hard stop). When
+   * omitted, the executor behaves exactly as before (no skip, no record).
+   */
+  ledger?: LedgerGate
 }
 
 export interface ExecuteMigrationPlanResult {
   stepsApplied: number
   filesApplied: number
+  /** Files skipped because the ledger already recorded them with an equal checksum. */
+  filesSkipped: number
 }
 
 /**
@@ -127,18 +166,35 @@ export async function executeMigrationPlan(
   options: ExecuteMigrationPlanOptions = {},
 ): Promise<ExecuteMigrationPlanResult> {
   const log = options.log ?? (() => {})
+  const ledger = options.ledger
   let filesApplied = 0
+  let filesSkipped = 0
 
   for (const step of plan.steps) {
     log(`▸ [${step.source}] ${step.id} (${step.files.length} file(s))`)
     for (const file of step.files) {
+      const fileName = basename(file.path)
+
+      // Ledger gate (Runner v2): skip an unchanged re-apply; hard-stop on drift.
+      if (ledger) {
+        const prior = ledger.lookup(step.id, fileName)
+        if (prior !== undefined) {
+          if (prior === file.checksum) {
+            filesSkipped++
+            log(`  ⤍ skip (applied) ${fileName}`)
+            continue
+          }
+          throw new MigrationDriftError(step, file.path, prior, file.checksum)
+        }
+      }
+
       let sql: string
       try {
-        sql = readFileSync(file, 'utf8')
+        sql = readFileSync(file.path, 'utf8')
       } catch (err) {
         throw new MigrationExecutionError(
           step,
-          file,
+          file.path,
           `could not read SQL file: ${(err as Error).message}`,
         )
       }
@@ -148,22 +204,29 @@ export async function executeMigrationPlan(
         const detail = err instanceof ManagementApiError ? err.message : (err as Error).message
         throw new MigrationExecutionError(
           step,
-          file,
+          file.path,
           `${detail}\n` +
             `  Migrations are idempotent — fix the cause and re-run 'fayz db apply' to resume; ` +
             `already-applied files replay safely.`,
         )
       }
+      if (ledger) {
+        await ledger.record({ pluginId: step.id, fileName, checksum: file.checksum })
+      }
       filesApplied++
-      log(`  ✓ ${file}`)
+      log(`  ✓ ${file.path}`)
     }
   }
 
   // Final: refresh PostgREST's schema cache so new plugin RPCs/views are visible.
   await client.runQuery("NOTIFY pgrst, 'reload schema';")
-  log(`✓ migration pipeline complete — ${filesApplied} file(s) applied, PostgREST schema reloaded`)
+  log(
+    `✓ migration pipeline complete — ${filesApplied} file(s) applied` +
+      (filesSkipped > 0 ? `, ${filesSkipped} skipped` : '') +
+      `, PostgREST schema reloaded`,
+  )
 
-  return { stepsApplied: plan.steps.length, filesApplied }
+  return { stepsApplied: plan.steps.length, filesApplied, filesSkipped }
 }
 
 // ---------------------------------------------------------------------------

@@ -11,6 +11,7 @@ import { createAgendaStore } from './store'
 import { agendaRegistries } from './registries'
 import { AgendaGeneralSettings } from './components/AgendaGeneralSettings'
 import { agendaLocales } from './locales'
+import { MIGRATION_001_PUBLIC_BOOKING } from './migrations'
 import { setScheduleBlockConfig, getScheduleBlockConfig, PluginSettingsPanel } from '@fayz-ai/saas'
 
 // ---------------------------------------------------------------------------
@@ -56,6 +57,9 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
     version: '1.0.0',
     scope: options?.scope ?? 'universal',
     verticalId: options?.verticalId,
+    // Booking/scheduling is business-ops (clinic, salon, services) — targets
+    // the saas/admin Panel world, not the ecommerce storefront.
+    scaffolds: ['saas'],
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [
@@ -176,6 +180,16 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
         permission: { feature: 'appointments', action: 'read' as const },
       },
     ],
+    migrations: [
+      {
+        id: 'agenda-001-public-booking',
+        version: '0.3.0',
+        sql: MIGRATION_001_PUBLIC_BOOKING,
+        description:
+          'Booking read model (v_appointments) + anon public booking surface (v_public_services, get_available_slots, create_public_booking) + order_items duration/assignee columns',
+      },
+    ],
+
     locales: agendaLocales,
   }
 }

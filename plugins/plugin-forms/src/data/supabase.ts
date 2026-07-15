@@ -13,6 +13,7 @@ import type {
   UpdateDocumentInput,
 } from '../types'
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
+import { T } from './tables'
 
 function getTenantId(): string {
   // Local override wins; else use the app's active tenant so writes pass RLS.
@@ -102,7 +103,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
     async getTemplates(query: TemplateQuery): Promise<PaginatedResult<FormTemplate>> {
       const db = getClient()
       let qb = db
-        .from('frm_templates')
+        .from(T.templates)
         .select('*', { count: 'exact' })
         .eq('tenant_id', getTenantId())
         .eq('is_current', true)
@@ -125,7 +126,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
     async getTemplateById(id: string): Promise<FormTemplate | null> {
       const db = getClient()
       const { data, error } = await db
-        .from('frm_templates')
+        .from(T.templates)
         .select('*')
         .eq('id', id)
         .eq('is_deleted', false)
@@ -138,7 +139,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       const db = getClient()
       const tenantId = getTenantId()
       const { data, error } = await db
-        .from('frm_templates')
+        .from(T.templates)
         .insert({
           tenant_id: tenantId,
           name: input.name,
@@ -160,7 +161,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       const tenantId = getTenantId()
 
       const { count } = await db
-        .from('frm_documents')
+        .from(T.documents)
         .select('document_id', { count: 'exact', head: true })
         .eq('template_id', id)
 
@@ -171,7 +172,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
         if (!existing) throw new Error('Template not found')
 
         const { data: newRow, error: insertError } = await db
-          .from('frm_templates')
+          .from(T.templates)
           .insert({
             tenant_id: tenantId,
             name: input.name ?? existing.name,
@@ -191,7 +192,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
         if (insertError) throw new Error(insertError.message)
 
         await db
-          .from('frm_templates')
+          .from(T.templates)
           .update({ is_current: false, updated_at: new Date().toISOString() })
           .eq('id', id)
 
@@ -209,7 +210,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       if (input.isActive !== undefined) updates.is_active = input.isActive
 
       const { data, error } = await db
-        .from('frm_templates')
+        .from(T.templates)
         .update(updates)
         .eq('id', id)
         .select()
@@ -221,13 +222,13 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
     async deleteTemplate(id: string): Promise<void> {
       const db = getClient()
       const { error } = await db
-        .from('frm_templates')
+        .from(T.templates)
         .update({ is_deleted: true, updated_at: new Date().toISOString() })
         .eq('id', id)
       if (error) throw new Error(error.message)
     },
 
-    // ── Documents (saas_core.documents + frm_documents extension) ──
+    // ── Documents (public.documents + plg_forms_documents extension) ──
 
     async getDocuments(query: DocumentQuery): Promise<PaginatedResult<FormDocument>> {
       const db = getClient()
@@ -272,9 +273,9 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       const tenantId = getTenantId()
       const isForm = !!input.templateId
 
-      // Step 1: Insert into saas_core.documents
+      // Step 1: Insert into public.documents
       const { data: coreDoc, error: coreError } = await getClient()
-        .from('frm_core_documents')
+        .from('documents')
         .insert({
           tenant_id: tenantId,
           kind: input.kind ?? (isForm ? 'form' : 'attachment'),
@@ -295,7 +296,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       if (isForm && input.templateId) {
         const db = getClient()
         const { error: extError } = await db
-          .from('frm_documents')
+          .from(T.documents)
           .insert({
             document_id: coreDoc.id,
             tenant_id: tenantId,
@@ -304,7 +305,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
           })
         if (extError) {
           // Rollback core insert
-          await getClient().from('frm_core_documents').delete().eq('id', coreDoc.id)
+          await getClient().from('documents').delete().eq('id', coreDoc.id)
           throw new Error(extError.message)
         }
       }
@@ -324,7 +325,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       if (input.notes !== undefined) coreUpdates.notes = input.notes
 
       const { error: coreError } = await getClient()
-        .from('frm_core_documents')
+        .from('documents')
         .update(coreUpdates)
         .eq('id', id)
       if (coreError) throw new Error(coreError.message)
@@ -333,7 +334,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       if (input.data !== undefined) {
         const db = getClient()
         await db
-          .from('frm_documents')
+          .from(T.documents)
           .update({ data: input.data, updated_at: now })
           .eq('document_id', id)
       }
@@ -344,7 +345,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
 
     async deleteDocument(id: string): Promise<void> {
       const { error } = await getClient()
-        .from('frm_core_documents')
+        .from('documents')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', id)
       if (error) throw new Error(error.message)
@@ -355,7 +356,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
     async getDocumentFiles(documentId: string): Promise<DocumentFile[]> {
       const db = getClient()
       const { data, error } = await db
-        .from('frm_document_files')
+        .from(T.documentFiles)
         .select('*')
         .eq('document_id', documentId)
         .order('sort_order')
@@ -377,7 +378,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
       const { data: urlData } = db.storage.from('documents').getPublicUrl(storagePath)
 
       const { data, error } = await db
-        .from('frm_document_files')
+        .from(T.documentFiles)
         .insert({
           tenant_id: tenantId,
           document_id: documentId,
@@ -396,7 +397,7 @@ export function createSupabaseFormsProvider(): CustomFormsDataProvider {
     async deleteFile(fileId: string): Promise<void> {
       const db = getClient()
       const { error } = await db
-        .from('frm_document_files')
+        .from(T.documentFiles)
         .delete()
         .eq('id', fileId)
       if (error) throw new Error(error.message)

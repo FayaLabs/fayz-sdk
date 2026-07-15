@@ -1,14 +1,17 @@
 {
   "name": "@fayz-ai/cli",
-  "fayz": { "status": "beta" },
-  "version": "0.3.0",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.1",
   "description": "Fayz CLI — scaffold, validate, extract and upgrade repo-per-app projects",
   "type": "module",
   "bin": {
     "fayz": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "pools.config.json"
   ],
   "scripts": {
     "build": "tsup",

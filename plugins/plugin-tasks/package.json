@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/plugin-tasks",
-  "fayz": { "status": "beta" },
-  "version": "0.1.6",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK — plugin-tasks plugin",
   "type": "module",
   "main": "./dist/index.cjs",

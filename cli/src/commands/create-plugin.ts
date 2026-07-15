@@ -4,7 +4,7 @@ import { resolve, dirname } from 'node:path'
 // `fayz create plugin <name>` — scaffold an app-local (incubator) plugin in the
 // current app, following the same PluginManifest contract as official plugins.
 // This is the sanctioned private/partner extension path (layer C) — see
-// docs/private-plugins.md and docs/architecture-boundaries.md §1.
+// docs/CUSTOMIZATION.md and docs/ARCHITECTURE.md (boundary model).
 
 function write(root: string, rel: string, content: string): void {
   const full = resolve(root, rel)
@@ -70,7 +70,7 @@ export function create${P}Plugin(options?: ${P}PluginOptions): PluginManifest {
     routes: [{ path: '/${name}', component: Page }],
     // Other seams available as you grow: events, widgets, settings, aiTools,
     // serverActions, customFields, diagnostics, migrations, connectors.
-    // See PLUGIN_PATTERNS.md → "Extension seams".
+    // See docs/PLUGIN-PATTERNS.md → "Extension seams".
   }
 }
 `
@@ -108,7 +108,7 @@ function supabaseTs(name: string, P: string): string {
 import type { ${P}DataProvider, ${P}Record } from './types'
 
 // Real provider. Note: we go through the Fayz boundary (getSupabaseClientOptional),
-// never importing @supabase/supabase-js directly — see architecture-boundaries.md §4.
+// never importing @supabase/supabase-js directly — see ARCHITECTURE.md (boundary model).
 export function createSupabase${P}Provider(): ${P}DataProvider {
   function sb() {
     const client = getSupabaseClientOptional() as {
@@ -136,7 +136,7 @@ function schemaTs(name: string): string {
 //
 //   migrations: [{ id: '${name}-0001', version: '0.1.0', sql: '<create table ...>' }]
 //
-// See PLUGIN_PATTERNS.md → "Capability anatomy".
+// See docs/PLUGIN-PATTERNS.md → "Capability anatomy".
 export const ${name.replace(/-/g, '_')}Migrations: { id: string; version: string; sql: string }[] = []
 `
 }
@@ -147,7 +147,7 @@ function readme(name: string, P: string, Title: string): string {
 A client-owned plugin that follows the **exact** Fayz plugin contract. It extends
 the platform through \`PluginManifest\` seams only — it never edits SDK or shared
 plugin internals. This is the sanctioned private/partner extension path
-(layer C — see \`docs/architecture-boundaries.md\` and \`docs/private-plugins.md\`).
+(layer C — see \`docs/ARCHITECTURE.md\` and \`docs/CUSTOMIZATION.md\`).
 
 ## Wire it into your app
 \`\`\`ts

@@ -8,7 +8,7 @@ import type {
   Invite,
 } from '@fayz-ai/core'
 import type { PermissionProfile, SystemPermission, AuthAdapter } from '@fayz-ai/core'
-import { getFayzSupabaseClient, CORE_SCHEMA } from '../../supabase/client'
+import { getFayzSupabaseClient } from '../../supabase/client'
 
 // ---------------------------------------------------------------------------
 // Request dedup — prevents duplicate in-flight requests (React StrictMode etc.)
@@ -241,7 +241,7 @@ function buildPermissionProfiles(
 // ---------------------------------------------------------------------------
 
 export interface SupabaseOrgAdapterConfig {
-  /** Override the core schema name (default: 'saas_core') */
+  /** Deprecated — core tables now live in the public schema; this field is ignored. */
   coreSchema?: string
   /** Business roles the host app declares (config.permissions.defaultProfiles).
    *  Falls back to the generic five when omitted. */
@@ -250,20 +250,30 @@ export interface SupabaseOrgAdapterConfig {
    *  auth user) — the org adapter only records the audit row. Injected by the app;
    *  when omitted, invites are recorded but not delivered. */
   authAdapter?: AuthAdapter
+  /** Canonical, deployment-fixed origin baked into invite/magic-link redirects
+   *  (e.g. https://beauty-saas.live.fayz.ai). The container injects it as
+   *  VITE_APP_URL; the app wiring passes it here. Falls back to
+   *  window.location.origin, which is wrong when an admin invites from a preview
+   *  or localhost origin. Note: whatever origin ends up here must ALSO be in the
+   *  Supabase project's Redirect URLs allow-list, or Supabase silently swaps it
+   *  for its Site URL (default http://localhost:3000). */
+  siteUrl?: string
 }
 
 export function createSupabaseOrgAdapter(config?: SupabaseOrgAdapterConfig): OrgAdapter {
-  const schema = config?.coreSchema ?? CORE_SCHEMA
   const roles: RoleIdentity[] = config?.roles && config.roles.length > 0 ? config.roles : DEFAULT_ROLES
   const authAdapter = config?.authAdapter
-  const inviteRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
+  const originBase =
+    config?.siteUrl?.replace(/\/+$/, '') ??
+    (typeof window !== 'undefined' ? window.location.origin : undefined)
+  const inviteRedirectTo = originBase ? `${originBase}/` : undefined
 
   function supabase() {
     return getFayzSupabaseClient()
   }
 
   function core() {
-    return supabase().schema(schema)
+    return supabase()
   }
 
   return {

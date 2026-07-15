@@ -7,7 +7,7 @@ Product catalog, stock management, movement tracking, and recipe/production form
 ```typescript
 import { createInventoryPlugin } from '@fayz-ai/saas-core/plugins/inventory'
 
-// In your createSaasApp config:
+// In your defineSaas config:
 plugins: [
   createInventoryPlugin({
     currency: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' },

@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 2,
+  "id": "pool-profile-school pjug agenda",
+  "name": "Pool profile \u2014 cluster-school pjug agenda-br-01",
+  "backend": {
+    "provider": "supabase"
+  },
+  "surfaces": {
+    "panel": {
+      "plugins": []
+    }
+  }
+}

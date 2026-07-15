@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { loadManifest, type ManifestLike } from './manifest.js'
+import { checksumFile } from './ledger.js'
 
 // Pure planning layer for `fayz db apply`. Produces an ordered migration plan by
 // resolving SQL from the app's INSTALLED packages (never a ../../fayz-sdk
@@ -11,14 +12,23 @@ import { loadManifest, type ManifestLike } from './manifest.js'
 
 export type MigrationSource = 'spine' | 'drizzle' | 'seed' | 'plugin' | 'incubator'
 
+/** A single SQL file in the plan, with its content checksum precomputed (Runner v2). */
+export interface MigrationFile {
+  /** Absolute path to the .sql file. */
+  path: string
+  /** sha256 hex of the file's bytes — the value the ledger compares against. */
+  checksum: string
+}
+
 export interface MigrationStep {
   /** 1-based position in the final (post-filter) plan. */
   order: number
   source: MigrationSource
-  /** Human-facing step id, e.g. '@fayz-ai/db', 'drizzle', plugin id, incubator dir. */
+  /** Human-facing step id, e.g. '@fayz-ai/db', 'drizzle', plugin id, incubator dir.
+   * Also the `plugin_id` recorded in the ledger for this step's files. */
   id: string
-  /** Absolute paths to the .sql files this step applies, in apply order. */
-  files: string[]
+  /** The .sql files this step applies, in apply order, each with its checksum. */
+  files: MigrationFile[]
 }
 
 export interface BuildMigrationPlanOptions {
@@ -76,12 +86,40 @@ function sqlFilesIn(dir: string): string[] {
     .map((f) => join(dir, f))
 }
 
+/** Attach each file's content checksum so the plan carries what the ledger compares. */
+function toFiles(paths: string[]): MigrationFile[] {
+  return paths.map((path) => ({ path, checksum: checksumFile(path) }))
+}
+
+/**
+ * Plugin ids whose companion migrations ship in a package that does NOT follow
+ * the `@fayz-ai/plugin-<id>` convention. shop + courses are first-class SDK
+ * packages (@fayz-ai/shop, @fayz-ai/courses) with root-level migrations/.
+ */
+const PLUGIN_PACKAGE_OVERRIDES: Record<string, string> = {
+  shop: '@fayz-ai/shop',
+  courses: '@fayz-ai/courses',
+}
+
 /**
  * Map a manifest plugin id (e.g. 'crm') to its published package name.
- * The SDK convention is a stable `@fayz-ai/plugin-<id>` mapping.
+ * The SDK convention is a stable `@fayz-ai/plugin-<id>` mapping, overridden for
+ * the handful of first-class packages (shop, courses) that predate it.
  */
 export function pluginPackageName(id: string): string {
-  return `@fayz-ai/plugin-${id}`
+  return PLUGIN_PACKAGE_OVERRIDES[id] ?? `@fayz-ai/plugin-${id}`
+}
+
+/**
+ * Resolve a package's companion migration .sql files. Convention plugins keep
+ * them under `src/migrations/`; the first-class packages (@fayz-ai/shop,
+ * @fayz-ai/courses) keep them at the package root under `migrations/`. Check
+ * both so either layout is provisioned.
+ */
+function pluginMigrationFiles(pluginDir: string): string[] {
+  const srcFiles = sqlFilesIn(join(pluginDir, 'src', 'migrations'))
+  if (srcFiles.length > 0) return srcFiles
+  return sqlFilesIn(join(pluginDir, 'migrations'))
 }
 
 /**
@@ -148,22 +186,22 @@ export function buildMigrationPlan(appDir: string, options: BuildMigrationPlanOp
           '(upgrade to @fayz-ai/db >= 0.1.3 once published)',
       )
     }
-    steps.push({ order: 0, source: 'spine', id: '@fayz-ai/db', files: spineFiles })
+    steps.push({ order: 0, source: 'spine', id: '@fayz-ai/db', files: toFiles(spineFiles) })
   }
 
   // ② Drizzle-generated table migrations (app-owned).
   if (wantDrizzleSeed) {
     const drizzleFiles = sqlFilesIn(join(root, 'drizzle'))
     if (drizzleFiles.length > 0) {
-      steps.push({ order: 0, source: 'drizzle', id: 'drizzle', files: drizzleFiles })
+      steps.push({ order: 0, source: 'drizzle', id: 'drizzle', files: toFiles(drizzleFiles) })
     }
   }
 
-  // ③ saas_core catalog seed (app-owned, depends on spine + drizzle tables).
+  // ③ core catalog seed (app-owned, depends on spine + drizzle tables).
   if (wantDrizzleSeed) {
     const seed = join(root, 'supabase', 'seed-saas-core.sql')
     if (existsSync(seed)) {
-      steps.push({ order: 0, source: 'seed', id: 'supabase/seed-saas-core.sql', files: [seed] })
+      steps.push({ order: 0, source: 'seed', id: 'supabase/seed-saas-core.sql', files: toFiles([seed]) })
     }
   }
 
@@ -195,12 +233,12 @@ export function buildMigrationPlan(appDir: string, options: BuildMigrationPlanOp
           )
           continue
         }
-        const files = sqlFilesIn(join(pluginDir, 'src', 'migrations'))
+        const files = pluginMigrationFiles(pluginDir)
         if (files.length === 0) {
-          notes.push(`plugin '${id}': ${pkg} ships no src/migrations — skipped`)
+          notes.push(`plugin '${id}': ${pkg} ships no migrations — skipped`)
           continue
         }
-        steps.push({ order: 0, source: 'plugin', id, files })
+        steps.push({ order: 0, source: 'plugin', id, files: toFiles(files) })
       }
     }
   }
@@ -216,7 +254,7 @@ export function buildMigrationPlan(appDir: string, options: BuildMigrationPlanOp
       for (const name of dirs) {
         const files = sqlFilesIn(join(incubatorRoot, name, 'migrations'))
         if (files.length === 0) continue
-        steps.push({ order: 0, source: 'incubator', id: name, files })
+        steps.push({ order: 0, source: 'incubator', id: name, files: toFiles(files) })
       }
     }
   }

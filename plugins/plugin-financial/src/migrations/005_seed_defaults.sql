@@ -8,11 +8,11 @@ DO $$
 DECLARE t_id uuid;
 BEGIN
   FOR t_id IN (
-    SELECT id FROM saas_core.tenants
-    WHERE id NOT IN (SELECT DISTINCT tenant_id FROM public.payment_method_types)
+    SELECT id FROM public.tenants
+    WHERE id NOT IN (SELECT DISTINCT tenant_id FROM public.plg_financial_payment_method_types)
   )
   LOOP
-    INSERT INTO public.payment_method_types (tenant_id, name, transaction_type) VALUES
+    INSERT INTO public.plg_financial_payment_method_types (tenant_id, name, transaction_type) VALUES
       (t_id, 'Cash', 'cash'),
       (t_id, 'PIX', 'pix'),
       (t_id, 'Credit Card', 'credit_card'),
@@ -26,11 +26,11 @@ DO $$
 DECLARE t_id uuid;
 BEGIN
   FOR t_id IN (
-    SELECT id FROM saas_core.tenants
-    WHERE id NOT IN (SELECT DISTINCT tenant_id FROM public.card_brands)
+    SELECT id FROM public.tenants
+    WHERE id NOT IN (SELECT DISTINCT tenant_id FROM public.plg_financial_card_brands)
   )
   LOOP
-    INSERT INTO public.card_brands (tenant_id, name) VALUES
+    INSERT INTO public.plg_financial_card_brands (tenant_id, name) VALUES
       (t_id, 'Visa'), (t_id, 'Mastercard'), (t_id, 'American Express'),
       (t_id, 'Elo'), (t_id, 'Hipercard'), (t_id, 'Diners Club'),
       (t_id, 'Discover'), (t_id, 'JCB'), (t_id, 'Aura'), (t_id, 'Hiper');

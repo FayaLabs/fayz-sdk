@@ -16,23 +16,23 @@ $$;
 -- ----------------------------------------------------------------------------
 -- Categories
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.shop_categories (
+CREATE TABLE IF NOT EXISTS public.plg_shop_categories (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id   uuid NOT NULL,
   name        text NOT NULL,
   slug        text NOT NULL,
   description text,
-  parent_id   uuid REFERENCES public.shop_categories(id) ON DELETE SET NULL,
+  parent_id   uuid REFERENCES public.plg_shop_categories(id) ON DELETE SET NULL,
   sort_order  integer NOT NULL DEFAULT 0,
   created_at  timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, slug)
 );
-CREATE INDEX IF NOT EXISTS shop_categories_tenant_idx ON public.shop_categories (tenant_id);
+CREATE INDEX IF NOT EXISTS plg_shop_categories_tenant_idx ON public.plg_shop_categories (tenant_id);
 
 -- ----------------------------------------------------------------------------
 -- Products
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.shop_products (
+CREATE TABLE IF NOT EXISTS public.plg_shop_products (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id        uuid NOT NULL,
   name             text NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS public.shop_products (
   sku              text,
   sort_order       integer NOT NULL DEFAULT 0,
   metadata         jsonb NOT NULL DEFAULT '{}'::jsonb,
-  category_id      uuid REFERENCES public.shop_categories(id) ON DELETE SET NULL,
+  category_id      uuid REFERENCES public.plg_shop_categories(id) ON DELETE SET NULL,
   is_physical      boolean NOT NULL DEFAULT true,
   weight           numeric(10,3),
   weight_unit      text NOT NULL DEFAULT 'kg',
@@ -55,20 +55,20 @@ CREATE TABLE IF NOT EXISTS public.shop_products (
   updated_at       timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, slug)
 );
-CREATE INDEX IF NOT EXISTS shop_products_tenant_idx   ON public.shop_products (tenant_id);
-CREATE INDEX IF NOT EXISTS shop_products_status_idx   ON public.shop_products (tenant_id, status);
-CREATE INDEX IF NOT EXISTS shop_products_category_idx ON public.shop_products (category_id);
+CREATE INDEX IF NOT EXISTS plg_shop_products_tenant_idx   ON public.plg_shop_products (tenant_id);
+CREATE INDEX IF NOT EXISTS plg_shop_products_status_idx   ON public.plg_shop_products (tenant_id, status);
+CREATE INDEX IF NOT EXISTS plg_shop_products_category_idx ON public.plg_shop_products (category_id);
 
-CREATE TRIGGER shop_products_updated_at
-  BEFORE UPDATE ON public.shop_products
+CREATE TRIGGER plg_shop_products_updated_at
+  BEFORE UPDATE ON public.plg_shop_products
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
 
 -- ----------------------------------------------------------------------------
 -- Product images
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.shop_product_images (
+CREATE TABLE IF NOT EXISTS public.plg_shop_product_images (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id uuid NOT NULL REFERENCES public.shop_products(id) ON DELETE CASCADE,
+  product_id uuid NOT NULL REFERENCES public.plg_shop_products(id) ON DELETE CASCADE,
   tenant_id  uuid NOT NULL,
   url        text NOT NULL,
   alt_text   text,
@@ -76,13 +76,13 @@ CREATE TABLE IF NOT EXISTS public.shop_product_images (
   is_primary boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS shop_product_images_product_idx ON public.shop_product_images (product_id);
-CREATE INDEX IF NOT EXISTS shop_product_images_tenant_idx  ON public.shop_product_images (tenant_id);
+CREATE INDEX IF NOT EXISTS plg_shop_product_images_product_idx ON public.plg_shop_product_images (product_id);
+CREATE INDEX IF NOT EXISTS plg_shop_product_images_tenant_idx  ON public.plg_shop_product_images (tenant_id);
 
 -- ----------------------------------------------------------------------------
 -- Customers
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.shop_customers (
+CREATE TABLE IF NOT EXISTS public.plg_shop_customers (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id    uuid NOT NULL,
   first_name   text NOT NULL,
@@ -95,18 +95,18 @@ CREATE TABLE IF NOT EXISTS public.shop_customers (
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS shop_customers_tenant_idx ON public.shop_customers (tenant_id);
-CREATE UNIQUE INDEX IF NOT EXISTS shop_customers_tenant_email_idx
-  ON public.shop_customers (tenant_id, email) WHERE email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS plg_shop_customers_tenant_idx ON public.plg_shop_customers (tenant_id);
+CREATE UNIQUE INDEX IF NOT EXISTS plg_shop_customers_tenant_email_idx
+  ON public.plg_shop_customers (tenant_id, email) WHERE email IS NOT NULL;
 
-CREATE TRIGGER shop_customers_updated_at
-  BEFORE UPDATE ON public.shop_customers
+CREATE TRIGGER plg_shop_customers_updated_at
+  BEFORE UPDATE ON public.plg_shop_customers
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
 
 -- ----------------------------------------------------------------------------
 -- Orders
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.shop_orders (
+CREATE TABLE IF NOT EXISTS public.plg_shop_orders (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id          uuid NOT NULL,
   order_number       bigint GENERATED ALWAYS AS IDENTITY,
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS public.shop_orders (
   discount_total     numeric(12,2) NOT NULL DEFAULT 0,
   shipping_total     numeric(12,2) NOT NULL DEFAULT 0,
   total              numeric(12,2) NOT NULL DEFAULT 0,
-  customer_id        uuid REFERENCES public.shop_customers(id) ON DELETE SET NULL,
+  customer_id        uuid REFERENCES public.plg_shop_customers(id) ON DELETE SET NULL,
   customer_name      text,
   customer_email     text,
   discount_code      text,
@@ -130,11 +130,11 @@ CREATE TABLE IF NOT EXISTS public.shop_orders (
   created_at         timestamptz NOT NULL DEFAULT now(),
   updated_at         timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS shop_orders_tenant_idx   ON public.shop_orders (tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS shop_orders_customer_idx ON public.shop_orders (customer_id);
+CREATE INDEX IF NOT EXISTS plg_shop_orders_tenant_idx   ON public.plg_shop_orders (tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS plg_shop_orders_customer_idx ON public.plg_shop_orders (customer_id);
 
-CREATE TRIGGER shop_orders_updated_at
-  BEFORE UPDATE ON public.shop_orders
+CREATE TRIGGER plg_shop_orders_updated_at
+  BEFORE UPDATE ON public.plg_shop_orders
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
 
 -- Keep customer aggregates (orders_count, total_spent) in sync
@@ -145,10 +145,10 @@ DECLARE
 BEGIN
   cust := COALESCE(NEW.customer_id, OLD.customer_id);
   IF cust IS NOT NULL THEN
-    UPDATE public.shop_customers c SET
-      orders_count = (SELECT count(*) FROM public.shop_orders o
+    UPDATE public.plg_shop_customers c SET
+      orders_count = (SELECT count(*) FROM public.plg_shop_orders o
                       WHERE o.customer_id = cust AND o.status <> 'cancelled'),
-      total_spent  = (SELECT COALESCE(sum(o.total), 0) FROM public.shop_orders o
+      total_spent  = (SELECT COALESCE(sum(o.total), 0) FROM public.plg_shop_orders o
                       WHERE o.customer_id = cust AND o.financial_status IN ('paid', 'partially_paid'))
     WHERE c.id = cust;
   END IF;
@@ -156,18 +156,18 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER shop_orders_customer_stats
+CREATE TRIGGER plg_shop_orders_customer_stats
   AFTER INSERT OR UPDATE OR DELETE
-  ON public.shop_orders
+  ON public.plg_shop_orders
   FOR EACH ROW EXECUTE FUNCTION public.shop_refresh_customer_stats();
 
 -- ----------------------------------------------------------------------------
 -- Order items (tenant scoping inherited from parent order)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.shop_order_items (
+CREATE TABLE IF NOT EXISTS public.plg_shop_order_items (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id   uuid NOT NULL REFERENCES public.shop_orders(id) ON DELETE CASCADE,
-  product_id uuid REFERENCES public.shop_products(id) ON DELETE SET NULL,
+  order_id   uuid NOT NULL REFERENCES public.plg_shop_orders(id) ON DELETE CASCADE,
+  product_id uuid REFERENCES public.plg_shop_products(id) ON DELETE SET NULL,
   name       text NOT NULL,
   sku        text,
   quantity   integer NOT NULL DEFAULT 1,
@@ -176,12 +176,12 @@ CREATE TABLE IF NOT EXISTS public.shop_order_items (
   image_url  text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS shop_order_items_order_idx ON public.shop_order_items (order_id);
+CREATE INDEX IF NOT EXISTS plg_shop_order_items_order_idx ON public.plg_shop_order_items (order_id);
 
 -- ----------------------------------------------------------------------------
 -- Discounts
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.shop_discounts (
+CREATE TABLE IF NOT EXISTS public.plg_shop_discounts (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id         uuid NOT NULL,
   title             text NOT NULL,
@@ -200,12 +200,12 @@ CREATE TABLE IF NOT EXISTS public.shop_discounts (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS shop_discounts_tenant_idx ON public.shop_discounts (tenant_id);
-CREATE UNIQUE INDEX IF NOT EXISTS shop_discounts_tenant_code_idx
-  ON public.shop_discounts (tenant_id, code) WHERE code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS plg_shop_discounts_tenant_idx ON public.plg_shop_discounts (tenant_id);
+CREATE UNIQUE INDEX IF NOT EXISTS plg_shop_discounts_tenant_code_idx
+  ON public.plg_shop_discounts (tenant_id, code) WHERE code IS NOT NULL;
 
-CREATE TRIGGER shop_discounts_updated_at
-  BEFORE UPDATE ON public.shop_discounts
+CREATE TRIGGER plg_shop_discounts_updated_at
+  BEFORE UPDATE ON public.plg_shop_discounts
   FOR EACH ROW EXECUTE FUNCTION public.shop_set_updated_at();
 
 -- ----------------------------------------------------------------------------
@@ -216,8 +216,8 @@ DECLARE
   t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'shop_categories', 'shop_products', 'shop_product_images',
-    'shop_customers', 'shop_orders', 'shop_discounts'
+    'plg_shop_categories', 'plg_shop_products', 'plg_shop_product_images',
+    'plg_shop_customers', 'plg_shop_orders', 'plg_shop_discounts'
   ] LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_select', t);
@@ -232,15 +232,15 @@ BEGIN
 END $$;
 
 -- Order items scope through their parent order
-ALTER TABLE public.shop_order_items ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS shop_order_items_all ON public.shop_order_items;
-CREATE POLICY shop_order_items_all ON public.shop_order_items
+ALTER TABLE public.plg_shop_order_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS plg_shop_order_items_all ON public.plg_shop_order_items;
+CREATE POLICY plg_shop_order_items_all ON public.plg_shop_order_items
   FOR ALL TO authenticated
   USING (order_id IN (
-    SELECT id FROM public.shop_orders WHERE tenant_id IN (SELECT public.user_tenant_ids())
+    SELECT id FROM public.plg_shop_orders WHERE tenant_id IN (SELECT public.user_tenant_ids())
   ))
   WITH CHECK (order_id IN (
-    SELECT id FROM public.shop_orders WHERE tenant_id IN (SELECT public.user_tenant_ids())
+    SELECT id FROM public.plg_shop_orders WHERE tenant_id IN (SELECT public.user_tenant_ids())
   ));
 
 -- ----------------------------------------------------------------------------

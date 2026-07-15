@@ -6,7 +6,7 @@
 // platform contract BEFORE it can ship. A plugin that fails these would break
 // the host app at mount time (missing route component, duplicate ids, malformed
 // settings tab). Pair with a capability test (does the plugin do its job?) — see
-// PLUGIN_PATTERNS.md → capability anatomy. These throw on the first violation.
+// docs/PLUGIN-PATTERNS.md → capability anatomy. These throw on the first violation.
 import type { PluginManifest } from '../types/plugins'
 import type { Connector } from '../integrations'
 

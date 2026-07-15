@@ -13,14 +13,14 @@ describe('release channels', () => {
       channel: 'stable',
       packages: releaseChannels.channels.stable,
     })
-    expect(resolveFayzPackageVersions().packages['@fayz-ai/sdk']).toBe('^0.1.5')
+    expect(resolveFayzPackageVersions().packages['@fayz-ai/sdk']).toBe(releaseChannels.channels.stable['@fayz-ai/sdk'])
   })
 
   it('returns a copy of package dependencies', () => {
     const dependencies = resolveFayzPackageDependencies()
     dependencies['@fayz-ai/sdk'] = 'tampered'
 
-    expect(resolveFayzPackageDependencies()['@fayz-ai/sdk']).toBe('^0.1.5')
+    expect(resolveFayzPackageDependencies()['@fayz-ai/sdk']).toBe(releaseChannels.channels.stable['@fayz-ai/sdk'])
   })
 
   it('throws when a package is not mapped for a channel', () => {

@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/db",
-  "fayz": { "status": "beta" },
-  "version": "0.1.2",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK database layer — Drizzle schema primitives, spine references, and migration helpers shared across plugins.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -32,9 +34,6 @@
   "devDependencies": {
     "tsup": "^8.2.0",
     "typescript": "^5.5.0"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "license": "MIT",
   "keywords": [

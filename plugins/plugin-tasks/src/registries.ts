@@ -1,5 +1,6 @@
 import type { PluginRegistryDef } from '@fayz-ai/core'
 import type { EntityDef } from '@fayz-ai/core'
+import { T } from './data/tables'
 
 const taskLabelEntity: EntityDef = {
   name: 'Task Label',
@@ -12,7 +13,7 @@ const taskLabelEntity: EntityDef = {
     { key: 'color', label: 'Color', type: 'text', showInTable: true, defaultValue: '#6366f1' },
     { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
   ],
-  data: { table: 'tsk_labels', tenantScoped: true },
+  data: { table: T.labels, tenantScoped: true },
 }
 
 export const tasksRegistries: PluginRegistryDef[] = [

@@ -10,7 +10,7 @@
 // Env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GCAL_REDIRECT_URI,
 //      SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 //
-// The booking↔event link is stored on saas_core.bookings.metadata.googleCalendarEventId.
+// The booking↔event link is stored on public.appointments.metadata.googleCalendarEventId.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
@@ -144,12 +144,12 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
     if (!integ) return json({ error: 'Not connected' }, 400)
     const token = await accessToken(db, integ)
-    const core = db.schema('saas_core')
+    const core = db
 
     // ---- Outbound: booking change → Google event ----
     if (action === 'push_event') {
       const op = body.op as string // insert | update | delete
-      const { data: booking } = await core.from('bookings').select('*').eq('id', body.bookingId).maybeSingle()
+      const { data: booking } = await core.from('appointments').select('*').eq('id', body.bookingId).maybeSingle()
       const existingEventId = booking?.metadata?.googleCalendarEventId
 
       if (op === 'delete' || !booking) {
@@ -164,7 +164,7 @@ Deno.serve(async (req: Request) => {
         saved = await calApi(token, `/calendars/${encodeURIComponent(integ.calendar_id)}/events/${existingEventId}`, { method: 'PATCH', body: JSON.stringify(event) })
       } else {
         saved = await calApi(token, `/calendars/${encodeURIComponent(integ.calendar_id)}/events`, { method: 'POST', body: JSON.stringify(event) })
-        await core.from('bookings').update({
+        await core.from('appointments').update({
           metadata: { ...(booking.metadata ?? {}), googleCalendarEventId: saved.id, googleCalendarSyncedAt: new Date().toISOString() },
         }).eq('id', booking.id)
       }
@@ -172,7 +172,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, eventId: saved.id })
     }
 
-    // ---- Inbound: Google changes → bookings ----
+    // ---- Inbound: Google changes → appointments ----
     if (action === 'pull_events') {
       const params = new URLSearchParams({ singleEvents: 'true', showDeleted: 'true', maxResults: '250' })
       if (integ.sync_token) params.set('syncToken', integ.sync_token)
@@ -181,15 +181,15 @@ Deno.serve(async (req: Request) => {
       let written = 0
       for (const ev of res.items ?? []) {
         // Find the booking linked to this event.
-        const { data: rows } = await core.from('bookings').select('id, metadata, tenant_id')
+        const { data: rows } = await core.from('appointments').select('id, metadata, tenant_id')
           .eq('tenant_id', integ.tenant_id)
           .contains('metadata', { googleCalendarEventId: ev.id })
         const booking = (rows ?? [])[0]
         if (!booking) continue // event not originated here — skip (v1 scope)
         if (ev.status === 'cancelled') {
-          await core.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id); written++
+          await core.from('appointments').update({ status: 'cancelled' }).eq('id', booking.id); written++
         } else if (ev.start?.dateTime) {
-          await core.from('bookings').update({ starts_at: ev.start.dateTime, ends_at: ev.end?.dateTime ?? null }).eq('id', booking.id); written++
+          await core.from('appointments').update({ starts_at: ev.start.dateTime, ends_at: ev.end?.dateTime ?? null }).eq('id', booking.id); written++
         }
       }
       if (res.nextSyncToken) await db.from('calendar_integrations').update({ sync_token: res.nextSyncToken, last_sync_at: new Date().toISOString() }).eq('id', integ.id)

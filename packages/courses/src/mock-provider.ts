@@ -5,8 +5,15 @@ import type {
   CreateModuleInput, UpdateModuleInput,
   CreateLessonInput, UpdateLessonInput,
   ListCoursesOptions,
+  Offer, CreateOfferInput, UpdateOfferInput,
+  Order, ListOrdersOptions,
+  Subscription, ListSubscriptionsOptions,
+  Payout, CreatorAccount, FinancialSummary,
 } from './types'
-import { DEFAULT_COURSE_CATALOG, type CourseCatalog } from './seed'
+import {
+  DEFAULT_COURSE_CATALOG, DEFAULT_DEMO_LEDGER, DEMO_PLATFORM_FEE_BPS,
+  type CourseCatalog, type DemoLedger,
+} from './seed'
 
 function uid() {
   return Math.random().toString(36).slice(2)
@@ -24,6 +31,10 @@ const K = {
   lessons: 'fayz.courses.mock.lessons.v1',
   enrollments: 'fayz.courses.mock.enrollments.v1',
   progress: 'fayz.courses.mock.progress.v1',
+  offers: 'fayz.courses.mock.offers.v1',
+  orders: 'fayz.courses.mock.orders.v1',
+  subscriptions: 'fayz.courses.mock.subscriptions.v1',
+  payouts: 'fayz.courses.mock.payouts.v1',
 }
 
 function load<T>(key: string): T[] | null {
@@ -45,6 +56,8 @@ function save<T>(key: string, value: T[]): void {
 
 export interface MockCoursesSeed {
   catalog?: CourseCatalog
+  /** Demo sales/subscriptions/payouts for the admin commerce surfaces. */
+  ledger?: DemoLedger
   /** Customer ids auto-enrolled in all courses (so the member area has data on first run). */
   enrollAll?: string[]
 }
@@ -58,10 +71,15 @@ export interface MockCoursesSeed {
 export class MockCoursesProvider implements CoursesProvider {
   constructor(seed?: MockCoursesSeed) {
     const catalog = seed?.catalog ?? DEFAULT_COURSE_CATALOG
+    const ledger = seed?.ledger ?? DEFAULT_DEMO_LEDGER
     if (load<Course>(K.courses) == null) {
       save(K.courses, catalog.courses)
       save(K.modules, catalog.modules)
       save(K.lessons, catalog.lessons)
+      save(K.offers, catalog.offers)
+      save(K.orders, ledger.orders)
+      save(K.subscriptions, ledger.subscriptions)
+      save(K.payouts, ledger.payouts)
     }
     // Auto-enroll demo customers in every course (idempotent).
     if (seed?.enrollAll?.length) {
@@ -85,6 +103,10 @@ export class MockCoursesProvider implements CoursesProvider {
   private lessons() { return load<Lesson>(K.lessons) ?? [] }
   private enrollments() { return load<Enrollment>(K.enrollments) ?? [] }
   private progress() { return load<Progress>(K.progress) ?? [] }
+  private offers() { return load<Offer>(K.offers) ?? [] }
+  private orders() { return load<Order>(K.orders) ?? [] }
+  private subscriptions() { return load<Subscription>(K.subscriptions) ?? [] }
+  private payouts() { return load<Payout>(K.payouts) ?? [] }
 
   // Courses -----------------------------------------------------------------
   async listCourses(opts?: ListCoursesOptions): Promise<Course[]> {
@@ -228,6 +250,105 @@ export class MockCoursesProvider implements CoursesProvider {
     save(K.progress, [...list, created])
     return created
   }
+
+  // Offers ------------------------------------------------------------------
+  async listOffers(courseId: string): Promise<Offer[]> {
+    return this.offers().filter((o) => o.courseId === courseId).sort((a, b) => a.sortOrder - b.sortOrder)
+  }
+  async createOffer(input: CreateOfferInput): Promise<Offer> {
+    const list = this.offers()
+    const offer: Offer = {
+      id: uid(),
+      courseId: input.courseId,
+      name: input.name,
+      price: input.price,
+      currency: input.currency ?? 'BRL',
+      kind: input.kind ?? 'one_time',
+      recurringInterval: input.recurringInterval ?? (input.kind === 'subscription' ? 'month' : null),
+      isDefault: input.isDefault ?? false,
+      isOrderBump: input.isOrderBump ?? false,
+      sortOrder: input.sortOrder ?? list.filter((o) => o.courseId === input.courseId).length,
+    }
+    save(K.offers, [...list, offer])
+    return offer
+  }
+  async updateOffer(id: string, input: UpdateOfferInput): Promise<Offer> {
+    const list = this.offers()
+    const idx = list.findIndex((o) => o.id === id)
+    if (idx < 0) throw new Error('Offer not found')
+    list[idx] = { ...list[idx], ...input } as Offer
+    save(K.offers, list)
+    return list[idx]
+  }
+  async deleteOffer(id: string): Promise<void> {
+    save(K.offers, this.offers().filter((o) => o.id !== id))
+  }
+
+  // Sales ledger ------------------------------------------------------------
+  async listOrders(opts?: ListOrdersOptions): Promise<Order[]> {
+    let list = this.orders()
+    if (opts?.courseId) list = list.filter((o) => o.courseId === opts.courseId)
+    if (opts?.financialStatus) list = list.filter((o) => o.financialStatus === opts.financialStatus)
+    if (opts?.search) {
+      const q = opts.search.toLowerCase()
+      list = list.filter((o) =>
+        (o.customerName ?? '').toLowerCase().includes(q) ||
+        (o.customerEmail ?? '').toLowerCase().includes(q),
+      )
+    }
+    return list.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  }
+
+  // Subscriptions -----------------------------------------------------------
+  async listSubscriptions(opts?: ListSubscriptionsOptions): Promise<Subscription[]> {
+    let list = this.subscriptions()
+    if (opts?.courseId) list = list.filter((s) => s.courseId === opts.courseId)
+    if (opts?.status) list = list.filter((s) => s.status === opts.status)
+    return list.slice().sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1))
+  }
+
+  // Financial / payouts / connect -------------------------------------------
+  async getFinancialSummary(): Promise<FinancialSummary> {
+    const paid = this.orders().filter((o) => o.financialStatus === 'paid')
+    const refunded = this.orders().filter((o) => o.financialStatus === 'refunded')
+    const activeSubs = this.subscriptions().filter((s) => s.status === 'active')
+    const totalRevenue = round2(paid.reduce((s, o) => s + o.total, 0))
+    const platformFeeTotal = round2(paid.reduce((s, o) => s + o.platformFee, 0))
+    const netTotal = round2(paid.reduce((s, o) => s + o.netValue, 0))
+    const paidOut = round2(this.payouts().filter((p) => p.status === 'paid').reduce((s, p) => s + p.amount, 0))
+    const mrr = round2(activeSubs.reduce((s, sub) => s + (sub.interval === 'year' ? sub.netValue / 12 : sub.netValue), 0))
+    const totalCount = paid.length + refunded.length
+    return {
+      currency: 'BRL',
+      availableBalance: round2(Math.max(netTotal - paidOut, 0)),
+      pendingBalance: round2(this.orders().filter((o) => o.financialStatus === 'pending').reduce((s, o) => s + o.netValue, 0)),
+      totalRevenue,
+      platformFeeTotal,
+      salesCount: paid.length,
+      activeSubscriptions: activeSubs.length,
+      mrr,
+      refundRate: totalCount > 0 ? refunded.length / totalCount : 0,
+      conversionRate: 0,
+    }
+  }
+  async listPayouts(): Promise<Payout[]> {
+    return this.payouts().slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  }
+  async getCreatorAccount(): Promise<CreatorAccount> {
+    // Mock account is not connected — the admin sees the "Connect Stripe" CTA.
+    return {
+      tenantId: 'mock-tenant',
+      stripeAccountId: null,
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      defaultCurrency: 'BRL',
+      platformFeeBps: DEMO_PLATFORM_FEE_BPS,
+    }
+  }
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
 }
 
 export function createMockCoursesProvider(seed?: MockCoursesSeed): MockCoursesProvider {

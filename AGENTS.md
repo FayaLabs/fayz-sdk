@@ -1,7 +1,7 @@
 # AGENTS.md — operating manual for agents working in fayz-sdk
 
 **Read first, every session.** Direction & strategy: [docs/DIRECTION.md](docs/DIRECTION.md).
-Locked decisions: [docs/DECISIONS.md](docs/DECISIONS.md). Plugin contract: [PLUGIN_PATTERNS.md](PLUGIN_PATTERNS.md).
+Locked decisions: [docs/DECISIONS.md](docs/DECISIONS.md). Plugin contract: [docs/PLUGIN-PATTERNS.md](docs/PLUGIN-PATTERNS.md).
 
 ## What this repo is
 
@@ -38,7 +38,7 @@ node_modules on their own (FAY-1260) — a publish may need a container clean-re
 > SECOND real consumer needs it. Any shared-plugin UI change is verified on **both** beauty-saas
 > (B2B) and norman-ai (B2C), desktop **and** mobile.
 
-## Plugin capability bar (details: PLUGIN_PATTERNS.md)
+## Plugin capability bar (details: docs/PLUGIN-PATTERNS.md)
 
 Tier-1 ("capability-complete", the only tier generated apps may use): `createXPlugin(options)`
 factory with `modules` gating · data-provider **pair** (supabase + mock via
@@ -71,23 +71,36 @@ in generated apps.
    `.env` values are never printed — names only.
 6. **Verify before deleting/overwriting**; report failures with output; commits end with the
    `Co-Authored-By: Claude` trailer; commit messages explain the why.
+7. **Never stack a modal on a modal** (founder rule, 2026-07-06). A dialog/ConfirmDialog must not
+   open on top of an already-open Modal/Sheet. Destructive confirms inside a modal are a two-step
+   INLINE confirm (footer swaps to a destructive band with cancel/confirm — see the account modal
+   in plugin-marketing ContentView). Dialogs over plain pages are fine.
 
 ## Doc map
 
+Full map + reading order: [docs/README.md](docs/README.md). The canonical set (rewritten 2026-07-06):
+
 | Doc | What it holds |
 |---|---|
-| [docs/DIRECTION.md](docs/DIRECTION.md) | Thesis, audit scorecard, 5-phase roadmap, validation waves, platform freeze |
+| [docs/DIRECTION.md](docs/DIRECTION.md) | Thesis, validation waves, platform freeze |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Locked decisions with dates + standing operational rules |
-| [PLUGIN_PATTERNS.md](PLUGIN_PATTERNS.md) | The plugin contract: anatomy, rules, capability checks (CI-enforced) |
-| [docs/architecture-boundaries.md](docs/architecture-boundaries.md) | Ownership model SDK vs app — layers A/B/C/D, public surface (locked, FAY-1217) |
-| [docs/architecture-v2.md](docs/architecture-v2.md) | Manifest-first design: AppManifest, registries, scaffolds, block system |
-| [docs/customization-ladder.md](docs/customization-ladder.md) | Levels 1–7 of app customization (config → custom plugin) — single source |
-| [docs/plugin-model.md](docs/plugin-model.md) | WHY plugins are designed this way (flexibility without rigidity) |
-| [docs/private-plugins.md](docs/private-plugins.md) | Level-7 how-to: app-local/partner plugins + graduation checklist |
-| [docs/ai-builder-request-taxonomy.md](docs/ai-builder-request-taxonomy.md) | The 5 request classes the fayz classifier enforces (safety boundary) |
-| [docs/data-model.md](docs/data-model.md) | Ring 0/1/2 data architecture (applied, locked) |
-| [docs/design/MIGRATION-ARCHITECTURE.md](docs/design/MIGRATION-ARCHITECTURE.md) | Locked migration/provisioning spec + [PLUGIN-MIGRATIONS.md](docs/design/PLUGIN-MIGRATIONS.md) rationale |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Per-plugin state census (living; verify against code) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | North star: topology, layers A/B/C/D, serialization boundary, invariants (absorbs architecture-boundaries + architecture-v2) |
+| [docs/PLUGINS.md](docs/PLUGINS.md) | The plugin contract: manifest reference, lifecycle, capability-as-law, versioning |
+| [docs/PLUGIN-PATTERNS.md](docs/PLUGIN-PATTERNS.md) | The CI-enforced plugin anatomy rules (what the gates check) |
+| [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) | The 7-level ladder, component contracts, incubator plugins + graduation |
+| [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | Rings, migrations (manifest-delivered), RLS canon, Supabase topology |
+| [docs/CONNECTORS.md](docs/CONNECTORS.md) | Integration spine + the connector standard |
+| [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) | Registries, public/private split (🔴 P0 alert), release trains, plugin artifact |
+| [docs/SECURITY.md](docs/SECURITY.md) | Threat model, RLS correctness, LGPD, secrets, money-path guardrails |
+| [docs/THEMES.md](docs/THEMES.md) | Theme contract, tokens, design-system-as-contract, surfaces/personas |
+| [docs/TESTING.md](docs/TESTING.md) | The test pyramid, capability tests, composition testing |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Fleet observability, upgrade waves, support, backup/export (design) |
+| [docs/BEST-PRACTICES.md](docs/BEST-PRACTICES.md) | The twelve rules + enforcement map |
+| [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | Evidence: WordPress post-mortem, Shopify playbook, OSS references |
+| [docs/MARKETPLACE.md](docs/MARKETPLACE.md) | Governance + community submission pipeline (design, frozen) |
+| [docs/AI-BUILDER.md](docs/AI-BUILDER.md) | **The builder ⇄ SDK contract, v0.1** — install, configure, customize, migrate, escalate |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones, feasibility, gap register, decision queue, plugin census |
+| [docs/design/](docs/design/) | RFCs + integration briefs (rationale; canon lives in the docs above) |
 | [docs/archive/](docs/archive/) | Superseded docs kept for history — do not follow them |
 
 ## State snapshot (2026-07-02 — verify against Linear before trusting)

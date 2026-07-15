@@ -52,8 +52,8 @@ export function PersonPicker({
     if (value && !selected) {
       const supabase = getSupabaseClientOptional() as any
       if (!supabase) return
-      supabase.schema('saas_core')
-        .from('persons')
+      supabase
+        .from('people')
         .select('id, name, email, phone, kind')
         .eq('id', value)
         .single()
@@ -81,8 +81,8 @@ export function PersonPicker({
     try {
       const supabase = getSupabaseClientOptional() as any
       if (!supabase) return
-      const { data } = await supabase.schema('saas_core')
-        .from('persons')
+      const { data } = await supabase
+        .from('people')
         .select('id, name, email, phone, kind')
         .eq('tenant_id', tenantId)
         .ilike('name', `%${term}%`)
@@ -123,8 +123,8 @@ export function PersonPicker({
     try {
       const supabase = getSupabaseClientOptional() as any
       if (!supabase) return
-      const { data, error } = await supabase.schema('saas_core')
-        .from('persons')
+      const { data, error } = await supabase
+        .from('people')
         .insert({
           tenant_id: tenantId,
           kind: personKind,

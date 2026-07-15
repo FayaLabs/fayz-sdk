@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/plugin-agenda",
-  "fayz": { "status": "beta" },
-  "version": "0.1.8",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.1",
   "description": "Fayz SDK — plugin-agenda plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -13,6 +15,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./public": {
+      "source": "./src/public/index.ts",
+      "types": "./dist/public/index.d.ts",
+      "import": "./dist/public/index.js",
+      "require": "./dist/public/index.cjs"
     }
   },
   "files": [
@@ -40,6 +48,7 @@
     "@fullcalendar/timegrid": "^6.1.20",
     "@fullcalendar/react": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/resource": "^6.1.0",
     "@fayz-ai/saas": "workspace:^",
     "@fayz-ai/plugin-financial": "workspace:^",
     "@tanstack/react-table": "^8.20.0",

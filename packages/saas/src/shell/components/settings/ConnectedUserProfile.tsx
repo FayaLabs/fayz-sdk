@@ -3,7 +3,7 @@ import { UserProfile } from './UserProfile'
 // The signed-in user lives in @fayz-ai/auth's store (the one AuthProvider fills) —
 // the shell stores/auth.store is a separate, unpopulated store.
 import { useAuthStore } from '@fayz-ai/auth'
-import { getSupabaseClient, getSupabaseClientSafe, CORE_SCHEMA } from '../../lib/supabase'
+import { getSupabaseClient, getSupabaseClientSafe } from '../../lib/supabase'
 import { toast } from '../notifications/ToastProvider'
 
 interface ProfileRow {
@@ -13,8 +13,8 @@ interface ProfileRow {
 }
 
 // The "/me" surface: the current user's canonical profile = the auth user (id,
-// e-mail) merged with their saas_core.profiles row (name, avatar). Reads/writes go
-// to saas_core.profiles (RLS: id = auth.uid(), so a user only ever sees/edits their
+// e-mail) merged with their profiles row (name, avatar). Reads/writes go
+// to public.profiles (RLS: id = auth.uid(), so a user only ever sees/edits their
 // own), and keep the auth-user metadata in sync so both stay coherent.
 export function ConnectedUserProfile() {
   const user = useAuthStore((s) => s.user)
@@ -27,7 +27,6 @@ export function ConnectedUserProfile() {
     if (!user || !supabase) return // mock/no-backend: just use the auth-store user
     let cancelled = false
     void supabase
-      .schema(CORE_SCHEMA)
       .from('profiles')
       .select('full_name, avatar_url, email')
       .eq('id', user.id)
@@ -46,7 +45,6 @@ export function ConnectedUserProfile() {
       const supabase = getSupabaseClient()
       // Upsert the canonical row (INSERT if the profile doesn't exist yet).
       const { error: profileError } = await supabase
-        .schema(CORE_SCHEMA)
         .from('profiles')
         .upsert({ id: user.id, full_name: data.fullName, email: user.email }, { onConflict: 'id' })
       if (profileError) throw profileError
@@ -79,7 +77,6 @@ export function ConnectedUserProfile() {
       const avatarUrl = urlData.publicUrl
 
       const { error: profileError } = await supabase
-        .schema(CORE_SCHEMA)
         .from('profiles')
         .upsert({ id: user.id, avatar_url: avatarUrl, email: user.email }, { onConflict: 'id' })
       if (profileError) throw profileError

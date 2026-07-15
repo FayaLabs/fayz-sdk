@@ -1,6 +1,7 @@
 import React from 'react'
 import type { PluginManifest } from '@fayz-ai/core'
 import type { CustomFormsDataProvider } from './data/types'
+import { T } from './data/tables'
 import { createMockFormsProvider } from './data/mock'
 import { createSupabaseFormsProvider } from './data/supabase'
 import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
@@ -82,7 +83,7 @@ export function createCustomFormsPlugin(options?: CustomFormsPluginOptions): Plu
           { key: 'isActive', label: 'Active', type: 'boolean' as const, showInTable: true, defaultValue: true, inlineToggle: true },
         ],
         data: {
-          table: 'frm_categories',
+          table: T.categories,
           tenantScoped: true,
         },
       },

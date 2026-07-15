@@ -29,6 +29,9 @@ function pkg(root, name, files = []) {
  * @param opts.seed        boolean — write supabase/seed-saas-core.sql
  * @param opts.manifest    boolean — write app.manifest.json (plugin ids from opts.plugins order)
  * @param opts.incubator   { [dirName]: string[] } — app-local src/plugins/<dir>/migrations
+ * @param opts.rootPlugins { [pluginId]: string[] } — installed at pluginPackageName(id) with
+ *                         migrations at the PACKAGE ROOT (migrations/), not src/migrations/
+ *                         (mirrors @fayz-ai/shop and @fayz-ai/courses)
  */
 function makeApp(opts = {}) {
   const root = mkdtempSync(join(tmpdir(), 'a3a-fixture-'))
@@ -45,6 +48,12 @@ function makeApp(opts = {}) {
     if (spec === 'absent') continue // not installed
     const files = spec === 'installed-empty' ? [] : spec
     pkg(root, pluginPackageName(id), files.map((f) => `src/migrations/${f}`))
+  }
+
+  // ④' root-level-migrations plugins (shop/courses shape: migrations/ at pkg root)
+  for (const [id, files] of Object.entries(opts.rootPlugins ?? {})) {
+    pluginOrder.push(id)
+    pkg(root, pluginPackageName(id), files.map((f) => `migrations/${f}`))
   }
 
   // ② drizzle
@@ -107,8 +116,9 @@ test('full plan ordering: spine → drizzle → seed → plugin → incubator', 
     assert.equal(plan.totalFiles, 8)
     // dashboard enabled but empty → a note, not a step
     assert.ok(plan.notes.some((n) => n.includes("plugin 'dashboard'")))
-    // files are sorted by filename within a step
-    assert.ok(plan.steps[0].files[0].endsWith('001_a.sql'))
+    // files are sorted by filename within a step; each entry carries a checksum
+    assert.ok(plan.steps[0].files[0].path.endsWith('001_a.sql'))
+    assert.match(plan.steps[0].files[0].checksum, /^[0-9a-f]{64}$/)
   } finally {
     cleanup(app)
   }
@@ -234,6 +244,46 @@ test('plugin package not installed (platform-bundled) → noted, not fatal', () 
     const plan = buildMigrationPlan(app)
     assert.equal(plan.steps.filter((s) => s.source === 'plugin').length, 0)
     assert.ok(plan.notes.some((n) => n.includes('not resolvable')))
+  } finally {
+    cleanup(app)
+  }
+})
+
+test('pluginPackageName: convention ids map to @fayz-ai/plugin-<id>; shop/courses override', () => {
+  assert.equal(pluginPackageName('crm'), '@fayz-ai/plugin-crm')
+  assert.equal(pluginPackageName('financial'), '@fayz-ai/plugin-financial')
+  assert.equal(pluginPackageName('shop'), '@fayz-ai/shop')
+  assert.equal(pluginPackageName('courses'), '@fayz-ai/courses')
+})
+
+test('root-level migrations/ (shop/courses shape) are resolved for the plugin step', () => {
+  const app = makeApp({
+    db: ['001_a.sql'],
+    manifest: true,
+    rootPlugins: { shop: ['0001_shop_tables.sql', '0002_rls.sql'], courses: ['0001_course_tables.sql'] },
+  })
+  try {
+    const plan = buildMigrationPlan(app)
+    const pluginSteps = plan.steps.filter((s) => s.source === 'plugin')
+    assert.deepEqual(pluginSteps.map((s) => [s.id, s.files.length]), [
+      ['shop', 2],
+      ['courses', 1],
+    ])
+    // resolved from the package ROOT migrations/, not src/migrations/
+    assert.ok(pluginSteps[0].files[0].path.endsWith('0001_shop_tables.sql'))
+  } finally {
+    cleanup(app)
+  }
+})
+
+test('src/migrations/ takes precedence when both layouts exist', () => {
+  // A convention plugin ships src/migrations/; assert that path wins.
+  const app = makeApp({ db: ['001_a.sql'], manifest: true, plugins: { crm: ['001_crm.sql'] } })
+  try {
+    const plan = buildMigrationPlan(app)
+    const crm = plan.steps.find((s) => s.source === 'plugin' && s.id === 'crm')
+    assert.ok(crm)
+    assert.ok(crm.files[0].path.includes(join('src', 'migrations')))
   } finally {
     cleanup(app)
   }

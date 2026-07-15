@@ -12,7 +12,7 @@ export type MenuItemStatus = 'available' | 'sold_out' | 'hidden'
 // CORE ENTITIES
 // ============================================================
 
-/** Menu category — maps to saas_core.categories (kind='menu_category') */
+/** Menu category — maps to public.categories (kind='menu_category') */
 export interface MenuCategory {
   id: string
   name: string
@@ -27,7 +27,7 @@ export interface MenuCategory {
   updatedAt: string
 }
 
-/** Menu item — saas_core.products + public.menu_items extension */
+/** Menu item — public.products + public.menu_items extension */
 export interface MenuItem {
   id: string
   name: string

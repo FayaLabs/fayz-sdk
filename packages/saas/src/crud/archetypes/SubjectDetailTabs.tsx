@@ -34,8 +34,8 @@ export function OwnerTab({ item }: { item: any }) {
     const supabase = getSupabaseClientOptional() as any
     if (!supabase) { setLoading(false); return }
 
-    supabase.schema('saas_core')
-      .from('persons')
+    supabase
+      .from('people')
       .select('*')
       .eq('id', tutorId)
       .single()

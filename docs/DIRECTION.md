@@ -24,13 +24,7 @@ discipline, not invention**.
 
 ## The roadmap (5 phases — Linear FAY-1251…1255 under epic FAY-1250)
 
-| Phase | What | Status |
-|---|---|---|
-| 0 | Subtract: dead paths deleted (createSaasApp −1k LOC), one config shape, theme `__kind`, manifest trim, honesty labels | **DONE** (2026-07-01) |
-| 1 | Capability contract as law: agenda migrations, install-time runner (FAY-1205), `fayz doctor --plugins` gate, capability tests in CI | in flight (FAY-1203/04/06) |
-| 2 | Persona engine (`b2c`\|`b2b` derived once at defineSaas) + minimum saas component slots mirroring storefront's | speced (FAY-1249/1248) |
-| 3 | Agent-legibility + builder bridge: golden configs, docs-as-agent-specs, builder emits `config/app.tsx` | speced |
-| 4 | Production deploy path + plugin discovery UI | **frozen** until doctor proves installability |
+Phase 0 (Subtract) done 2026-07-01. Phases 1–4 (capability-as-law → persona+slots → agent legibility + builder bridge → deploy+marketplace), their exit criteria, launch gates, and the live plugin census now live in **[ROADMAP.md](ROADMAP.md)** — the single source for milestone state. This doc keeps the strategy; that one keeps the plan.
 
 ## The validation portfolio (executive decision, countersigned 2026-07-02)
 

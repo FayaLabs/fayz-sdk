@@ -7,12 +7,12 @@
 
 **Status:** beta — published to npm and used across Fayz dogfood apps. Pre-1.0: minor APIs may change before 1.0.
 
-When apps are composed from plugins, their data models have to compose too. `@fayz-ai/db` is the schema spine: a small set of canonical Drizzle tables — tenants, persons, orders, bookings, products — plus the column helpers (tenant id, timestamps) that plugin schemas build on. Every plugin references the same spine, so a CRM's clients and an agenda's bookings agree on what a person and a tenant are.
+When apps are composed from plugins, their data models have to compose too. `@fayz-ai/db` is the schema spine: a small set of canonical Drizzle tables — tenants, people, orders, appointments, products — plus the column helpers (tenant id, timestamps) that plugin schemas build on. Every plugin references the same spine, so a CRM's clients and an agenda's appointments agree on what a person and a tenant are.
 
 It also re-exports `drizzle-orm/pg-core` so the whole stack runs on one Drizzle instance — apps compose their own tables, the spine refs, and plugin schemas without the dual-copy `PgColumn` type clashes you get from mismatched drizzle-orm versions.
 
 ## What's inside
-- **Spine tables** — `saasCore`, `tenants`, `persons`, `orders`, `bookings`, `products`, `orderItems` (Ring 0 references plugins point at)
+- **Spine tables** — `tenants`, `people`, `orders`, `appointments`, `products`, `orderItems` (Ring 0 references plugins point at, in `public`)
 - **Column helpers** — `tenantId`, `timestamps`, `createdAt`
 - **Re-exported pg-core** — the full `drizzle-orm/pg-core` builder surface, so every package shares one drizzle-orm instance
 
@@ -24,11 +24,11 @@ Depends on `drizzle-orm`. Import pg-core builders from here, not from `drizzle-o
 
 ## Usage
 ```ts
-import { pgTable, text, tenantId, timestamps, persons } from '@fayz-ai/db'
+import { pgTable, text, tenantId, timestamps, people } from '@fayz-ai/db'
 
 export const notes = pgTable('notes', {
   id: text('id').primaryKey(),
-  personId: text('person_id').references(() => persons.id),
+  personId: text('person_id').references(() => people.id),
   body: text('body'),
   tenantId: tenantId(),
   ...timestamps,

@@ -57,8 +57,6 @@ export {
   createFayzSupabaseClient,
   getFayzSupabaseClient,
   getFayzSupabaseClientOptional,
-  getCoreSchemaClient,
-  CORE_SCHEMA,
 } from './supabase/client'
 
 // ---------------------------------------------------------------------------

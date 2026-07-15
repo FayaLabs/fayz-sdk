@@ -8,6 +8,7 @@ import type {
 } from '../types'
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getInventoryTenantId } from '../lib/tenant'
+import { T } from './tables'
 
 function getTenantId(): string | undefined {
   // Local override wins; else use the app's active tenant so writes pass RLS.
@@ -33,7 +34,7 @@ function camelToSnake(obj: Record<string, unknown>): Record<string, unknown> {
   return result
 }
 
-/** Map a saas_core.products row to our Product type */
+/** Map a public.products row to our Product type */
 function mapProductRow(row: Record<string, any>): Product {
   const meta = row.metadata ?? {}
   return {
@@ -64,11 +65,11 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
   function getClients() {
     const supabase = getSupabaseClientOptional() as any
     if (!supabase) throw new Error('Supabase not initialized')
-    return { core: supabase.schema('saas_core'), pub: supabase }
+    return { core: supabase, pub: supabase }
   }
 
   const provider: InventoryDataProvider = {
-    // --- Products (saas_core.products) ---
+    // --- Products (public.products) ---
     async getProducts(query: ProductQuery): Promise<PaginatedResult<Product>> {
       const { core, pub } = getClients()
       let qb = core.from('products').select('*', { count: 'exact' })
@@ -133,7 +134,7 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
     // --- Stock Movements (via view with product join — single query) ---
     async getMovements(query: MovementQuery): Promise<PaginatedResult<StockMovement>> {
       const { pub } = getClients()
-      // Single query via v_stock_movements view (JOINs with saas_core.products)
+      // Single query via v_stock_movements view (JOINs with public.products)
       let qb = pub.from('v_stock_movements').select('*', { count: 'exact' })
       if (query.productId) qb = qb.eq('product_id', query.productId)
       if (query.movementType) {
@@ -169,7 +170,7 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
           if (m.destinationLocationId && !m.destinationLocationName) locationIds.add(m.destinationLocationId)
         }
         if (locationIds.size > 0) {
-          const { data: locs } = await pub.from('stock_locations').select('id, name').in('id', [...locationIds])
+          const { data: locs } = await pub.from(T.stockLocations).select('id, name').in('id', [...locationIds])
           const locMap = new Map((locs ?? []).map((l: any) => [l.id, l.name]))
           for (const m of movements) {
             if (m.stockLocationId && !m.stockLocationName) m.stockLocationName = locMap.get(m.stockLocationId)
@@ -192,7 +193,7 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
         total_cost: unitCost * input.quantity,
         movement_date: input.movementDate ?? new Date().toISOString().slice(0, 10),
       }
-      const { data, error } = await pub.from('stock_movements').insert(row).select().single()
+      const { data, error } = await pub.from(T.stockMovements).insert(row).select().single()
       if (error) throw new Error(error.message)
 
       // Fetch product name + current stock for the response and stock update
@@ -210,18 +211,18 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
       if (input.stockLocationId) {
         try {
           const posDelta = (input.movementType === 'entry') ? input.quantity : -(input.quantity)
-          const { data: existing } = await pub.from('stock_positions')
+          const { data: existing } = await pub.from(T.stockPositions)
             .select('id, quantity')
             .eq('product_id', input.productId)
             .eq('stock_location_id', input.stockLocationId)
             .maybeSingle()
 
           if (existing) {
-            await pub.from('stock_positions')
+            await pub.from(T.stockPositions)
               .update({ quantity: (existing.quantity ?? 0) + posDelta, unit_cost: input.unitCost ?? 0 })
               .eq('id', existing.id)
           } else {
-            await pub.from('stock_positions').insert({
+            await pub.from(T.stockPositions).insert({
               tenant_id: tenantId,
               product_id: input.productId,
               stock_location_id: input.stockLocationId,
@@ -234,18 +235,18 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
 
           // For transfers, also update the destination position
           if (input.movementType === 'transfer' && input.destinationLocationId) {
-            const { data: destExisting } = await pub.from('stock_positions')
+            const { data: destExisting } = await pub.from(T.stockPositions)
               .select('id, quantity')
               .eq('product_id', input.productId)
               .eq('stock_location_id', input.destinationLocationId)
               .maybeSingle()
 
             if (destExisting) {
-              await pub.from('stock_positions')
+              await pub.from(T.stockPositions)
                 .update({ quantity: (destExisting.quantity ?? 0) + input.quantity, unit_cost: input.unitCost ?? 0 })
                 .eq('id', destExisting.id)
             } else {
-              await pub.from('stock_positions').insert({
+              await pub.from(T.stockPositions).insert({
                 tenant_id: tenantId,
                 product_id: input.productId,
                 stock_location_id: input.destinationLocationId,
@@ -266,11 +267,11 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
       movement.productName = product?.name
       // Resolve location name
       if (input.stockLocationId) {
-        const { data: loc } = await pub.from('stock_locations').select('name').eq('id', input.stockLocationId).single()
+        const { data: loc } = await pub.from(T.stockLocations).select('name').eq('id', input.stockLocationId).single()
         movement.stockLocationName = loc?.name
       }
       if (input.destinationLocationId) {
-        const { data: loc } = await pub.from('stock_locations').select('name').eq('id', input.destinationLocationId).single()
+        const { data: loc } = await pub.from(T.stockLocations).select('name').eq('id', input.destinationLocationId).single()
         movement.destinationLocationName = loc?.name
       }
       return movement as StockMovement
@@ -279,40 +280,40 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
     // --- Stock Positions ---
     async getPositions(productId: string): Promise<StockPosition[]> {
       const { pub } = getClients()
-      const { data } = await pub.from('stock_positions').select('*').eq('product_id', productId)
+      const { data } = await pub.from(T.stockPositions).select('*').eq('product_id', productId)
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as StockPosition)
     },
 
     // --- Stock Locations ---
     async getLocations(): Promise<StockLocation[]> {
       const { pub } = getClients()
-      const { data } = await pub.from('stock_locations').select('*').eq('is_active', true).order('name')
+      const { data } = await pub.from(T.stockLocations).select('*').eq('is_active', true).order('name')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as StockLocation)
     },
 
     async createLocation(input): Promise<StockLocation> {
       const { pub } = getClients()
       const tenantId = getTenantId()
-      const { data } = await pub.from('stock_locations').insert({ ...camelToSnake(input as any), tenant_id: tenantId }).select().single()
+      const { data } = await pub.from(T.stockLocations).insert({ ...camelToSnake(input as any), tenant_id: tenantId }).select().single()
       return snakeToCamel(data!) as unknown as StockLocation
     },
 
     // --- Recipes ---
     async getRecipes(): Promise<Recipe[]> {
       const { pub } = getClients()
-      const { data } = await pub.from('recipes').select('*').eq('is_active', true).order('name')
+      const { data } = await pub.from(T.recipes).select('*').eq('is_active', true).order('name')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as Recipe)
     },
 
     async getRecipeById(id: string): Promise<Recipe | null> {
       const { pub } = getClients()
-      const { data } = await pub.from('recipes').select('*').eq('id', id).single()
+      const { data } = await pub.from(T.recipes).select('*').eq('id', id).single()
       return data ? snakeToCamel(data) as unknown as Recipe : null
     },
 
     async getRecipeIngredients(recipeId: string): Promise<RecipeIngredient[]> {
       const { pub } = getClients()
-      const { data } = await pub.from('recipe_ingredients').select('*').eq('recipe_id', recipeId).order('display_order')
+      const { data } = await pub.from(T.recipeIngredients).select('*').eq('recipe_id', recipeId).order('display_order')
       return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as RecipeIngredient)
     },
 
@@ -320,9 +321,9 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
       const { pub } = getClients()
       const tenantId = getTenantId()
       const { ingredients, ...recipeData } = input
-      const { data: recipe } = await pub.from('recipes').insert({ ...camelToSnake(recipeData as any), tenant_id: tenantId }).select().single()
+      const { data: recipe } = await pub.from(T.recipes).insert({ ...camelToSnake(recipeData as any), tenant_id: tenantId }).select().single()
       if (recipe && ingredients.length > 0) {
-        await pub.from('recipe_ingredients').insert(
+        await pub.from(T.recipeIngredients).insert(
           ingredients.map((ing) => ({ ...camelToSnake(ing as any), recipe_id: recipe.id, tenant_id: tenantId }))
         )
       }
@@ -340,7 +341,7 @@ export function createSupabaseInventoryProvider(): InventoryDataProvider {
 
       const weekAgo = new Date()
       weekAgo.setDate(weekAgo.getDate() - 7)
-      const { data: movements } = await pub.from('stock_movements').select('movement_type').gte('movement_date', weekAgo.toISOString().slice(0, 10))
+      const { data: movements } = await pub.from(T.stockMovements).select('movement_type').gte('movement_date', weekAgo.toISOString().slice(0, 10))
       const movs = movements ?? []
       const movementsByType: Record<MovementType, number> = { entry: 0, exit: 0, adjustment: 0, transfer: 0, loss: 0 }
       for (const m of movs) movementsByType[m.movement_type as MovementType]++

@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/storefront",
-  "fayz": { "status": "beta" },
-  "version": "0.6.0",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK storefront kit — Shopify-style customer-facing ecommerce template components",
   "type": "module",
   "main": "./dist/index.cjs",

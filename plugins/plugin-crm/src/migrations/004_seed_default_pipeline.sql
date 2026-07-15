@@ -1,5 +1,5 @@
 -- CRM plugin — seed: default "Sales Pipeline" + canonical stages.
--- The pipeline board (#/sales/pipeline) reads public.pipelines / pipeline_stages
+-- The pipeline board (#/sales/pipeline) reads public.plg_crm_pipelines / plg_crm_pipeline_stages
 -- directly; a fresh tenant has zero rows and the board renders blank. This
 -- backfills the default pipeline (matching the plugin's mock/offline provider)
 -- for every tenant that has none. Idempotent — tenants with a pipeline are skipped.
@@ -11,15 +11,15 @@ DECLARE
   p_id uuid;
 BEGIN
   FOR t_id IN (
-    SELECT id FROM saas_core.tenants
-    WHERE id NOT IN (SELECT tenant_id FROM public.pipelines)
+    SELECT id FROM public.tenants
+    WHERE id NOT IN (SELECT tenant_id FROM public.plg_crm_pipelines)
   )
   LOOP
-    INSERT INTO public.pipelines (tenant_id, name, is_default, is_active)
+    INSERT INTO public.plg_crm_pipelines (tenant_id, name, is_default, is_active)
     VALUES (t_id, 'Sales Pipeline', true, true)
     RETURNING id INTO p_id;
 
-    INSERT INTO public.pipeline_stages (tenant_id, pipeline_id, name, "order", color, probability, is_won, is_lost) VALUES
+    INSERT INTO public.plg_crm_pipeline_stages (tenant_id, pipeline_id, name, "order", color, probability, is_won, is_lost) VALUES
       (t_id, p_id, 'New',         0, '#6366f1', 10,  false, false),
       (t_id, p_id, 'Contacted',   1, '#3b82f6', 25,  false, false),
       (t_id, p_id, 'Qualified',   2, '#f59e0b', 50,  false, false),

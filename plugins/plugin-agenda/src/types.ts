@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // Agenda Plugin — Pure TypeScript types
-// Zero dependencies. Maps to saas_core archetype tables.
+// Zero dependencies. Maps to public archetype tables.
 // ---------------------------------------------------------------------------
 
 // ============================================================
@@ -46,7 +46,7 @@ export interface BookingTypeConfig {
 // CORE ENTITIES
 // ============================================================
 
-/** A booking service line item (from saas_core.booking_items) */
+/** A booking service line item (from public.appointment_items) */
 export interface BookingService {
   id: string
   serviceId: string | null
@@ -56,7 +56,7 @@ export interface BookingService {
   assigneeId: string | null
 }
 
-/** Calendar booking — the main entity rendered on the calendar (from v_bookings view on orders) */
+/** Calendar booking — the main entity rendered on the calendar (from v_appointments view on orders) */
 export interface CalendarBooking {
   id: string
   tenantId: string
@@ -113,7 +113,7 @@ export interface Professional {
   isActive: boolean
 }
 
-/** Working hours schedule (from saas_core.schedules) */
+/** Working hours schedule (from public.schedules) */
 export interface Schedule {
   id: string
   tenantId: string

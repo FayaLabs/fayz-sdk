@@ -11,7 +11,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function productRow(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'prod-1',
+    id: '11111111-1111-4111-8111-000000000001',
     tenant_id: 'store-1',
     name: 'Runner Vortex Neon',
     slug: 'runner-vortex-neon',
@@ -27,7 +27,7 @@ describe('createFayzShopProvider', () => {
   it('uses the Fayz broker without provider credentials when apiBaseUrl and projectId are provided', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
       products: [{
-        id: 'prod-1',
+        id: '11111111-1111-4111-8111-000000000001',
         tenantId: 'store-1',
         name: 'Aurora Tote',
         slug: 'aurora-tote',
@@ -107,7 +107,7 @@ describe('createFayzShopProvider', () => {
       fetcher,
     })
 
-    const product = await provider.getProduct('prod-1')
+    const product = await provider.getProduct('11111111-1111-4111-8111-000000000001')
 
     expect(product?.metadata.sizes).toEqual(['40', '41'])
   })

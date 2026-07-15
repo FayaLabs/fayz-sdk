@@ -81,7 +81,7 @@ function buildTheme(base: ThemeTokens, overrides: CreateThemeOptions | null): Th
   }
 }
 
-const STORE_KEY = '__saas_core_theme_store__'
+const STORE_KEY = '__fayz_theme_store__'
 
 function createThemeStore(): UseBoundStore<StoreApi<ThemeState>> {
   // Window-level singleton to survive linked-package dual-module loading

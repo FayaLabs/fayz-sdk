@@ -1,7 +1,9 @@
 {
   "name": "@fayz-ai/plugin-marketing",
-  "fayz": { "status": "beta" },
-  "version": "0.1.6",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
   "description": "Fayz SDK — marketing campaigns & broadcasts plugin",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -13,6 +15,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./schema": {
+      "source": "./src/schema/index.ts",
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema.js",
+      "require": "./dist/schema.cjs"
     }
   },
   "files": [
@@ -35,7 +43,8 @@
     "@fayz-ai/ui": "workspace:^",
     "@tanstack/react-table": "^8.20.0",
     "lucide-react": "^0.400.0",
-    "zustand": "^4.5.0"
+    "zustand": "^4.5.0",
+    "@fayz-ai/db": "workspace:^"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",

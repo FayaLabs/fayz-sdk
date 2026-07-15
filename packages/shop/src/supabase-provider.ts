@@ -1,6 +1,7 @@
 import { getSupabaseClientOptional } from '@fayz-ai/core'
 import type { ShopProvider } from './provider'
 import { getShopTenantId } from './tenant'
+import { T } from './tables'
 import type {
   Product, ProductImage, Category,
   Order, ShopCustomer, Discount,
@@ -150,7 +151,7 @@ export class SupabaseShopProvider implements ShopProvider {
   async listProducts(options?: ListProductsOptions): Promise<Product[]> {
     const db = getDb()
     const tenantId = getTenantId()
-    let q = db.from('shop_products').select('*, images:shop_product_images(*)')
+    let q = db.from(T.products).select(`*, images:${T.productImages}(*)`)
     if (tenantId) q = q.eq('tenant_id', tenantId)
     if (options?.status) q = q.eq('status', options.status)
     if (options?.categoryId) q = q.eq('category_id', options.categoryId)
@@ -167,8 +168,8 @@ export class SupabaseShopProvider implements ShopProvider {
   async getProduct(id: string): Promise<Product | null> {
     const db = getDb()
     const { data, error } = await db
-      .from('shop_products')
-      .select('*, images:shop_product_images(*)')
+      .from(T.products)
+      .select(`*, images:${T.productImages}(*)`)
       .eq('id', id)
       .maybeSingle()
     if (error) throw error
@@ -179,7 +180,7 @@ export class SupabaseShopProvider implements ShopProvider {
     const db = getDb()
     const tenantId = getTenantId()
     const { data, error } = await db
-      .from('shop_products')
+      .from(T.products)
       .insert({
         tenant_id: tenantId,
         name: input.name,
@@ -198,7 +199,7 @@ export class SupabaseShopProvider implements ShopProvider {
         weight: input.weight ?? null,
         weight_unit: input.weightUnit ?? 'kg',
       })
-      .select('*, images:shop_product_images(*)')
+      .select(`*, images:${T.productImages}(*)`)
       .single()
     if (error) throw error
     return rowToProduct(data)
@@ -220,15 +221,15 @@ export class SupabaseShopProvider implements ShopProvider {
     if (input.isPhysical !== undefined) updates.is_physical = input.isPhysical
     if (input.weight !== undefined) updates.weight = input.weight
     const { data, error } = await db
-      .from('shop_products').update(updates).eq('id', id)
-      .select('*, images:shop_product_images(*)')
+      .from(T.products).update(updates).eq('id', id)
+      .select(`*, images:${T.productImages}(*)`)
       .single()
     if (error) throw error
     return rowToProduct(data)
   }
 
   async deleteProduct(id: string): Promise<void> {
-    const { error } = await getDb().from('shop_products').delete().eq('id', id)
+    const { error } = await getDb().from(T.products).delete().eq('id', id)
     if (error) throw error
   }
 
@@ -240,7 +241,7 @@ export class SupabaseShopProvider implements ShopProvider {
     if (uploadErr) throw uploadErr
     const { data: { publicUrl } } = db.storage.from('shop-images').getPublicUrl(path)
     const { data, error } = await db
-      .from('shop_product_images')
+      .from(T.productImages)
       .insert({ product_id: productId, tenant_id: tenantId, url: publicUrl, sort_order: 0, is_primary: false })
       .select().single()
     if (error) throw error
@@ -248,7 +249,7 @@ export class SupabaseShopProvider implements ShopProvider {
   }
 
   async deleteProductImage(imageId: string): Promise<void> {
-    const { error } = await getDb().from('shop_product_images').delete().eq('id', imageId)
+    const { error } = await getDb().from(T.productImages).delete().eq('id', imageId)
     if (error) throw error
   }
 
@@ -259,7 +260,7 @@ export class SupabaseShopProvider implements ShopProvider {
   async listCategories(): Promise<Category[]> {
     const db = getDb()
     const tenantId = getTenantId()
-    let q = db.from('shop_categories').select('*').order('sort_order', { ascending: true })
+    let q = db.from(T.categories).select('*').order('sort_order', { ascending: true })
     if (tenantId) q = q.eq('tenant_id', tenantId)
     const { data, error } = await q
     if (error) throw error
@@ -269,7 +270,7 @@ export class SupabaseShopProvider implements ShopProvider {
   async createCategory(input: CreateCategoryInput): Promise<Category> {
     const db = getDb()
     const { data, error } = await db
-      .from('shop_categories')
+      .from(T.categories)
       .insert({ tenant_id: getTenantId(), name: input.name, slug: input.slug ?? slugify(input.name), description: input.description ?? null, parent_id: input.parentId ?? null, sort_order: input.sortOrder ?? 0 })
       .select().single()
     if (error) throw error
@@ -284,13 +285,13 @@ export class SupabaseShopProvider implements ShopProvider {
     if (input.description !== undefined) updates.description = input.description
     if (input.parentId !== undefined) updates.parent_id = input.parentId
     if (input.sortOrder !== undefined) updates.sort_order = input.sortOrder
-    const { data, error } = await db.from('shop_categories').update(updates).eq('id', id).select().single()
+    const { data, error } = await db.from(T.categories).update(updates).eq('id', id).select().single()
     if (error) throw error
     return rowToCategory(data)
   }
 
   async deleteCategory(id: string): Promise<void> {
-    const { error } = await getDb().from('shop_categories').delete().eq('id', id)
+    const { error } = await getDb().from(T.categories).delete().eq('id', id)
     if (error) throw error
   }
 
@@ -301,7 +302,7 @@ export class SupabaseShopProvider implements ShopProvider {
   async listOrders(options?: ListOrdersOptions): Promise<Order[]> {
     const db = getDb()
     const tenantId = getTenantId()
-    let q = db.from('shop_orders').select('*, items:shop_order_items(*)')
+    let q = db.from(T.orders).select(`*, items:${T.orderItems}(*)`)
     if (tenantId) q = q.eq('tenant_id', tenantId)
     if (options?.status) q = q.eq('status', options.status)
     if (options?.financialStatus) q = q.eq('financial_status', options.financialStatus)
@@ -318,7 +319,7 @@ export class SupabaseShopProvider implements ShopProvider {
 
   async getOrder(id: string): Promise<Order | null> {
     const { data, error } = await getDb()
-      .from('shop_orders').select('*, items:shop_order_items(*)')
+      .from(T.orders).select(`*, items:${T.orderItems}(*)`)
       .eq('id', id).maybeSingle()
     if (error) throw error
     return data ? rowToOrder(data) : null
@@ -332,12 +333,12 @@ export class SupabaseShopProvider implements ShopProvider {
     const shippingTotal = input.shippingTotal ?? 0
     const total = Math.round((subtotal - discountTotal + shippingTotal) * 100) / 100
     const { data: order, error: orderErr } = await db
-      .from('shop_orders')
+      .from(T.orders)
       .insert({ tenant_id: tenantId, customer_id: input.customerId ?? null, customer_name: input.customerName ?? null, customer_email: input.customerEmail ?? null, currency: input.currency ?? 'BRL', notes: input.notes ?? null, subtotal, discount_total: discountTotal, shipping_total: shippingTotal, discount_code: input.discountCode ?? null, total, status: 'open', financial_status: 'pending', fulfillment_status: 'unfulfilled' })
       .select().single()
     if (orderErr) throw orderErr
     const items = input.items.map(i => ({ order_id: order.id, product_id: asUuid(i.productId), name: i.name, sku: i.sku ?? null, quantity: i.quantity, unit_price: i.unitPrice, total: i.quantity * i.unitPrice, image_url: i.imageUrl ?? null }))
-    await db.from('shop_order_items').insert(items)
+    await db.from(T.orderItems).insert(items)
     return this.getOrder(order.id) as Promise<Order>
   }
 
@@ -347,7 +348,7 @@ export class SupabaseShopProvider implements ShopProvider {
     if (input.financialStatus !== undefined) updates.financial_status = input.financialStatus
     if (input.fulfillmentStatus !== undefined) updates.fulfillment_status = input.fulfillmentStatus
     if (input.notes !== undefined) updates.notes = input.notes
-    const { error } = await getDb().from('shop_orders').update(updates).eq('id', id)
+    const { error } = await getDb().from(T.orders).update(updates).eq('id', id)
     if (error) throw error
     return this.getOrder(id) as Promise<Order>
   }
@@ -383,7 +384,7 @@ export class SupabaseShopProvider implements ShopProvider {
   async listCustomers(options?: ListCustomersOptions): Promise<ShopCustomer[]> {
     const db = getDb()
     const tenantId = getTenantId()
-    let q = db.from('shop_customers').select('*').order('first_name', { ascending: true })
+    let q = db.from(T.customers).select('*').order('first_name', { ascending: true })
     if (tenantId) q = q.eq('tenant_id', tenantId)
     if (options?.search) q = q.or(`first_name.ilike.%${options.search}%,last_name.ilike.%${options.search}%,email.ilike.%${options.search}%`)
     if (options?.limit) q = q.limit(options.limit)
@@ -393,14 +394,14 @@ export class SupabaseShopProvider implements ShopProvider {
   }
 
   async getCustomer(id: string): Promise<ShopCustomer | null> {
-    const { data, error } = await getDb().from('shop_customers').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await getDb().from(T.customers).select('*').eq('id', id).maybeSingle()
     if (error) throw error
     return data ? rowToCustomer(data) : null
   }
 
   async createCustomer(input: CreateCustomerInput): Promise<ShopCustomer> {
     const { data, error } = await getDb()
-      .from('shop_customers')
+      .from(T.customers)
       .insert({ tenant_id: getTenantId(), first_name: input.firstName, last_name: input.lastName ?? '', email: input.email ?? null, phone: input.phone ?? null, notes: input.notes ?? null })
       .select().single()
     if (error) throw error
@@ -414,13 +415,13 @@ export class SupabaseShopProvider implements ShopProvider {
     if (input.email !== undefined) updates.email = input.email
     if (input.phone !== undefined) updates.phone = input.phone
     if (input.notes !== undefined) updates.notes = input.notes
-    const { data, error } = await getDb().from('shop_customers').update(updates).eq('id', id).select().single()
+    const { data, error } = await getDb().from(T.customers).update(updates).eq('id', id).select().single()
     if (error) throw error
     return rowToCustomer(data)
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    const { error } = await getDb().from('shop_customers').delete().eq('id', id)
+    const { error } = await getDb().from(T.customers).delete().eq('id', id)
     if (error) throw error
   }
 
@@ -448,7 +449,7 @@ export class SupabaseShopProvider implements ShopProvider {
   async listDiscounts(options?: ListDiscountsOptions): Promise<Discount[]> {
     const db = getDb()
     const tenantId = getTenantId()
-    let q = db.from('shop_discounts').select('*').order('created_at', { ascending: false })
+    let q = db.from(T.discounts).select('*').order('created_at', { ascending: false })
     if (tenantId) q = q.eq('tenant_id', tenantId)
     if (options?.status) q = q.eq('status', options.status)
     if (options?.type) q = q.eq('type', options.type)
@@ -460,14 +461,14 @@ export class SupabaseShopProvider implements ShopProvider {
   }
 
   async getDiscount(id: string): Promise<Discount | null> {
-    const { data, error } = await getDb().from('shop_discounts').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await getDb().from(T.discounts).select('*').eq('id', id).maybeSingle()
     if (error) throw error
     return data ? rowToDiscount(data) : null
   }
 
   async createDiscount(input: CreateDiscountInput): Promise<Discount> {
     const { data, error } = await getDb()
-      .from('shop_discounts')
+      .from(T.discounts)
       .insert({ tenant_id: getTenantId(), title: input.title, code: input.code ?? null, type: input.type, method: input.method ?? 'code', value: input.value, usage_limit: input.usageLimit ?? null, once_per_customer: input.oncePerCustomer ?? false, starts_at: input.startsAt ?? new Date().toISOString(), ends_at: input.endsAt ?? null, status: input.status ?? 'active', times_used: 0 })
       .select().single()
     if (error) throw error
@@ -483,13 +484,13 @@ export class SupabaseShopProvider implements ShopProvider {
     if (input.usageLimit !== undefined) updates.usage_limit = input.usageLimit
     if (input.status !== undefined) updates.status = input.status
     if (input.endsAt !== undefined) updates.ends_at = input.endsAt
-    const { data, error } = await getDb().from('shop_discounts').update(updates).eq('id', id).select().single()
+    const { data, error } = await getDb().from(T.discounts).update(updates).eq('id', id).select().single()
     if (error) throw error
     return rowToDiscount(data)
   }
 
   async deleteDiscount(id: string): Promise<void> {
-    const { error } = await getDb().from('shop_discounts').delete().eq('id', id)
+    const { error } = await getDb().from(T.discounts).delete().eq('id', id)
     if (error) throw error
   }
 }

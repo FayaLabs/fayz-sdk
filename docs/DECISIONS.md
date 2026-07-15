@@ -3,6 +3,58 @@
 One entry per locked decision, newest first. A decision stays here until explicitly superseded.
 Format: **date — decision** · rationale · consequences.
 
+## 2026-07-08 — `fayz create` scaffolds real apps; the builder-agent simulation is a Claude Code skill
+The CLI's stub templates (placeholder runtime, zero plugins) were replaced with the proven dogfood
+shapes (pulse-store / beauty-saas / course-members) — generated apps compile against published npm
+and boot on mock providers with no env. The agent brain deliberately lives OUTSIDE the CLI:
+`.claude/skills/fayz-create` plays the platform builder (brief → ≤4 product questions incl. look &
+feel and real-vs-invented catalog → `fayz create --dir ~/dev/fayz-app/_create --install` →
+personalization to dogfood depth incl. Unsplash imagery → build/doctor/browser gate). Rationale: the
+CLI stays a deterministic tool any agent (platform builder, Claude Code, CI) can invoke; intelligence
+is never baked into the binary. Proven e2e 2026-07-08 (Vitalis storefront). Consequences:
+`release-channels.json` is now load-bearing for scaffold quality (was 5 minors stale, unnoticed) —
+`scripts/sync-release-channels.mjs` is release step 4b; `@fayz-ai/portal` promoted to the supported
+surface. Spec: AI-BUILDER §1/§4.
+
+## 2026-07-06 — Distribution split: protocol public, products private
+Verified exposure: every @fayz-ai package is on public npm under MIT — the commercial plugins are
+legally reusable by anyone (published versions stay MIT forever). Locked: substrate packages
+(sdk/core/db/auth/ui — what community code compiles against) stay public; domain plugins +
+commercial templates (plugin-*, saas, shop, storefront, courses, portal) move to a restricted
+registry + proprietary license at their next release, old versions `npm deprecate`d. Registry
+mechanism still open (ROADMAP Appendix B #1). No mass unpublish (breaks installs, rarely works).
+Spec: docs/DISTRIBUTION.md. Consequence: editor containers + app CI need registry auth before the flip.
+
+## 2026-07-06 — manifest.migrations[] is THE schema delivery mechanism
+Loose `.sql` files in a plugin not wired into its manifest are a contract violation — the plugin
+lies about what installing it provisions. Census at lock: tasks wired; crm/financial/inventory/forms
+loose (⚠); agenda ships none. Remediation = Phase 1 (FAY-1252/1211), runner = FAY-1205.
+Spec: docs/DATA-MODEL.md §5. Migrations are append-only once applied to any real DB.
+
+## 2026-07-06 — Supabase topology standard: shared product projects vs dedicated per SaaS
+De-facto dogfood reality, now locked as the rule the builder follows: product instances (shops,
+course sites) land in the shared product project (FayzShop by store_id, FayzCourse); a business's
+SaaS gets a dedicated project. No per-domain project federation. Spec: docs/DATA-MODEL.md §7;
+builder decision tree: docs/AI-BUILDER.md §8. Open: project ownership + provisioning automation
+(ROADMAP Appendix B #12).
+
+## 2026-07-06 — One plugin-maturity taxonomy: the capability gate's classification
+`check-plugin-capability.mjs` output (capability/partial/visual + [experimental] label + ENFORCED
+allowlist) is the only maturity language; the old Solid/Partial/Early-scaffold census taxonomy is
+retired. Census lives in ROADMAP.md Appendix A, regenerated from the script — never hand-edited.
+
+## 2026-07-06 — Cross-plugin data: links via the spine, never cross-prefix FKs
+A plugin's tables never FK another plugin's prefix; relations go through saas_core spine ids (or a
+link table owned by the declaring plugin), resolved at query time. Rationale: independent
+install/uninstall (Medusa defineLink discipline). Mechanism (formal primitive vs convention +
+doctor scan) still open (Appendix B #5). Spec: docs/DATA-MODEL.md §4.
+
+## 2026-07-06 — Docs refactor: UPPERCASE canon set + status-label grammar
+docs/ rewritten as 16 canonical UPPERCASE documents (map: docs/README.md); superseded docs
+tombstoned into docs/archive/ with ledger rows. Claims carry [implemented]/[partial]/
+[planned FAY-x]/[decision-needed] labels; CI claims must cite the enforcing script; AI-BUILDER.md
+is versioned (v0.1) and changes to it require an entry here. A doc that over-promises vs code is a bug.
+
 ## 2026-07-03 — One primary add action per module; config picks its face, never both
 With `quickAdd: true` plugin-financial rendered three add affordances at once (quick-add pair +
 the ERP "+ New" menu). Rule: a module header exposes ONE add entry point — `quickAdd: true` (B2C)
@@ -54,7 +106,7 @@ are discriminated by an explicit `__kind: 'saas-theme'` marker (`isSaasTheme()` 
 
 ## 2026-07-01 — Portfolio honesty: skeleton plugins are labeled `[experimental]`
 8 plugins (reports, conversations, shop, dashboard, courses, automations, reputation, sites) carry
-the label in package.json + README until they meet the capability bar (PLUGIN_PATTERNS.md).
+the label in package.json + README until they meet the capability bar (PLUGIN-PATTERNS.md).
 The advertised surface must equal the real surface — an AI builder reads package metadata.
 
 ## 2026-06-17 — Migration architecture locked

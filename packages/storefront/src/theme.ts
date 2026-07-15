@@ -33,6 +33,10 @@ export interface StorefrontThemeColors {
   /** Announcement bar */
   announcementBackground?: string
   announcementForeground?: string
+  /** Secondary brand accent (e.g. a gourmet gold beside the primary). Emitted
+   *  as `--sf-accent` / `--sf-accent-foreground` and the `accent` tailwind token. */
+  accent?: string
+  accentForeground?: string
 }
 
 export interface StorefrontThemeFont {
@@ -40,7 +44,11 @@ export interface StorefrontThemeFont {
   heading: string
   /** Body font, e.g. 'Rubik' */
   body: string
-  /** Google Fonts families to load (defaults to heading+body) */
+  /** Optional oversized display face for hero words (emitted as `--sf-font-display`). */
+  display?: string
+  /** Optional serif accent for quotes/editorial (emitted as `--sf-font-serif`). */
+  serif?: string
+  /** Google Fonts families to load (defaults to heading+body+display+serif) */
   googleFonts?: string[]
   /** Fallback stack — default sans-serif; use 'serif' for editorial themes */
   fallback?: 'sans-serif' | 'serif'
@@ -58,8 +66,11 @@ export interface StorefrontTheme {
     uppercaseNav?: boolean
     /** Show category shortcuts after primary nav links. Default true. */
     showCategories?: boolean
-    /** Show the storefront search input in the header. Default true. */
+    /** Show the storefront search in the header. Default true. */
     showSearch?: boolean
+    /** Header search presentation: a full input ('full', default) or a compact
+     *  icon button that expands into an input on click ('icon'). */
+    searchStyle?: 'full' | 'icon'
   }
   productCard?: {
     style?: CardStyle
@@ -67,6 +78,11 @@ export interface StorefrontTheme {
   }
   /** Uppercase CTA buttons with letter-spacing (Uyuni/Flex tone) */
   uppercaseButtons?: boolean
+  /** Brand-token passthrough. Each entry is emitted verbatim as a `--<key>` CSS
+   *  custom property, so a store can add gradients, glows, extra colors, or
+   *  letter-spacing the fixed schema doesn't enumerate — without editing the SDK.
+   *  e.g. { 'grad-ember': 'linear-gradient(...)', 'glow-ember': '0 0 0 1px ...' }. */
+  tokens?: Record<string, string>
 }
 
 const RADIUS_MAP: Record<StorefrontRadius, { button: string; card: string; input: string }> = {
@@ -90,6 +106,8 @@ const COLOR_VAR_MAP: Record<keyof StorefrontThemeColors, string> = {
   headerForeground: '--sf-header-fg',
   announcementBackground: '--sf-announcement-bg',
   announcementForeground: '--sf-announcement-fg',
+  accent: '--sf-accent',
+  accentForeground: '--sf-accent-foreground',
 }
 
 export function themeToCss(theme: StorefrontTheme): string {
@@ -111,6 +129,14 @@ export function themeToCss(theme: StorefrontTheme): string {
     const fallback = theme.font.fallback ?? 'sans-serif'
     lines.push(`--font-family: '${theme.font.body}', ${fallback};`)
     lines.push(`--sf-font-heading: '${theme.font.heading}', ${fallback};`)
+    if (theme.font.display) lines.push(`--sf-font-display: '${theme.font.display}', ${fallback};`)
+    if (theme.font.serif) lines.push(`--sf-font-serif: '${theme.font.serif}', serif;`)
+  }
+
+  // Brand-token passthrough — emit each entry as a raw CSS custom property.
+  for (const [key, value] of Object.entries(theme.tokens ?? {})) {
+    const name = key.startsWith('--') ? key : `--${key}`
+    lines.push(`${name}: ${value};`)
   }
 
   const radius = RADIUS_MAP[theme.radius ?? 'soft']
@@ -135,7 +161,11 @@ export function themeToCss(theme: StorefrontTheme): string {
 
 function googleFontsHref(theme: StorefrontTheme): string | null {
   if (!theme.font) return null
-  const families = theme.font.googleFonts ?? [theme.font.heading, theme.font.body]
+  const families =
+    theme.font.googleFonts ??
+    [theme.font.heading, theme.font.body, theme.font.display, theme.font.serif].filter(
+      (f): f is string => Boolean(f),
+    )
   const unique = [...new Set(families)]
   const params = unique
     .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@300;400;500;600;700`)

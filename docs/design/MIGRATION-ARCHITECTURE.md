@@ -1,6 +1,6 @@
 # Fayz Migration Architecture — LOCKED
 
-**Status: locked v1 (2026-06-17).** This is the canonical spec every `fayz-app/` project follows.
+**Status: locked v1 (2026-06-17).** The canonical *summary* now lives in [../DATA-MODEL.md](../DATA-MODEL.md) §5; this RFC remains the detailed spec every `fayz-app/` project follows.
 The reasoning/history lives in [PLUGIN-MIGRATIONS.md](./PLUGIN-MIGRATIONS.md); this is the rule.
 
 ---

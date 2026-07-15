@@ -54,14 +54,14 @@ export interface CrmPluginOptions {
   /** Contact/person lookup for client search in quotes and leads */
   contactLookup?: import('@fayz-ai/saas').EntityLookup
   /** Client conversion config — when a lead is approved, CRM converts the person
-   *  to a client by updating `persons.kind` and creating the extension table record.
+   *  to a client by updating `people.kind` and creating the extension table record.
    *  @example { archetypeKind: 'customer', extensionTable: 'clients', fkColumn: 'person_id' } */
   clientConversion?: {
-    /** The archetype kind to set on persons.kind (e.g., 'customer') */
+    /** The archetype kind to set on people.kind (e.g., 'customer') */
     archetypeKind: string
     /** Extension table name (e.g., 'clients') in public schema */
     extensionTable: string
-    /** FK column pointing to persons.id (e.g., 'person_id') */
+    /** FK column pointing to people.id (e.g., 'person_id') */
     fkColumn: string
   }
 }
@@ -137,6 +137,9 @@ export function createCrmPlugin(options?: CrmPluginOptions): PluginManifest {
     version: '1.0.0',
     scope: options?.scope ?? 'universal',
     verticalId: options?.verticalId,
+    // Sales-pipeline/lead-management is a business-ops tool — targets the
+    // saas/admin Panel world, not the ecommerce storefront.
+    scaffolds: ['saas'],
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [
