@@ -5,6 +5,7 @@ import { deploy } from './commands/deploy.js'
 import { doctor } from './commands/doctor.js'
 import { extract } from './commands/extract.js'
 import { login, logout } from './commands/login.js'
+import { skill } from './commands/skill.js'
 
 const HELP = `fayz — Fayz SDK CLI
 
@@ -15,6 +16,8 @@ Usage:
   fayz extract [dir]                      Assisted code-config → manifest migration
   fayz db apply [dir] --dry-run           Plan the Supabase migration order (spine → drizzle → seed → plugins)
   fayz db apply [dir] [--yes]             Apply the plan via the Supabase Management API (prompts unless --yes)
+  fayz skill list [--json]                Cardápio curado de skills (oficiais primeiro; --json p/ agentes)
+  fayz skill add <id> [dir]               Instala uma skill oficial em .claude/skills/ (--force sobrescreve)
   fayz --help                             Show this help
   fayz --version                          Show version
 
@@ -56,6 +59,8 @@ async function main(argv: string[]): Promise<number> {
       return create(rest[0] ?? '', rest[1] ?? '')
     case 'db':
       return db(rest[0], rest.slice(1))
+    case 'skill':
+      return skill(rest[0], rest.slice(1))
     case 'login':
       return login(rest)
     case 'logout':

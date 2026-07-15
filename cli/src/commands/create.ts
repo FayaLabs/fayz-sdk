@@ -266,6 +266,10 @@ not new code.
 - \`src/registry.tsx\` — app-local custom blocks/pages/components (customization ladder levels 5–7).
 - \`.env.example\` — copy to \`.env.local\` and fill in Supabase values (see below).
 
+## Skills (procedimentos do agente)
+- As skills deste projeto vivem em \`.claude/skills/\` — qualquer agente que leia skills as encontra.
+- Rode \`fayz skill list\` para o cardápio curado (oficiais primeiro) e \`fayz skill add <id>\` para instalar uma.
+
 ## Personalization checklist
 - Rename / retheme: edit \`name\`, \`theme\`, and the surface \`options\` in \`app.manifest.json\`.
 - Content: edit the surface \`options\` (home sections, footer, announcement, etc.).

@@ -12,6 +12,7 @@ export default defineConfig({
     'lib/fayz-platform': 'src/lib/fayz-platform.ts',
     'lib/deploy-files': 'src/lib/deploy-files.ts',
     'commands/deploy': 'src/commands/deploy.ts',
+    'commands/skill': 'src/commands/skill.ts',
   },
   format: ['esm'],
   target: 'node18',

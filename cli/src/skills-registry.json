@@ -1,0 +1,102 @@
+{
+  "$comment": "Curated Fayz skills registry — official first (the golden path), then community (skills.sh, installed by the dev, never fetched by this CLI), then internal-roadmap (in development). Order in this array is the display order. `source: bundled` skills ship their SKILL.md inside the CLI (see src/templates/skills/). `source: skills.sh` skills are installed by the dev via `npx skills add <installRef>` — this CLI never runs third-party installers.",
+  "docs": "https://developers.fayz.ai/pt-BR/docs/ia/skills",
+  "skills": [
+    {
+      "id": "fayz-descoberta",
+      "tier": "official",
+      "title": "Descoberta de produto",
+      "description": "Entrevista estruturada de 8 perguntas que vira um PRODUCT-BRIEF.md acionável.",
+      "source": "bundled"
+    },
+    {
+      "id": "fayz-create",
+      "tier": "official",
+      "title": "Criar o app",
+      "description": "Bootstrapa um app real via CLI a partir do brief e personaliza até profundidade de dogfood.",
+      "source": "bundled"
+    },
+    {
+      "id": "fayz-db",
+      "tier": "official",
+      "title": "Provisionar o banco",
+      "description": "Dry-run → revisar plano → apply → seeds idempotentes, com segurança no Supabase.",
+      "source": "bundled"
+    },
+    {
+      "id": "fayz-plugin",
+      "tier": "official",
+      "title": "Construir um plugin",
+      "description": "Cria um plugin incubadora que espelha o contrato do SDK e gradua ao marketplace.",
+      "source": "bundled"
+    },
+    {
+      "id": "fayz-ship",
+      "tier": "official",
+      "title": "Publicar",
+      "description": "Doctor verde → login → dry-run → deploy, na sequência segura de sempre.",
+      "source": "bundled"
+    },
+    {
+      "id": "ui-ux-pro-max",
+      "tier": "community",
+      "title": "UI/UX Pro Max",
+      "description": "Inteligência de design UI/UX com banco de estilos, paletas, tipografia e guidelines.",
+      "source": "skills.sh",
+      "installRef": "nextlevelbuilder/ui-ux-pro-max-skill"
+    },
+    {
+      "id": "frontend-design",
+      "tier": "community",
+      "title": "Frontend Design (Anthropic)",
+      "description": "Práticas de design de frontend mantidas pela Anthropic.",
+      "source": "skills.sh",
+      "installRef": "anthropics/skills#frontend-design"
+    },
+    {
+      "id": "web-design-guidelines",
+      "tier": "community",
+      "title": "Web Design Guidelines (Vercel)",
+      "description": "Guidelines de web design da Vercel Labs.",
+      "source": "skills.sh",
+      "installRef": "vercel-labs/skills#web-design-guidelines"
+    },
+    {
+      "id": "vercel-react-best-practices",
+      "tier": "community",
+      "title": "React Best Practices (Vercel)",
+      "description": "Boas práticas de React da Vercel Labs.",
+      "source": "skills.sh",
+      "installRef": "vercel-labs/skills#vercel-react-best-practices"
+    },
+    {
+      "id": "supabase-postgres-best-practices",
+      "tier": "community",
+      "title": "Supabase Postgres Best Practices",
+      "description": "Boas práticas de Postgres/Supabase mantidas pela Supabase.",
+      "source": "skills.sh",
+      "installRef": "supabase/skills#supabase-postgres-best-practices"
+    },
+    {
+      "id": "conceito-financeiro",
+      "tier": "internal-roadmap",
+      "title": "Conceito financeiro",
+      "description": "Modelagem de conceitos financeiros (reconciliação, contas). Em desenvolvimento.",
+      "source": "roadmap"
+    },
+    {
+      "id": "integrations",
+      "tier": "internal-roadmap",
+      "title": "Integrações",
+      "description": "Conectores de provedores externos (control plane + data plane). Em desenvolvimento.",
+      "source": "roadmap"
+    },
+    {
+      "id": "module-building",
+      "tier": "internal-roadmap",
+      "title": "Construção de módulos",
+      "description": "Autoria de módulos/pacotes do SDK além de plugins. Em desenvolvimento.",
+      "source": "roadmap"
+    }
+  ]
+}
