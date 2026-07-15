@@ -170,6 +170,16 @@ export const MIGRATION_002_DOCUMENT_ARCHETYPE = `-- ============================
 -- A document is any record associated with a person (or standalone):
 -- forms, images, attachments, prescriptions, contracts, etc.
 -- The \`kind\` column discriminates the type.
+--
+-- DATA SAFETY (converted pools): plg_forms_documents may already hold REAL
+-- rows in its PRE-archetype shape (its own \`id\` PK, no \`document_id\` column —
+-- see 001_frm_base.sql). This migration MIGRATES those rows into the new
+-- document archetype instead of dropping them:
+--   * pre-archetype + rows   -> copy each legacy row into public.documents
+--                               (reusing its id) + into the new extension
+--                               table, migrate its files, then drop legacy.
+--   * pre-archetype + empty  -> plain drop + create (fresh shape).
+--   * already new shape      -> no-op.
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.documents (
@@ -202,30 +212,54 @@ CREATE INDEX IF NOT EXISTS idx_documents_tenant ON public.documents(tenant_id, k
 CREATE INDEX IF NOT EXISTS idx_documents_person ON public.documents(person_id);
 CREATE INDEX IF NOT EXISTS idx_documents_status ON public.documents(tenant_id, status);
 
+DROP POLICY IF EXISTS "documents_select" ON public.documents;
 CREATE POLICY "documents_select" ON public.documents
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "documents_insert" ON public.documents;
 CREATE POLICY "documents_insert" ON public.documents
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "documents_update" ON public.documents;
 CREATE POLICY "documents_update" ON public.documents
   FOR UPDATE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "documents_delete" ON public.documents;
 CREATE POLICY "documents_delete" ON public.documents
   FOR DELETE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
 -- ============================================================
--- Alter plg_forms_documents to become extension table for 'form' kind
+-- Reconcile plg_forms_documents / plg_forms_document_files with the archetype.
 -- ============================================================
 
--- Drop old plg_forms_documents and recreate as extension
-DROP VIEW IF EXISTS public.v_frm_documents;
-DROP TABLE IF EXISTS public.plg_forms_document_files;
-DROP TABLE IF EXISTS public.plg_forms_documents;
+-- Step 1: if a PRE-archetype plg_forms_documents is present (no document_id
+-- column), rename it (and its files table + dependent view) out of the way so
+-- the new archetype-shaped tables can be created and — when it holds rows —
+-- its data copied across. Fully guarded, so already-migrated pools skip this.
+DO $$
+BEGIN
+  IF to_regclass('public.plg_forms_documents') IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'plg_forms_documents'
+         AND column_name = 'document_id'
+     ) THEN
+    DROP VIEW IF EXISTS public.v_frm_documents;
+    ALTER TABLE public.plg_forms_documents RENAME TO plg_forms_documents_legacy;
+    IF to_regclass('public.plg_forms_document_files') IS NOT NULL THEN
+      ALTER TABLE public.plg_forms_document_files RENAME TO plg_forms_document_files_legacy;
+    END IF;
+  END IF;
+END $$;
+
+-- Step 2: create the new archetype-shaped extension tables. IF NOT EXISTS makes
+-- this a no-op on pools already migrated to the new shape; after Step 1 the
+-- names are free on pre-archetype pools.
 
 -- plg_forms_documents: extension table for form-type documents
-CREATE TABLE public.plg_forms_documents (
+CREATE TABLE IF NOT EXISTS public.plg_forms_documents (
   document_id uuid PRIMARY KEY REFERENCES public.documents(id) ON DELETE CASCADE,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   template_id uuid NOT NULL REFERENCES public.plg_forms_templates(id),
@@ -240,21 +274,25 @@ ALTER TABLE public.plg_forms_documents ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_plg_forms_documents_template ON public.plg_forms_documents(template_id);
 
+DROP POLICY IF EXISTS "plg_forms_documents_select" ON public.plg_forms_documents;
 CREATE POLICY "plg_forms_documents_select" ON public.plg_forms_documents
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "plg_forms_documents_insert" ON public.plg_forms_documents;
 CREATE POLICY "plg_forms_documents_insert" ON public.plg_forms_documents
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "plg_forms_documents_update" ON public.plg_forms_documents;
 CREATE POLICY "plg_forms_documents_update" ON public.plg_forms_documents
   FOR UPDATE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "plg_forms_documents_delete" ON public.plg_forms_documents;
 CREATE POLICY "plg_forms_documents_delete" ON public.plg_forms_documents
   FOR DELETE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
 
 -- plg_forms_document_files: file attachments for form fields
-CREATE TABLE public.plg_forms_document_files (
+CREATE TABLE IF NOT EXISTS public.plg_forms_document_files (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   document_id uuid NOT NULL REFERENCES public.documents(id) ON DELETE CASCADE,
@@ -272,18 +310,68 @@ ALTER TABLE public.plg_forms_document_files ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_plg_forms_document_files_document ON public.plg_forms_document_files(document_id);
 
+DROP POLICY IF EXISTS "plg_forms_document_files_select" ON public.plg_forms_document_files;
 CREATE POLICY "plg_forms_document_files_select" ON public.plg_forms_document_files
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "plg_forms_document_files_insert" ON public.plg_forms_document_files;
 CREATE POLICY "plg_forms_document_files_insert" ON public.plg_forms_document_files
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "plg_forms_document_files_update" ON public.plg_forms_document_files;
 CREATE POLICY "plg_forms_document_files_update" ON public.plg_forms_document_files
   FOR UPDATE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
+DROP POLICY IF EXISTS "plg_forms_document_files_delete" ON public.plg_forms_document_files;
 CREATE POLICY "plg_forms_document_files_delete" ON public.plg_forms_document_files
   FOR DELETE TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()));
+
+-- Step 3: if legacy rows exist, migrate them, then drop the quarantined legacy
+-- tables. Reusing each legacy id as the documents.id keeps every legacy file's
+-- document_id FK valid after the copy. ON CONFLICT DO NOTHING makes a partial
+-- re-run safe.
+DO $$
+BEGIN
+  IF to_regclass('public.plg_forms_documents_legacy') IS NOT NULL THEN
+    -- 3a. base document (one per legacy form document; is_active mirrors NOT is_deleted)
+    INSERT INTO public.documents (
+      id, tenant_id, kind, person_id, title, status, notes, metadata,
+      is_active, created_by, updated_by, created_at, updated_at
+    )
+    SELECT
+      id, tenant_id, 'form', person_id, title, status, notes, metadata,
+      NOT COALESCE(is_deleted, false), created_by, updated_by, created_at, updated_at
+    FROM public.plg_forms_documents_legacy
+    ON CONFLICT (id) DO NOTHING;
+
+    -- 3b. form extension row (keyed by the reused document id)
+    INSERT INTO public.plg_forms_documents (
+      document_id, tenant_id, template_id, data, signed_at, signed_by, created_at, updated_at
+    )
+    SELECT
+      id, tenant_id, template_id, data, signed_at, signed_by, created_at, updated_at
+    FROM public.plg_forms_documents_legacy
+    ON CONFLICT (document_id) DO NOTHING;
+
+    -- 3c. file attachments (document_id already points at the reused id)
+    IF to_regclass('public.plg_forms_document_files_legacy') IS NOT NULL THEN
+      INSERT INTO public.plg_forms_document_files (
+        id, tenant_id, document_id, field_key, file_url, file_name,
+        file_size, mime_type, sort_order, metadata, created_at
+      )
+      SELECT
+        id, tenant_id, document_id, field_key, file_url, file_name,
+        file_size, mime_type, sort_order, metadata, created_at
+      FROM public.plg_forms_document_files_legacy
+      ON CONFLICT (id) DO NOTHING;
+    END IF;
+  END IF;
+
+  -- Drop legacy remnants now that any data has been copied across.
+  DROP TABLE IF EXISTS public.plg_forms_document_files_legacy;
+  DROP TABLE IF EXISTS public.plg_forms_documents_legacy;
+END $$;
 
 -- View: all documents for a person with form data joined when applicable
 CREATE OR REPLACE VIEW public.v_documents AS

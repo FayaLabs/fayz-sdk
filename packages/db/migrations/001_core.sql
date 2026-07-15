@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Tenants (organizations)
-CREATE TABLE public.tenants (
+CREATE TABLE IF NOT EXISTS public.tenants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   slug text UNIQUE NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE public.tenants (
 );
 
 -- Profiles (extends auth.users)
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text,
   full_name text,
@@ -28,7 +28,7 @@ CREATE TABLE public.profiles (
 );
 
 -- Tenant members (org membership + role)
-CREATE TABLE public.tenant_members (
+CREATE TABLE IF NOT EXISTS public.tenant_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -42,8 +42,10 @@ CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
 
+DROP TRIGGER IF EXISTS tenants_updated_at ON public.tenants;
 CREATE TRIGGER tenants_updated_at BEFORE UPDATE ON public.tenants
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+DROP TRIGGER IF EXISTS profiles_updated_at ON public.profiles;
 CREATE TRIGGER profiles_updated_at BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
@@ -91,7 +93,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$
 $$;
 
 -- Plans
-CREATE TABLE public.plans (
+CREATE TABLE IF NOT EXISTS public.plans (
   id text PRIMARY KEY,
   name text NOT NULL,
   description text,
@@ -105,7 +107,7 @@ CREATE TABLE public.plans (
 );
 
 -- Permissions (RBAC)
-CREATE TABLE public.permissions (
+CREATE TABLE IF NOT EXISTS public.permissions (
   id text PRIMARY KEY,
   category text NOT NULL,
   description text,
@@ -113,7 +115,7 @@ CREATE TABLE public.permissions (
 );
 
 -- Role permissions (default grants per role)
-CREATE TABLE public.role_permissions (
+CREATE TABLE IF NOT EXISTS public.role_permissions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   role text NOT NULL,
   permission_id text NOT NULL REFERENCES public.permissions(id) ON DELETE CASCADE,
@@ -122,7 +124,7 @@ CREATE TABLE public.role_permissions (
 );
 
 -- Tenant role overrides (per-tenant permission customization)
-CREATE TABLE public.tenant_role_overrides (
+CREATE TABLE IF NOT EXISTS public.tenant_role_overrides (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   role text NOT NULL,
@@ -132,7 +134,7 @@ CREATE TABLE public.tenant_role_overrides (
 );
 
 -- Invitations
-CREATE TABLE public.invitations (
+CREATE TABLE IF NOT EXISTS public.invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   email text NOT NULL,
@@ -147,7 +149,7 @@ CREATE TABLE public.invitations (
 );
 
 -- Payment events (webhook log)
-CREATE TABLE public.payment_events (
+CREATE TABLE IF NOT EXISTS public.payment_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid REFERENCES public.tenants(id) ON DELETE SET NULL,
   stripe_event_id text UNIQUE,
@@ -157,7 +159,7 @@ CREATE TABLE public.payment_events (
 );
 
 -- Locations (multi-branch)
-CREATE TABLE public.locations (
+CREATE TABLE IF NOT EXISTS public.locations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   kind text NOT NULL DEFAULT 'branch',
@@ -178,11 +180,12 @@ CREATE TABLE public.locations (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+DROP TRIGGER IF EXISTS locations_updated_at ON public.locations;
 CREATE TRIGGER locations_updated_at BEFORE UPDATE ON public.locations
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- Location members (staff assigned to locations)
-CREATE TABLE public.location_members (
+CREATE TABLE IF NOT EXISTS public.location_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   location_id uuid NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -191,7 +194,7 @@ CREATE TABLE public.location_members (
 );
 
 -- Audit logs
-CREATE TABLE public.audit_logs (
+CREATE TABLE IF NOT EXISTS public.audit_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid REFERENCES public.tenants(id) ON DELETE SET NULL,
   user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -203,7 +206,7 @@ CREATE TABLE public.audit_logs (
 );
 
 -- Subscriptions (billing)
-CREATE TABLE public.subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   plan text NOT NULL DEFAULT 'free',
@@ -217,11 +220,12 @@ CREATE TABLE public.subscriptions (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+DROP TRIGGER IF EXISTS subscriptions_updated_at ON public.subscriptions;
 CREATE TRIGGER subscriptions_updated_at BEFORE UPDATE ON public.subscriptions
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- Invoices
-CREATE TABLE public.invoices (
+CREATE TABLE IF NOT EXISTS public.invoices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   stripe_invoice_id text,
@@ -233,7 +237,7 @@ CREATE TABLE public.invoices (
 );
 
 -- Notifications
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid REFERENCES public.tenants(id) ON DELETE CASCADE,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -262,71 +266,100 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 -- Tenants: members can see, authenticated can create
+DROP POLICY IF EXISTS "tenants_select" ON public.tenants;
 CREATE POLICY "tenants_select" ON public.tenants FOR SELECT
   USING (id IN (SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "tenants_insert" ON public.tenants;
 CREATE POLICY "tenants_insert" ON public.tenants FOR INSERT TO authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "tenants_update" ON public.tenants;
 CREATE POLICY "tenants_update" ON public.tenants FOR UPDATE
   USING (public.is_tenant_admin(id));
 
 -- Profiles: own profile only
+DROP POLICY IF EXISTS "profiles_select" ON public.profiles;
 CREATE POLICY "profiles_select" ON public.profiles FOR SELECT USING (id = auth.uid());
+DROP POLICY IF EXISTS "profiles_insert" ON public.profiles;
 CREATE POLICY "profiles_insert" ON public.profiles FOR INSERT WITH CHECK (id = auth.uid());
+DROP POLICY IF EXISTS "profiles_update" ON public.profiles;
 CREATE POLICY "profiles_update" ON public.profiles FOR UPDATE USING (id = auth.uid());
 
 -- Tenant members: see own, insert own, admins manage
+DROP POLICY IF EXISTS "members_select" ON public.tenant_members;
 CREATE POLICY "members_select" ON public.tenant_members FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "members_insert_own" ON public.tenant_members;
 CREATE POLICY "members_insert_own" ON public.tenant_members FOR INSERT WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "members_update" ON public.tenant_members;
 CREATE POLICY "members_update" ON public.tenant_members FOR UPDATE USING (public.is_tenant_admin(tenant_id));
+DROP POLICY IF EXISTS "members_delete" ON public.tenant_members;
 CREATE POLICY "members_delete" ON public.tenant_members FOR DELETE USING (public.is_tenant_admin(tenant_id));
 
 -- Plans/permissions: readable by all authenticated
+DROP POLICY IF EXISTS "plans_select" ON public.plans;
 CREATE POLICY "plans_select" ON public.plans FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "perms_select" ON public.permissions;
 CREATE POLICY "perms_select" ON public.permissions FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "role_perms_select" ON public.role_permissions;
 CREATE POLICY "role_perms_select" ON public.role_permissions FOR SELECT TO authenticated USING (true);
 
 -- Tenant role overrides: members can see their tenant's overrides
+DROP POLICY IF EXISTS "overrides_select" ON public.tenant_role_overrides;
 CREATE POLICY "overrides_select" ON public.tenant_role_overrides FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "overrides_manage" ON public.tenant_role_overrides;
 CREATE POLICY "overrides_manage" ON public.tenant_role_overrides FOR ALL
   USING (public.is_tenant_admin(tenant_id));
 
 -- Invitations: admins manage, anyone can read (to accept)
+DROP POLICY IF EXISTS "invites_select" ON public.invitations;
 CREATE POLICY "invites_select" ON public.invitations FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "invites_insert" ON public.invitations;
 CREATE POLICY "invites_insert" ON public.invitations FOR INSERT
   WITH CHECK (public.is_tenant_admin(tenant_id));
+DROP POLICY IF EXISTS "invites_update" ON public.invitations;
 CREATE POLICY "invites_update" ON public.invitations FOR UPDATE
   USING (public.is_tenant_admin(tenant_id));
+DROP POLICY IF EXISTS "invites_delete" ON public.invitations;
 CREATE POLICY "invites_delete" ON public.invitations FOR DELETE
   USING (public.is_tenant_admin(tenant_id));
 
 -- Locations: tenant members can see, admins manage
+DROP POLICY IF EXISTS "locations_select" ON public.locations;
 CREATE POLICY "locations_select" ON public.locations FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "locations_manage" ON public.locations;
 CREATE POLICY "locations_manage" ON public.locations FOR ALL
   USING (public.is_tenant_admin(tenant_id));
 
 -- Location members: same as locations
+DROP POLICY IF EXISTS "loc_members_select" ON public.location_members;
 CREATE POLICY "loc_members_select" ON public.location_members FOR SELECT
   USING (location_id IN (SELECT id FROM public.locations WHERE tenant_id IN (
     SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()
   )));
 
 -- Subscriptions/invoices: members can see
+DROP POLICY IF EXISTS "subs_select" ON public.subscriptions;
 CREATE POLICY "subs_select" ON public.subscriptions FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "invoices_select" ON public.invoices;
 CREATE POLICY "invoices_select" ON public.invoices FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()));
 
 -- Payment events: service_role only (webhook handler)
+DROP POLICY IF EXISTS "events_service" ON public.payment_events;
 CREATE POLICY "events_service" ON public.payment_events FOR ALL TO service_role USING (true);
 
 -- Audit logs: tenant members can see their tenant's logs
+DROP POLICY IF EXISTS "audit_select" ON public.audit_logs;
 CREATE POLICY "audit_select" ON public.audit_logs FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "audit_insert" ON public.audit_logs;
 CREATE POLICY "audit_insert" ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Notifications: own notifications
+DROP POLICY IF EXISTS "notif_select" ON public.notifications;
 CREATE POLICY "notif_select" ON public.notifications FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "notif_update" ON public.notifications;
 CREATE POLICY "notif_update" ON public.notifications FOR UPDATE USING (user_id = auth.uid());
 
 -- Grant schema access (public is the only API schema now)

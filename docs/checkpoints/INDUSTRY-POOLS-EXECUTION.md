@@ -43,7 +43,7 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
   - [x] Registry Prisma models+seed+hand-written migration: fayz repo branch feat/industry-pools-registry commit ce08ed5 (prisma validate + tsc clean; push classifier-blocked)
   - [ ] ✋ FOUNDER: `git push -u origin feat/industry-pools-registry` (repo fayz) + `prisma migrate deploy` + seed on platform Postgres
 - [ ] M1 Core v1 + plg_ wave + Runner v2 — status: todo
-  - db baseline rewrite → public (people/appointments); 000_core_v1_convert.sql; 000b_gphx_quarantine.sql; 010_migration_ledger.sql
+  - db baseline rewrite → public (people/appointments); 0000_legacy_quarantine.sql; 000_core_v1_convert.sql; 010_migration_ledger.sql
   - plg_ renames in every plugin's SQL + tables.ts constants + providers (drop .schema('saas_core'))
   - views/RPCs re-emitted (v_public_services, get_available_slots, create_public_booking, v_leads, v_deals, v_invoice_balances, v_bookings→v_appointments)
   - unify migration representations (SQL files = source of truth; embed script regenerates inlines; pluginPackageName table-driven)

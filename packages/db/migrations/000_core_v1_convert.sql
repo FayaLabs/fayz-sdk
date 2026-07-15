@@ -17,15 +17,22 @@
 --   * Function BODIES and trigger function references do NOT auto-follow a
 --     schema move -> they are re-emitted below before saas_core is dropped.
 --
--- ORDERING NOTE (salon pool gphx only): 000b_gphx_quarantine.sql MUST be
--- applied BEFORE this file, because a legacy 0-row public.appointments would
--- otherwise block the bookings->appointments rename (guarded on target absence).
+-- ORDERING NOTE: 0000_legacy_quarantine.sql MUST be applied BEFORE this file.
+-- On any pool that already holds a legacy public.<target> table (e.g. a bespoke
+-- public.appointments, or a real public.subscriptions), that collision would
+-- block the corresponding move/rename here (each is guarded on target absence),
+-- leaving the live saas_core.<source> stranded for the CASCADE below to destroy.
+-- The quarantine step moves such collisions into legacy_pre_pools first.
 -- ============================================================================
 
 DO $convert$
 DECLARE
   t text;
   r record;
+  v_roles text;
+  v_using text;
+  v_check text;
+  v_sql text;
   core_tables text[] := ARRAY[
     'tenants', 'profiles', 'tenant_members', 'plans', 'permissions',
     'role_permissions', 'tenant_role_overrides', 'invitations',
@@ -265,8 +272,63 @@ BEGIN
     USING (booking_id IN (SELECT id FROM public.appointments WHERE tenant_id IN (SELECT public.user_tenant_ids())));
 
   -- --------------------------------------------------------------------------
-  -- 6. Drop the now-empty legacy schema (any residue is old wrappers/functions).
+  -- 5b. Re-point APP-table policies that still call saas_core.* helpers.
+  --     App-created tables (unknown to this converter — e.g. conversations,
+  --     conversation_messages) can carry RLS policies whose USING / WITH CHECK
+  --     bodies reference saas_core.user_tenant_ids() (FKs are OID-based and
+  --     survive the schema move, but policy bodies are text). DROP SCHEMA
+  --     saas_core CASCADE would cascade-drop such a policy, leaving its table
+  --     RLS-enabled with ZERO policies (a full lock-out). Rewrite each in
+  --     public terms first — GENERIC, driven by pg_policies text, never a list.
+  --     Idempotent: after the rewrite no body contains 'saas_core.', so a
+  --     re-run selects nothing.
   -- --------------------------------------------------------------------------
+  FOR r IN
+    SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND (
+        coalesce(qual, '') LIKE '%saas_core.%'
+        OR coalesce(with_check, '') LIKE '%saas_core.%'
+      )
+  LOOP
+    v_using := replace(coalesce(r.qual, ''), 'saas_core.', 'public.');
+    v_check := replace(coalesce(r.with_check, ''), 'saas_core.', 'public.');
+
+    -- Render the TO role list. PUBLIC is a keyword, never quote it.
+    SELECT string_agg(CASE WHEN role = 'public' THEN 'public' ELSE quote_ident(role) END, ', ')
+      INTO v_roles
+    FROM unnest(r.roles) AS role;
+
+    v_sql := format(
+      'CREATE POLICY %I ON public.%I AS %s FOR %s TO %s',
+      r.policyname, r.tablename, r.permissive, r.cmd, coalesce(v_roles, 'public')
+    );
+    IF r.qual IS NOT NULL THEN
+      v_sql := v_sql || format(' USING (%s)', v_using);
+    END IF;
+    IF r.with_check IS NOT NULL THEN
+      v_sql := v_sql || format(' WITH CHECK (%s)', v_check);
+    END IF;
+
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', r.policyname, r.tablename);
+    EXECUTE v_sql;
+    RAISE NOTICE 're-pointed policy %.% to public.* helpers', r.tablename, r.policyname;
+  END LOOP;
+
+  -- --------------------------------------------------------------------------
+  -- 6. Drop the now-empty legacy schema (any residue is old wrappers/functions).
+  --    SAFETY GATE: refuse to CASCADE if any BASE TABLE is still in saas_core —
+  --    that means a move/rename above silently skipped (a name collision the
+  --    quarantine step missed), and dropping now would destroy live data.
+  -- --------------------------------------------------------------------------
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'saas_core' AND table_type = 'BASE TABLE'
+  ) THEN
+    RAISE EXCEPTION 'saas_core still has tables after move — aborting before CASCADE (check name collisions / quarantine)';
+  END IF;
+
   DROP SCHEMA IF EXISTS saas_core CASCADE;
 
   -- --------------------------------------------------------------------------
