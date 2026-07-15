@@ -44,6 +44,11 @@ Qualidade alvo: beauty-saas. Plano aprovado em
 | F17 | seed RBAC | Catálogo `permissions`/`role_permissions` vazio: owner (implícito) funciona; admin/dentista/recepção não teriam acesso a nada | média | seed-rbac.sql encomendado (T5) |
 | F18 | fluxo signup dos SaaS | Cadastro exige magic link — trava testes/dev. Bypass validado: Admin API `email_confirm:true` + senha. Recomendação: modo dev com password signup habilitado (documentar em testar-e-debugar) | média | aberto (docs + template) |
 
+| F19 | AGENTS.md — duas fontes | Contrato semântico divergente: fayz/apps/api/.../scaffold/template/AGENTS.md (rico: manifest v2 estrito, panel vs admin, papéis sdk/shop/storefront, OAuth broker, slot contracts) ≠ AGENTS.md curto do cli create.ts. Visão do founder exige single-source | alta | recomendação: embarcar o contrato canônico no @fayz-ai/sdk (node_modules/@fayz-ai/sdk/AGENTS.md); plataforma e CLI copiam da mesma fonte |
+| F20 | shell topbar (UX) | Clique no botão-pai da seção só abre dropdown — não navega nem dá feedback; parece "não faz nada" (enganou founder, orquestrador e agente de teste). Deep-link #/rota funciona | média | aberto (SDK shell): parent click → navegar pro primeiro leaf ou indicar visualmente |
+| F21 | storefront blocks nativos (DX) | Gaps recorrentes de landing que forçaram registerBlock no figurinhas: hero multi-CTA, FAQ accordion, passos numerados, blocos com estado de runtime (countdown). benefits/products/testimonials/footer cobriram nativo | média | candidatos a blocos nativos do @fayz-ai/storefront |
+| F22 | RBAC keying (docs/DX) | Grants casam por PROFILE ID (`administrador`), não pelo nome intuitivo (`admin`) — SDK descarta silenciosamente roles desconhecidos (buildPermissionProfiles). Verbo é `edit` (não `update` como no beauty) | média | documentar em dados/rls + warning no doctor p/ role sem profile |
+
 ### Achados que CONFIRMARAM as docs (auditoria limpa)
 - Lane IA: 18 claims estruturais conferem (14/22 aiTools, tipos, BYO endpoint, conectores, WhatsApp=roadmap honesto). Só 1 baixa (rótulo de diagrama, corrigida).
 - dados/rls, auth/visao-geral, plugins-proprios/incubator, deploy/estatico, deploy/fayz, headless, visao-geral, dois-caminhos: limpos.
@@ -66,9 +71,21 @@ Qualidade alvo: beauty-saas. Plano aprovado em
   consultas/3 prontuários), user teste@teste.com c/ senha (bypass magic link),
   login real ✓, F16 tenant_roles corrigido (879050d), odontograma verificado
   com dados reais, screenshots em dentist-saas/docs/screenshots/.
-- [~] T5 typecheck/build/doctor + Playwright — agente em voo (suíte e2e/ + seed-rbac.sql)
-- [ ] T6 commit/GitHub/PR/report
-- [ ] T7 rodada 2 agêntica: PETSHOP via skill (encomenda do founder — F14)
+- [x] T5 gates + Playwright — suíte committada (82d5bbd): 5/5 verdes (login por
+  senha, KPIs, dropdown→#/clients, prontuário anamnese+odontograma 32 dentes,
+  financeiro); typecheck/build limpos; seed-rbac.sql (c5f5bc9) aplicado no pool
+  (76 permissions, 102 grants — keyed por profile id: administrador/dentista/recepcao).
+- [x] T6 fechamento — tutorial/07 exercitado (`fayz deploy . --dry-run` com CLI
+  p5: lista arquivos ✓, credencial ausente reportada ✓ — publish real gate P5.2);
+  `gh repo create` BLOQUEADO pelo classificador de permissões da sessão →
+  founder roda manualmente (comando no report). PR deste branch aberto.
+- [x] T7 (redefinido pelo founder: figurinhas, não petshop) —
+  fayz-app/figurinhas-express: recriação de figurinhasexpress.com.br 100% mock,
+  porta 5305, 9 seções (4 nativas benefits/products/testimonials/footer + 5
+  custom via registerBlock: fx-hero/fx-steps/fx-countdown/fx-faq/fx-wholesale),
+  checkout WhatsApp wa.me com pedido pré-preenchido, theme seams azul, zero
+  Supabase; build verde. Mapeamento nativo-vs-custom = F21. Serviu de prova
+  manual do pipeline `fayz new` (F14).
 
 ## F14 — Recomendação: create agêntico (skill sobre primitivas)
 Founder (2026-07-15): devs vão rodar com agents; o create deve ser agêntico.
