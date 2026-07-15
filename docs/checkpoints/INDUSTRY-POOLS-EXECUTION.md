@@ -1,6 +1,6 @@
 # INDUSTRY-POOLS-EXECUTION — pivot to industry-pool architecture
 
-Status: ACTIVE · Started: 2026-07-14 · Branch: feat/industry-pools
+Status: MERGED TO MAIN (2026-07-15) · Started: 2026-07-14 · Branch: feat/industry-pools
 Plan of record: ~/.claude/plans/baixa-esse-app-pra-imperative-sunbeam.md (approved by founder)
 Supersedes: FAYZ-CLOUD-MIGRATION.md (single-shared-project model) and its pending publish wave.
 
@@ -64,6 +64,8 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
 - [x] M5 COMPLETE (2026-07-15): smokes verdes em 8 apps (matriz no log + relatório final entregue ao founder). Pendentes por dependência externa: course-admin (WIP Vini), lojas retail pulse/tannat/shopfront/cristina (WIP da outra lane; pool+grants prontos). Original scope:  course-admin, marketplace-saas, resto-saas, agency-os, artorious, beauty-saas (read-mostly), retail stores (post-WIP), booking sites. Per app: manifest backend block, env, build, auth smoke + create-record smoke, fixed dev port. Deliverable: table app × pool × DB-state × plugins × port.
 
 ## Log
+
+- 2026-07-15 · MERGE WAVE (founder pediu review+merge de tudo exceto sdk#6/#7): 9 PRs de app/registry mergeados (beauty#7 exigiu resolução: main tinha "Version N" do Vini via editor — deps @fayz-ai dropadas + App.tsx placeholder; resolução preservou o app real + integrations dele, documentada no merge commit). fayz-sdk: review Opus da cadeia devcenter (#11/#12/#14 MERGE, segurança ok, PAT 0600/mascarado, deploy bloqueia .env) → cadeia era EMPILHADA (#14 base=p2, #12 base=p1) → ordem final: #14→#12 no stack, #15 mergeado no main primeiro (merge de main limpo, build+typecheck+78 cli tests), #13 auto-marcado, cauda devcenter reconciliada (1 conflito tsup=união; doctor(rest) preservado; 109/109 testes) → #11 mergeado. MAIN validado: build 34/34, 0 suítes falhando. resto#3 já merged (redundante). Codex beauty: #3 REBASE-NECESSÁRIO (1 ALTER pra plg_financial_movements + conflitos openbanking), #4 BLOQUEAR (edge fn + 6 migrations escritas contra saas_core/persons/bookings — reescrever pra core-v1). sdk#6/#7 de fora (founder).
 
 - 2026-07-15 · KEY PURGE (founder: NENHUMA key no git, nem publishable — regra permanente): expurgados .env.example do artorious/marketplace (placeholders) e fallbacks hardcoded dos 3 booking sites (website.tsx env-only com degrade gracioso; client Lovable do espaco idem). Gate permanente: cli 0.8.1 publicado com doctor hygiene.key-material (sb_publishable_/sb_secret_/JWT em arquivo trackeado = ERROR; placeholders passam; controle positivo validado). @fayz-ai/cli agora devDep ^0.8.0 nos 8 apps (lockfile pina 0.8.1; npx resolve local — hook não depende de rede). Varredura final independente: key-hits 0 e doctor 0 errors nos 8; builds verdes; /agendar dos 3 sites rendendo serviços via env local. PRs atualizados (commit de security separado do chore pra review limpa).
 
