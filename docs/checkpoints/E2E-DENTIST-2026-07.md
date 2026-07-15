@@ -39,6 +39,11 @@ Qualidade alvo: beauty-saas. Plano aprovado em
 | F12 | tarball @fayz-ai/db 0.1.2 (fayz-tarballs/) | Migrations desatualizadas vs branch (tinha 000b_gphx_quarantine, faltava 011_anon_write_revoke) — risco de apply divergente no pool | média | ✅ contornado: repack fresco do worktree pools instalado no dentist-saas; regenerar o tarball oficial fica p/ sessão pools |
 | F13 | release-channels agenda | Canal stable pina `plugin-agenda ^0.4.0` não satisfeito pelo npm 0.3.0 (mesmo item de F3, visão canal) | — | consolidado em F3 |
 
+| F15 | tarball plugin-financial 0.1.7 | Não embarca `007b_movement_payment_method_type.sql` → `008` falha em pool fresco (coluna inexistente). Repack via npm quebra (`workspace:^` cru — oficiais usam pnpm pack) | alta | contornado (007b injetado); **regerar tarballs oficiais via pnpm pack = sessão pools** |
+| F16 | shell @fayz-ai/saas × spine pools | Shell consulta `public.tenant_roles` (papéis customizados) que a spine industry-pools não provisiona → PostgREST 404. Beauty só funciona porque o seed legado a cria | alta | ✅ contornado no app (drizzle/0000_tenant_roles.sql, 879050d); fix definitivo: mover pra spine `@fayz-ai/db` |
+| F17 | seed RBAC | Catálogo `permissions`/`role_permissions` vazio: owner (implícito) funciona; admin/dentista/recepção não teriam acesso a nada | média | seed-rbac.sql encomendado (T5) |
+| F18 | fluxo signup dos SaaS | Cadastro exige magic link — trava testes/dev. Bypass validado: Admin API `email_confirm:true` + senha. Recomendação: modo dev com password signup habilitado (documentar em testar-e-debugar) | média | aberto (docs + template) |
+
 ### Achados que CONFIRMARAM as docs (auditoria limpa)
 - Lane IA: 18 claims estruturais conferem (14/22 aiTools, tipos, BYO endpoint, conectores, WhatsApp=roadmap honesto). Só 1 baixa (rótulo de diagrama, corrigida).
 - dados/rls, auth/visao-geral, plugins-proprios/incubator, deploy/estatico, deploy/fayz, headless, visao-geral, dois-caminhos: limpos.
@@ -54,10 +59,24 @@ Qualidade alvo: beauty-saas. Plano aprovado em
   (saída real confirmada), tema teal/md/light✓, plugins dashboard+crm+tasks✓,
   db apply --dry-run✓ (19 SQLs, spine idêntico ao ledger do pool após F12),
   create plugin prontuario✓. Passo 07 (publicar) fica no T6.
-- [ ] T3 DentalSoft build-out (config + prontuario)
-- [ ] T4 banco real + providers
-- [ ] T5 typecheck/build/doctor + Playwright
+- [x] T3 DentalSoft build-out — 4 commits (boot real 49ed437, config f55380e,
+  prontuario 15e77bf, seed cdaf4d8); shell REAL na 5302; typecheck/build/doctor ✓.
+- [x] T4 banco real — pool apply ledger-gated no mcbf (F15 capturado e contornado;
+  retomada pós-falha ✓), seed Clínica Sorriso (8 pacientes/12 procedimentos/9
+  consultas/3 prontuários), user teste@teste.com c/ senha (bypass magic link),
+  login real ✓, F16 tenant_roles corrigido (879050d), odontograma verificado
+  com dados reais, screenshots em dentist-saas/docs/screenshots/.
+- [~] T5 typecheck/build/doctor + Playwright — agente em voo (suíte e2e/ + seed-rbac.sql)
 - [ ] T6 commit/GitHub/PR/report
+- [ ] T7 rodada 2 agêntica: PETSHOP via skill (encomenda do founder — F14)
+
+## F14 — Recomendação: create agêntico (skill sobre primitivas)
+Founder (2026-07-15): devs vão rodar com agents; o create deve ser agêntico.
+Desenho: primitivas agent-grade na CLI (`fayz add plugin <id>`, `doctor --json`,
+`db apply --dry-run --json`) + skill oficial /fayz-create v2 (descoberta →
+PRODUCT-BRIEF → create → configurar → verificar). Validação empírica = T7
+(petshop). Caveat: F3/F2 travariam o agente igual — ordem: release wave →
+ligar template real no create → skill.
 
 ## Log de comandos
 Timeline operacional em scratchpad `e2e-command-log.md`; consolidada aqui no
