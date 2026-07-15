@@ -52,6 +52,25 @@ Qualidade alvo: beauty-saas. Plano aprovado em
 | F23 | Skills 1ª classe | Direção founder: skills oficiais primeiro (trilho da CLI) → comunidade skills.sh → internas. ENTREGUE: página ia/skills + `fayz skill list/add` (registry 13 skills, official-first, --json, 70/70 testes, e36db58) | — | ✅ entregue |
 | F24 | Plugin-as-skill + Integrações | Ficha do plugin = contrato agent-consumable (modelo de dados parseado das migrations, aiTools completos, integrações hospedadas, callout "use como skill" via .md). Seção Integrações da seed real do fayz (connectors.seed.ts — 22 conectores, não 25). ENTREGUE em fayz-docs (348e56d, 57b821e, fe47ec1); `fayz skill add plugin-<id>` = follow-up CLI (mesma extração) | — | ✅ entregue (docs); CLI follow-up |
 
+## Cold-start test — "barbearia do zero" (2026-07-15, tarde)
+Agente 100% fresco (zero contexto da sessão), voz de cliente não-dev, só CLI +
+docs. RESULTADO: produto entregue (Navalha de Ouro, porta 5306, tema
+escuro/dourado, agenda 3 barbeiros, caixa crível, doctor+build verdes) e a
+trilha skill→help→docs→dogfood→.d.ts conectou sem travar ("a skill foi a fonte
+mais útil de todas"). CUSTO: o que fez o projeto andar veio de .d.ts e código
+dogfood, não das docs — gaps abaixo, corrigidos no mesmo dia.
+
+| # | Onde | Achado do cold-start | Sev | Status |
+|---|------|----------------------|-----|--------|
+| F25 | skill fayz-create | Mandava editar src/config/app.tsx que o scaffold não gera (dessincronia skill↔CLI) | alta | ✅ reescrita honesta 2 caminhos (28ccff6) |
+| F26 | fayz create --help | Não existia (erro de kind) | média | ✅ implementado + 6 testes (d2e1afa) |
+| F27 | promessa "mock com dados de exemplo" | Providers mock nascem VAZIOS; seams de seed (createMockAgendaProvider({seed}) etc.) só em .d.ts | alta | ✅ página apps/mock-e-dados-de-exemplo (43675b0) |
+| F28 | pacotes publicados 0.6.x | Conjunto INCONSISTENTE: saas 0.6.0→plugin-auth 0.1.3→auth/core ^0.7.1 → 2ª cópia do contexto React → TELA BRANCA; fix = overrides | **crítica** | ✅ troubleshooting c/ snippet (43675b0); wave deve publicar CONJUNTO coerente (founder) |
+| F29 | doctor × code-config | Valida manifesto estrito mesmo com manifesto vestigial (tema HSL válido reprova) | média | workaround documentado; fix path-aware pendente (SDK) |
+| F30 | plugin-dashboard em mock | Lê Supabase direto → zeros | média | documentado (widgets compute); fix SDK pendente |
+| F31 | FAYZ_SDK_SOURCE | Default aliassa monorepo local se existir; não documentado | média | ✅ documentado |
+| — | redundâncias | Shape do manifesto 3× (AGENTS.md/tut02/tut04), passos Supabase 2×, bloco status agenda copy-paste entre dogfoods (→ preset SDK) | baixa | backlog de consolidação |
+
 ### Achados que CONFIRMARAM as docs (auditoria limpa)
 - Lane IA: 18 claims estruturais conferem (14/22 aiTools, tipos, BYO endpoint, conectores, WhatsApp=roadmap honesto). Só 1 baixa (rótulo de diagrama, corrigida).
 - dados/rls, auth/visao-geral, plugins-proprios/incubator, deploy/estatico, deploy/fayz, headless, visao-geral, dois-caminhos: limpos.

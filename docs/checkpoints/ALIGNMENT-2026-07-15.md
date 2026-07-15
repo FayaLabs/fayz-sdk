@@ -88,6 +88,16 @@ recepcao`). Auth user `teste@teste.com` (senha, email_confirm) = owner.
   (348e56d). Follow-up de CLI: `fayz skill add plugin-<id>` gerado da mesma
   extração.
 
+## 3c. Adendo 2 — cold-start "barbearia" (validação do conceito skills)
+Agente fresco sem contexto construiu uma barbearia completa via skill→docs→
+dogfood→.d.ts (app referência: fayz-app/navalha-de-ouro, porta 5306). Findings
+F25–F31 no tracker; corrigidos no dia: skill fayz-create honesta + fayz create
+--help (branch e2e-dentist, 76/76 testes), página apps/mock-e-dados-de-exemplo
++ troubleshooting tela-branca/overrides (fayz-docs 43675b0). ⚠ PARA A WAVE:
+F28 — publicar o CONJUNTO coerente (saas/auth/core/plugin-auth/ui na mesma
+linha), não só core 0.7.2 + agenda 0.4.0; senão apps em pacotes publicados
+quebram com 2ª cópia do contexto de auth (tela branca).
+
 ## 4. O que esta sessão NÃO tocou
 Checkout principal do fayz-sdk (feat/industry-pools — tudo via worktrees),
 beauty-saas, refs Supabase do founder, npm publish/tags, main do fayz-sdk.
