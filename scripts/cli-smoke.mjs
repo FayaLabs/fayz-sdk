@@ -27,14 +27,18 @@ function runCli(args, { env = {} } = {}) {
   return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '' }
 }
 
-// process.env minus SUPABASE_* (so a developer's shell can't leak real creds
-// into the "env unset" case), plus the per-case overrides.
+// process.env minus SUPABASE_*/FAYZ_* (so a developer's shell can't leak real
+// creds into the "env unset"/"missing token" cases), plus the per-case
+// overrides. HOME is repointed at the temp dir so no real ~/.fayz credential is
+// ever consulted by `fayz deploy`.
 function cleanEnv(overrides) {
   const out = {}
   for (const [k, v] of Object.entries(process.env)) {
     if (k.startsWith('SUPABASE_')) continue
+    if (k === 'FAYZ_TOKEN' || k === 'FAYZ_API_URL') continue
     out[k] = v
   }
+  out.HOME = dir
   return { ...out, ...overrides }
 }
 
@@ -83,6 +87,34 @@ try {
     // Must have stopped at the confirmation gate — before any apply happened.
     assert.doesNotMatch(out, /schema reloaded|pipeline complete/, 'must not reach execution')
     console.log('✓ db apply (creds set, non-interactive, no --yes): refused with --yes hint, no network')
+  }
+
+  // --- fayz deploy (EXPERIMENTAL) ------------------------------------------
+  // Same rails as db apply: dry-run is zero-network; missing token exits 1 and
+  // names `fayz login`. No real token is ever set (fabricated fayz_ only).
+
+  // ④ deploy --dry-run: exit 0, lists the source files + target, dry-run note.
+  //    No token needed, no network.
+  {
+    const r = runCli(['deploy', 'smoke-shop', '--dry-run'])
+    assert.equal(r.status, 0, `deploy --dry-run should exit 0\n${r.stdout}\n${r.stderr}`)
+    const out = r.stdout + r.stderr
+    assert.match(out, /Arquivos a enviar/, 'dry-run should list the files to upload')
+    assert.match(out, /app\.manifest\.json/, 'dry-run should include the manifest')
+    assert.match(out, /novo projeto 'smoke-shop'/, 'dry-run should name the target project')
+    assert.match(out, /dry-run — nenhuma chamada de rede/, 'dry-run should print the zero-network note')
+    console.log('✓ deploy --dry-run: files + target listed, exit 0, no network')
+  }
+
+  // ⑤ deploy with no token (and --yes to pass the confirm gate): exit 1 naming
+  //    `fayz login`, never reaching the network.
+  {
+    const r = runCli(['deploy', 'smoke-shop', '--yes'])
+    assert.equal(r.status, 1, `deploy w/o token should exit 1\n${r.stdout}\n${r.stderr}`)
+    const out = r.stdout + r.stderr
+    assert.match(out, /fayz login/, 'missing-token error should point at fayz login')
+    assert.doesNotMatch(out, /Publicando|Deploy concluído/, 'must not reach the network')
+    console.log('✓ deploy (no token): exit 1, points at fayz login, no network')
   }
 
   console.log('\n✓ CLI smoke passed')

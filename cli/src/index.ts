@@ -1,8 +1,10 @@
 import { create } from './commands/create.js'
 import { createPlugin } from './commands/create-plugin.js'
 import { db } from './commands/db.js'
+import { deploy } from './commands/deploy.js'
 import { doctor } from './commands/doctor.js'
 import { extract } from './commands/extract.js'
+import { login, logout } from './commands/login.js'
 
 const HELP = `fayz — Fayz SDK CLI
 
@@ -61,6 +63,19 @@ fayz db apply env (required for a real apply; never for --dry-run):
   Read from process env, then <app>/.env.local, then <app>/.env (files never override process env).
   (pool/fan-out need only the token; each pool's ref comes from the pools file.)
 
+EXPERIMENTAL (rollout: requer acesso de rede convidada):
+  fayz login [--token <fayz_...>]         Salva um token da plataforma em ~/.fayz/credentials.json (0600)
+  fayz login --status                     Mostra se há credencial salva (mascarada), sem rede
+  fayz logout                             Remove a credencial salva
+  fayz deploy [dir] [--dry-run|--yes]     Envia os fontes do app → build no servidor → hospedagem estática
+
+fayz deploy flags:
+  --dry-run          Lista o que seria enviado + o destino; nenhuma chamada de rede
+  --yes, -y          Pula a confirmação (obrigatório em shells não-interativos)
+fayz deploy auth:
+  Token: env FAYZ_TOKEN, ou ~/.fayz/credentials.json (via 'fayz login'). Sem token → erro apontando para 'fayz login'.
+  API:   env FAYZ_API_URL (default https://beta.fayz.ai/api). Vínculo do projeto em <app>/.fayz/project.json.
+
 Docs: fayz-sdk/docs/architecture-boundaries.md
 `
 
@@ -74,6 +89,12 @@ async function main(argv: string[]): Promise<number> {
       return create(rest[0] ?? '', rest[1] ?? '')
     case 'db':
       return db(rest[0], rest.slice(1))
+    case 'login':
+      return login(rest)
+    case 'logout':
+      return logout()
+    case 'deploy':
+      return deploy(rest)
     case 'doctor':
       return doctor(rest)
     case 'extract':
