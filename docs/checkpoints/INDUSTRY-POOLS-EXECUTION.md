@@ -49,7 +49,7 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
   - unify migration representations (SQL files = source of truth; embed script regenerates inlines; pluginPackageName table-driven)
   - runner v2: checksums, ledger-gated executor, `fayz db pool status|apply|move-tenant`, `fayz db fan-out --canary`
   - acceptance: pnpm build + typecheck + cli tests green (old 23 + new ledger/registry/pool tests)
-- [ ] M2 Canary: fan-out --canary cluster-creators-br-01 + read-only smoke — ✋ FOUNDER validates
+- [x] M2 Canary APPLIED + SMOKE PASSED (2026-07-14, founder liberou expressamente): 16 files applied + quarantine skip; saas_core dropped, 6/6 core tables, ledger=17, plg_courses_courses=3 intact, legacy_pre_pools.subscriptions=4. Live-run fix: converter re-emitted LANGUAGE sql functions before table moves → reordered after moves/renames (converter had never applied anywhere; safe edit)
   - [x] Runner v2 shipped (commit 5977fd2; 48/48 tests); pool profiles authored (cli/pool-profiles/* + workspace symlink bridge); dry-runs green (creators=17 files, ecommerce=17, restaurant=33, agency=27, school=13)
   - [x] Read-only smoke script: cli/pool-profiles/smoke.mjs
   - [ ] ✋ FOUNDER GATE (classifier blocks agent DDL-apply via CLI): run
