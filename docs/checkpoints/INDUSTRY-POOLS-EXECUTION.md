@@ -42,7 +42,7 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
   - [x] JSON backups of ALL 8 pools verified: 323 tables, 2088 rows, 0 verify failures → ~/dev/fayz-backups/2026-07-14-industry-pools/ (salon 6 tenants/67 persons/52 clients confirmed; dentist control-plane captured pre-wipe; school 25 leads intact)
   - [x] Registry Prisma models+seed+hand-written migration: fayz repo branch feat/industry-pools-registry commit ce08ed5 (prisma validate + tsc clean; push classifier-blocked)
   - [ ] ✋ FOUNDER: `git push -u origin feat/industry-pools-registry` (repo fayz) + `prisma migrate deploy` + seed on platform Postgres
-- [ ] M1 Core v1 + plg_ wave + Runner v2 — status: todo
+- [x] M1 Core v1 + plg_ wave + Runner v2 — status: DONE (incl. adversarial review + 5 fixes)
   - db baseline rewrite → public (people/appointments); 0000_legacy_quarantine.sql; 000_core_v1_convert.sql; 010_migration_ledger.sql
   - plg_ renames in every plugin's SQL + tables.ts constants + providers (drop .schema('saas_core'))
   - views/RPCs re-emitted (v_public_services, get_available_slots, create_public_booking, v_leads, v_deals, v_invoice_balances, v_bookings→v_appointments)
@@ -62,5 +62,7 @@ Tenant moves after pool conversion: espaco-renova→salon, hempdent→dentist, g
 - [ ] M5 Apps + final report: course-admin, marketplace-saas, resto-saas, agency-os, artorious, beauty-saas (read-mostly), retail stores (post-WIP), booking sites. Per app: manifest backend block, env, build, auth smoke + create-record smoke, fixed dev port. Deliverable: table app × pool × DB-state × plugins × port.
 
 ## Log
+
+- 2026-07-14 · M1 COMPLETE + HARDENED. Adversarial Opus review found 2 BLOCKERs (quarantine sorted after converter; non-idempotent baseline bricked converted pools) + 3 data-loss HIGHs (unguarded CASCADE; forms 002 dropping populated tables; app-created RLS policies referencing saas_core dropped by CASCADE — found via agency-os prep). ALL FIXED in 72ccb0e: 0000_legacy_quarantine.sql generalized from REAL collision map (creators subscriptions=4rows, salon appointments, restaurant orders/order_items), idempotency checker script, CASCADE emptiness gate, forms data-preserving migration, generic pg_policies re-pointer. Build 34/34, typecheck 45/45, cli 48/48. App preps: agency-os branch feat/industry-pools ready (build green on tarballs, unmock gated); beauty-saas prep in flight. 33 SDK tarballs at ~/dev/fayz-tarballs/industry-pools. CANARY APPLY: classifier denies agent 4x — founder gate (permission rule or manual command, see M2).
 
 - 2026-07-14 · M0 started. Worktree removed; feat/industry-pools created (merge conflicts resolved toward devcenter side, deps reconciled: courses+saas/react-table, marketing+db, auth+radix/lucide). Build/typecheck/tests green. Backup + registry agents dispatched (Opus). (Fable)
