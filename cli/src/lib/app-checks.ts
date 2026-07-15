@@ -243,6 +243,15 @@ const defaultGitLsFiles = (dir: string): string[] | null => {
 }
 
 /** hygiene — tracked secrets, undocumented env vars, lockfile drift. */
+// Key-shaped strings that must never be committed. Placeholders survive: a
+// docs-style `sb_publishable_<pegue no dashboard>` breaks the {10,} run of
+// key-alphabet chars right after the prefix.
+const KEY_MATERIAL_PATTERNS: Array<{ re: RegExp; what: string }> = [
+  { re: /sb_secret_[A-Za-z0-9_-]{10,}/, what: 'Supabase secret key' },
+  { re: /sb_publishable_[A-Za-z0-9_-]{10,}/, what: 'Supabase publishable key' },
+  { re: /eyJhbGciOiJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/, what: 'JWT (anon/service-role key)' },
+]
+
 export function checkHygiene(dir: string, opts: HygieneCheckOptions = {}): CheckFinding[] {
   const findings: CheckFinding[] = []
 
@@ -256,6 +265,33 @@ export function checkHygiene(dir: string, opts: HygieneCheckOptions = {}): Check
           rule: 'hygiene.env-tracked',
           detail: `"${f}" is tracked in git — secrets are injected by the fayz editor; untrack with git rm --cached "${f}"`,
         })
+      }
+    }
+  }
+
+  // 1b. Key material committed in ANY tracked file (source fallbacks,
+  //     .env.example, configs). Nothing key-shaped goes to git — not even
+  //     publishable/anon keys (founder rule 2026-07-15); runtime values come
+  //     from env and the fayz editor injects secrets on deploy.
+  if (lsFiles) {
+    for (const f of lsFiles) {
+      const abs = join(dir, f)
+      let content: string
+      try {
+        if (statSync(abs).size > 1024 * 1024) continue
+        content = readFileSync(abs, 'utf8')
+      } catch {
+        continue
+      }
+      for (const { re, what } of KEY_MATERIAL_PATTERNS) {
+        if (re.test(content)) {
+          findings.push({
+            level: 'error',
+            rule: 'hygiene.key-material',
+            detail: `"${f}" contains a ${what} — keys never go to git; read it from env (the fayz editor injects secrets on deploy)`,
+          })
+          break
+        }
       }
     }
   }

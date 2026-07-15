@@ -153,6 +153,39 @@ test('hygiene: tracked .env / .env.local / .env.production are errors, .env.exam
   }
 })
 
+test('hygiene: key material in a tracked file is an error (publishable, secret, JWT)', () => {
+  const dir = scaffold({
+    'package.json': '{}',
+    'src/config.ts': "const key = 'sb_publishable_v8rbvLDgnq5IbkVB5B6LxQ_D62mfPZX'",
+    'supabase/client.ts': "const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWYiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdCJ9.aaaaaaaaaaaaaaaaaaaa'",
+    'server/env.ts': "const s = 'sb_secret_0oLwf9HQabcdefghij'",
+  })
+  try {
+    const found = checkHygiene(dir, { gitLsFiles: () => ['src/config.ts', 'supabase/client.ts', 'server/env.ts'] })
+    const errs = found.filter((f) => f.rule === 'hygiene.key-material')
+    assert.equal(errs.length, 3)
+    assert.ok(errs.every((e) => e.level === 'error'))
+    assert.ok(errs.some((e) => /publishable/.test(e.detail)))
+    assert.ok(errs.some((e) => /secret/.test(e.detail)))
+    assert.ok(errs.some((e) => /JWT/.test(e.detail)))
+  } finally {
+    cleanup(dir)
+  }
+})
+
+test('hygiene: key placeholders in .env.example do not trigger key-material', () => {
+  const dir = scaffold({
+    'package.json': '{}',
+    '.env.example': 'VITE_SUPABASE_ANON_KEY=sb_publishable_<pegue no dashboard do pool>\nVITE_SUPABASE_URL=https://<pool-ref>.supabase.co\n',
+  })
+  try {
+    const found = checkHygiene(dir, { gitLsFiles: () => ['.env.example'] })
+    assert.ok(!found.some((f) => f.rule === 'hygiene.key-material'))
+  } finally {
+    cleanup(dir)
+  }
+})
+
 test('hygiene: outside a git repo, git-dependent checks are skipped silently', () => {
   const dir = scaffold({ 'package.json': '{}' })
   try {
