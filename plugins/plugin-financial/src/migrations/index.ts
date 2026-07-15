@@ -1,4 +1,4 @@
-// AUTO-GENERATED from 000_plg_rename.sql, 001_financial_base.sql, 002_chart_of_accounts.sql, 003_card_brands.sql, 004_order_to_cash.sql, 005_seed_defaults.sql, 006_rls_policies.sql, 006b_extract_fee_amount.sql, 007_reconciliation.sql, 008_split_payment_movements.sql — regenerate with scripts/embed-migrations.mjs
+// AUTO-GENERATED from 000_plg_rename.sql, 001_financial_base.sql, 002_chart_of_accounts.sql, 003_card_brands.sql, 004_order_to_cash.sql, 005_seed_defaults.sql, 006_rls_policies.sql, 006b_extract_fee_amount.sql, 007_reconciliation.sql, 007b_movement_payment_method_type.sql, 008_split_payment_movements.sql — regenerate with scripts/embed-migrations.mjs
 // SQL files are the source of truth; this inline copy lets the manifest declare
 // migrations as data. Do not edit by hand — run the embed script instead.
 
@@ -490,6 +490,14 @@ CREATE INDEX IF NOT EXISTS idx_plg_financial_movements_unreconciled
   WHERE external_source IS NOT NULL AND reconciled_at IS NULL;
 `
 
+export const MIGRATION_007B_MOVEMENT_PAYMENT_METHOD_TYPE = `-- payment_method_type_id existed on pre-pool installs (added out-of-band on
+-- the salon/beauty DB) but was never captured in the file series; 008 requires
+-- it on plg_financial_movements. No-op where the column already exists.
+
+ALTER TABLE public.plg_financial_movements
+  ADD COLUMN IF NOT EXISTS payment_method_type_id uuid REFERENCES public.plg_financial_payment_method_types(id);
+`
+
 export const MIGRATION_008_SPLIT_PAYMENT_MOVEMENTS = `-- Split bill (obligation) vs payment (cash event).
 -- Each payment is now its own movement_kind='payment' row (one per cash event), so
 -- two payments on one installment show as two extract rows instead of one summed row.
@@ -531,5 +539,6 @@ export const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: "006_rls_policies", sql: MIGRATION_006_RLS_POLICIES },
   { id: "006b_extract_fee_amount", sql: MIGRATION_006B_EXTRACT_FEE_AMOUNT },
   { id: "007_reconciliation", sql: MIGRATION_007_RECONCILIATION },
+  { id: "007b_movement_payment_method_type", sql: MIGRATION_007B_MOVEMENT_PAYMENT_METHOD_TYPE },
   { id: "008_split_payment_movements", sql: MIGRATION_008_SPLIT_PAYMENT_MOVEMENTS },
 ]
