@@ -12,8 +12,19 @@ export interface ManifestLike {
   name?: string
   surfaces?: Record<string, { scaffold?: string; plugins?: { id: string }[]; pages?: ManifestPage[] }>
   locale?: { default?: string; supported?: string[] }
+  theme?: { brand?: unknown; radius?: unknown; mode?: unknown; [key: string]: unknown }
+  backend?: { provider?: unknown; [key: string]: unknown }
   [key: string]: unknown
 }
+
+// Enum values mirror @fayz-ai/core: ThemeBrand/ThemeRadius/ThemeMode
+// (packages/core/src/types/theme.ts) and BackendProvider
+// (packages/core/src/manifest/index.ts). Kept in sync manually so the CLI stays
+// dependency-free.
+const THEME_BRANDS = ['blue', 'violet', 'green', 'orange', 'red', 'pink', 'teal']
+const THEME_RADII = ['none', 'sm', 'md', 'lg', 'full']
+const THEME_MODES = ['light', 'dark', 'system']
+const BACKEND_PROVIDERS = ['supabase', 'fayz-api', 'fayz-shop', 'mock', 'custom']
 
 interface ManifestPage {
   path?: string
@@ -50,7 +61,26 @@ export function validateManifestStructure(m: ManifestLike): string[] {
         problems.push(`surface "${name}" page "${page.path ?? '?'}" must set exactly one of blocks/entity/component`)
     }
   }
+  // Theme + backend enum checks. These fields are optional, but when present
+  // they must be one of the values @fayz-ai/core actually supports.
+  const theme = m.theme
+  if (theme != null && typeof theme === 'object') {
+    checkEnum(theme.brand, THEME_BRANDS, 'theme.brand', problems)
+    checkEnum(theme.radius, THEME_RADII, 'theme.radius', problems)
+    checkEnum(theme.mode, THEME_MODES, 'theme.mode', problems)
+  }
+  const backend = m.backend
+  if (backend != null && typeof backend === 'object') {
+    checkEnum(backend.provider, BACKEND_PROVIDERS, 'backend.provider', problems)
+  }
   return problems
+}
+
+function checkEnum(value: unknown, allowed: string[], field: string, problems: string[]): void {
+  if (value == null) return // absent/undefined is fine (optional field)
+  if (typeof value !== 'string' || !allowed.includes(value)) {
+    problems.push(`${field} "${String(value)}" is not valid (expected one of: ${allowed.join(', ')})`)
+  }
 }
 
 export function referencedPluginIds(m: ManifestLike): string[] {

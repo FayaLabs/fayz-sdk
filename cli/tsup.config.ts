@@ -6,6 +6,7 @@ export default defineConfig({
   // pure planner and the executor (mocked-fetch) from dist.
   entry: {
     index: 'src/index.ts',
+    'lib/manifest': 'src/lib/manifest.ts',
     'lib/migration-plan': 'src/lib/migration-plan.ts',
     'lib/supabase-management': 'src/lib/supabase-management.ts',
     'lib/fayz-platform': 'src/lib/fayz-platform.ts',
