@@ -514,6 +514,9 @@ importers:
       '@fullcalendar/react':
         specifier: ^6.1.20
         version: 6.1.20(@fullcalendar/core@6.1.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@fullcalendar/resource':
+        specifier: ^6.1.0
+        version: 6.1.20(@fullcalendar/core@6.1.20)
       '@fullcalendar/resource-timegrid':
         specifier: ^6.1.0
         version: 6.1.20(@fullcalendar/core@6.1.20)(@fullcalendar/resource@6.1.20(@fullcalendar/core@6.1.20))
