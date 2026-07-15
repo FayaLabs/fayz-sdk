@@ -15,6 +15,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./schema": {
+      "source": "./src/schema/index.ts",
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema.js",
+      "require": "./dist/schema.cjs"
     }
   },
   "files": [
