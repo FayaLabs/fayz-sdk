@@ -13,6 +13,7 @@ export default defineConfig({
     'lib/deploy-files': 'src/lib/deploy-files.ts',
     'commands/deploy': 'src/commands/deploy.ts',
     'commands/skill': 'src/commands/skill.ts',
+    'commands/create': 'src/commands/create.ts',
   },
   format: ['esm'],
   target: 'node18',

@@ -311,7 +311,38 @@ function indexHtml(name: string): string {
 `
 }
 
+const CREATE_USAGE = `fayz create — scaffold a new Fayz project
+
+Usage:
+  fayz create <kind> <name>       Scaffold a repo-per-app project (name is kebab-case)
+  fayz create plugin <name>       Scaffold an app-local (incubator) plugin
+  fayz create --help              Show this help
+
+Kinds:
+  storefront   Public-facing store surface (sales to the public)
+  admin        Internal management surface (dashboard, back-office)
+  member       Logged-in customer area (member portal / courses)
+
+Examples:
+  fayz create storefront acme-shop
+  fayz create admin acme-back-office
+  fayz create member acme-portal
+  fayz create plugin loyalty
+
+Notes:
+  Scaffolds ship with backend.provider "mock", so they run with zero setup.
+  Personalize app.manifest.json, then validate with 'fayz doctor'.
+`
+
+function isHelpFlag(v: string): boolean {
+  return v === '--help' || v === '-h'
+}
+
 export function create(kind: string, name: string): number {
+  if (!kind || isHelpFlag(kind) || isHelpFlag(name)) {
+    console.log(CREATE_USAGE)
+    return 0
+  }
   if (!KINDS.includes(kind as Kind)) {
     console.error(`✗ Unknown kind "${kind}". Use: ${KINDS.join(' | ')}`)
     return 1
