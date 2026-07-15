@@ -1,6 +1,29 @@
-// AUTO-GENERATED from 001_public_booking.sql — regenerate with scripts/embed-migrations.mjs
+// AUTO-GENERATED from 000b_v_bookings_rename.sql, 001_public_booking.sql, 002_v_bookings_compat.sql — regenerate with scripts/embed-migrations.mjs
 // SQL files are the source of truth; this inline copy lets the manifest declare
 // migrations as data. Do not edit by hand — run the embed script instead.
+
+export const MIGRATION_000B_V_BOOKINGS_RENAME = `-- Salon-only unblock: the pre-pools beauty deployment built rep_* report
+-- views on top of its (wider) v_bookings view, so 001's cleanup DROP cannot
+-- run there. Renaming keeps the dependents attached (they track the OID) and
+-- frees the name for 001; 002_v_bookings_compat re-creates v_bookings as a
+-- thin alias for live pre-M5 clients. No-op on fresh pools and on pools whose
+-- v_bookings has no dependents (001's DROP handles those).
+
+DO $rename$
+BEGIN
+  IF to_regclass('public.v_bookings') IS NOT NULL
+     AND to_regclass('public.v_bookings_legacy_beauty') IS NULL
+     AND EXISTS (
+       SELECT 1 FROM pg_depend d
+       JOIN pg_rewrite rw ON rw.oid = d.objid
+       JOIN pg_class dep ON dep.oid = rw.ev_class
+       JOIN pg_class ref ON ref.oid = d.refobjid
+       WHERE ref.relname = 'v_bookings' AND dep.relname <> 'v_bookings'
+     ) THEN
+    EXECUTE 'ALTER VIEW public.v_bookings RENAME TO v_bookings_legacy_beauty';
+  END IF;
+END $rename$;
+`
 
 export const MIGRATION_001_PUBLIC_BOOKING = `-- ============================================================================
 -- plugin-agenda 001: booking read model + public (anon) booking surface
@@ -295,6 +318,24 @@ GRANT EXECUTE ON FUNCTION public.create_public_booking(uuid, uuid, timestamptz, 
   TO anon, authenticated, service_role;
 `
 
+export const MIGRATION_002_V_BOOKINGS_COMPAT = `-- Where 000b preserved the legacy beauty view, re-create v_bookings as a
+-- thin alias over it so live pre-M5 clients that SELECT v_bookings by name
+-- keep their full legacy column set. Dropped for good once the beauty app
+-- ships on v_appointments (M5 follow-up).
+
+DO $compat$
+BEGIN
+  IF to_regclass('public.v_bookings_legacy_beauty') IS NOT NULL
+     AND to_regclass('public.v_bookings') IS NULL THEN
+    EXECUTE 'CREATE VIEW public.v_bookings WITH (security_invoker = true) AS SELECT * FROM public.v_bookings_legacy_beauty';
+    EXECUTE 'GRANT SELECT ON public.v_bookings TO authenticated, service_role';
+    EXECUTE 'REVOKE SELECT ON public.v_bookings FROM anon';
+  END IF;
+END $compat$;
+`
+
 export const MIGRATIONS: Array<{ id: string; sql: string }> = [
+  { id: "000b_v_bookings_rename", sql: MIGRATION_000B_V_BOOKINGS_RENAME },
   { id: "001_public_booking", sql: MIGRATION_001_PUBLIC_BOOKING },
+  { id: "002_v_bookings_compat", sql: MIGRATION_002_V_BOOKINGS_COMPAT },
 ]
