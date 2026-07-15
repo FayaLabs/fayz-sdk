@@ -1,7 +1,7 @@
 {
   "$schema": "./pools.schema.json",
   "version": 1,
-  "note": "Industry-pool registry (Source A, static). One Supabase project per industry cluster; tenant_id + RLS is the isolation. The authoritative registry (Source B) is the platform Prisma DB — see cli/src/lib/pools.ts createPostgresPoolRegistry (not yet provisioned).",
+  "note": "Industry-pool registry (Source A, static). One Supabase project per industry cluster; tenant_id + RLS is the isolation. The authoritative registry (Source B) is the platform Prisma DB \u2014 see cli/src/lib/pools.ts createPostgresPoolRegistry (not yet provisioned).",
   "pools": [
     {
       "industry": "ecommerce",
@@ -17,14 +17,16 @@
       "ref": "coqpsuofwohzpqymoajb",
       "url": "https://coqpsuofwohzpqymoajb.supabase.co",
       "status": "ACTIVE",
-      "flags": { "canary": true }
+      "flags": {
+        "canary": true
+      }
     },
     {
       "industry": "dentist",
       "name": "cluster-dentist-br-01",
       "ref": "mcbfebruhimlbvlvczsn",
       "url": "https://mcbfebruhimlbvlvczsn.supabase.co",
-      "status": "PROVISIONING",
+      "status": "ACTIVE",
       "flags": {}
     },
     {
@@ -33,7 +35,9 @@
       "ref": "gphxclpkbtbucoqclbco",
       "url": "https://gphxclpkbtbucoqclbco.supabase.co",
       "status": "ACTIVE",
-      "flags": { "dataCritical": true }
+      "flags": {
+        "dataCritical": true
+      }
     },
     {
       "industry": "restaurant",
@@ -57,7 +61,9 @@
       "ref": "pjugfwxomeohuaxyjtyu",
       "url": "https://pjugfwxomeohuaxyjtyu.supabase.co",
       "status": "ACTIVE",
-      "flags": { "preserveBespoke": true }
+      "flags": {
+        "preserveBespoke": true
+      }
     }
   ]
 }

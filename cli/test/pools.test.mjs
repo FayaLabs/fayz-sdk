@@ -37,7 +37,7 @@ test('shipped pools.config.json loads: 7 pools, expected refs + flags', () => {
   assert.equal(config.pools.length, 7)
   assert.equal(findPool(config, 'ecommerce').ref, 'yfxutrkyhydgltakbqle')
   assert.equal(findPool(config, 'creators').flags.canary, true)
-  assert.equal(findPool(config, 'dentist').status, 'PROVISIONING')
+  assert.equal(findPool(config, 'dentist').status, 'ACTIVE') // baselined + flipped during M3
   assert.equal(findPool(config, 'salon').flags.dataCritical, true)
   assert.equal(findPool(config, 'school').flags.preserveBespoke, true)
 })

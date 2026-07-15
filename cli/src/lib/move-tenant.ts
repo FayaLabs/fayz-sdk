@@ -34,7 +34,8 @@ export const MOVE_TABLES: MoveTableSpec[] = [
   { table: 'schedules' },
   { table: 'orders' },
   { table: 'appointments' },
-  { table: 'appointment_items', parent: { table: 'appointments', fk: 'appointment_id' } },
+  // NB: the FK kept its pre-rename name — 004_archetypes creates booking_id too
+  { table: 'appointment_items', parent: { table: 'appointments', fk: 'booking_id' } },
   { table: 'order_items', parent: { table: 'orders', fk: 'order_id' } },
   { table: 'transactions' },
 ]

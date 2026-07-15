@@ -39,7 +39,7 @@ test('MOVE_TABLES is parents-before-children with the fixed order', () => {
   ])
   // children join their parents
   const ai = MOVE_TABLES.find((t) => t.table === 'appointment_items')
-  assert.deepEqual(ai.parent, { table: 'appointments', fk: 'appointment_id' })
+  assert.deepEqual(ai.parent, { table: 'appointments', fk: 'booking_id' })
   const oi = MOVE_TABLES.find((t) => t.table === 'order_items')
   assert.deepEqual(oi.parent, { table: 'orders', fk: 'order_id' })
   // appointment_items comes AFTER appointments; order_items AFTER orders
@@ -232,13 +232,13 @@ test('executeTenantMove: backup-before-write, parents-first insert, children-fir
     tenants: { cols: ['id'], rows: [{ id: 't1' }] },
     people: { cols: ['id', 'tenant_id'], rows: [{ id: 'p1', tenant_id: 't1' }] },
     appointments: { cols: ['id', 'tenant_id'], rows: [{ id: 'a1', tenant_id: 't1' }] },
-    appointment_items: { cols: ['id', 'appointment_id'], rows: [{ id: 'ai1', appointment_id: 'a1' }] },
+    appointment_items: { cols: ['id', 'booking_id'], rows: [{ id: 'ai1', booking_id: 'a1' }] },
   })
   const target = fakeGateway({
     tenants: { cols: ['id'], rows: [] },
     people: { cols: ['id', 'tenant_id'], rows: [] },
     appointments: { cols: ['id', 'tenant_id'], rows: [] },
-    appointment_items: { cols: ['id', 'appointment_id'], rows: [] },
+    appointment_items: { cols: ['id', 'booking_id'], rows: [] },
   })
   const plan = await planTenantMove({ tenantId: 't1', source, target })
 
