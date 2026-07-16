@@ -599,28 +599,30 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       query.set('order', 'created_at.desc')
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-
-      // Same shape as getOrder above: an anon storefront has no table grant, so
-      // the direct read throws 401 and must fall through instead of surfacing as
-      // "you have no orders". This is what made "Minhas compras" empty after a
-      // guest checkout — the order was there, the read just wasn't allowed.
+      // Anon storefronts have no table grant (RLS restricts plg_shop_orders reads to
+      // `authenticated` users linked via auth.uid) — direct read 401s. RLS can also
+      // just filter every row out silently (200 OK + []) instead of 401ing, so an
+      // empty result here doesn't mean "no orders" either — both cases must fall
+      // back to the customer-uuid-capability RPC, same pattern as getOrder's
+      // shop_get_order. This is what made "Minhas compras" empty after a guest
+      // checkout — the order was there, the read just wasn't allowed (or silently
+      // filtered), and only the throw case used to be handled.
+      let rows: OrderRow[] = []
       try {
-        return (await request<OrderRow[]>('plg_shop_orders', { query })).map(rowToOrder)
-      } catch (err) {
-        // Only the customer-scoped query has an RPC counterpart: shop_list_orders
-        // treats the customer uuid as the read capability, exactly like
-        // shop_get_order treats the order uuid. Any other filter combination has
-        // no anon-safe equivalent, so the original error stands.
-        if (!options?.customerId) throw err
-        const rows = await request<OrderRow[]>('rpc/shop_list_orders', {
-          method: 'POST',
-          body: JSON.stringify({
-            p_customer_id: options.customerId,
-            p_limit: options.limit ?? 50,
-          }),
-        })
-        return (rows ?? []).map(rowToOrder)
+        rows = await request<OrderRow[]>('plg_shop_orders', { query })
+      } catch (error) {
+        if (!options?.customerId) throw error
       }
+      if (rows.length || !options?.customerId) return rows.map(rowToOrder)
+      // Only the customer-scoped query has an RPC counterpart: shop_list_orders
+      // treats the customer uuid as the read capability, exactly like
+      // shop_get_order treats the order uuid. Any other filter combination has
+      // no anon-safe equivalent, so the original error (if any) stands.
+      const rpcRows = await request<OrderRow[]>('rpc/shop_list_orders', {
+        method: 'POST',
+        body: JSON.stringify({ p_customer_id: options.customerId, p_limit: options.limit ?? 50 }),
+      })
+      return (rpcRows ?? []).map(rowToOrder)
     },
     async getOrder(id: string) {
       const query = singleById(id)
