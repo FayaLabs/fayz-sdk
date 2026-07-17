@@ -359,15 +359,23 @@ export function StorefrontHeader() {
           </div>
         </div>
       ) : (
-        // classic: logo left, nav, then a right-aligned search + actions cluster
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
-          {logo}
-          <NavLinks className="hidden md:flex" />
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            {showSearch && <SearchInput iconOnly={iconSearch} className={iconSearch ? '' : 'hidden w-full max-w-sm sm:block'} />}
-            <HeaderActions />
+        // classic: logo left, nav, then a right-aligned search + actions cluster.
+        // NavLinks is hidden below md in the primary row (no room for it there),
+        // so below md it reappears in its own full-width scrollable row instead —
+        // otherwise mobile has no way to reach nav/category links at all.
+        <>
+          <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
+            {logo}
+            <NavLinks className="hidden md:flex" />
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              {showSearch && <SearchInput iconOnly={iconSearch} className={iconSearch ? '' : 'hidden w-full max-w-sm sm:block'} />}
+              <HeaderActions />
+            </div>
           </div>
-        </div>
+          <div className="flex overflow-x-auto border-t py-2.5 md:hidden" style={headerDivider}>
+            <NavLinks />
+          </div>
+        </>
       )}
     </header>
   )
