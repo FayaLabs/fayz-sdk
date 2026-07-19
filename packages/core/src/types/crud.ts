@@ -7,7 +7,7 @@ export type FieldType =
   | 'select' | 'multiselect' | 'segmented'
   | 'relation'
   | 'date' | 'datetime' | 'time'
-  | 'boolean' | 'textarea'
+  | 'boolean' | 'textarea' | 'markdown'
   | 'color' | 'computed'
 
 /** Foreign-key source for a `relation` field: the option list is loaded from a

@@ -7,6 +7,7 @@ import { Badge } from '@fayz-ai/ui'
 import { Breadcrumb } from '@fayz-ai/ui'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@fayz-ai/ui'
 import { Separator } from '@fayz-ai/ui'
+import { Markdown } from '@fayz-ai/ui'
 import { WidgetSlot } from '../plugins/WidgetSlot'
 import { formatCurrency } from '@fayz-ai/core'
 import { PERSON_DETAIL_TABS } from './archetypes/PersonDetailTabs'
@@ -76,6 +77,8 @@ function formatValue(field: FieldDef, value: any, t?: (key: string) => string): 
       return <a href={value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{value}</a>
     case 'textarea':
       return <p className="whitespace-pre-wrap">{value}</p>
+    case 'markdown':
+      return value ? <Markdown source={String(value)} /> : null
     default:
       return String(value)
   }
