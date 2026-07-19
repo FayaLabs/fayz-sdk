@@ -15,6 +15,8 @@ export interface MarketingLabels {
   funnel: string
   landingPages: string
   content: string
+  blog: string
+  blogCategories: string
   settings: string
 }
 

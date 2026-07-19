@@ -5,6 +5,7 @@ import { Button } from '@fayz-ai/ui'
 import { Input } from '@fayz-ai/ui'
 import { Checkbox } from '@fayz-ai/ui'
 import { CurrencyInput } from '@fayz-ai/ui'
+import { MarkdownEditor } from '@fayz-ai/ui'
 import { toast } from '@fayz-ai/ui'
 import { useSaveBar, useBackHandler } from '@fayz-ai/ui'
 import { PersonFormLayout } from './archetypes/PersonFormLayout'
@@ -132,6 +133,16 @@ function renderField(field: FieldDef, value: any, onChange: (val: any) => void, 
           required={field.required}
           rows={2}
           className={`${baseClass} min-h-[60px] py-1.5`}
+        />
+      )
+    case 'markdown':
+      return (
+        <MarkdownEditor
+          value={value ?? ''}
+          onChange={onChange}
+          placeholder={field.placeholder}
+          minRows={12}
+          defaultMode="edit"
         />
       )
     case 'relation':

@@ -19,6 +19,9 @@ import type { ContentPlannerUIState } from './views/content/contentStore'
 import { ContentView } from './views/content/ContentView'
 import { PostPage } from './views/content/PostPage'
 import { PlanBriefView } from './views/content/PlanBriefView'
+import { BlogAdminView } from './views/blog/BlogAdminView'
+import { BlogEntityForm } from './views/blog/BlogEntityForm'
+import { buildBlogPostEntity, buildBlogCategoryEntity } from './data/blogEntities'
 
 function buildNav(
   config: ResolvedMarketingConfig,
@@ -51,6 +54,14 @@ function buildNav(
       onClick: () => navigate('content'),
     })
   }
+  if (config.modules.blog) {
+    items.push({
+      id: 'blog', label: config.labels.blog, icon: 'Newspaper',
+      active: view === 'blog' || view === 'blog-new' || view.startsWith('blog-post:')
+        || view === 'blog-cat-new' || view.startsWith('blog-cat:'),
+      onClick: () => navigate('blog'),
+    })
+  }
   return items
 }
 
@@ -63,14 +74,19 @@ export function MarketingPage({ config, provider, store, contentProvider, conten
 }) {
   const t = useTranslation()
   const { view, direction, navigate } = useModuleNavigation('/marketing', {
-    overview: 0, channels: 0, campaigns: 0, funnel: 0, 'landing-pages': 0, content: 0,
+    overview: 0, channels: 0, campaigns: 0, funnel: 0, 'landing-pages': 0, content: 0, blog: 0,
     'channel-detail': 1, 'content-post': 1, 'content-brief': 1,
+    'blog-new': 1, 'blog-post': 1, 'blog-cat-new': 1, 'blog-cat': 1,
   }, 'overview')
 
   React.useEffect(() => { void store.getState().load() }, [store])
 
   const isOverview = view === 'overview'
   const nav = buildNav(config, view, navigate)
+
+  // Blog backoffice entities — one shared EntityDef each drives the list + form.
+  const blogPostEntity = React.useMemo(() => buildBlogPostEntity(), [])
+  const blogCategoryEntity = React.useMemo(() => buildBlogCategoryEntity(), [])
 
   const quickActions = React.useMemo<PluginQuickAction[]>(() => [
     { id: 'new-campaign', label: t('marketing.campaigns.new'), icon: 'Megaphone', description: config.labels.campaigns, action: () => navigate('campaigns') },
@@ -85,6 +101,11 @@ export function MarketingPage({ config, provider, store, contentProvider, conten
     { id: 'content', render: () => <ContentView onOpenPost={(id) => navigate(`content-post:${id}`)} /> },
     { id: 'content-post', render: ({ id }) => <PostPage postId={id!} onBack={() => navigate('content')} /> },
     { id: 'content-brief', render: () => <PlanBriefView onBack={() => navigate('content')} /> },
+    { id: 'blog', render: () => <BlogAdminView navigate={navigate} /> },
+    { id: 'blog-new', render: () => <BlogEntityForm entity={blogPostEntity} parentLabel={config.labels.blog} onDone={() => navigate('blog')} /> },
+    { id: 'blog-post', render: ({ id }) => <BlogEntityForm entity={blogPostEntity} editId={id!} parentLabel={config.labels.blog} onDone={() => navigate('blog')} /> },
+    { id: 'blog-cat-new', render: () => <BlogEntityForm entity={blogCategoryEntity} parentLabel={config.labels.blogCategories} onDone={() => navigate('blog')} /> },
+    { id: 'blog-cat', render: ({ id }) => <BlogEntityForm entity={blogCategoryEntity} editId={id!} parentLabel={config.labels.blogCategories} onDone={() => navigate('blog')} /> },
     { id: 'overview', render: () => <OverviewView /> },
   ], 'overview')
 

@@ -22,7 +22,8 @@ import { createMockContentPlannerProvider } from './data/contentMock'
 import { createSupabaseContentPlannerProvider } from './data/contentSupabase'
 import { createMarketingStore } from './store'
 import { createContentPlannerStore } from './views/content/contentStore'
-import { MIGRATION_000_PLG_RENAME, MIGRATION_001_CONTENT_PLANNER, MIGRATION_002_MULTI_PLATFORM, MIGRATION_003_RECORDING_OPS } from './migrations'
+import { MIGRATION_000_PLG_RENAME, MIGRATION_001_CONTENT_PLANNER, MIGRATION_002_MULTI_PLATFORM, MIGRATION_003_RECORDING_OPS, MIGRATION_004_RANKLAYER } from './migrations'
+import { ranklayerConnectorDef } from './integrations/ranklayer/connectorDef'
 import { DEFAULT_CURRENCY, type MarketingCurrency } from './format'
 import { MARKETING_PRESETS, type MarketingDomain, type MarketingDomainModules } from './presets'
 import type { AcquisitionChannel, ConversionModel } from './types'
@@ -74,6 +75,8 @@ const DEFAULT_LABELS: MarketingLabels = {
   funnel: 'Funnel',
   landingPages: 'Landing pages',
   content: 'Content',
+  blog: 'Blog',
+  blogCategories: 'Categorias',
   settings: 'Settings',
 }
 
@@ -130,6 +133,8 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
         subtitle: config.labels.pageSubtitle,
         generalSettings: React.createElement(SettingsView),
         registries: marketingRegistries,
+        // Enables the "Integrações" tab (renders manifest connectors for this host).
+        hostPluginId: 'marketing',
         routeBase: '/settings/marketing',
       }))
   SettingsComponent.displayName = 'MarketingSettings'
@@ -150,6 +155,7 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
       { id: 'marketing', label: config.labels.pageTitle, group: 'Engage' },
       ...(config.modules.landingPages ? [{ id: 'marketing.landing-pages', label: config.labels.landingPages, group: 'Engage' }] : []),
       ...(config.modules.contentPlanner ? [{ id: 'marketing.content', label: config.labels.content, group: 'Engage' }] : []),
+      ...(config.modules.blog ? [{ id: 'marketing.blog', label: config.labels.blog, group: 'Engage' }] : []),
     ],
     navigation: [
       {
@@ -204,7 +210,16 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
         sql: MIGRATION_003_RECORDING_OPS,
         description: 'Recording-day checklist + media asset URL on posts; content-media storage bucket',
       },
+      {
+        id: 'marketing-004-ranklayer',
+        version: '1.3.0',
+        sql: MIGRATION_004_RANKLAYER,
+        description: 'RankLayer connector state: plg_marketing_ranklayer_integrations + _sync_log (tenant RLS)',
+      },
     ],
+    // RankLayer SEO connector — renders in the Integrações settings tab. Scaffold
+    // (control plane only); the real sync lands via an external PR (RANKLAYER.md).
+    connectors: [ranklayerConnectorDef],
     aiTools: [
       {
         id: 'marketing.channel-performance',

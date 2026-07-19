@@ -16,6 +16,8 @@ export interface MarketingDomainModules {
   landingPages: boolean
   /** Social content planner — accounts, week board, markdown post pages. */
   contentPlanner: boolean
+  /** Blog backoffice — posts + categories CMS feeding @fayz-ai/plugin-blog. Off by default. */
+  blog: boolean
   /** Outbound — reserved, off by default, implemented in a later milestone. */
   broadcasts: boolean
   journeys: boolean
@@ -44,7 +46,7 @@ const AGENCY: MarketingDomainPreset = {
     { id: 'referral', label: 'Referral', icon: 'Users', kind: 'referral' },
     { id: 'direct', label: 'Direct', icon: 'MousePointerClick', kind: 'direct' },
   ],
-  modules: { channels: true, campaigns: true, funnel: true, landingPages: true, contentPlanner: false, broadcasts: false, journeys: false },
+  modules: { channels: true, campaigns: true, funnel: true, landingPages: true, contentPlanner: false, blog: false, broadcasts: false, journeys: false },
 }
 
 const BEAUTY: MarketingDomainPreset = {
@@ -63,7 +65,7 @@ const BEAUTY: MarketingDomainPreset = {
     { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle', kind: 'social' },
     { id: 'walkin', label: 'Walk-in', icon: 'DoorOpen', kind: 'direct' },
   ],
-  modules: { channels: true, campaigns: true, funnel: true, landingPages: false, contentPlanner: true, broadcasts: false, journeys: false },
+  modules: { channels: true, campaigns: true, funnel: true, landingPages: false, contentPlanner: true, blog: false, broadcasts: false, journeys: false },
 }
 
 const RESTO: MarketingDomainPreset = {
@@ -82,7 +84,7 @@ const RESTO: MarketingDomainPreset = {
     { id: 'instagram', label: 'Instagram', icon: 'Instagram', kind: 'social' },
     { id: 'walkin', label: 'Walk-in', icon: 'DoorOpen', kind: 'direct' },
   ],
-  modules: { channels: true, campaigns: true, funnel: true, landingPages: false, contentPlanner: false, broadcasts: false, journeys: false },
+  modules: { channels: true, campaigns: true, funnel: true, landingPages: false, contentPlanner: false, blog: false, broadcasts: false, journeys: false },
 }
 
 export const MARKETING_PRESETS: Record<MarketingDomain, MarketingDomainPreset> = {

@@ -15,6 +15,19 @@ export interface BlogAuthor {
   bio?: string
 }
 
+/**
+ * First-class blog category. Managed in the backoffice (marketing "Blog" tab);
+ * a post references one via categoryId. The website's BlogPost surfaces the
+ * category's `name` as its `tag` string so presentation stays unchanged.
+ */
+export interface BlogCategory {
+  id: string
+  name: string
+  /** URL-safe identifier (unique per tenant). */
+  slug: string
+  description?: string
+}
+
 export interface BlogPost {
   /** URL-safe identifier used for the /blog/:slug detail route. */
   slug: string
@@ -23,7 +36,7 @@ export interface BlogPost {
   excerpt: string
   /** Full article body. Plain text or lightweight markdown (paragraphs split on blank lines). */
   body: string
-  /** Category / topic label (e.g. "Periodontia"). */
+  /** Category / topic label (e.g. "Periodontia"). Derived from the post's category name. */
   tag: string
   /** Human-readable reading time (e.g. "5 min"). */
   readTime: string
