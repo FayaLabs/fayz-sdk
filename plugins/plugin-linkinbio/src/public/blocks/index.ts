@@ -1,0 +1,16 @@
+export { default as HeroSection } from './HeroSection';
+export { default as BioSection } from './BioSection';
+export { default as GallerySection } from './GallerySection';
+export { default as VideoGridSection } from './VideoGridSection';
+export { default as SocialLinksSection } from './SocialLinksSection';
+export { default as EmbedSection } from './EmbedSection';
+export { default as ProjectSection } from './ProjectSection';
+export { default as StatsSection } from './StatsSection';
+export { default as VenueListSection } from './VenueListSection';
+export { default as CTASection } from './CTASection';
+export { default as TextSection } from './TextSection';
+export { default as ProfileHeader } from './ProfileHeader';
+export { default as LinksBlock } from './LinksBlock';
+export { default as MusicReleasesBlock } from './MusicReleasesBlock';
+export { default as TourDatesBlock } from './TourDatesBlock';
+export { default as FeaturedBlock } from './FeaturedBlock';
