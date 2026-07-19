@@ -14,6 +14,11 @@ export interface BlogPluginOptions {
   siteName?: string
   /** Inject a custom provider (e.g. a CMS). Overrides the safe mock/Supabase resolver. */
   dataProvider?: BlogDataProvider
+  /** Tenant whose PUBLISHED posts the public (anon) site reads from Supabase.
+   *  Required for the Supabase provider on an anon website (mirrors how the
+   *  public booking plugin takes an explicit tenantId). Without it the safe
+   *  resolver falls back to the mock/seed provider. */
+  tenantId?: string
   /** Section eyebrow / labels for the default list screen. */
   labels?: {
     /** Title shown at the top of the /blog list screen. */

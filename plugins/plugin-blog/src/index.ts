@@ -7,6 +7,7 @@ import { createSupabaseBlogProvider } from './data/supabase'
 import { BlogProvider, type BlogContextValue } from './context'
 import { BlogList } from './components/BlogList'
 import { PostDetail } from './components/PostDetail'
+import { MIGRATIONS } from './migrations'
 
 // ---------------------------------------------------------------------------
 // @fayz-ai/plugin-blog — website-surface blog/articles plugin.
@@ -32,7 +33,7 @@ export function createBlogPlugin(options?: BlogPluginOptions): BlogWebsitePlugin
   const provider =
     options?.dataProvider ??
     createSafeDataProvider(
-      () => createSupabaseBlogProvider(),
+      () => createSupabaseBlogProvider({ tenantId: options?.tenantId }),
       () => createMockBlogProvider({ seed: options?.seed, defaultAuthor: options?.defaultAuthor }),
     )
 
@@ -59,6 +60,14 @@ export function createBlogPlugin(options?: BlogPluginOptions): BlogWebsitePlugin
       { path: `${config.basePath}/:slug`, component: PostDetail, guard: 'public' },
     ],
     widgets: [],
+    // Owns the blog domain tables (categories + posts + anon-read view). The
+    // marketing "Blog" backoffice writes to these; the website reads them.
+    migrations: MIGRATIONS.map((m) => ({
+      id: `blog-${m.id}`,
+      version: '1.0.0',
+      sql: m.sql,
+      description: 'Blog content model (plg_blog_categories, plg_blog_posts) + anon-read view',
+    })),
   }
 
   return { manifest, Provider, dataProvider: provider }
@@ -66,7 +75,7 @@ export function createBlogPlugin(options?: BlogPluginOptions): BlogWebsitePlugin
 
 // Public API
 export type { BlogPluginOptions, ResolvedBlogConfig } from './config'
-export type { BlogPost, BlogListQuery, BlogAuthor } from './types'
+export type { BlogPost, BlogListQuery, BlogAuthor, BlogCategory } from './types'
 export type { BlogDataProvider } from './data/types'
 export { createMockBlogProvider, createSupabaseBlogProvider } from './data'
 export type { BlogSeed, BlogSeedPost } from './data/mock'
