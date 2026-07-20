@@ -29,6 +29,7 @@ export const ptBR: Record<string, string> = {
   "agenda.appointment.searchService": "Buscar serviço para adicionar...",
   "agenda.appointment.selectLocation": "Selecionar local...",
   "agenda.appointment.selectProfessional": "Selecionar profissional...",
+  "agenda.appointment.selectClientHint": "Selecione o cliente na lista ou use Novo cliente para habilitar o salvamento.",
   "agenda.appointment.services": "Serviços",
   "agenda.appointment.status": "Status",
   "agenda.appointment.to": "até",

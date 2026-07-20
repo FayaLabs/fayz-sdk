@@ -151,8 +151,14 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
       locationId: booking.location_id,
       metadata: booking.metadata ?? {},
       clientId: booking.party_id,
-      // Simple events (no party) fall back to the title stored in metadata.
-      clientName: client?.name ?? (booking.metadata?.title as string | undefined) ?? null,
+      // Simple events (no party) fall back to the title stored in metadata;
+      // partyless blocks/tasks (e.g. imported Google events) get their notes or
+      // a kind label so the calendar never renders an unnamed chip.
+      clientName: client?.name
+        ?? (booking.metadata?.title as string | undefined)
+        ?? (booking.kind === 'appointment'
+          ? null
+          : booking.notes || (booking.kind === 'task' ? 'Tarefa' : 'Bloqueio')),
       clientPhone: client?.phone ?? null,
       clientEmail: client?.email ?? null,
       clientAvatarUrl: client?.avatar_url ?? null,
