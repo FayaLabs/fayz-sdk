@@ -82,6 +82,8 @@ import {
   Inbox,
   Star,
   TrendingUp,
+  GraduationCap,
+  Repeat,
   UserCheck,
   UserPlus,
   UserX,
@@ -145,6 +147,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Building2, Filter, Plus, List, ListPlus, Search, Shield, Ban, Clock, Dog, Cat, PawPrint, Heart, FolderOpen, LayoutTemplate, LeafyGreen, Apple, Egg, Wheat,
   PartyPopper, Radio, CalendarDays, CalendarCheck2, CalendarX, BadgeDollarSign, Banknote, Landmark, CircleDollarSign, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
   Zap, Award, LayoutDashboard, MessageSquare, Inbox, Star, TrendingUp, UserCheck, UserPlus, UserX, Workflow, Boxes, Clock3, FileCheck2,
+  GraduationCap, Repeat,
 }
 
 export { ICON_MAP }

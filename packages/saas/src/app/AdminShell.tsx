@@ -321,10 +321,31 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
 
   // Navigation: plugin entries + custom pages (deduped, plugin order preserved).
   const navigation = React.useMemo<NavigationItem[]>(() => {
-    const items: OrderedNavigationItem[] = runtime.navigation.map((entry) => ({
-      ...navEntryToItem(entry),
-      position: entry.position,
-    }))
+    // Plugin entries whose route is a sub-path of another plugin entry nest as
+    // its children (same rule pages get below) — e.g. the courses modules
+    // (/courses/members, /courses/sales…) group under /courses instead of
+    // scattering across the rail. Sort by position first so parents land
+    // before their children.
+    const flat = runtime.navigation
+      .map((entry) => ({ ...navEntryToItem(entry), position: entry.position }))
+      .sort(compareNavigation)
+    const items: OrderedNavigationItem[] = []
+    for (const item of flat) {
+      const parent = findModuleParent(item, items)
+      if (parent) {
+        const children = parent.children ?? [{
+          ...parent,
+          id: `${parent.id}:index`,
+          children: undefined,
+          position: -1,
+        }]
+        if (!children.some((child) => child.route === item.route)) {
+          parent.children = [...children, item].sort(compareNavigation)
+        }
+        continue
+      }
+      items.push(item)
+    }
     for (const [index, page] of pages.entries()) {
       // `nav: false` routes the page but keeps it out of the sidebar/topbar nav
       // (mobile-only pages reached via bottomNav/avatar). Routes are still built
