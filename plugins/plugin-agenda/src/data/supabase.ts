@@ -212,7 +212,13 @@ async function getCanonicalBookingById(core: any, id: string): Promise<CalendarB
 // Supabase Agenda Provider
 // ---------------------------------------------------------------------------
 
-export function createSupabaseAgendaProvider(): AgendaDataProvider {
+export interface SupabaseAgendaProviderOptions {
+  /** people.kind used for calendar resources/professionals (default 'staff' — schools use 'teacher'). */
+  professionalKind?: string
+}
+
+export function createSupabaseAgendaProvider(providerOptions?: SupabaseAgendaProviderOptions): AgendaDataProvider {
+  const professionalKind = providerOptions?.professionalKind ?? 'staff'
   return {
     // v_appointments is in public schema (PostgREST default)
     async getBookings(query: BookingQuery): Promise<CalendarBooking[]> {
@@ -522,7 +528,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       const { core } = getClients()
       const { data, error } = await core.from('people')
         .select('id, name, avatar_url, is_active')
-        .eq('kind', 'staff')
+        .eq('kind', professionalKind)
         .eq('is_active', true)
         .order('name')
       if (error) throw error

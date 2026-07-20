@@ -22,7 +22,7 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
   const config = resolveConfig(options)
   registerTranslations(agendaLocales)
   const provider = options?.dataProvider ?? createSafeDataProvider(
-    () => createSupabaseAgendaProvider(),
+    () => createSupabaseAgendaProvider({ professionalKind: config.professionalKind }),
     () => createMockAgendaProvider(),
   )
   const store = createAgendaStore(provider, options?.financialBridge)

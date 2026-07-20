@@ -865,11 +865,16 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                             }).select('id, name').single()
                             if (personError) throw personError
 
-                            // 2. Insert into public.clients (project extension table)
+                            // 2. Insert into public.clients when the pool has that
+                            // extension table (beauty-style projects). Pools without it
+                            // (school, agency) live off public.people alone — a missing
+                            // table is not an error; any other failure still rolls back.
                             const { error: clientError } = await supabase.from('clients').insert({
                               person_id: personRow.id, tenant_id: tenantId,
                             })
-                            if (clientError) {
+                            const missingExtensionTable = clientError?.code === 'PGRST205'
+                              || clientError?.message?.includes('Could not find the table')
+                            if (clientError && !missingExtensionTable) {
                               // Rollback person if extension insert fails
                               await supabase.from('people').delete().eq('id', personRow.id)
                               throw clientError
