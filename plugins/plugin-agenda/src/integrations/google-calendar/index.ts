@@ -14,7 +14,16 @@ import { googleCalendarConnectorDef } from './connectorDef'
 export { createGoogleCalendarProvider } from './data/supabase'
 export { googleCalendarConnector } from './connector'
 export { googleCalendarConnectorDef } from './connectorDef'
-export { bookingToEvent, eventToBookingPatch, bookingSummary } from './mapping'
+export {
+  bookingToEvent,
+  eventToBookingPatch,
+  bookingSummary,
+  appointmentRowToEvent,
+  eventToAppointmentPatch,
+  eventTimes,
+  resolveTargetChannel,
+  channelRowToChannel,
+} from './mapping'
 export * from './types'
 
 // Addon plugin: contributes the Google Calendar connector into its host
