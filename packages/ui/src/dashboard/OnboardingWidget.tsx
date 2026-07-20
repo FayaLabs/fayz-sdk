@@ -37,6 +37,10 @@ export function OnboardingWidget({
   const [completed, setCompleted] = React.useState<Record<string, boolean>>(() =>
     Object.fromEntries(steps.map((s) => [s.id, Boolean(s.done)])),
   )
+  // Async checks start unresolved: don't paint until they settle, or an
+  // already-onboarded tenant flashes the checklist for the query round-trip
+  // before allDone hides it (mount → visible 0/N → resolve → null).
+  const [resolved, setResolved] = React.useState(() => steps.every((s) => s.done != null || !s.check))
 
   React.useEffect(() => {
     let cancelled = false
@@ -44,12 +48,17 @@ export function OnboardingWidget({
       if (s.done != null) return [s.id, s.done] as const
       if (!s.check) return [s.id, false] as const
       try { return [s.id, await s.check()] as const } catch { return [s.id, false] as const }
-    })).then((entries) => { if (!cancelled) setCompleted(Object.fromEntries(entries)) })
+    })).then((entries) => {
+      if (cancelled) return
+      setCompleted(Object.fromEntries(entries))
+      setResolved(true)
+    })
     return () => { cancelled = true }
   }, [steps])
 
   const doneCount = steps.filter((s) => completed[s.id]).length
   const allDone = doneCount === steps.length
+  if (!resolved) return null
   if (allDone && hideWhenComplete) return null
 
   const runAction = (action: OnboardingStepInput['action']) => {
