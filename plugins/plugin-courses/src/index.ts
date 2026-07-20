@@ -33,6 +33,14 @@ export interface CoursesPluginOptions {
   navPosition?: number
   navSection?: 'main' | 'secondary' | 'settings'
   navLabel?: string
+  /** Nav labels for the module entries (default English). */
+  labels?: {
+    membersArea?: string
+    sales?: string
+    subscriptions?: string
+    financial?: string
+    reports?: string
+  }
   scope?: PluginScope
   verticalId?: VerticalId
   /**
@@ -74,13 +82,14 @@ export function createCoursesPlugin(options?: CoursesPluginOptions): PluginManif
 
   // Opt-in nav/routes per module. Position offsets stay stable relative to the
   // enabled set so hosts control exactly where the block sits.
+  const labels = options?.labels ?? {}
   const navigation = [
     { section, position: base, label: options?.navLabel ?? 'Courses', route: '/courses', icon: 'BookOpen', permission: read('courses') },
-    ...(modules.membersArea ? [{ section, position: base + 1, label: 'Members area', route: '/courses/members', icon: 'GraduationCap', permission: read('courses') }] : []),
-    ...(modules.sales ? [{ section, position: base + 2, label: 'Sales', route: '/courses/sales', icon: 'TrendingUp', permission: read('courses.sales') }] : []),
-    ...(modules.subscriptions ? [{ section, position: base + 3, label: 'Subscriptions', route: '/courses/subscriptions', icon: 'Repeat', permission: read('courses.sales') }] : []),
-    ...(modules.financial ? [{ section, position: base + 4, label: 'Financial', route: '/courses/financial', icon: 'CreditCard', permission: read('courses.finance') }] : []),
-    ...(modules.reports ? [{ section, position: base + 5, label: 'Reports', route: '/courses/reports', icon: 'BarChart3', permission: read('courses.sales') }] : []),
+    ...(modules.membersArea ? [{ section, position: base + 1, label: labels.membersArea ?? 'Members area', route: '/courses/members', icon: 'GraduationCap', permission: read('courses') }] : []),
+    ...(modules.sales ? [{ section, position: base + 2, label: labels.sales ?? 'Sales', route: '/courses/sales', icon: 'TrendingUp', permission: read('courses.sales') }] : []),
+    ...(modules.subscriptions ? [{ section, position: base + 3, label: labels.subscriptions ?? 'Subscriptions', route: '/courses/subscriptions', icon: 'Repeat', permission: read('courses.sales') }] : []),
+    ...(modules.financial ? [{ section, position: base + 4, label: labels.financial ?? 'Financial', route: '/courses/financial', icon: 'CreditCard', permission: read('courses.finance') }] : []),
+    ...(modules.reports ? [{ section, position: base + 5, label: labels.reports ?? 'Reports', route: '/courses/reports', icon: 'BarChart3', permission: read('courses.sales') }] : []),
   ]
 
   const routes = [
