@@ -1,6 +1,6 @@
 {
   "name": "@fayz-ai/plugin-blog",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "[experimental] Fayz SDK — blog / articles plugin (website surface)",
   "type": "module",
   "main": "./dist/index.cjs",

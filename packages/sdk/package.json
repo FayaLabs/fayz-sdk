@@ -3,7 +3,7 @@
   "fayz": {
     "status": "beta"
   },
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Fayz SDK — API client, app params, runtime broker helpers, and shared types for generated Fayz projects",
   "type": "module",
   "main": "./dist/index.cjs",
