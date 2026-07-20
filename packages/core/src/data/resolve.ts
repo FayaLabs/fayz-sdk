@@ -66,8 +66,14 @@ export function resolveDataProvider<T extends { id: string }>(
 
   if (client && entityDef.data?.table) {
     const tenantId = () => getActiveTenantId()
+    // Archetype entities share a physical table (e.g. people) across kinds
+    // (student/teacher/staff…). The cache key must carry the kind or the first
+    // kind's resultset is served to every sibling entity (teachers page
+    // listing students).
     const cacheOptions = {
-      table: entityDef.data.table,
+      table: entityDef.data.archetypeKind
+        ? `${entityDef.data.table}#${entityDef.data.archetypeKind}`
+        : entityDef.data.table,
       tenantId,
       ttl: entityDef.data.cacheTTL,
     }
