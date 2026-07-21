@@ -6,7 +6,7 @@ import { FinancialContextProvider, type ResolvedFinancialConfig } from './Financ
 import type { FinancialDataProvider } from './data/types'
 import type { FinancialUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
-import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel, EntitlementGate, PermissionGate, usePermissionOptional } from '@fayz-ai/saas'
+import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel, EntitlementGate, UpgradePrompt, useModuleNavAccess, PermissionGate, usePermissionOptional } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
 import { QuickTransactionForm } from './views/QuickTransactionForm'
 import { usePendingQuickAdd, consumeQuickAdd } from './quick-add'
@@ -141,6 +141,14 @@ function buildNav(
     })
   }
 
+  // Tag each nav item with its access feature id (item id → feature via the
+  // resolved navFeatureMap). `useModuleNavAccess` then hides role-denied links
+  // and Crown-badges plan-denied ones; ids absent from the map stay ungated.
+  for (const item of items) {
+    const feature = config.navFeatureMap[item.id]
+    if (feature) item.feature = feature
+  }
+
   return items
 }
 
@@ -186,7 +194,10 @@ export function FinancialPage({ config, provider, store, registries }: {
   const canCreate = can('financial', 'create')
   const intent = parseIntent(view)
   const isSettings = view === 'settings'
-  const nav = buildNav(config, view, navigate, t)
+  // Access-aware sub-nav: role denial hides the link, plan denial badges it with
+  // a Crown (freemium discovery). The click still navigates — the gated CONTENT
+  // renders the UpgradePrompt (see renderView's EntitlementGates below).
+  const nav = useModuleNavAccess(buildNav(config, view, navigate, t))
 
   // FAY-1225 "log money in a few taps": a reachable quick-add that opens the
   // Mobills-grade transaction sheet (default = expense). Prominent primary
@@ -304,18 +315,33 @@ export function FinancialPage({ config, provider, store, registries }: {
         return <CashRegistersView />
       case 'statements':
         return <StatementsView onNavigate={navigate} />
-      case 'reconciliation':
+      case 'reconciliation': {
         // Premium submodule: internal tab (not a shell route), so the plan gate
-        // must live here — the route guard never sees it (QA finding B35).
+        // must live here — the route guard never sees it (QA finding B35). Full
+        // UpgradePrompt (not the inline banner) fills the empty module panel.
+        const feature = config.navFeatureMap.reconciliation ?? 'fin_reconciliation'
         return (
-          <EntitlementGate feature="fin_reconciliation">
+          <EntitlementGate feature={feature} fallback={<UpgradePrompt feature={feature} />}>
             <ReconciliationView />
           </EntitlementGate>
         )
-      case 'commissions':
-        return <CommissionsView />
-      case 'cards':
-        return <CardsView />
+      }
+      case 'commissions': {
+        const feature = config.navFeatureMap.commissions ?? 'fin_commissions'
+        return (
+          <EntitlementGate feature={feature} fallback={<UpgradePrompt feature={feature} />}>
+            <CommissionsView />
+          </EntitlementGate>
+        )
+      }
+      case 'cards': {
+        const feature = config.navFeatureMap.cards ?? 'fin_cards'
+        return (
+          <EntitlementGate feature={feature} fallback={<UpgradePrompt feature={feature} />}>
+            <CardsView />
+          </EntitlementGate>
+        )
+      }
       default:
         return <SummaryView />
     }

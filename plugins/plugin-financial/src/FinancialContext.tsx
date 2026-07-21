@@ -39,6 +39,10 @@ export interface ResolvedFinancialConfig {
   entityLookups: EntityLookupMap
   contactLookup?: EntityLookup
   onBookingClick?: (orderId: string) => void
+  /** Resolved map of internal nav item id → access feature id (default map
+   *  merged with the app's `navFeatureMap` override). Drives the sub-module
+   *  link paywall (`useModuleNavAccess`) and the matching content gates. */
+  navFeatureMap: Record<string, string>
 }
 
 const ctx = createPluginContext<ResolvedFinancialConfig, FinancialDataProvider, FinancialUIState>('FinancialPage')

@@ -109,6 +109,7 @@ export {
   useAccessOptional,
   useLimit,
   useLimitGuard,
+  useModuleNavAccess,
   resolveAccess,
   isEntitledByPlan,
   invalidateLimit,
@@ -139,6 +140,7 @@ export type {
 export { useBillingStore } from './billing/index'
 export { EntitlementGate, LimitGate } from './shell/components/billing/gates'
 export { UpgradePrompt } from './shell/components/billing/UpgradePrompt'
+export type { UpgradePromptProps } from './shell/components/billing/UpgradePrompt'
 export type { BillingStore, BillingState, Subscription, Invoice } from './billing/index'
 
 // ---------------------------------------------------------------------------

@@ -2,10 +2,24 @@ import * as React from 'react'
 import { Badge, Button, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { getCoursesProvider, type Payout, type FinancialSummary, type CreatorAccount } from '@fayz-ai/courses'
+import { EntitlementGate, UpgradePrompt } from '@fayz-ai/saas'
 import { PageContainer, StatCard, StatGrid, SimpleTable, type SimpleColumn } from '../components/CommerceUI'
 import { formatMoney, formatDate, formatPercent } from '../lib/format'
 
+// Plan gate for the courses financial area. The shell route guard already
+// paywalls `/courses/financial` on plan denial (full UpgradePrompt); this inner
+// gate is defense-in-depth so the content stays gated even if the page is ever
+// embedded as a non-route tab. Full UpgradePrompt fills the panel (not the
+// inline banner).
 export function FinancialPage() {
+  return (
+    <EntitlementGate feature="courses.finance" fallback={<UpgradePrompt feature="courses.finance" />}>
+      <FinancialPageContent />
+    </EntitlementGate>
+  )
+}
+
+function FinancialPageContent() {
   const t = useTranslation()
   const [summary, setSummary] = React.useState<FinancialSummary | null>(null)
   const [payouts, setPayouts] = React.useState<Payout[] | null>(null)

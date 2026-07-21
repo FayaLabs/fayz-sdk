@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronLeft, Crown } from 'lucide-react'
 import { useTranslation } from '@fayz-ai/core'
 import { cn } from '../utils/cn'
 import { ICON_MAP } from './Topbar'
@@ -28,7 +28,31 @@ export interface ModuleNavItem {
   icon?: string
   active?: boolean
   onClick?: () => void
-  children?: { id: string; label: string; active?: boolean; onClick?: () => void }[]
+  /** Feature id for the access gate. When set, `useModuleNavAccess` (in
+   *  @fayz-ai/saas) resolves this link's role (hide) and plan (Crown) state. */
+  feature?: string
+  /** Freemium discovery: the user's role allows this link but their plan does
+   *  not entitle `feature`. Renders a small Crown badge (same vocabulary as the
+   *  Sidebar top-level nav); the click still navigates and the gated CONTENT
+   *  shows the UpgradePrompt. Typically set by `useModuleNavAccess`. */
+  premium?: boolean
+  children?: ModuleNavItem[]
+}
+
+// ---------------------------------------------------------------------------
+// PremiumBadge — the small Crown affordance shared by every module-nav renderer
+// (rail, mobile tabs, GHL header). Same vocabulary as the Sidebar top-level nav
+// so a plan-gated sub-module link reads identically wherever it appears.
+// ---------------------------------------------------------------------------
+
+function PremiumBadge({ className }: { className?: string }) {
+  const t = useTranslation()
+  const tip = t('upgrade.badgeTooltip')
+  return (
+    <span title={tip} aria-label={tip} className={cn('inline-flex shrink-0', className)}>
+      <Crown className="h-3.5 w-3.5 text-amber-500" aria-hidden />
+    </span>
+  )
 }
 
 export interface ModulePageProps {
@@ -92,6 +116,7 @@ function NavItem({ item }: { item: ModuleNavItem }) {
       >
         {Icon && <Icon className="h-4 w-4 shrink-0" />}
         <span className="flex-1 text-left truncate">{item.label}</span>
+        {item.premium && <PremiumBadge className="ml-1" />}
         {hasChildren && (
           expanded
             ? <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -112,7 +137,8 @@ function NavItem({ item }: { item: ModuleNavItem }) {
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
-              {child.label}
+              <span className="flex-1 text-left truncate">{child.label}</span>
+              {child.premium && <PremiumBadge className="ml-1" />}
             </button>
           ))}
         </div>
@@ -168,6 +194,7 @@ function MobileTabs({ nav }: { nav: ModuleNavItem[] }) {
             >
               {Icon && <Icon className="h-3 w-3" />}
               {item.label}
+              {item.premium && <PremiumBadge />}
               {hasChildren && <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', isExpanded && 'rotate-180')} />}
             </button>
           )
@@ -193,6 +220,7 @@ function MobileTabs({ nav }: { nav: ModuleNavItem[] }) {
                 )}
               >
                 {child.label}
+                {child.premium && <PremiumBadge />}
               </button>
             ))}
           </div>
@@ -359,6 +387,7 @@ function ModuleHeader({ nav }: { nav: ModuleNavItem[] }) {
             >
               {Icon && <Icon className="h-4 w-4" />}
               {item.label}
+              {item.premium && <PremiumBadge />}
             </button>
           )
         })}
