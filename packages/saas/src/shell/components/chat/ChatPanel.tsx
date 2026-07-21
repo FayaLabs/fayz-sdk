@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { ArrowUp, History, Loader2, SquarePen, Settings2, Wrench } from 'lucide-react'
+import { ArrowUp, ChevronDown, History, Loader2, SquarePen, Settings2, Wrench } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useTranslation } from '../../hooks/useTranslation'
-import { useChatStore, type ChatMessage } from '../../stores/chat.store'
+import { useChatStore, type ChatMessage, type ChatToolCall } from '../../stores/chat.store'
 import { useChat } from '../../hooks/useChat'
 import { useAITools } from '../../hooks/useAITools'
 import { ChatSuggestions, ChatToolsPanel } from './ChatSuggestions'
@@ -232,6 +232,33 @@ export function ChatPanel({
   )
 }
 
+function ToolCallRow({ call }: { call: ChatToolCall }) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <div className="rounded-md border border-border/60">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-1.5 px-2 py-1 text-left font-mono text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <Wrench className="h-2.5 w-2.5 shrink-0" />
+        <span className="truncate">{call.name}</span>
+        <ChevronDown className={cn('ml-auto h-2.5 w-2.5 shrink-0 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="space-y-1 border-t border-border/60 px-2 py-1.5">
+          {call.args && (
+            <pre className="max-h-24 overflow-auto whitespace-pre-wrap break-all font-mono text-[9px] leading-snug text-muted-foreground">{call.args}</pre>
+          )}
+          {call.result && (
+            <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded bg-muted/50 p-1.5 font-mono text-[9px] leading-snug text-foreground/80">{call.result}</pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
 
@@ -247,16 +274,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       >
         {message.content}
       </div>
-      {!isUser && (message.toolsUsed?.length ?? 0) > 0 && (
-        <div className="flex max-w-[85%] flex-wrap items-center gap-1 px-1">
-          {message.toolsUsed!.map((name) => (
-            <span
-              key={name}
-              className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-px font-mono text-[9px] text-muted-foreground"
-            >
-              <Wrench className="h-2 w-2" />
-              {name}
-            </span>
+      {!isUser && (message.toolCalls?.length ?? 0) > 0 && (
+        <div className="flex max-w-[85%] flex-col gap-0.5 px-1">
+          {message.toolCalls!.map((call, i) => (
+            <ToolCallRow key={`${call.name}-${i}`} call={call} />
           ))}
         </div>
       )}
