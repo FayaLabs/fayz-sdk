@@ -1011,7 +1011,7 @@ export const shellTranslations: Record<string, Record<string, string>> = {
     "upgrade.includes": 'Inclui {feature}',
     "upgrade.cta": 'Ver planos',
     "upgrade.badgeTooltip": 'Disponível em um plano superior',
-    "upgrade.unlock": 'Desbloqueie o {feature}',
+    "upgrade.unlock": 'Desbloqueie {feature}',
     "upgrade.currentPlan": 'Seu plano: {plan}',
     "upgrade.recommended": 'Recomendado',
     "upgrade.ctaUpgrade": 'Fazer upgrade',
