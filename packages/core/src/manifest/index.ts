@@ -1,7 +1,9 @@
 import type { EntityDef } from '../types/crud'
 import type { LocaleConfig } from '../types/i18n'
-import type { PermissionsConfig } from '../types/permissions'
+import type { PermissionsConfig, FeatureDeclaration } from '../types/permissions'
 import type { BillingConfig } from '../types/billing'
+import type { LimitDeclaration } from '../types/entitlements'
+import type { AIToolParameters, AIToolExecution, AgentRpcDeclaration } from '../types/plugins'
 import type { BlockNode } from '../blocks'
 
 // ---------------------------------------------------------------------------
@@ -18,7 +20,7 @@ import type { BlockNode } from '../blocks'
 // right is why W1 is the "point of no return".
 // ---------------------------------------------------------------------------
 
-export const CURRENT_MANIFEST_VERSION = 2
+export const CURRENT_MANIFEST_VERSION = 3
 
 export type BackendProvider = 'supabase' | 'fayz-api' | 'fayz-shop' | 'mock' | 'custom'
 
@@ -68,6 +70,91 @@ export interface SurfaceManifest {
   options?: Record<string, unknown>
 }
 
+// ---------------------------------------------------------------------------
+// Agent Contract (manifest v3) — everything a SERVER-SIDE agent runtime needs
+// to operate the app without a browser: the full entity surface, the tool
+// catalog with its authorization requirements, the pool RPCs writes go
+// through, and the structured domain knowledge the app wants in the prompt.
+// Derived from app code at publish (never hand-written) and synced to the
+// Fayz platform, where it becomes the versioned AgentContract the broker
+// validates every turn against.
+// ---------------------------------------------------------------------------
+
+/** JSON-safe projection of an EntityDef — schema only, no components/closures.
+ *  `data` mirrors EntityDef.data: everything the server-plane read executor
+ *  needs (tenant scoping, search/select column allowlists, fixed filters). */
+export interface EntityContract {
+  key: string
+  label: string
+  labelPlural?: string
+  /** Plan-limit key rows of this entity consume (EntityDef.limitKey). */
+  limitKey?: string
+  data: {
+    table: string
+    schema?: string
+    tenantScoped?: boolean
+    tenantIdColumn?: string
+    searchColumns?: string[]
+    selectColumns?: string
+    columnMap?: Record<string, string>
+    archetype?: string
+    archetypeKind?: string
+    filters?: Record<string, string>
+  }
+  fields: Array<{
+    key: string
+    label: string
+    type: string
+    required?: boolean
+    searchable?: boolean
+    /** Allowed values for select-like fields. */
+    options?: string[]
+    /** Table the relation field points at (FieldRelation.table). */
+    relationTable?: string
+  }>
+}
+
+/** JSON-safe projection of a PluginAITool + its owning plugin. */
+export interface AIToolContract {
+  id: string
+  name: string
+  description: string
+  mode: 'read' | 'persist'
+  parameters?: AIToolParameters
+  permission?: { feature: string; action: string }
+  limitKey?: string
+  execution?: AIToolExecution
+  requiresConfirmation?: boolean
+  pluginId?: string
+  category?: string
+}
+
+/** A tenant-scoped pool RPC the server-plane executor may call. Canonical
+ *  definition lives with the plugin types (plugins declare these). */
+export type { AgentRpcDeclaration as RpcContract } from '../types/plugins'
+
+/** Structured domain knowledge rendered into the agent's prompt as labelled
+ *  sections — statuses with transitions, scheduling defaults, free-form rules. */
+export interface AgentDomainKnowledge {
+  statuses?: Record<string, Array<{ id: string; label: string; availableWhen?: unknown }>>
+  scheduleDefaults?: Record<string, unknown>
+  businessRules?: Array<{ id: string; description: string }>
+}
+
+export interface AgentContract {
+  persona?: { name?: string; systemPrompt?: string; icon?: string }
+  /** When 'server', surfaces stop shipping data-tool executors: the broker
+   *  executes reads/writes server-plane and the surface only handles
+   *  client-plane tools. Flipped per app — no lockstep release. */
+  executionPlane?: 'client' | 'server'
+  entities?: EntityContract[]
+  tools?: AIToolContract[]
+  registries?: Array<{ pluginId: string; id: string; entityKey?: string; readOnly?: boolean }>
+  declaredFeatures?: FeatureDeclaration[]
+  rpcs?: AgentRpcDeclaration[]
+  domainKnowledge?: AgentDomainKnowledge
+}
+
 export interface AppManifest {
   manifestVersion: number
   id: string
@@ -83,6 +170,13 @@ export interface AppManifest {
   entities?: EntityDef[]
   permissions?: PermissionsConfig
   billing?: BillingConfig
+  /** The RESOLVED limit declarations (4-layer merge: core < entity-derived <
+   *  plugin < app), so a server runtime counts exactly what the client counts. */
+  limitDeclarations?: LimitDeclaration[]
+  /** v3: the agent contract — see the section comment above. */
+  agent?: AgentContract
+  /** sha256 of the canonical serialization (excluding this field). */
+  contractHash?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +202,9 @@ const allowedManifestKeys = new Set([
   'billing',
   'entities',
   'surfaces',
+  'limitDeclarations',
+  'agent',
+  'contractHash',
 ])
 const allowedBackendKeys = new Set(['provider', 'projectRef', 'url', 'adapterId', 'options'])
 const allowedSurfaceKeys = new Set(['scaffold', 'options', 'plugins', 'pages'])
@@ -121,6 +218,12 @@ const manifestIdPattern = /^[a-z0-9][a-z0-9-]*$/
 export function registerManifestMigration(fromVersion: number, fn: ManifestMigration): void {
   migrations.set(fromVersion, fn)
 }
+
+// v2 → v3 is purely additive (limitDeclarations/agent/contractHash are optional):
+// a v2 manifest is a valid v3 manifest with those sections absent. Registered
+// here so every consumer migrates for free; `fayz manifest emit` fills the new
+// sections on the next regeneration.
+registerManifestMigration(2, (m) => m)
 
 /** Bring any manifest up to CURRENT_MANIFEST_VERSION, or throw if it was built
  *  for a newer SDK than this runtime understands. */
@@ -167,6 +270,21 @@ export function validateManifest(m: AppManifest): string[] {
   validateLooseObject(manifest.theme, 'manifest.theme', problems)
   validateLooseObject(manifest.permissions, 'manifest.permissions', problems)
   validateLooseObject(manifest.billing, 'manifest.billing', problems)
+  validateLooseObject(manifest.agent, 'manifest.agent', problems)
+  if (manifest.contractHash !== undefined && !isNonEmptyString(manifest.contractHash)) {
+    problems.push('manifest.contractHash must be a non-empty string')
+  }
+  if (manifest.limitDeclarations !== undefined) {
+    if (!Array.isArray(manifest.limitDeclarations)) {
+      problems.push('manifest.limitDeclarations must be an array')
+    } else {
+      manifest.limitDeclarations.forEach((decl, index) => {
+        if (!isRecord(decl) || !isNonEmptyString(decl.key) || !isNonEmptyString(decl.table)) {
+          problems.push(`manifest.limitDeclarations[${index}] must declare key and table`)
+        }
+      })
+    }
+  }
   if (manifest.entities !== undefined) {
     if (!Array.isArray(manifest.entities)) {
       problems.push('manifest.entities must be an array')
@@ -368,7 +486,7 @@ function addUnsupportedKeys(
 ): void {
   for (const key of Object.keys(value)) {
     if (!allowedKeys.has(key)) {
-      problems.push(`${path}.${key} is not part of AppManifest v2`)
+      problems.push(`${path}.${key} is not part of AppManifest v${CURRENT_MANIFEST_VERSION}`)
     }
   }
 }

@@ -1,17 +1,16 @@
 import type { AuthUser, Organization, PermissionProfile, Plan, PermissionAction } from '@fayz-ai/core'
 
 /**
- * Why an access request was denied.
+ * Decision types come from the shared engine in @fayz-ai/core/access.
  * - `role`  — the user's RBAC profile lacks the permission (fix: grant the role).
  * - `plan`  — the tenant's plan does not entitle the feature (fix: upgrade).
- * The distinction drives the UI: `role` → AccessDenied, `plan` → UpgradePrompt.
+ * - `limit` — a guarded write would exceed a plan cap (fix: upgrade).
+ * The distinction drives the UI: `role` → AccessDenied, `plan`/`limit` →
+ * UpgradePrompt/UpgradeModal.
  */
-export type DenyReason = 'role' | 'plan'
+import type { AccessDecision } from '@fayz-ai/core/access'
 
-export interface AccessDecision {
-  allowed: boolean
-  reason?: DenyReason
-}
+export type { DenyReason, AccessDecision } from '@fayz-ai/core/access'
 
 /**
  * The reactive snapshot the access engine resolves against. Assembled from the

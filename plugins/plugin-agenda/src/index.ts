@@ -122,6 +122,7 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
         description: 'Creates a new appointment for a client with a specific professional and service.',
         icon: 'CalendarPlus',
         mode: 'persist' as const,
+        limitKey: 'bookings_month',
         category: 'Scheduling',
         parameters: {
           type: 'object' as const,

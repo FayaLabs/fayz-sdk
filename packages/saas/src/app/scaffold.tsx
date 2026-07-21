@@ -14,6 +14,7 @@ import type {
 } from '@fayz-ai/core'
 import { AdminProviders, getAuthShellProps } from './admin-app'
 import { AdminShell } from './AdminShell'
+import { deriveAgentContract } from './derive-contract'
 import type { FayzAppConfig, CustomPage } from './config'
 
 // ---------------------------------------------------------------------------
@@ -49,6 +50,7 @@ export function defineSaas(config: FayzAppConfig): AppManifest {
   const id = slug(config.name)
   const configRef = getLiveConfigRef(id)
   liveSaasConfigs.set(configRef, config)
+  const { agent, limitDeclarations } = deriveAgentContract(config)
   return defineApp({
     id,
     name: config.name,
@@ -59,6 +61,8 @@ export function defineSaas(config: FayzAppConfig): AppManifest {
     theme: config.theme as Record<string, unknown> | undefined,
     permissions: config.permissions,
     billing: config.billing as ManifestBillingConfig | undefined,
+    limitDeclarations,
+    agent,
     surfaces: {
       admin: {
         scaffold: 'admin',

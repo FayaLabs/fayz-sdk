@@ -1,4 +1,4 @@
-import type { LimitDeclaration } from '@fayz-ai/core'
+import type { LimitDeclaration, RegisteredEntity } from '@fayz-ai/core'
 import { invalidateCount } from '@fayz-ai/core'
 
 /**
@@ -19,6 +19,29 @@ export const CORE_LIMIT_DECLARATIONS: LimitDeclaration[] = [
   { key: 'users', label: 'Users', table: 'tenant_members' },
   { key: 'locations', label: 'Locations', table: 'locations' },
 ]
+
+/**
+ * Entity-derived layer of the limit merge: any registered CRUD entity carrying
+ * `limitKey` yields a declaration for free from its own data mapping (table +
+ * archetype kind) — a cap without a countable binding is a dead cap. Shared by
+ * the AccessProvider (live registry) and the manifest derivation (agent
+ * contract), so both resolve the identical layer.
+ */
+export function entityDerivedLimitDeclarations(entities: RegisteredEntity[]): LimitDeclaration[] {
+  const out: LimitDeclaration[] = []
+  for (const e of entities) {
+    const def = e.entityDef
+    if (def?.limitKey && def.data?.table) {
+      out.push({
+        key: def.limitKey,
+        label: e.labelPlural,
+        table: def.data.table,
+        kindFilter: def.data.archetypeKind,
+      })
+    }
+  }
+  return out
+}
 
 let registry = new Map<string, LimitDeclaration>()
 

@@ -284,6 +284,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
         description: 'Creates a new invoice/payable for a contact.',
         icon: 'FileText',
         mode: 'persist' as const,
+        limitKey: 'movements_month',
         category: 'Finance',
         parameters: {
           type: 'object' as const,

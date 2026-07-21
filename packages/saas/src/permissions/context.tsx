@@ -7,42 +7,10 @@ import { usePermissionsStore } from './store'
 // Permission check helpers
 // ---------------------------------------------------------------------------
 
-/**
- * The org owner has every permission implicitly. Owner is represented by the
- * canonical role id `owner` across adapters (see org/adapters/supabase.ts
- * buildPermissionProfiles:170, which also grants owner all catalog perms, and
- * the mock adapter's `owner` fallback). We match by id first, falling back to
- * the (possibly localized) name for safety.
- */
-function isOwnerProfile(profile: PermissionProfile): boolean {
-  return profile.id === 'owner' || profile.name?.toLowerCase() === 'owner'
-}
-
-/**
- * The single role-side permission check. Exported so the access engine
- * (packages/saas/src/access) composes plan entitlements ON TOP of it instead of
- * reimplementing owner-bypass / manage semantics.
- */
-export function profileHasPermission(
-  profile: PermissionProfile | null,
-  feature: string,
-  action?: string,
-): boolean {
-  if (!profile) return true
-
-  // Owner bypass: never lock the owner out, even if the RBAC catalog is empty
-  // or still loading. Because permission checks read `currentProfile`, which
-  // becomes the *previewed* role during impersonation, an owner previewing a
-  // non-owner role correctly loses this bypass — the preview stays honest.
-  if (isOwnerProfile(profile)) return true
-
-  const actions = profile.grants[feature]
-  if (!actions) return false
-
-  if (!action) return actions.length > 0
-
-  return actions.includes(action) || actions.includes('manage')
-}
+// The role-side check moved to @fayz-ai/core/access (single implementation for
+// browser, headless and the Fayz broker). Re-exported to keep call-sites stable.
+import { profileHasPermission } from '@fayz-ai/core/access'
+export { profileHasPermission }
 
 /**
  * Merge plugin-declared features with the app's own, deduped by id. The app's

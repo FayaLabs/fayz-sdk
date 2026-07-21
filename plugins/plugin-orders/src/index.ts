@@ -179,6 +179,7 @@ export function createOrdersPlugin(options?: OrdersPluginOptions): PluginManifes
         description: 'Creates a new restaurant order with items.',
         icon: 'PlusCircle',
         mode: 'persist' as const,
+        limitKey: 'orders_month',
         category: 'Orders',
         parameters: {
           type: 'object' as const,

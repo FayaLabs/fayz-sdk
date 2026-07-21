@@ -48,27 +48,46 @@ const validManifest = {
   },
 }
 
-assert.equal(CURRENT_MANIFEST_VERSION, 2, 'SDK current manifest version must stay locked to v2')
-assert.equal(appManifestSchema?.properties?.manifestVersion?.const, 2, 'JSON schema must expose manifestVersion.const = 2')
+assert.equal(CURRENT_MANIFEST_VERSION, 3, 'SDK current manifest version must stay locked to v3')
+assert.equal(appManifestSchema?.properties?.manifestVersion?.const, 3, 'JSON schema must expose manifestVersion.const = 3')
 assert.equal(appManifestSchema?.additionalProperties, false, 'JSON schema root must reject unknown AppManifest keys')
 assert.equal(appManifestSchema?.properties?.backend?.additionalProperties, false, 'JSON schema backend must reject unknown keys')
 assert.equal(appManifestSchema?.$defs?.surface?.additionalProperties, false, 'JSON schema surface must reject unknown keys')
 assert.equal(appManifestSchema?.$defs?.pluginRef?.additionalProperties, false, 'JSON schema plugin refs must reject unknown keys')
 assert.equal(appManifestSchema?.$defs?.page?.additionalProperties, false, 'JSON schema pages must reject unknown keys')
 assert.equal(appManifestSchema?.$defs?.block?.additionalProperties, false, 'JSON schema blocks must reject unknown keys')
-assert.deepEqual(validateManifest(validManifest), [], 'v2 canonical manifest must validate')
+assert.deepEqual(validateManifest(validManifest), [], 'v3 canonical manifest must validate')
 
-const legacyProblems = validateManifest({ ...validManifest, manifestVersion: 1 })
-assert.ok(legacyProblems.includes('manifest.manifestVersion must be 2'), 'v1 manifests must be rejected')
+const legacyProblems = validateManifest({ ...validManifest, manifestVersion: 2 })
+assert.ok(legacyProblems.includes('manifest.manifestVersion must be 3'), 'un-migrated v2 manifests must be rejected')
 
-const futureProblems = validateManifest({ ...validManifest, manifestVersion: 3 })
-assert.ok(futureProblems.includes('manifest.manifestVersion must be 2'), 'future manifests must be rejected')
+const futureProblems = validateManifest({ ...validManifest, manifestVersion: 4 })
+assert.ok(futureProblems.includes('manifest.manifestVersion must be 3'), 'future manifests must be rejected')
+
+// v3 agent contract sections validate loosely at the validator layer (deep
+// shape is the JSON schema's job) and hash/limit declarations are checked.
+assert.deepEqual(
+  validateManifest(mutateManifest((manifest) => {
+    manifest.agent = { executionPlane: 'client', tools: [] }
+    manifest.limitDeclarations = [{ key: 'clients', table: 'clients' }]
+    manifest.contractHash = 'abc123'
+  })),
+  [],
+  'v3 agent sections must validate',
+)
+assertProblem(
+  mutateManifest((manifest) => {
+    manifest.limitDeclarations = [{ key: 'clients' }]
+  }),
+  'manifest.limitDeclarations[0] must declare key and table',
+  'limit declarations without a countable table must be rejected',
+)
 
 assertProblem(
   mutateManifest((manifest) => {
     manifest.title = 'Legacy title'
   }),
-  'manifest.title is not part of AppManifest v2',
+  'manifest.title is not part of AppManifest v3',
   'top-level legacy title must be rejected',
 )
 
@@ -76,7 +95,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.id = 'legacy-panel-id'
   }),
-  'surface "panel".id is not part of AppManifest v2',
+  'surface "panel".id is not part of AppManifest v3',
   'surface legacy id must be rejected',
 )
 
@@ -84,7 +103,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.name = 'Legacy Panel'
   }),
-  'surface "panel".name is not part of AppManifest v2',
+  'surface "panel".name is not part of AppManifest v3',
   'surface legacy name must be rejected',
 )
 
@@ -92,7 +111,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.title = 'Legacy surface title'
   }),
-  'surface "panel".title is not part of AppManifest v2',
+  'surface "panel".title is not part of AppManifest v3',
   'surface legacy title must be rejected',
 )
 
@@ -100,7 +119,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.pages[0].id = 'legacy-page-id'
   }),
-  'surface "panel" page #1.id is not part of AppManifest v2',
+  'surface "panel" page #1.id is not part of AppManifest v3',
   'page legacy id must be rejected',
 )
 
@@ -108,7 +127,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.pages[0].title = 'Legacy page title'
   }),
-  'surface "panel" page #1.title is not part of AppManifest v2',
+  'surface "panel" page #1.title is not part of AppManifest v3',
   'page legacy title must be rejected',
 )
 
@@ -116,7 +135,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.plugins[0].pluginId = 'legacy-plugin-id'
   }),
-  'surface "panel" plugin #1.pluginId is not part of AppManifest v2',
+  'surface "panel" plugin #1.pluginId is not part of AppManifest v3',
   'legacy pluginId must be rejected',
 )
 
@@ -124,7 +143,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.plugins[0].title = 'Legacy plugin title'
   }),
-  'surface "panel" plugin #1.title is not part of AppManifest v2',
+  'surface "panel" plugin #1.title is not part of AppManifest v3',
   'legacy plugin title must be rejected',
 )
 
@@ -132,7 +151,7 @@ assertProblem(
   mutateManifest((manifest) => {
     manifest.surfaces.panel.plugins[0].label = 'Legacy plugin label'
   }),
-  'surface "panel" plugin #1.label is not part of AppManifest v2',
+  'surface "panel" plugin #1.label is not part of AppManifest v3',
   'legacy plugin label must be rejected',
 )
 

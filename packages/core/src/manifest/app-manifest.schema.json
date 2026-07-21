@@ -1,102 +1,654 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://fayz.ai/schemas/app-manifest/v2.json",
+  "$id": "https://fayz.ai/schemas/app-manifest/v3.json",
   "title": "Fayz AppManifest",
   "description": "The canonical, JSON-serializable definition of a Fayz app. Code is referenced by registry id; never inlined.",
   "type": "object",
-  "required": ["manifestVersion", "id", "name", "surfaces"],
+  "required": [
+    "manifestVersion",
+    "id",
+    "name",
+    "surfaces"
+  ],
   "additionalProperties": false,
   "properties": {
     "manifestVersion": {
       "type": "integer",
-      "const": 2,
+      "const": 3,
       "description": "Current AppManifest schema version. Older or newer versions require an explicit SDK migration before validation."
     },
-    "id": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9-]*$" },
-    "name": { "type": "string", "minLength": 1 },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
     "backend": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["provider"],
+      "required": [
+        "provider"
+      ],
       "properties": {
-        "provider": { "enum": ["supabase", "fayz-api", "fayz-shop", "mock", "custom"] },
-        "projectRef": { "type": "string", "minLength": 1 },
-        "url": { "type": "string", "minLength": 1 },
-        "adapterId": { "type": "string", "minLength": 1 },
-        "options": { "type": "object" }
+        "provider": {
+          "enum": [
+            "supabase",
+            "fayz-api",
+            "fayz-shop",
+            "mock",
+            "custom"
+          ]
+        },
+        "projectRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapterId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "options": {
+          "type": "object"
+        }
       }
     },
-    "locale": { "type": "object" },
-    "theme": { "type": "object" },
-    "permissions": { "type": "object" },
-    "billing": { "type": "object" },
-    "entities": { "type": "array", "items": { "type": "object" } },
+    "locale": {
+      "type": "object"
+    },
+    "theme": {
+      "type": "object"
+    },
+    "permissions": {
+      "type": "object"
+    },
+    "billing": {
+      "type": "object"
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
     "surfaces": {
       "type": "object",
       "minProperties": 1,
-      "additionalProperties": { "$ref": "#/$defs/surface" }
+      "additionalProperties": {
+        "$ref": "#/$defs/surface"
+      }
+    },
+    "limitDeclarations": {
+      "type": "array",
+      "description": "Resolved 4-layer limit-declaration merge (core < entity-derived < plugin < app) so server runtimes count exactly what the client counts.",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "table"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kindFilter": {
+            "type": "string"
+          },
+          "period": {
+            "enum": [
+              "month",
+              "total"
+            ]
+          }
+        }
+      }
+    },
+    "agent": {
+      "$ref": "#/$defs/agentContract"
+    },
+    "contractHash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "sha256 of the canonical serialization (excluding this field)."
     }
   },
   "$defs": {
     "surface": {
       "type": "object",
-      "required": ["scaffold"],
+      "required": [
+        "scaffold"
+      ],
       "additionalProperties": false,
       "properties": {
-        "scaffold": { "type": "string", "minLength": 1 },
-        "options": { "type": "object" },
-        "plugins": { "type": "array", "items": { "$ref": "#/$defs/pluginRef" } },
-        "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } }
+        "scaffold": {
+          "type": "string",
+          "minLength": 1
+        },
+        "options": {
+          "type": "object"
+        },
+        "plugins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pluginRef"
+          }
+        },
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/page"
+          }
+        }
       }
     },
     "pluginRef": {
       "type": "object",
-      "required": ["id"],
+      "required": [
+        "id"
+      ],
       "additionalProperties": false,
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "config": { "type": "object" },
-        "enabled": { "type": "boolean" }
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "config": {
+          "type": "object"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
       }
     },
     "page": {
       "type": "object",
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "additionalProperties": false,
       "description": "Exactly one of blocks/entity/component must be set.",
       "properties": {
-        "path": { "type": "string", "minLength": 1 },
-        "label": { "type": "string" },
-        "icon": { "type": "string" },
-        "section": { "enum": ["main", "secondary", "settings"] },
-        "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } },
-        "entity": { "type": "string", "minLength": 1 },
-        "component": { "type": "string", "minLength": 1 },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "section": {
+          "enum": [
+            "main",
+            "secondary",
+            "settings"
+          ]
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          }
+        },
+        "entity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component": {
+          "type": "string",
+          "minLength": 1
+        },
         "permission": {
           "type": "object",
-          "required": ["feature", "action"],
+          "required": [
+            "feature",
+            "action"
+          ],
           "additionalProperties": false,
           "properties": {
-            "feature": { "type": "string", "minLength": 1 },
-            "action": { "type": "string", "minLength": 1 }
+            "feature": {
+              "type": "string",
+              "minLength": 1
+            },
+            "action": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       },
       "oneOf": [
-        { "required": ["blocks"] },
-        { "required": ["entity"] },
-        { "required": ["component"] }
+        {
+          "required": [
+            "blocks"
+          ]
+        },
+        {
+          "required": [
+            "entity"
+          ]
+        },
+        {
+          "required": [
+            "component"
+          ]
+        }
       ]
     },
     "block": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "additionalProperties": false,
       "properties": {
-        "type": { "type": "string", "minLength": 1 },
-        "id": { "type": "string" },
-        "props": { "type": "object" },
-        "children": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string"
+        },
+        "props": {
+          "type": "object"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          }
+        }
+      }
+    },
+    "agentContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Everything a server-side agent runtime needs to operate the app without a browser. Derived from code at publish; synced to Fayz as the versioned AgentContract.",
+      "properties": {
+        "persona": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "systemPrompt": {
+              "type": "string"
+            },
+            "icon": {
+              "type": "string"
+            }
+          }
+        },
+        "executionPlane": {
+          "enum": [
+            "client",
+            "server"
+          ]
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entityContract"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/aiToolContract"
+          }
+        },
+        "registries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "pluginId",
+              "id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "pluginId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "entityKey": {
+                "type": "string"
+              },
+              "readOnly": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "declaredFeatures": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "rpcs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rpcContract"
+          }
+        },
+        "domainKnowledge": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "statuses": {
+              "type": "object"
+            },
+            "scheduleDefaults": {
+              "type": "object"
+            },
+            "businessRules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "description"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "entityContract": {
+      "type": "object",
+      "required": [
+        "key",
+        "label",
+        "data",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "labelPlural": {
+          "type": "string"
+        },
+        "limitKey": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "table"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "table": {
+              "type": "string",
+              "minLength": 1
+            },
+            "schema": {
+              "type": "string"
+            },
+            "tenantScoped": {
+              "type": "boolean"
+            },
+            "tenantIdColumn": {
+              "type": "string"
+            },
+            "searchColumns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "selectColumns": {
+              "type": "string"
+            },
+            "columnMap": {
+              "type": "object"
+            },
+            "archetype": {
+              "type": "string"
+            },
+            "archetypeKind": {
+              "type": "string"
+            },
+            "filters": {
+              "type": "object"
+            }
+          }
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "label",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "searchable": {
+                "type": "boolean"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "relationTable": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "aiToolContract": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "description",
+        "mode"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "read",
+            "persist"
+          ]
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "permission": {
+          "type": "object",
+          "required": [
+            "feature",
+            "action"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "feature": {
+              "type": "string",
+              "minLength": 1
+            },
+            "action": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "limitKey": {
+          "type": "string"
+        },
+        "execution": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "plane",
+                "kind",
+                "rpc"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "plane": {
+                  "const": "server"
+                },
+                "kind": {
+                  "const": "rpc"
+                },
+                "rpc": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "plane",
+                "kind",
+                "entity"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "plane": {
+                  "const": "server"
+                },
+                "kind": {
+                  "const": "entity_read"
+                },
+                "entity": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "plane"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "plane": {
+                  "const": "client"
+                }
+              }
+            }
+          ]
+        },
+        "requiresConfirmation": {
+          "type": "boolean"
+        },
+        "pluginId": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        }
+      }
+    },
+    "rpcContract": {
+      "type": "object",
+      "required": [
+        "name",
+        "kind",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^agent_[a-z0-9_]+$"
+        },
+        "kind": {
+          "enum": [
+            "read",
+            "write"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payloadSchema": {
+          "type": "object"
+        },
+        "audits": {
+          "type": "boolean"
+        }
       }
     }
   }

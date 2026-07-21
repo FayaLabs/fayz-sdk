@@ -179,56 +179,19 @@ export interface PluginRuntimeIssue {
 }
 
 // --- AI tool system ---
+// Canonical definitions live in @fayz-ai/core (single vocabulary shared with the
+// manifest/AgentContract and the Fayz broker). Re-exported here so existing
+// shell imports keep working.
 
-export type AIToolMode = 'read' | 'persist'
+import type { PluginAITool } from '@fayz-ai/core'
 
-export interface AIToolParameterProperty {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object'
-  description?: string
-  enum?: string[]
-  items?: AIToolParameterProperty
-  default?: unknown
-}
-
-export interface AIToolParameters {
-  type: 'object'
-  properties: Record<string, AIToolParameterProperty>
-  required?: string[]
-}
-
-export interface AIToolSuggestion {
-  /** Human-friendly prompt shown as a chip, e.g. "How many customers today?" */
-  label: string
-  /** Actual message sent to the LLM when clicked (defaults to label) */
-  prompt?: string
-  /** Lucide icon name override */
-  icon?: string
-  /** Only show this suggestion for a specific vertical */
-  verticalId?: VerticalId
-}
-
-export interface PluginAITool {
-  /** Unique tool ID, namespaced by plugin: e.g. 'financial.daily-revenue' */
-  id: string
-  /** Function-style name shown as tool signature: e.g. 'getRevenue' */
-  name: string
-  /** Description for the LLM — tells it when/how to use this tool */
-  description: string
-  /** Lucide icon name */
-  icon?: string
-  /** Read-only query or state-mutating action */
-  mode: AIToolMode
-  /** JSON Schema for parameters — maps 1:1 to Claude tool_use input_schema */
-  parameters?: AIToolParameters
-  /** Permission required to see/use this tool */
-  permission?: PluginPermissionRequirement
-  /** User-facing suggestion chips for the empty chat state */
-  suggestions?: AIToolSuggestion[]
-  /** Category for grouping in the UI: e.g. 'Finance', 'Sales' */
-  category?: string
-  /** Tags for filtering/search */
-  tags?: string[]
-}
+export type {
+  AIToolMode,
+  AIToolParameterProperty,
+  AIToolParameters,
+  AIToolSuggestion,
+  PluginAITool,
+} from '@fayz-ai/core'
 
 // --- Plugin registry system ---
 

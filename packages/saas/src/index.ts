@@ -7,6 +7,8 @@ export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, FayzBillingConfi
 // Native admin scaffold — manifest-first entry. Importing this registers the
 // 'admin' scaffold so renderApp(manifest) can resolve it.
 export { defineSaas, AdminScaffold } from './app/scaffold'
+export { deriveAgentContract } from './app/derive-contract'
+export type { DerivedAgentSections } from './app/derive-contract'
 export { AdminShell } from './app/AdminShell'
 export { LoginPage } from './app/LoginPage'
 export { navigateTo as adminNavigateTo, useAdminPath } from './app/routing'
@@ -109,6 +111,11 @@ export {
   isEntitledByPlan,
   invalidateLimit,
   useUpgradeModalStore,
+  getAccessSnapshot,
+  checkAccess,
+  guardLimit,
+  agentDenial,
+  UPGRADE_URL,
 } from './access/index'
 export type {
   AccessProviderProps,
@@ -119,6 +126,9 @@ export type {
   LimitState,
   UpgradeModalPayload,
   UpgradeModalStore,
+  AgentDenial,
+  AgentDenialLimit,
+  AgentGuardResult,
 } from './access/index'
 
 // ---------------------------------------------------------------------------
