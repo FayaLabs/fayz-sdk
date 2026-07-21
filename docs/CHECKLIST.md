@@ -138,3 +138,15 @@ Depois: re-rodar `npx playwright test e2e/qa-crud.spec.ts` no beauty-saas (o spe
 | B31 | Registry staff lê staff_members (vazia) enquanto seed povoou people kind staff | ❌ baixo (mesma família do B2 do beauty) |
 | B32 | Inventory onboarding gate só em localStorage (reaparece toda sessão) | ❌ baixo |
 | — | Órfãos QA (3 categorias/pratos) no tenant QA do pool resto — limpeza manual pendente (colunas ≠ name) | nota |
+
+## 8. Entitlements — QA de personas (Onda 5, 2026-07-21)
+| App | Veredito 4 personas | Ressalvas |
+|---|---|---|
+| school-saas | ✅ SIM (matriz completa; contrato 7/7) | i18n: copy do paywall/banner em EN no app pt-BR (B33, baixo) |
+| agency-os | ✅ SIM (incl. caso composto Reputation grant+gated) | B24 confirmado: Forms registra só settings, nav main é no-op (médio); fetch abortado no /marketing free = ruído benigno (B34, baixo) |
+| dentist-saas | ✅ contrato 9/9 ×2 (workspace multi-org pinado; fix org 9e83aab) | personas via contrato+qa-permissions (page-by-page dedicado não rodado) |
+| beauty-saas | ✅ SIM c/ ressalvas | B35 reconciliação sem gate → 🔧 corrigido (3aef49a); B38 '+ Adicionar Serviço' p/ secretaria → 🔧 corrigido (features nos pages, ecbeb35); i18n paywall → 🔧 corrigido; console /api/api 404 (env, B40) |
+| norman-ai | ✅ SIM c/ ressalvas | B37 member criava transação → 🔧 corrigido per-action (0511be2, prova viva); B36 cap connected_banks não trip (provider MOCK grava memória, count lê tabela real — resolve com unmock do financial, follow-up) |
+| resto-saas | ✅ SIM c/ ressalvas | B-RESTO-1 waiter criava menu item (persistia!) → 🔧 mitigado client-side pelo per-action do sweep (menu sem feature declarada no app = anotado); pill 'Pro' fixa → 🔧 corrigido (4f8c07f); i18n matrix → 🔧 corrigido |
+
+Bugs novos: B33 i18n paywall pt-BR (tabela legada shell/lib/i18n vs core) · B34 fetch abort noise · (B24 causa-raiz: plugin-forms sem navigation/routes)
