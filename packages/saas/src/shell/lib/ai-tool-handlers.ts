@@ -1,6 +1,7 @@
 import { resolveDataProvider } from '@fayz-ai/core'
 import type { EntityDef, OrgMember, Organization } from '@fayz-ai/core'
 import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
+import { resolveEntityRoute } from './entity-routes'
 
 /**
  * Client-plane execution for the AI tool catalog.
@@ -84,6 +85,55 @@ function errorResult(error: string, message: string): AIToolExecutionResult {
   return { ok: false, content: JSON.stringify({ error, message }) }
 }
 
+/**
+ * Best-effort human label for a record, used as the link text.
+ * Falls back through the fields business records actually carry.
+ */
+function recordLabel(record: Record<string, unknown>): string | null {
+  for (const key of ['name', 'full_name', 'fullName', 'title', 'label', 'email']) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+/**
+ * A stable, channel-agnostic pointer to a record: which resource, which id.
+ *
+ * Deliberately *not* a URL. An address is presentation, and presentation is the
+ * channel's business — the FAB resolves this against its own route map, a
+ * WhatsApp thread ignores it, an email channel would resolve it against its own
+ * base. Emitting a URL here would also mean whoever produced it had to know the
+ * app's routing, which is how /customers got invented for an app that routes
+ * /clients. When record reads move server-side for non-browser channels, Fayz
+ * emits this same shape and nothing downstream changes.
+ */
+function recordRef(
+  entity: EntityDef,
+  record: Record<string, unknown>,
+): RecordRef | null {
+  const id = record.id
+  if (typeof id !== 'string' || !id) return null
+  const data = entity.data as { archetype?: string; archetypeKind?: string; table?: string } | undefined
+  const resource = data?.archetypeKind ?? data?.table
+  // The archetype travels with the reference because the route map is keyed on
+  // "archetype:kind" — resolving from the kind alone misses every archetyped
+  // entity, which is most of them.
+  return resource ? { id, resource, archetype: data?.archetype } : null
+}
+
+export interface RecordRef {
+  id: string
+  resource: string
+  archetype?: string
+}
+
+/** Resolve a record reference to an in-app path, or null if unaddressable here. */
+export function resolveRecordPath(ref: RecordRef): string | null {
+  const route = resolveEntityRoute(ref.archetype, ref.resource) ?? resolveEntityRoute(ref.resource)
+  return route ? `${route}/${ref.id}` : null
+}
+
 async function executeDataTool(
   target: DataToolTarget,
   args: Record<string, unknown>,
@@ -102,7 +152,38 @@ async function executeDataTool(
     // Truthful cap: the model is told the list was trimmed so it can say so
     // rather than presenting one page as the whole set.
     truncated: result.total > result.data.length,
-    records: result.data,
+    records: result.data.map((record) => {
+      const row = record as unknown as Record<string, unknown>
+      const ref = recordRef(target.entity, row)
+      // The reference rides along so the surface can turn it into a link; the
+      // model is told not to author addresses itself.
+      return ref ? { ...row, ref } : row
+    }),
+  }
+}
+
+/** Record links surfaced by a tool result, for the surface to render. */
+export interface RecordLink {
+  label: string
+  url: string
+}
+
+export function extractRecordLinks(serializedResult: string): RecordLink[] {
+  try {
+    const parsed = JSON.parse(serializedResult) as { records?: unknown }
+    if (!Array.isArray(parsed.records)) return []
+    return parsed.records
+      .map((r) => r as Record<string, unknown> & { ref?: RecordRef })
+      .flatMap((r) => {
+        if (!r.ref?.id || !r.ref.resource) return []
+        const url = resolveRecordPath(r.ref)
+        // Unaddressable in this surface — no chip, rather than a dead one.
+        if (!url) return []
+        return [{ label: recordLabel(r) ?? r.ref.resource, url }]
+      })
+      .slice(0, 5)
+  } catch {
+    return []
   }
 }
 
@@ -143,7 +224,7 @@ export function buildDataToolIndex(input: {
   registries: Map<string, PluginRegistryDef[]>
   entities: Array<{ entityKey: string; labelPlural: string; entityDef?: EntityDef; mockData?: Array<{ id: string }> }>
   registryToolName: (pluginId: string, registryId: string) => string
-  entityToolName: (entityKey: string) => string
+  entityToolName: (entityKey: string, table?: string) => string
 }): Map<string, DataToolTarget> {
   const index = new Map<string, DataToolTarget>()
 
@@ -160,7 +241,7 @@ export function buildDataToolIndex(input: {
 
   for (const entity of input.entities) {
     if (!entity.entityDef) continue
-    index.set(input.entityToolName(entity.entityKey), {
+    index.set(input.entityToolName(entity.entityKey, entity.entityDef?.data?.table), {
       label: entity.labelPlural,
       entity: entity.entityDef,
       mockData: entity.mockData,

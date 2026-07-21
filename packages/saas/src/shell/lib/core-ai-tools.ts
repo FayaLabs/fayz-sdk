@@ -64,6 +64,11 @@ export const coreAITools: PluginAITool[] = [
  */
 function pascalCase(value: string): string {
   return value
+    // Strip diacritics rather than split on them: dropping the separator turned
+    // "Serviço" into "ServiO" and "Preço" into "PreO", so a pt-BR app shipped
+    // mangled tool names the model had to guess at.
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
@@ -115,8 +120,16 @@ export function formatToolSignature(tool: PluginAITool): string {
   return `${tool.name}(${params})`
 }
 
-export function entityToolName(entityKey: string): string {
-  return `search${pascalCase(entityKey)}`
+/**
+ * The LLM-facing name for an entity tool.
+ *
+ * Prefers the database table over the registry key: the key falls back to the
+ * entity's display *name* when it has no archetype, and that name is translated
+ * — so a pt-BR app minted `searchServiO` where an en app minted `searchService`
+ * for the same thing.
+ */
+export function entityToolName(entityKey: string, table?: string): string {
+  return `search${pascalCase(table || entityKey)}`
 }
 
 /**
@@ -133,7 +146,7 @@ export function generateEntityTools(entities: RegisteredEntity[] = getAllEntitie
     .filter((e) => !!e.entityDef)
     .map((entity) => ({
       id: `entity.${entity.entityKey}`,
-      name: entityToolName(entity.entityKey),
+      name: entityToolName(entity.entityKey, entity.entityDef?.data?.table),
       description: `Searches ${entity.labelPlural.toLowerCase()} and returns matching records with their fields. Use this to answer questions about a specific ${entity.label.toLowerCase()} or to count them.`,
       icon: entity.icon,
       mode: 'read' as const,
