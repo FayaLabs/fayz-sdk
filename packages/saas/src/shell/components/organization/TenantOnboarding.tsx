@@ -11,7 +11,9 @@ import {
 } from '@fayz-ai/ui'
 import { cn } from '../../lib/cn'
 import { useTranslation } from '../../hooks/useTranslation'
-import { useOrgAdapter } from '../../lib/org-context'
+// Native org adapter — the shell lib/org-context provider is never mounted, so
+// the shell useOrgAdapter() threw here. The native <OrgProvider> is the mounted one.
+import { useOrgAdapter } from '../../../org'
 import { useAuthStore } from '../../stores/auth.store'
 import { useOrganizationStore } from '../../stores/organization.store'
 import { usePermissionsStore } from '../../stores/permissions.store'

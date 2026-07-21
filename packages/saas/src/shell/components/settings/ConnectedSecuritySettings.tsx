@@ -3,7 +3,9 @@ import type { TenantSecuritySettings } from './SecuritySettings'
 import { useAuthStore } from '../../stores/auth.store'
 import { useOrganizationStore } from '../../stores/organization.store'
 import { useAuthAdapterOptional } from '../../lib/auth-context'
-import { useOrgAdapterOptional } from '../../lib/org-context'
+// Native org adapter — see ConnectedCompanySettings. The shell org-context
+// provider is never mounted, so the old import yielded a null adapter (no-op save).
+import { useOrgAdapterOptional } from '../../../org'
 import { toast } from '../notifications/ToastProvider'
 
 export function ConnectedSecuritySettings() {

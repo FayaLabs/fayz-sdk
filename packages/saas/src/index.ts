@@ -170,6 +170,8 @@ export { useModuleNavigation } from './hooks/useModuleNavigation'
 export { PersonLink } from './components/shared/PersonLink'
 export { resolveEntityHref } from './lib/entity-routes'
 export { usePluginPrefs } from './hooks/usePluginPrefs'
+export { useTenantPluginSettings } from './shell/hooks/useTenantPluginSettings'
+export type { TenantPluginSettings } from './shell/hooks/useTenantPluginSettings'
 export { setScheduleBlockConfig, getScheduleBlockConfig, subscribeScheduleBlockConfig } from './lib/schedule-config'
 
 // Assistant chat store — lets apps drive the shell's chat panel imperatively

@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useChatStore, type ChatMessage } from '../stores/chat.store'
+import { useTranslation } from './useTranslation'
 
 interface UseChatOptions {
   apiEndpoint?: string
@@ -8,6 +9,12 @@ interface UseChatOptions {
 
 export function useChat(options?: UseChatOptions) {
   const store = useChatStore()
+  const { t } = useTranslation()
+  // The assistant is only "real" when the host app wires an apiEndpoint. Without
+  // it we used to fake a canned demo reply — dishonest. Now the panel disables
+  // free-text input and, if a suggestion chip is clicked anyway, we answer with a
+  // clear "not configured" notice instead of pretending to be an AI.
+  const isConfigured = !!options?.apiEndpoint
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -19,6 +26,17 @@ export function useChat(options?: UseChatOptions) {
       }
       store.addMessage(userMsg)
 
+      if (!options?.apiEndpoint) {
+        // Honest non-configured state — no fake "demo response".
+        store.addMessage({
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: t('chat.notConfigured'),
+          timestamp: new Date().toISOString(),
+        })
+        return
+      }
+
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
@@ -27,17 +45,6 @@ export function useChat(options?: UseChatOptions) {
       }
       store.addMessage(assistantMsg)
       store.setStreaming(true)
-
-      if (!options?.apiEndpoint) {
-        // Mock response if no endpoint configured
-        setTimeout(() => {
-          store.updateLastAssistant(
-            "I'm your AI assistant. This is a demo response — connect an API endpoint to enable real conversations."
-          )
-          store.setStreaming(false)
-        }, 800)
-        return
-      }
 
       try {
         const response = await fetch(options.apiEndpoint, {
@@ -69,13 +76,25 @@ export function useChat(options?: UseChatOptions) {
         store.setStreaming(false)
       }
     },
-    [store, options?.apiEndpoint, options?.systemPrompt]
+    [store, options?.apiEndpoint, options?.systemPrompt, t]
   )
 
+  // FOLLOW-UP — full LLM + tools loop:
+  // Today, with an apiEndpoint, we do a single request/response round-trip and
+  // ignore the aiTools declared by plugins (see useAITools). PluginAITool is
+  // purely declarative (id/name/description/mode/parameters) — it carries NO
+  // executable handler — so there is nothing to run client-side. The complete
+  // agentic loop belongs server-side behind apiEndpoint: forward the tool
+  // definitions (already JSON-Schema shaped for Claude tool_use) as `tools`,
+  // and when the model returns tool_use blocks, execute them against the tenant's
+  // data (respecting permissions), feed tool_result back, and stream the final
+  // turn. That server contract is the follow-up; this hook stays transport-only.
   return {
     messages: store.messages,
     isOpen: store.isOpen,
     isStreaming: store.isStreaming,
+    /** True only when a real chat.apiEndpoint is configured. */
+    isConfigured,
     sendMessage,
     toggleOpen: store.toggleOpen,
     setOpen: store.setOpen,

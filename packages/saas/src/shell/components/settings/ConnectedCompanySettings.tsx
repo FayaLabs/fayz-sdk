@@ -1,6 +1,9 @@
 import { CompanySettings } from './CompanySettings'
 import { useOrganizationStore } from '../../stores/organization.store'
-import { useOrgAdapterOptional } from '../../lib/org-context'
+// Native org adapter — the shell's lib/org-context provider is never mounted,
+// so importing from there returned a null adapter and every save was a no-op.
+// The native <OrgProvider> (packages/saas/src/org) is the one actually mounted.
+import { useOrgAdapterOptional } from '../../../org'
 import { toast } from '../notifications/ToastProvider'
 import type { Tenant, TenantSettings } from '../../types'
 
