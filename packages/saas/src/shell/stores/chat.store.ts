@@ -1,5 +1,16 @@
 import { create } from 'zustand'
 
+/** A record the reply concerns — rendered as a "goto" button under the
+ *  bubble. Semantic ref only (id + archetype/kind); the SURFACE resolves the
+ *  URL against its own route map (agents.md: a missing link is correct, an
+ *  invented one is a dead end). */
+export interface ChatRecordLink {
+  id: string
+  label: string
+  archetype?: string
+  kind?: string
+}
+
 export interface ChatToolCall {
   name: string
   /** Pretty-printed arguments (may be empty). */
@@ -16,6 +27,8 @@ export interface ChatMessage {
   /** Tool calls this assistant reply made, accumulated across rounds —
    *  rendered as an expandable trace under the bubble. */
   toolCalls?: ChatToolCall[]
+  /** Records to offer as navigation buttons under the reply. */
+  links?: ChatRecordLink[]
 }
 
 /**
@@ -61,6 +74,8 @@ interface ChatState {
   setActiveTools: (names: string[]) => void
   /** Record the tool calls an assistant reply made (expandable per-message trace). */
   appendToolCallsToLastAssistant: (calls: ChatToolCall[]) => void
+  /** Attach goto-record buttons to the reply (deduped by id, capped). */
+  appendLinksToLastAssistant: (links: ChatRecordLink[]) => void
   /** The signed-in user's threads (history drawer). */
   conversations: Array<{ id: string; title: string | null; updatedAt: string }>
   setConversations: (rows: Array<{ id: string; title: string | null; updatedAt: string }>) => void
@@ -126,6 +141,18 @@ export const useChatStore = create<ChatState>((set) => ({
       const lastIdx = msgs.length - 1
       if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant') {
         msgs[lastIdx] = { ...msgs[lastIdx], toolCalls: [...(msgs[lastIdx].toolCalls ?? []), ...calls] }
+      }
+      return { messages: msgs }
+    }),
+  appendLinksToLastAssistant: (links) =>
+    set((s) => {
+      if (!links.length) return s
+      const msgs = [...s.messages]
+      const lastIdx = msgs.length - 1
+      if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant') {
+        const seen = new Map((msgs[lastIdx].links ?? []).map((l) => [l.id, l]))
+        for (const l of links) if (!seen.has(l.id)) seen.set(l.id, l)
+        msgs[lastIdx] = { ...msgs[lastIdx], links: Array.from(seen.values()).slice(0, 3) }
       }
       return { messages: msgs }
     }),

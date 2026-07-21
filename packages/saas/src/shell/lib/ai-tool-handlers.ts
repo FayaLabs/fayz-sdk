@@ -100,6 +100,23 @@ function errorResult(error: string, message: string): AIToolExecutionResult {
   return { ok: false, content: JSON.stringify({ error, message }) }
 }
 
+/** The documented contract: every returned record carries a semantic ref
+ *  {id, resource, archetype} the surface can resolve to ITS OWN route — never
+ *  a URL (agents.md: presentation stays client knowledge). */
+function attachRefs(
+  entity: EntityDef,
+  rows: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  const archetype = entity.data?.archetype
+  if (!archetype) return rows
+  const kind = entity.data?.archetypeKind
+  return rows.map((r) =>
+    r.id
+      ? { ...r, ref: { id: r.id, resource: entity.data?.table, archetype: kind ? `${archetype}:${kind}` : archetype } }
+      : r,
+  )
+}
+
 function rowContainsText(row: Record<string, unknown>, needle: string): boolean {
   const n = needle.toLowerCase()
   return Object.values(row).some((v) => typeof v === 'string' && v.toLowerCase().includes(n))
@@ -134,7 +151,7 @@ async function executeDataTool(
     // Truthful cap: the model is told the list was trimmed so it can say so
     // rather than presenting one page as the whole set.
     truncated: result.total > result.data.length,
-    records: result.data,
+    records: attachRefs(target.entity, rows),
     ...(unmatched
       ? {
           warning:
@@ -219,7 +236,7 @@ export function buildDataToolIndex(input: {
   entities: Array<{ entityKey: string; labelPlural: string; entityDef?: EntityDef; mockData?: Array<{ id: string }> }>
   registryToolName: (pluginId: string, registryId: string) => string
   entityToolName: (entityKey: string) => string
-  queryEntities?: Array<{ key: string; entity: EntityDef }>
+  queryEntities?: Array<{ key: string; entity: EntityDef; writable?: boolean }>
 }): Map<string, DataToolTarget> {
   const index = new Map<string, DataToolTarget>()
 
@@ -326,7 +343,12 @@ registerAIToolHandler('findAnything', async (args, ctx) => {
         target.mockData,
       )
       const result = await provider.list({ search, pageSize: 5 })
-      return { key, label: target.label, total: result.total, records: result.data }
+      return {
+        key,
+        label: target.label,
+        total: result.total,
+        records: attachRefs(target.entity, result.data as Array<Record<string, unknown>>),
+      }
     }),
   )
   const matches = settled
@@ -436,6 +458,7 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
     record,
     ref: {
       id: (record as { id?: string }).id,
+      label: String((record as Record<string, unknown>).name ?? target.entity.name),
       resource: target.entity.data?.table,
       archetype: target.entity.data?.archetype
         ? `${target.entity.data.archetype}${target.entity.data.archetypeKind ? ':' + target.entity.data.archetypeKind : ''}`

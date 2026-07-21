@@ -164,6 +164,45 @@ export function useChat(options?: UseChatOptions) {
       // Identical repeated calls burn rounds without new information — cut the
       // loop with an explicit steering result instead of re-executing.
       const seenCalls = new Map<string, string>()
+      // Goto buttons: refs surface from write results (always) and from
+      // single-match reads — the records the reply is ABOUT.
+      const collectRecordLinks = (content: string) => {
+        try {
+          const parsed = JSON.parse(content) as Record<string, unknown>
+          const links: Array<{ id: string; label: string; archetype?: string; kind?: string }> = []
+          const pushRef = (ref: unknown, fallbackLabel?: unknown) => {
+            if (!ref || typeof ref !== 'object') return
+            const r = ref as { id?: string; label?: string; archetype?: string }
+            if (!r.id) return
+            const [archetype, kind] = (r.archetype ?? '').split(':')
+            links.push({
+              id: r.id,
+              label: String(r.label ?? fallbackLabel ?? 'registro'),
+              ...(archetype ? { archetype } : {}),
+              ...(kind ? { kind } : {}),
+            })
+          }
+          pushRef(parsed.ref, (parsed.record as Record<string, unknown> | undefined)?.name)
+          pushRef(
+            (parsed.record as Record<string, unknown> | undefined)?.ref,
+            (parsed.record as Record<string, unknown> | undefined)?.client_name ??
+              (parsed.record as Record<string, unknown> | undefined)?.service_name,
+          )
+          const singleFrom = (rows: unknown) => {
+            if (Array.isArray(rows) && rows.length === 1) {
+              const row = rows[0] as Record<string, unknown>
+              pushRef(row.ref, row.name)
+            }
+          }
+          singleFrom(parsed.records)
+          for (const m of Array.isArray(parsed.matches) ? parsed.matches : []) {
+            singleFrom((m as Record<string, unknown>).records)
+          }
+          if (links.length) useChatStore.getState().appendLinksToLastAssistant(links)
+        } catch {
+          /* non-JSON tool result — nothing to link */
+        }
+      }
       let toolResults: FayzAgentToolResult[] | undefined
       let confirmAction: { id: string; approved: boolean } | undefined
       let message: string | undefined = content
@@ -197,6 +236,8 @@ export function useChat(options?: UseChatOptions) {
             // add a professional?" instead of guessing at a generic answer.
             pages: toolContext.routes.map((r) => r.label ?? r.path).join(', '),
             upcomingDates: upcoming,
+            toolHints:
+              'When an id (client, service, record) was already returned by a tool earlier in THIS conversation, REUSE that id directly — do not search for it again.',
             timeNote:
               'Datetimes in tool results are UTC unless the field is *_local. The business timezone is the timeZone above — ALWAYS convert to it before telling the user a time.',
             businessName: currentOrg?.name,

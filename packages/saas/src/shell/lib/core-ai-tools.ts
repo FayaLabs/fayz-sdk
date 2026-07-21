@@ -144,7 +144,7 @@ export function entityToolName(entityKey: string): string {
 export function buildDataPrimitiveTools(input: {
   entities: RegisteredEntity[]
   registries: Map<string, PluginRegistryDef[]>
-  queryEntities?: Array<{ key: string; entity: EntityDef }>
+  queryEntities?: Array<{ key: string; entity: EntityDef; writable?: boolean }>
 }): PluginAITool[] {
   const options: Array<{ key: string; label: string }> = []
   for (const e of input.entities) {

@@ -1,14 +1,18 @@
 import * as React from 'react'
-import { ArrowUp, ChevronDown, History, Loader2, SquarePen, Settings2, Wrench } from 'lucide-react'
+import { ArrowUp, ArrowUpRight, ChevronDown, History, Loader2, SquarePen, Settings2, Wrench } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useTranslation } from '../../hooks/useTranslation'
-import { useChatStore, type ChatMessage, type ChatToolCall } from '../../stores/chat.store'
+import { useChatStore, type ChatMessage, type ChatToolCall, type ChatRecordLink } from '../../stores/chat.store'
 import { useChat } from '../../hooks/useChat'
 import { useAITools } from '../../hooks/useAITools'
 import { ChatSuggestions, ChatToolsPanel } from './ChatSuggestions'
 import { ConfirmActionCard } from './ConfirmActionCard'
 import { ChatMarkdown } from './markdown'
 import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
+// NOTE: src/lib copy — the one AdminShell's setEntityRouteMap fills. The
+// shell/lib duplicate is a legacy shim nobody populates ('two of everything').
+import { resolveEntityRoute, resolveEntityHref } from '../../../lib/entity-routes'
+import { useRouter } from '../../lib/router'
 
 interface ChatPanelProps {
   title?: string
@@ -233,6 +237,27 @@ export function ChatPanel({
   )
 }
 
+/**
+ * Goto button for a record the reply concerns. The ref is semantic — the
+ * button only renders when THIS app's route map resolves the archetype (a
+ * missing link is correct; an invented one is a dead end — agents.md).
+ */
+function RecordLinkButton({ link }: { link: ChatRecordLink }) {
+  const router = useRouter()
+  if (!resolveEntityRoute(link.archetype, link.kind)) return null
+  const href = resolveEntityHref(link.id, link.archetype, link.kind)
+  return (
+    <button
+      type="button"
+      onClick={() => router.navigate(href)}
+      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+    >
+      {link.label}
+      <ArrowUpRight className="h-3 w-3" />
+    </button>
+  )
+}
+
 function ToolCallRow({ call }: { call: ChatToolCall }) {
   const [open, setOpen] = React.useState(false)
   return (
@@ -275,6 +300,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       >
         {isUser ? message.content : <ChatMarkdown content={message.content} />}
       </div>
+      {!isUser && (message.links?.length ?? 0) > 0 && (
+        <div className="flex max-w-[85%] flex-wrap gap-1 px-1">
+          {message.links!.map((link) => (
+            <RecordLinkButton key={link.id} link={link} />
+          ))}
+        </div>
+      )}
       {!isUser && (message.toolCalls?.length ?? 0) > 0 && (
         <div className="flex max-w-[85%] flex-col gap-0.5 px-1">
           {message.toolCalls!.map((call, i) => (
