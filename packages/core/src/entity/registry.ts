@@ -8,6 +8,13 @@ export interface RegisteredEntity {
   icon?: string
   fields: EntityDef['fields']
   source: 'app' | 'plugin'
+  /**
+   * The definition itself, so consumers that need to *read* the entity — the AI
+   * tool executor resolving a data provider — are not limited to the display
+   * metadata. Optional: registrations made before this existed omit it.
+   */
+  entityDef?: EntityDef
+  mockData?: Array<{ id: string }>
   archetype?: EntityArchetype
   pluginId?: string
   pluginName?: string

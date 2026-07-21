@@ -1,31 +1,47 @@
-import type { OrgMember, Organization } from '@fayz-ai/core'
-import type { PluginAITool } from '../types/plugins'
+import { resolveDataProvider } from '@fayz-ai/core'
+import type { EntityDef, OrgMember, Organization } from '@fayz-ai/core'
+import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
 
 /**
  * Client-plane execution for the AI tool catalog.
  *
- * `useAITools()` declares *what* the app can do — it is the catalog the model
- * reasons over. This module is *how*: the browser runs the call against the
- * session that is already open (org store, plugin providers, router) and hands
- * a serialized result back to the agent.
+ * `useAITools()` declares *what* the surface can do — it is the catalog the
+ * model reasons over. This module is *how*: the browser runs the call against
+ * the session that is already open (org store, data providers, router) and
+ * hands a serialized result back to the agent.
  *
- * The split matters because Fayz never holds the app's data credentials. The
- * agent broker forwards the catalog, decides which tool to call, and returns
- * the call for the app to execute — the same contract a server-side channel
- * (WhatsApp, email) would satisfy with a server-side executor instead.
+ * The split matters because Fayz never holds the surface's data credentials.
+ * The agent broker forwards the catalog, decides which tool to call, and
+ * returns the call for the surface to execute — the same contract a
+ * server-side channel (WhatsApp, email) satisfies with a server-side executor.
  *
- * A tool with no registered handler is advisory: it still shapes suggestions
- * and tells the model the capability exists, but the agent is told plainly
- * that it could not be executed rather than being handed a fake result.
+ * **A capability is only advertised if it can run.** A declared tool with no
+ * executor is a promise to the model the surface cannot keep: it burns
+ * reasoning rounds retrying, then apologises. `buildAgentToolset` is the gate —
+ * everything it returns has a resolvable executor.
  */
+
+/** An entity the executor can read through its own data provider. */
+export interface DataToolTarget {
+  label: string
+  entity: EntityDef
+  mockData?: Array<{ id: string }>
+}
 
 export interface AIToolExecutionContext {
   currentOrg: Organization | null
   members: OrgMember[]
   currentPath: string
-  /** Pages the app exposes, used to resolve navigation requests. */
+  /** Pages the surface exposes, used to resolve navigation requests. */
   routes: Array<{ path: string; label?: string }>
   navigate: (path: string) => void
+  /**
+   * Data-backed tools, keyed by the LLM-facing tool name. These execute
+   * generically through the entity's own data provider, so every registry and
+   * every CRUD entity the app declares is readable without a hand-written
+   * handler — which is what lets a new vertical work on day one.
+   */
+  dataTools: Map<string, DataToolTarget>
 }
 
 export type AIToolHandler = (
@@ -44,14 +60,50 @@ export function registerAIToolHandler(name: string, handler: AIToolHandler): voi
   handlers.set(name, handler)
 }
 
+export function registerAIToolHandlers(map: Record<string, AIToolHandler>): void {
+  for (const [name, handler] of Object.entries(map)) registerAIToolHandler(name, handler)
+}
+
 export function hasAIToolHandler(name: string): boolean {
   return handlers.has(name)
 }
+
+/** Rows returned per data call — enough to answer, cheap in tokens. */
+const REGISTRY_PAGE_SIZE = 20
+
+/** Beyond this the catalog costs more in tokens than it buys in capability. */
+const MAX_TOOLS_PER_TURN = 24
 
 export interface AIToolExecutionResult {
   ok: boolean
   /** JSON-serialized payload handed back to the agent. */
   content: string
+}
+
+function errorResult(error: string, message: string): AIToolExecutionResult {
+  return { ok: false, content: JSON.stringify({ error, message }) }
+}
+
+async function executeDataTool(
+  target: DataToolTarget,
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const provider = resolveDataProvider(
+    target.entity as EntityDef<{ id: string }>,
+    target.mockData,
+  )
+  const result = await provider.list({
+    search: typeof args.search === 'string' ? args.search : undefined,
+    pageSize: REGISTRY_PAGE_SIZE,
+  })
+  return {
+    entity: target.label,
+    total: result.total,
+    // Truthful cap: the model is told the list was trimmed so it can say so
+    // rather than presenting one page as the whole set.
+    truncated: result.total > result.data.length,
+    records: result.data,
+  }
 }
 
 export async function executeAITool(
@@ -60,35 +112,103 @@ export async function executeAITool(
   context: AIToolExecutionContext,
 ): Promise<AIToolExecutionResult> {
   const handler = handlers.get(name)
-  if (!handler) {
-    return {
-      ok: false,
-      content: JSON.stringify({
-        error: 'not_executable',
-        message: `The tool "${name}" is declared but has no handler in this app. Tell the user what you would need instead of guessing.`,
-      }),
-    }
+  const dataTarget = context.dataTools.get(name)
+
+  if (!handler && !dataTarget) {
+    return errorResult(
+      'not_executable',
+      `The tool "${name}" is not available here. Do not retry it — tell the user what you cannot do, or use a different tool.`,
+    )
   }
 
   try {
-    const result = await handler(args, context)
+    const result = handler
+      ? await handler(args, context)
+      : await executeDataTool(dataTarget!, args)
     return { ok: true, content: JSON.stringify(result ?? { ok: true }) }
   } catch (error) {
-    return {
-      ok: false,
-      content: JSON.stringify({
-        error: 'execution_failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      }),
-    }
+    return errorResult(
+      'execution_failed',
+      error instanceof Error ? error.message : 'Unknown error',
+    )
   }
 }
 
-/** Shape the catalog into the JSON-Schema tool list the agent broker accepts. */
-export function toAgentTools(
+/**
+ * Index everything readable by the tool name its generator mints, so the
+ * executor can find the entity behind a call. Covers plugin registries and the
+ * app's own CRUD entities.
+ */
+export function buildDataToolIndex(input: {
+  registries: Map<string, PluginRegistryDef[]>
+  entities: Array<{ entityKey: string; labelPlural: string; entityDef?: EntityDef; mockData?: Array<{ id: string }> }>
+  registryToolName: (pluginId: string, registryId: string) => string
+  entityToolName: (entityKey: string) => string
+}): Map<string, DataToolTarget> {
+  const index = new Map<string, DataToolTarget>()
+
+  for (const [pluginId, defs] of input.registries) {
+    for (const registry of defs) {
+      if (registry.readOnly) continue
+      index.set(input.registryToolName(pluginId, registry.id), {
+        label: registry.entity.namePlural ?? registry.entity.name,
+        entity: registry.entity as EntityDef,
+        mockData: registry.mockData as Array<{ id: string }> | undefined,
+      })
+    }
+  }
+
+  for (const entity of input.entities) {
+    if (!entity.entityDef) continue
+    index.set(input.entityToolName(entity.entityKey), {
+      label: entity.labelPlural,
+      entity: entity.entityDef,
+      mockData: entity.mockData,
+    })
+  }
+
+  return index
+}
+
+export interface AgentTool {
+  name: string
+  description: string
+  parameters?: Record<string, unknown>
+}
+
+export interface BuildToolsetOptions {
+  dataTools: Map<string, DataToolTarget>
+  /** Plugin owning the current route; its tools rank ahead of the rest. */
+  activePluginId?: string | null
+  maxTools?: number
+}
+
+/**
+ * Shape the declared catalog into the toolset sent to the agent.
+ *
+ * Two filters, both load-bearing:
+ *
+ * 1. *Executable only.* An advertised tool with no executor is worse than a
+ *    missing one — the model spends rounds on it and then apologises.
+ * 2. *Contextual.* A mature app declares ~40 tools; sending all of them every
+ *    turn costs input tokens on every request and degrades which tool the model
+ *    picks. Tools owned by the plugin the user is currently looking at come
+ *    first, then the rest, capped.
+ */
+export function buildAgentToolset(
   tools: PluginAITool[],
-): Array<{ name: string; description: string; parameters?: Record<string, unknown> }> {
-  return tools.map((tool) => ({
+  { dataTools, activePluginId, maxTools = MAX_TOOLS_PER_TURN }: BuildToolsetOptions,
+): AgentTool[] {
+  const executable = tools.filter((t) => handlers.has(t.name) || dataTools.has(t.name))
+
+  const ranked = activePluginId
+    ? [
+        ...executable.filter((t) => t.id.startsWith(`${activePluginId}.`)),
+        ...executable.filter((t) => !t.id.startsWith(`${activePluginId}.`)),
+      ]
+    : executable
+
+  return ranked.slice(0, maxTools).map((tool) => ({
     name: tool.name,
     description: tool.description,
     parameters: tool.parameters as Record<string, unknown> | undefined,
@@ -101,11 +221,7 @@ export function toAgentTools(
 
 registerAIToolHandler('getBusinessSummary', (_args, ctx) => {
   if (!ctx.currentOrg) return { error: 'no_active_business' }
-  const org = ctx.currentOrg as Organization & {
-    plan?: string
-    verticalId?: string
-    createdAt?: string
-  }
+  const org = ctx.currentOrg as Organization & { plan?: string; verticalId?: string }
   return {
     name: org.name,
     slug: org.slug,
@@ -119,16 +235,14 @@ registerAIToolHandler('getBusinessSummary', (_args, ctx) => {
 registerAIToolHandler('getTeamMembers', (args, ctx) => {
   const role = typeof args.role === 'string' ? args.role.toLowerCase() : undefined
   const members = ctx.members
-    .filter((m) => !role || String((m as OrgMember & { role?: string }).role ?? '').toLowerCase() === role)
-    .map((m) => {
-      const member = m as OrgMember & { role?: string; status?: string; name?: string; email?: string }
-      return {
-        name: member.name ?? null,
-        email: member.email ?? null,
-        role: member.role ?? null,
-        status: member.status ?? null,
-      }
-    })
+    .map((m) => m as OrgMember & { role?: string; status?: string })
+    .filter((m) => !role || String(m.role ?? '').toLowerCase() === role)
+    .map((m) => ({
+      name: m.profileName ?? m.user?.fullName ?? null,
+      email: m.user?.email ?? null,
+      role: m.role ?? null,
+      status: m.status ?? null,
+    }))
   return { total: members.length, members }
 })
 

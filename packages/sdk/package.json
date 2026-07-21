@@ -28,6 +28,12 @@
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
     },
+    "./agent": {
+      "source": "./src/agent.ts",
+      "types": "./dist/agent.d.ts",
+      "import": "./dist/agent.js",
+      "require": "./dist/agent.cjs"
+    },
     "./shop": {
       "source": "./src/shop.ts",
       "types": "./dist/shop.d.ts",

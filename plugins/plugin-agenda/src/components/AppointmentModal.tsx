@@ -15,6 +15,7 @@ import { PersonLink } from '@fayz-ai/saas'
 import { BookingPaymentPanel } from './BookingPaymentPanel'
 import { CrudDetailPage } from '@fayz-ai/saas'
 import { CrudFormPage } from '@fayz-ai/saas'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { Button } from '@fayz-ai/ui'
 import { useAgendaConfig, useAgendaProvider, useAgendaStore } from '../AgendaContext'
 import { useTranslation } from '@fayz-ai/core'
@@ -280,6 +281,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   const provider = useAgendaProvider()
   const initialSnapshot = useRef<string>('')
   const createBooking = useAgendaStore((s) => s.createBooking)
+  const guardBookings = useLimitGuard('bookings_month')
   const updateBooking = useAgendaStore((s) => s.updateBooking)
   const deleteBooking = useAgendaStore((s) => s.deleteBooking)
   const fetchBookings = useAgendaStore((s) => s.fetchBookings)
@@ -515,6 +517,9 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    // Plan quantity guard (client-side, before the store call): opens the global
+    // UpgradeModal and aborts when the monthly booking cap is reached. CREATE only.
+    if (mode === 'create' && (await guardBookings()) === 'blocked') return
     setSaving(true)
     try {
       const startsAt = new Date(`${date}T${startTime}:00`).toISOString()
@@ -522,6 +527,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
         const newBooking = await createBooking({ kind: bookingType, clientId, professionalId, locationId: locationId || undefined, startsAt, notes: notes || undefined,
           title: activeType.fields.title ? title.trim() : undefined,
           services: services.map((s: any) => ({ serviceId: s.serviceId, name: s.name, durationMinutes: s.durationMinutes, price: s.price })) })
+        invalidateLimit('bookings_month')
         onClose()
         onCreated?.(newBooking.id, externalSource)
       } else if (bookingId) {

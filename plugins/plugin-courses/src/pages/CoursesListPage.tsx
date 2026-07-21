@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Button, Badge, PageHeaderActions, useModuleLayout } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { getCoursesProvider, type Course } from '@fayz-ai/courses'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { navigateTo } from '../nav'
 
 function statusVariant(status: Course['status']): 'success' | 'secondary' | 'outline' {
@@ -17,6 +18,7 @@ export function CoursesListPage() {
   const shellOwnsHeader = useModuleLayout() === 'tabs'
   const [courses, setCourses] = React.useState<Course[] | null>(null)
   const [creating, setCreating] = React.useState(false)
+  const guardCourses = useLimitGuard('courses')
 
   const load = React.useCallback(async () => {
     setCourses(await getCoursesProvider().listCourses())
@@ -27,12 +29,16 @@ export function CoursesListPage() {
   }, [load])
 
   async function onCreate() {
+    // Plan quantity guard (client-side, before the provider call). Opens the
+    // global UpgradeModal and aborts when the plan's course cap is reached.
+    if ((await guardCourses()) === 'blocked') return
     setCreating(true)
     try {
       const course = await getCoursesProvider().createCourse({
         title: t('courses.editor.untitledCourse') || 'Untitled course',
         status: 'draft',
       })
+      invalidateLimit('courses')
       navigateTo(`/courses/${course.id}`)
     } finally {
       setCreating(false)

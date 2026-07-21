@@ -7,7 +7,7 @@ export type { AccessProviderProps } from './context'
 
 export { resolveAccess, isEntitledByPlan } from './resolver'
 
-export { invalidateLimit, setLimitRegistry, getLimitDeclaration } from './limits-registry'
+export { invalidateLimit, setLimitRegistry, getLimitDeclaration, CORE_LIMIT_DECLARATIONS } from './limits-registry'
 
 export { useUpgradeModalStore } from './upgrade-modal-store'
 export type { UpgradeModalPayload, UpgradeModalStore } from './upgrade-modal-store'

@@ -6,7 +6,7 @@ import { useOrganizationStore } from '../org/store'
 import { usePermissionsStore } from '../permissions/store'
 import { useBillingStore } from '../billing/store'
 import { resolveAccess, isEntitledByPlan, resolveLimit } from './resolver'
-import { setLimitRegistry, getLimitDeclaration, subscribeLimit } from './limits-registry'
+import { setLimitRegistry, getLimitDeclaration, subscribeLimit, CORE_LIMIT_DECLARATIONS } from './limits-registry'
 import { useUpgradeModalStore } from './upgrade-modal-store'
 import type { AccessApi, AccessDecision, AccessSession, LimitState } from './types'
 
@@ -49,10 +49,12 @@ export function AccessProvider({ children, limitDeclarations }: AccessProviderPr
   const runtime = usePluginRuntimeOptional()
   const pluginLimits = runtime?.pluginLimits
 
-  // Merge plugin-declared limits with app overrides (app wins by key), then
-  // publish to the module registry consumed by invalidateLimit / hooks.
+  // Merge limit declarations by priority (later wins by key): shell built-ins
+  // (users/locations) < plugin `declaredLimits` < app overrides. Then publish to
+  // the module registry consumed by invalidateLimit / the limit hooks.
   React.useEffect(() => {
     const byKey = new Map<string, LimitDeclaration>()
+    for (const d of CORE_LIMIT_DECLARATIONS) byKey.set(d.key, d)
     for (const d of pluginLimits ?? []) byKey.set(d.key, d)
     for (const d of limitDeclarations ?? []) byKey.set(d.key, d)
     setLimitRegistry(Array.from(byKey.values()))

@@ -5,6 +5,7 @@ import { toast } from '@fayz-ai/ui'
 import { SubpageHeader, useSaveBar } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { SearchSelect } from '@fayz-ai/ui'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import type { CreateRecipeIngredientInput } from '../types'
 
 interface FormIngredient {
@@ -24,6 +25,7 @@ export function RecipeFormView({ onSaved }: { onSaved?: (id?: string) => void })
   const t = useTranslation()
   const provider = useInventoryProvider()
   const createRecipe = useInventoryStore((s) => s.createRecipe)
+  const guardRecipes = useLimitGuard('recipes')
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -49,6 +51,9 @@ export function RecipeFormView({ onSaved }: { onSaved?: (id?: string) => void })
 
   async function handleSave() {
     if (!name.trim() || !productId || ingredients.length === 0) { toast.error(t('common.formIncomplete')); return }
+    // Plan quantity guard (client-side, before the provider call). Opens the
+    // global UpgradeModal and aborts when the plan's recipe cap is reached.
+    if ((await guardRecipes()) === 'blocked') return
     setSaving(true)
     try {
       const recipe = await createRecipe({
@@ -66,6 +71,7 @@ export function RecipeFormView({ onSaved }: { onSaved?: (id?: string) => void })
           notes: i.notes || undefined,
         })),
       })
+      invalidateLimit('recipes')
       onSaved?.(recipe.id)
     } finally { setSaving(false) }
   }

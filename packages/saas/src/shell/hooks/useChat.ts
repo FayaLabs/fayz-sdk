@@ -1,15 +1,19 @@
 import { useCallback, useMemo } from 'react'
 import { useChatStore, type ChatMessage } from '../stores/chat.store'
 import { useOrganizationStore } from '../stores/organization.store'
+import { useAuthStore } from '../stores/auth.store'
 import { usePluginRuntimeOptional } from '../lib/plugins'
 import { useRouter } from '../lib/router'
 import { useTranslation } from './useTranslation'
 import { useAITools } from './useAITools'
 import {
+  buildAgentToolset,
+  buildDataToolIndex,
   executeAITool,
-  toAgentTools,
   type AIToolExecutionContext,
 } from '../lib/ai-tool-handlers'
+import { entityToolName, registryToolName } from '../lib/core-ai-tools'
+import { getAllEntities } from '@fayz-ai/core'
 import {
   getFayzAgentClient,
   resolveFayzAgentConnection,
@@ -36,9 +40,10 @@ export function useChat(options?: UseChatOptions) {
   const runtime = usePluginRuntimeOptional()
   const router = useRouter()
   const { t } = useTranslation()
-  const { tools } = useAITools()
+  const { tools, activePluginId } = useAITools()
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const members = useOrganizationStore((s) => s.members)
+  const user = useAuthStore((s) => s.user)
 
   // The project's Fayz agent, resolved from the env the container injects. An
   // app-supplied apiEndpoint wins — that is an explicit opt-out.
@@ -66,13 +71,21 @@ export function useChat(options?: UseChatOptions) {
    */
   const runFayzAgentTurn = useCallback(
     async (content: string, activeConnection: NonNullable<typeof connection>) => {
+      const dataTools = buildDataToolIndex({
+        registries: runtime?.registries ?? new Map(),
+        entities: getAllEntities(),
+        registryToolName,
+        entityToolName,
+      })
       const toolContext: AIToolExecutionContext = {
         currentOrg,
         members,
         currentPath: runtime?.context.currentPath ?? '/',
         routes: (runtime?.navigation ?? []).map((n) => ({ path: n.route, label: n.label })),
         navigate: router.navigate,
+        dataTools,
       }
+      const toolset = buildAgentToolset(tools, { dataTools, activePluginId })
 
       const client = getFayzAgentClient(activeConnection)
       let toolResults: FayzAgentToolResult[] | undefined
@@ -82,11 +95,29 @@ export function useChat(options?: UseChatOptions) {
         const response = await client.chat({
           message,
           toolResults,
+          // Attribution: an INTERNAL channel rejects turns with no identity, and
+          // without this every conversation lands in the owner's dashboard as
+          // "Anonymous" even though a signed-in user sent it.
+          externalUserId: user?.id,
+          externalUserName: user?.fullName || user?.email,
           conversationId: useChatStore.getState().conversationId ?? undefined,
-          tools: toAgentTools(tools),
+          tools: toolset,
           context: {
+            // Temporal grounding. Without an explicit clock the model resolves
+            // "tomorrow" against its training cutoff — it booked an appointment
+            // in 2023 before this was sent. The browser is the only side that
+            // knows the user's actual zone.
+            now: new Date().toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            locale: typeof navigator !== 'undefined' ? navigator.language : undefined,
             currentPath: toolContext.currentPath,
+            // What this app actually contains. Derived from the live navigation
+            // rather than written into each agent, so an assistant knows its own
+            // product on day one in any vertical — and can answer "where do I
+            // add a professional?" instead of guessing at a generic answer.
+            pages: toolContext.routes.map((r) => r.label ?? r.path).join(', '),
             businessName: currentOrg?.name,
+            userName: user?.fullName || user?.email,
             ...(options?.systemPrompt ? { appGuidance: options.systemPrompt } : {}),
           },
         })
@@ -113,7 +144,7 @@ export function useChat(options?: UseChatOptions) {
         message = undefined
       }
     },
-    [store, tools, runtime, router, currentOrg, members, options?.systemPrompt],
+    [store, tools, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
   )
 
   const sendMessage = useCallback(

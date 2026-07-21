@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button, Input, Modal, ModalContent, cn, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { useConversationsStore } from '../ConversationsContext'
 import { CHANNEL_ACCENT, CHANNEL_ICON, CHANNEL_LABELS } from '../channel'
 import type { Channel } from '../types'
@@ -16,6 +17,7 @@ export function NewConversationModal({
 }) {
   const t = useTranslation()
   const create = useConversationsStore((s) => s.create)
+  const guardConversations = useLimitGuard('conversations_month')
 
   const [channel, setChannel] = React.useState<Channel>('whatsapp')
   const [contactName, setContactName] = React.useState('')
@@ -39,6 +41,9 @@ export function NewConversationModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    // Plan quantity guard (client-side, before the store call): opens the global
+    // UpgradeModal and aborts when the monthly conversation cap is reached.
+    if ((await guardConversations()) === 'blocked') return
     setSubmitting(true)
     try {
       await create({
@@ -47,6 +52,7 @@ export function NewConversationModal({
         contactHandle: contactHandle.trim() || undefined,
         firstMessage: firstMessage.trim() || undefined,
       })
+      invalidateLimit('conversations_month')
       onOpenChange(false)
     } catch (err) {
       // A failed insert (unresolved tenant, RLS rejection, offline…) previously

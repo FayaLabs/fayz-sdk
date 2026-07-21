@@ -26,6 +26,7 @@ import { useAuthStore } from '@fayz-ai/auth'
 import { useSystemPermission } from '../../hooks/useSystemPermission'
 import { useTranslation } from '../../hooks/useTranslation'
 import { dedup } from '../../lib/dedup'
+import { useLimitGuard, invalidateLimit } from '../../../access'
 
 export function TeamTab() {
   const adapter = useOrgAdapterOptional()
@@ -39,6 +40,14 @@ export function TeamTab() {
   const hasSystemPermission = useSystemPermission()
 
   const [inviteOpen, setInviteOpen] = React.useState(false)
+  // Seat cap ('users' limit → tenant_members count). Guarded before opening the
+  // invite dialog; the guard opens the global UpgradeModal when at the cap.
+  const guardSeats = useLimitGuard('users')
+
+  const handleOpenInvite = async () => {
+    if ((await guardSeats(1)) === 'blocked') return
+    setInviteOpen(true)
+  }
 
   // Load invites on mount (deduped to avoid strict mode double-fetch)
   React.useEffect(() => {
@@ -107,7 +116,7 @@ export function TeamTab() {
             <p className="text-sm text-muted-foreground">{t('organization.team.memberCount', { count: String(members.length), plural: members.length !== 1 ? 's' : '' })}</p>
           </div>
           {canManageTeam && (
-            <Button size="sm" onClick={() => setInviteOpen(true)}>
+            <Button size="sm" onClick={() => { void handleOpenInvite() }}>
               <UserPlus className="h-4 w-4 mr-1" />
               {t('organization.team.invite')}
             </Button>
@@ -264,7 +273,15 @@ export function TeamTab() {
         </div>
       )}
 
-      <InviteMemberDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <InviteMemberDialog
+        open={inviteOpen}
+        onOpenChange={(open) => {
+          setInviteOpen(open)
+          // On close (after a successful invite the dialog closes itself),
+          // refresh the seat count so the guard/banner reflect the new member.
+          if (!open) invalidateLimit('users')
+        }}
+      />
     </div>
   )
 }

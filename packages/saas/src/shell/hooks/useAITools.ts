@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { usePluginRuntimeOptional } from '../lib/plugins'
-import { coreAITools, generateRegistryTools, formatToolSignature } from '../lib/core-ai-tools'
+import { coreAITools, generateRegistryTools, generateEntityTools, formatToolSignature } from '../lib/core-ai-tools'
 import type { PluginAITool, AIToolSuggestion } from '../types/plugins'
 
 export interface ResolvedSuggestion extends AIToolSuggestion {
@@ -49,6 +49,8 @@ function detectActivePluginId(runtime: ReturnType<typeof usePluginRuntimeOptiona
 
 export function useAITools(): {
   tools: PluginAITool[]
+  /** Plugin owning the current route, or null on non-plugin pages. */
+  activePluginId: string | null
   suggestions: ResolvedSuggestion[]
   /** Suggestions from the currently active plugin only (empty on non-plugin pages) */
   contextualSuggestions: ResolvedSuggestion[]
@@ -61,8 +63,10 @@ export function useAITools(): {
     const verticalId = runtime?.context.tenant?.verticalId
     const activePluginId = detectActivePluginId(runtime)
 
-    // Collect all tools: core + plugin-declared + auto-generated from registries
-    const allTools: PluginAITool[] = [...coreAITools]
+    // Collect all tools: core + plugin-declared + auto-generated from the app's
+    // CRUD entities and each plugin's registries. The generated ones are what
+    // make a brand-new vertical useful without hand-written tools.
+    const allTools: PluginAITool[] = [...coreAITools, ...generateEntityTools()]
 
     if (runtime) {
       allTools.push(...runtime.aiTools)
@@ -134,6 +138,6 @@ export function useAITools(): {
       toolGroups.push({ category, tools: groupTools })
     }
 
-    return { tools, suggestions, contextualSuggestions, toolGroups }
+    return { tools, activePluginId, suggestions, contextualSuggestions, toolGroups }
   }, [runtime])
 }

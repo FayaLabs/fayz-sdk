@@ -13,6 +13,7 @@ import { ImportWizard } from './ImportWizard'
 import { exportToCSV } from './csv-export'
 import { fieldToColumns } from './fieldToColumn'
 import { PermissionGate } from '../permissions/PermissionGate'
+import { useLimitGuard, invalidateLimit } from '../access'
 import { useFieldRules } from '../hooks/useFieldRules'
 import { deriveEntityKey } from '@fayz-ai/core'
 import { toast } from '@fayz-ai/ui'
@@ -196,6 +197,7 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
   }, [store])
   const tanColumns = useCrudColumns(entityDef, { basePath: normalizedBasePath, onDelete: readOnly ? undefined : (item) => setDeleteItem(item), onInlineUpdate: handleInlineUpdate, feature, readOnly })
   const currentOrgId = useOrganizationStore((s) => s.currentOrg?.id)
+  const guardImport = useLimitGuard(entityDef.limitKey ?? '')
 
   useEffect(() => {
     if (currentOrgId) store.fetch()
@@ -216,10 +218,24 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
       }
     }
 
+    // Plan quantity guard BEFORE the batch insert: adding `rows.length` rows must
+    // stay within the plan cap. When it would exceed, the guard opens the global
+    // UpgradeModal; we also surface a clear toast + a wizard error row and abort.
+    if (entityDef.limitKey && (await guardImport(rows.length)) === 'blocked') {
+      toast.error(t('crud.import.limitExceeded'))
+      return {
+        success: 0,
+        errors: [{ row: 0, message: t('crud.import.limitExceeded') }],
+      }
+    }
+
     const { success, results } = await store.createMany(rows, {
       batchSize: 10,
       onProgress,
     })
+
+    // Refresh the live count so gates/banners reflect the imported rows.
+    if (success > 0 && entityDef.limitKey) invalidateLimit(entityDef.limitKey)
 
     const errors: ImportRowError[] = []
     for (let i = 0; i < results.length; i++) {
@@ -232,7 +248,7 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
       toast.success(t('crud.import.toastSuccess', { count: String(success) }))
     }
     return { success, errors }
-  }, [store, t])
+  }, [store, t, guardImport, entityDef.limitKey])
 
   const handleExport = useCallback(() => {
     const items = store.items

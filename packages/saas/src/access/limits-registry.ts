@@ -8,6 +8,18 @@ import { invalidateCount } from '@fayz-ai/core'
  * mount; `useLimit`/`useLimitGuard` and `invalidateLimit` read from it.
  */
 
+/**
+ * Shell built-in limit declarations. Unlike plugin/app limits (contributed via
+ * `PluginManifest.declaredLimits` / `billing.limitDeclarations`), these count
+ * core tenant tables that have no owning plugin: seats (`tenant_members`) and
+ * `locations`. Merged as the LOWEST-priority layer by the AccessProvider, so a
+ * plugin or app may still override a key (e.g. add a `kindFilter`).
+ */
+export const CORE_LIMIT_DECLARATIONS: LimitDeclaration[] = [
+  { key: 'users', label: 'Users', table: 'tenant_members' },
+  { key: 'locations', label: 'Locations', table: 'locations' },
+]
+
 let registry = new Map<string, LimitDeclaration>()
 
 /** Called by AccessProvider whenever the merged limit declarations change. */

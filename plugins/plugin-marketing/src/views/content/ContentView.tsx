@@ -10,7 +10,7 @@ import {
   Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter,
 } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
-import { useOrganizationStore } from '@fayz-ai/saas'
+import { useOrganizationStore, useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { PlanBriefSheet } from './PlanBriefView'
 import type { ContentPost } from '../../data/contentTypes'
 import { useContentPlannerStore } from './ContentPlannerContext'
@@ -727,6 +727,7 @@ export function ContentView({ onOpenPost }: {
   const viewMode = useContentPlannerStore((s) => s.viewMode)
   const setViewMode = useContentPlannerStore((s) => s.setViewMode)
   const loadedTenantId = useContentPlannerStore((s) => s.loadedTenantId)
+  const guardContentPosts = useLimitGuard('content_posts_month')
 
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null)
@@ -765,6 +766,8 @@ export function ContentView({ onOpenPost }: {
   // default plan and drops the post straight into it. The scheduled date
   // prefills with the first day of the selected week so the post lands dated.
   const createPost = async (week: number) => {
+    // Client-side monthly-quota guard before the store create.
+    if ((await guardContentPosts()) === 'blocked') return
     const targetPlan = await ensurePlan()
     if (!targetPlan) return
     const start = targetPlan.startDate
@@ -779,6 +782,7 @@ export function ContentView({ onOpenPost }: {
       status: 'idea',
       scheduledDate: toISODate(start),
     })
+    invalidateLimit('content_posts_month')
     onOpenPost(post.id)
   }
 
@@ -790,6 +794,8 @@ export function ContentView({ onOpenPost }: {
 
   // Calendar day click → derive the plan week from startDate when available.
   const createPostAt = async (isoDate: string) => {
+    // Client-side monthly-quota guard before the store create.
+    if ((await guardContentPosts()) === 'blocked') return
     const targetPlan = await ensurePlan()
     if (!targetPlan) return
     let week = 1
@@ -807,6 +813,7 @@ export function ContentView({ onOpenPost }: {
       status: 'idea',
       scheduledDate: isoDate,
     })
+    invalidateLimit('content_posts_month')
     onOpenPost(post.id)
   }
 

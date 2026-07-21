@@ -7,6 +7,7 @@ import { CurrencyInput } from '@fayz-ai/ui'
 import { DatePicker } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import type { EntityLookupMap } from '@fayz-ai/saas'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import type { TransactionDirection, CreateInvoiceItemInput, CreateMovementInput } from '../types'
@@ -401,6 +402,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
     itemTypes[0]?.value ??
     'other'
   const createInvoice = useFinancialStore((s) => s.createInvoice)
+  const guardMovements = useLimitGuard('movements_month')
   const hasLocations = locations.length > 0
   const isEdit = !!editId
 
@@ -566,6 +568,10 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
 
   async function handleSave() {
     if (items.length === 0) { toast.error(t('common.formIncomplete')); return }
+    // Plan quantity guard (client-side): an invoice writes one financial movement
+    // per installment (min 1). Guard that many against the monthly cap before the
+    // store call — the guard opens the global UpgradeModal when it would exceed.
+    if (!isEdit && (await guardMovements(Math.max(1, installments.length))) === 'blocked') return
     setSaving(true)
     try {
       const movInputs: CreateMovementInput[] = installments.map((inst, i) => ({
@@ -609,6 +615,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
           items: items.map(({ _id, ...rest }) => rest),
           installments: movInputs,
         })
+        invalidateLimit('movements_month')
         onSaved?.(invoice.id)
       }
     } finally {

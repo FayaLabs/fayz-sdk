@@ -73,6 +73,10 @@ export function createConversationsPlugin(options?: ConversationsPluginOptions):
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [{ id: 'conversations', label: 'Conversations', group: 'Engage' }],
+    // Recurring monthly quota — counts conversation threads created this month.
+    declaredLimits: [
+      { key: 'conversations_month', label: 'Conversations this month', table: 'plg_conversations', period: 'month' },
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',
