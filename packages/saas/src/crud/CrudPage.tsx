@@ -460,10 +460,16 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
     )
   }
 
-  const handleDeleteConfirm = () => {
-    if (deleteItem) {
-      store.remove((deleteItem as any).id)
-      setDeleteItem(null)
+  const handleDeleteConfirm = async () => {
+    if (!deleteItem) return
+    const id = (deleteItem as any).id
+    setDeleteItem(null)
+    // Await the removal so the (cache-invalidated) list refetch completes and the
+    // deleted row is gone before we settle on the list view — previously this was
+    // fire-and-forget and raced with navigation, leaving a ghost row behind.
+    try {
+      await store.remove(id)
+    } finally {
       navigateToList()
     }
   }

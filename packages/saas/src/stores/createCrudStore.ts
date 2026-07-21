@@ -121,6 +121,15 @@ export function createCrudStore<T extends { id: string }>(
 
     async remove(id) {
       await dataProvider.remove(id)
+      // Optimistically drop the row so the list updates immediately. withCache
+      // invalidates the table on remove() and the refetch below reconciles, but
+      // the optimistic update guarantees the deleted row never lingers as a
+      // "ghost" until a hard reload — even if the refetch is momentarily served
+      // a stale, in-flight cached list.
+      set((s) => ({
+        items: s.items ? s.items.filter((item) => item.id !== id) : s.items,
+        total: Math.max(0, s.total - 1),
+      }))
       inflightFetch = null
       lastQueryKey = ''
       await get().fetch()

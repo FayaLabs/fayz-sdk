@@ -547,8 +547,17 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   async function handleDelete() {
     if (!bookingId) return
     setDeleting(true)
-    try { await deleteBooking(bookingId); onClose() } catch { /* toast */ }
-    setDeleting(false)
+    try {
+      await deleteBooking(bookingId)
+      onClose()
+    } catch {
+      // deleteBooking surfaces its own toast. Return the footer to its normal
+      // state (out of the confirm step) so a failure is clear feedback rather
+      // than a modal that silently stays stuck on "Confirm delete".
+      setConfirmingDelete(false)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const isPaidBooking = editPaymentStatus === 'paid'

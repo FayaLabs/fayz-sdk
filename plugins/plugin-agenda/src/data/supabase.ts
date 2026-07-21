@@ -245,7 +245,37 @@ export function createSupabaseAgendaProvider(providerOptions?: SupabaseAgendaPro
       const { core, pub } = getClients()
       const { data, error } = await pub.from('v_appointments').select('*').eq('id', id).maybeSingle()
       if (error) throw error
-      if (data) return mapBooking(data as Record<string, unknown>)
+      if (data) {
+        const booking = mapBooking(data as Record<string, unknown>)
+        // v_appointments is a FLAT read model — it exposes no line items. The
+        // calendar list path merges in the canonical hydration (which carries
+        // `services` from order_items), but this single-record lookup used by the
+        // edit modal previously returned the bare view row. That dropped
+        // `services`, so a booking whose type has `requiresServices` reopened with
+        // an empty service list and kept the "Update" button permanently disabled
+        // (canSubmit stayed false). Hydrate the line items here to stay consistent
+        // with getBookings.
+        if (booking.orderId) {
+          const { data: items } = await core.from('order_items')
+            .select('id, service_id, name, duration_minutes, unit_price, assignee_id, sort_order')
+            .eq('order_id', booking.orderId)
+            .order('sort_order', { ascending: true })
+          if (items && items.length) {
+            const services = items.map((item: any) => ({
+              id: item.id,
+              serviceId: item.service_id,
+              name: item.name,
+              durationMinutes: item.duration_minutes,
+              price: item.unit_price,
+              assigneeId: item.assignee_id,
+            }))
+            booking.services = services
+            const itemDuration = services.reduce((sum: number, s: any) => sum + (s.durationMinutes ?? 0), 0)
+            if (itemDuration) booking.totalDurationMinutes = itemDuration
+          }
+        }
+        return booking
+      }
       return getCanonicalBookingById(core, id)
     },
 
@@ -425,12 +455,24 @@ export function createSupabaseAgendaProvider(providerOptions?: SupabaseAgendaPro
       if (bookingErr) throw bookingErr
 
       const orderId = booking?.order_id as string | null | undefined
-      const { count, error: movementErr } = orderId
-        ? await pub.from('plg_financial_movements').select('id', { count: 'exact', head: true }).eq('invoice_id', orderId)
-        : { count: 0, error: null }
-      if (movementErr) throw movementErr
+      // Financial movements live in the financial plugin's tables. Pools that
+      // don't provision that plugin (e.g. school/event agendas) have no
+      // plg_financial_movements table, and the probe below returns a PostgREST
+      // "relation does not exist" error. Previously that error was rethrown,
+      // which aborted the ENTIRE delete — the modal caught it and left the
+      // booking in place, so "Delete" looked like a silent no-op (works in
+      // beauty, which has the table; fails in school, which doesn't). Treat any
+      // probe failure as "no linked movements" and fall through to a plain delete.
+      let movementCount = 0
+      if (orderId) {
+        const { count, error: movementErr } = await pub
+          .from('plg_financial_movements')
+          .select('id', { count: 'exact', head: true })
+          .eq('invoice_id', orderId)
+        if (!movementErr) movementCount = count ?? 0
+      }
 
-      if (orderId && (count ?? 0) > 0) {
+      if (orderId && movementCount > 0) {
         // Cancel movements + order (don't delete financial records)
         await pub.from('plg_financial_movements').update({ status: 'cancelled' }).eq('invoice_id', orderId)
         await core.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
