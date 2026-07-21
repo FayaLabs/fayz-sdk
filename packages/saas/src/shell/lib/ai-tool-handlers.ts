@@ -432,7 +432,7 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
     if (dupes.length) {
       return {
         error: 'possible_duplicate',
-        message: `A ${target.entity.name} named "${dupName}" already exists. Ask the user whether they mean the existing record; only retry with allowDuplicate:true if they explicitly want a second one.`,
+        message: `A ${target.entity.name} named "${dupName}" already exists. If the user wants to CHANGE that existing record, use updateRecord with its id; only retry createRecord with allowDuplicate:true if they explicitly want a second one.`,
         matches: dupes,
       }
     }
@@ -458,6 +458,74 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
     record,
     ref: {
       id: (record as { id?: string }).id,
+      label: String((record as Record<string, unknown>).name ?? target.entity.name),
+      resource: target.entity.data?.table,
+      archetype: target.entity.data?.archetype
+        ? `${target.entity.data.archetype}${target.entity.data.archetypeKind ? ':' + target.entity.data.archetypeKind : ''}`
+        : undefined,
+    },
+  }
+})
+
+registerAIToolHandler('updateRecord', async (args, ctx) => {
+  const resolved = resolveKeyedTarget(ctx, args)
+  if ('error' in resolved) return resolved.error
+  const { target } = resolved
+  if (target.readOnly) {
+    return { error: 'read_only', message: `${target.label} is a read-only view — records cannot be updated here.` }
+  }
+  const id = typeof args.id === 'string' ? args.id : ''
+  if (!id) return { error: 'missing_id', message: 'Provide the id of the record to update (from this conversation or a search).' }
+
+  // Same guard chain as createRecord, with the EDIT action; updates never
+  // consume plan caps.
+  const permission = target.entity.permission
+  if (permission) {
+    const access = checkAccess(permission.feature, 'edit')
+    if (!access.allowed) return access
+  }
+
+  const values = (args.values ?? {}) as Record<string, unknown>
+  const declared = target.entity.fields ?? []
+  const declaredKeys = declared.map((f) => f.key)
+  const clean: Record<string, unknown> = {}
+  const unknown: string[] = []
+  for (const [k, v] of Object.entries(values)) {
+    const camel = k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+    const match = declaredKeys.includes(k) ? k : declaredKeys.includes(camel) ? camel : null
+    if (match) clean[match] = v
+    else unknown.push(k)
+  }
+  if (unknown.length) {
+    return {
+      error: 'unknown_field',
+      message: `Unknown field(s) ${unknown.join(', ')} for ${target.label}. Use only the available fields and retry.`,
+      availableFields: declaredKeys,
+    }
+  }
+  if (!Object.keys(clean).length) {
+    return { error: 'empty_update', message: 'No valid fields to change were provided.' }
+  }
+
+  const approved = await requestChatConfirmation({
+    id: `update-${Date.now()}`,
+    toolName: 'updateRecord',
+    title: `Atualizar ${target.entity.name}`,
+    params: { id, ...clean },
+    plane: 'client',
+  })
+  if (!approved) return { ok: false, cancelled: true, reason: 'user_declined' }
+
+  const provider = resolveDataProvider(
+    target.entity as EntityDef<{ id: string }>,
+    target.mockData,
+  )
+  const record = await provider.update(id, clean as never)
+  return {
+    ok: true,
+    record,
+    ref: {
+      id,
       label: String((record as Record<string, unknown>).name ?? target.entity.name),
       resource: target.entity.data?.table,
       archetype: target.entity.data?.archetype

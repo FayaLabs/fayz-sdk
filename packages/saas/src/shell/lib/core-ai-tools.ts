@@ -210,6 +210,29 @@ export function buildDataPrimitiveTools(input: {
           } satisfies PluginAITool,
         ]
       : []),
+    ...(writableKeys.length
+      ? [
+          {
+            id: 'data.update-record',
+            name: 'updateRecord',
+            description:
+              'Updates fields on an EXISTING record (add an email, fix a phone, change a name…). Use the record id already known from this conversation or from a search. Only send the fields being changed. The user confirms before anything is written.',
+            icon: 'Pencil',
+            mode: 'persist' as const,
+            requiresConfirmation: false,
+            parameters: {
+              type: 'object' as const,
+              properties: {
+                entity: { type: 'string' as const, description: 'Which entity the record belongs to', enum: writableKeys },
+                id: { type: 'string' as const, description: 'Id of the record to update' },
+                values: { type: 'object' as const, description: 'Only the fields to change, e.g. {"email":"…"}' },
+              },
+              required: ['entity', 'id', 'values'],
+            },
+            category: 'Data',
+          } satisfies PluginAITool,
+        ]
+      : []),
     {
       id: 'data.search-records',
       name: 'searchRecords',
