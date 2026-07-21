@@ -5,6 +5,7 @@ import { deploy } from './commands/deploy.js'
 import { doctor } from './commands/doctor.js'
 import { extract } from './commands/extract.js'
 import { login, logout } from './commands/login.js'
+import { manifest } from './commands/manifest.js'
 
 const HELP = `fayz — Fayz SDK CLI
 
@@ -12,7 +13,9 @@ Usage:
   fayz create <storefront|admin|member> <name>   Scaffold a new repo-per-app project
   fayz create plugin <name>               Scaffold an app-local (incubator) plugin
   fayz doctor [dir] [--remote] [--full]   Validate deps, hygiene, manifest + architecture boundaries
-  fayz extract [dir]                      Assisted code-config → manifest migration
+  fayz manifest emit [dir] [--check]      Derive app.manifest.json (v3 agent contract) from the app code
+  fayz manifest sync [dir] [--dry-run]    Emit + PUT the agent contract to the Fayz platform
+  fayz extract [dir]                      DEPRECATED — use 'fayz manifest emit'
   fayz db apply [dir] --dry-run           Plan the Supabase migration order (spine → drizzle → seed → plugins)
   fayz db apply [dir] [--yes]             Apply the plan via the Supabase Management API (prompts unless --yes)
   fayz db pool status                     Show each industry pool's migration ledger (Runner v2)
@@ -97,7 +100,10 @@ async function main(argv: string[]): Promise<number> {
       return deploy(rest)
     case 'doctor':
       return doctor(rest)
+    case 'manifest':
+      return manifest(rest[0], rest.slice(1))
     case 'extract':
+      console.error("⚠ 'fayz extract' is deprecated — the manifest is now DERIVED. Use 'fayz manifest emit'.")
       return extract(rest[0])
     case '--version':
     case '-v':

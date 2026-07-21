@@ -63,7 +63,13 @@ export const coreAITools: PluginAITool[] = [
  * actually reads to decide when to call it.
  */
 function pascalCase(value: string): string {
+  // Transliterate diacritics BEFORE splitting: splitting on [^a-zA-Z0-9]
+  // treated an accent as a word boundary and dropped it mid-word — "Serviço"
+  // became "ServiO" and "Preço de Serviço" became "PreODeServiO", which both
+  // renames tools per locale and can trip the broker's ^[a-zA-Z0-9_-]+$ rule.
   return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
