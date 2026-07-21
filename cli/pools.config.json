@@ -64,6 +64,14 @@
       "flags": {
         "preserveBespoke": true
       }
+    },
+    {
+      "industry": "personal-assistant",
+      "name": "cluster-personal-assistant-br-01",
+      "ref": "fjudvrewkzsnuorhdjjz",
+      "url": "https://fjudvrewkzsnuorhdjjz.supabase.co",
+      "status": "PROVISIONING",
+      "flags": {}
     }
   ]
 }
