@@ -1,3 +1,5 @@
+import type { PlanEntitlements } from './entitlements'
+
 export interface Plan {
   id: string
   name: string
@@ -5,9 +7,16 @@ export interface Plan {
   price: number
   currency: string
   interval: 'month' | 'year'
+  /** Marketing bullets shown on the pricing page (display only). */
   features: string[]
   highlighted?: boolean
   stripePriceId?: string
+  /**
+   * Structured access grants for this plan (feature gates + quantity caps). This
+   * is the enforcement source of truth — distinct from `features` (display
+   * bullets). See {@link PlanEntitlements}.
+   */
+  entitlements?: PlanEntitlements
 }
 
 /**

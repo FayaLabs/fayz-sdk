@@ -7,12 +7,14 @@ import type {
   ThemeMode,
   LocaleConfig,
   PermissionsConfig,
+  LimitDeclaration,
 } from '@fayz-ai/core'
 import type { AuthPluginOptions, ResolvedAuthPlugin, LoginAmbassador } from '@fayz-ai/plugin-auth'
 import type { BottomNavItem, MobileHeaderVariant } from '@fayz-ai/ui'
 import type { SaasTheme } from '../shell/config/theme/tokens'
 import type { CreateThemeOptions } from '../shell/config/theme/utils'
 import type { PlanConfig } from '../shell/types/billing'
+import type { FayzAgentConnectionConfig } from '../shell/lib/fayz-agent'
 
 // ---------------------------------------------------------------------------
 // Page registration
@@ -87,8 +89,19 @@ export interface OrgConfig {
 export interface ChatConfig {
   enabled?: boolean
   title?: string
+  /** Extra guidance appended to the agent's own instructions. */
   systemPrompt?: string
+  /**
+   * Bring-your-own chat backend. Leave unset to use the Fayz agent configured
+   * for this project — the container injects the connection env, so no key or
+   * URL needs to live in app config.
+   */
   apiEndpoint?: string
+  /**
+   * Overrides for the Fayz agent connection, for apps built outside a Fayz
+   * container. `false` opts out of the Fayz agent entirely.
+   */
+  agent?: FayzAgentConnectionConfig | false
 }
 
 export interface FayzBillingConfig {
@@ -103,6 +116,12 @@ export interface FayzBillingConfig {
    * an optimistic `adapter.updateOrg(orgId, { plan })`.
    */
   onCheckout?: (planId: string) => Promise<void> | void
+  /**
+   * App-level limit declarations layered on top of the plugins' `declaredLimits`
+   * (app wins on key collision). Use to add limits for app-local tables the
+   * plugins don't know about, or to re-point a key at a different table.
+   */
+  limitDeclarations?: LimitDeclaration[]
 }
 
 // ---------------------------------------------------------------------------

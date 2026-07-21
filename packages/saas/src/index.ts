@@ -96,6 +96,31 @@ export {
 export type { PermissionsStore, PermissionsProviderProps } from './permissions/index'
 
 // ---------------------------------------------------------------------------
+// Access engine — role × plan decision, quantity limits, upgrade modal store
+// ---------------------------------------------------------------------------
+export {
+  AccessProvider,
+  useAccess,
+  useAccessOptional,
+  useLimit,
+  useLimitGuard,
+  resolveAccess,
+  isEntitledByPlan,
+  invalidateLimit,
+  useUpgradeModalStore,
+} from './access/index'
+export type {
+  AccessProviderProps,
+  AccessApi,
+  AccessDecision,
+  AccessSession,
+  DenyReason,
+  LimitState,
+  UpgradeModalPayload,
+  UpgradeModalStore,
+} from './access/index'
+
+// ---------------------------------------------------------------------------
 // Billing
 // ---------------------------------------------------------------------------
 export { useBillingStore } from './billing/index'

@@ -1,4 +1,6 @@
 export { createSupabaseProvider, setGlobalSupabaseClient, getSupabaseClientOptional } from './supabase'
+export { countByTenant, invalidateCount } from './count'
+export type { CountByTenantOptions } from './count'
 export { getFayzCloudClient, FAYZ_CLOUD_URL, FAYZ_CLOUD_PUBLISHABLE_KEY } from './cloud'
 export { createFayzApiProvider } from './platform-api'
 export { createMockProvider } from './mock'
