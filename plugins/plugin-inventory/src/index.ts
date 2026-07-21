@@ -37,6 +37,14 @@ export interface InventoryPluginOptions {
     recipes?: boolean
     stockLocations?: boolean
     batchTracking?: boolean
+    /**
+     * The product catalogue screens (list + form). Defaults on. Turn OFF when the
+     * host already owns product registration elsewhere — an e-commerce app
+     * manages products in the shop plugin, and two competing product CRUDs is
+     * how the same product ends up entered twice, differently.
+     * Stock entry/exit/history stay available either way.
+     */
+    products?: boolean
   }
   labels?: Partial<InventoryPluginLabels>
   productTypes?: Array<{ value: string; label: string }>
@@ -85,6 +93,7 @@ const DEFAULT_PRODUCT_TYPES = [
 function resolveConfig(options?: InventoryPluginOptions): ResolvedInventoryConfig {
   return {
     modules: {
+      products: options?.modules?.products !== false,
       recipes: options?.modules?.recipes !== false,
       stockLocations: options?.modules?.stockLocations !== false,
       batchTracking: options?.modules?.batchTracking ?? false,
@@ -125,6 +134,34 @@ export function createInventoryPlugin(options?: InventoryPluginOptions): PluginM
     declaredFeatures: [
       { id: 'inventory', label: config.labels.pageTitle, group: config.labels.pageTitle },
       ...(config.modules.recipes ? [{ id: 'inventory.recipes', label: config.labels.recipes ?? 'Recipes', group: config.labels.pageTitle }] : []),
+    ],
+    queryEntities: [
+      {
+        key: 'inventory:products',
+        writable: true,
+        entity: {
+          name: 'Product',
+          namePlural: 'Products',
+          icon: 'Package',
+          limitKey: 'products',
+          permission: { feature: 'inventory', action: 'read' },
+          fields: [
+            { key: 'name', label: 'Name', type: 'text', required: true, searchable: true },
+            { key: 'kind', label: 'Kind (sale/ingredient/asset)', type: 'text' },
+            { key: 'price', label: 'Price', type: 'number' },
+            { key: 'cost', label: 'Cost', type: 'number' },
+            { key: 'sku', label: 'SKU', type: 'text', searchable: true },
+            { key: 'isActive', label: 'Active', type: 'boolean' },
+            { key: 'createdAt', label: 'Created at', type: 'text' },
+          ],
+          data: {
+            table: 'products',
+            tenantScoped: true,
+            searchColumns: ['name', 'sku'],
+            defaults: { kind: 'sale', status: 'active', is_active: true },
+          },
+        },
+      },
     ],
     declaredLimits: [
       { key: 'products', label: 'Products', table: 'products' },

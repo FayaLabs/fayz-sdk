@@ -159,10 +159,11 @@ export function buildDataPrimitiveTools(input: {
       })
     }
   }
-  // Read-models (views/ledgers) are readable but never writable.
+  // Read-models are readable; base-table ones may opt into writes.
   const writableKeys = options.map((o) => o.key)
   for (const q of input.queryEntities ?? []) {
     options.push({ key: q.key, label: q.entity.namePlural ?? q.entity.name })
+    if (q.writable) writableKeys.push(q.key)
   }
   if (!options.length) return []
   const keys = options.map((o) => o.key)

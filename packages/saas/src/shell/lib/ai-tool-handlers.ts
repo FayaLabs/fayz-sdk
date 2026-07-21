@@ -253,7 +253,7 @@ export function buildDataToolIndex(input: {
     index.set(`key:${q.key}`, {
       label: q.entity.namePlural ?? q.entity.name,
       entity: q.entity,
-      readOnly: true,
+      readOnly: !q.writable,
     })
   }
 

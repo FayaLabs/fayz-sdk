@@ -385,7 +385,12 @@ export interface PluginManifest {
    * ASCII id (never derived from a translated label); the entity's own
    * `permission` gates each call.
    */
-  queryEntities?: Array<{ key: string; entity: EntityDef }>
+  queryEntities?: Array<{
+    key: string
+    entity: EntityDef
+    /** Base tables may opt into createRecord; views/ledgers stay read-only. */
+    writable?: boolean
+  }>
   registries?: PluginRegistryDef[]
   /**
    * Connectors this plugin contributes. An ADDON plugin declares its connector(s)

@@ -14,6 +14,23 @@ const STAGE_FILTER_MAP: Record<string, string[]> = {
   paid: ['paid'],
 }
 
+/**
+ * A shop order's lifecycle is not in `status` (open/archived/cancelled) but in
+ * the payment state the shop plugin mirrors into metadata. Without this every
+ * storefront purchase showed up as "rascunho" on the customer's record — the
+ * same tab, the same table, but reading the wrong column for that kind.
+ */
+function mapShopOrderToStage(row: { status?: string | null; metadata?: Record<string, unknown> | null }): ClientDocumentStage {
+  if (row.status === 'cancelled') return 'cancelled'
+  switch (String(row.metadata?.financial_status ?? '')) {
+    case 'paid': return 'paid'
+    case 'partially_refunded': return 'partial'
+    case 'refunded':
+    case 'voided': return 'cancelled'
+    default: return 'invoiced'   // placed, awaiting payment
+  }
+}
+
 function mapOrderStatusToStage(status: string | null | undefined): ClientDocumentStage {
   switch (status) {
     case 'scheduled':
@@ -83,12 +100,17 @@ export function createClientOrdersProvider(): ClientOrdersProvider {
           return {
             id: row.id,
             kind: row.kind as string,
-            stage: mapOrderStatusToStage(row.status as string | null | undefined),
+            stage: row.kind === 'shop'
+              ? mapShopOrderToStage(row)
+              : mapOrderStatusToStage(row.status as string | null | undefined),
             referenceNumber: row.reference_number ?? undefined,
             date: startsAt?.slice(0, 10) ?? (row.created_at as string)?.slice(0, 10) ?? '',
             startsAt,
             total: Number(row.total) || 0,
-            paidAmount: Number(meta.paidAmount) || 0,
+            // A paid shop order has no separate paidAmount; the total is what
+            // was settled.
+            paidAmount: Number(meta.paidAmount)
+              || (row.kind === 'shop' && meta.financial_status === 'paid' ? Number(row.total) || 0 : 0),
             description: (meta.itemsSummary as string) ?? (meta.serviceNames as string) ?? row.notes ?? undefined,
             createdAt: row.created_at as string,
           }
