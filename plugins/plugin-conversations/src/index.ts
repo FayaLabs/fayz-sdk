@@ -7,14 +7,17 @@ import { createMockConversationsProvider } from './data/mock'
 import { createSupabaseConversationsProvider } from './data/supabase'
 import { createConversationsStore } from './store'
 import { conversationsLocales } from './locales'
+import { MIGRATION_001_CONVERSATIONS } from './migrations'
 
 // ---------------------------------------------------------------------------
 // @fayz-ai/plugin-conversations — the GoHighLevel "Conversations" equivalent:
 // one omni-channel inbox (SMS / WhatsApp / Instagram / Email / Web chat).
 // Universal plugin — reusable by any vertical (beauty, resto, agency…).
 //
-// M1 ships a full mock inbox. Real channel connectors (Twilio, WhatsApp Cloud,
-// Meta, IMAP) + Supabase-backed threads land in a later milestone.
+// Supabase-backed (plg_conversations / plg_conversation_messages, tenant-scoped
+// via RLS) when a client is registered; a persisted mock inbox otherwise. Real
+// channel connectors (Twilio, WhatsApp Cloud, Meta, IMAP) deliver inbound rows
+// out-of-band; this plugin is the read/compose surface.
 // ---------------------------------------------------------------------------
 
 export interface ConversationsPluginOptions {
@@ -33,7 +36,7 @@ function createSafeProvider(): ConversationsProvider {
   if (getSupabaseClientOptional()) {
     return createSupabaseConversationsProvider({ tenantId: () => getActiveTenantId() })
   }
-  return createMockConversationsProvider()
+  return createMockConversationsProvider({ tenantId: () => getActiveTenantId() })
 }
 
 export function createConversationsPlugin(options?: ConversationsPluginOptions): PluginManifest {
@@ -119,13 +122,21 @@ export function createConversationsPlugin(options?: ConversationsPluginOptions):
         permission: { feature: 'conversations', action: 'create' as const },
       },
     ],
+    migrations: [
+      {
+        id: 'conversations-001-base-tables',
+        version: '1.0.0',
+        sql: MIGRATION_001_CONVERSATIONS,
+        description: 'Create plg_conversations and plg_conversation_messages (tenant-scoped RLS)',
+      },
+    ],
     locales: conversationsLocales,
   }
 }
 
 export type { ConversationsProvider } from './data/types'
-export type { Conversation, Message, Channel } from './types'
-export { createMockConversationsProvider } from './data/mock'
+export type { Conversation, Message, Channel, CreateConversationInput } from './types'
+export { createMockConversationsProvider, type MockConversationsConfig } from './data/mock'
 export {
   createSupabaseConversationsProvider,
   type SupabaseConversationsConfig,

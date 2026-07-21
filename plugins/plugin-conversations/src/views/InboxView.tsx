@@ -1,6 +1,7 @@
 import React from 'react'
 import { MessageSquare } from 'lucide-react'
 import { cn } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import { useConversationsStore } from '../ConversationsContext'
 import { ConversationList } from './ConversationList'
 import { MessageThread } from './MessageThread'
@@ -8,6 +9,7 @@ import { ContactPanel } from './ContactPanel'
 import { useMediaQuery } from './shared'
 
 export function InboxView() {
+  const t = useTranslation()
   const { conversations, selectedId, deselect } = useConversationsStore((s) => s)
   // xl+ shows the contact panel inline (three panes); below that it's an
   // on-demand slide-over so the list + thread keep room to breathe.
@@ -38,7 +40,7 @@ export function InboxView() {
       ) : (
         <section className="hidden min-w-0 flex-1 flex-col items-center justify-center bg-muted/20 text-muted-foreground lg:flex">
           <MessageSquare className="h-9 w-9" />
-          <p className="mt-2 text-sm">Select a conversation to start chatting</p>
+          <p className="mt-2 text-sm">{t('conversations.empty.select')}</p>
         </section>
       )}
 
