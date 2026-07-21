@@ -30,13 +30,28 @@ export interface ConversationsPluginOptions {
 }
 
 function createSafeProvider(): ConversationsProvider {
-  // Real data when a Supabase client is registered (reads/writes the
-  // `conversations` + `conversation_messages` tables, tenant-scoped via the
-  // active-org context); falls back to the mock inbox when no backend is wired.
-  if (getSupabaseClientOptional()) {
-    return createSupabaseConversationsProvider({ tenantId: () => getActiveTenantId() })
+  // Real data when a Supabase client is registered; mock inbox otherwise.
+  // Resolution is LAZY (per call): createConversationsPlugin runs at module
+  // scope in the app config, BEFORE the Supabase client is registered — an
+  // eager check here would capture the mock forever even on live backends.
+  let real: ConversationsProvider | null = null
+  let mock: ConversationsProvider | null = null
+  const resolve = (): ConversationsProvider => {
+    if (getSupabaseClientOptional()) {
+      real ??= createSupabaseConversationsProvider({ tenantId: () => getActiveTenantId() })
+      return real
+    }
+    mock ??= createMockConversationsProvider({ tenantId: () => getActiveTenantId() })
+    return mock
   }
-  return createMockConversationsProvider({ tenantId: () => getActiveTenantId() })
+  return {
+    listConversations: (...a) => resolve().listConversations(...a),
+    getMessages: (...a) => resolve().getMessages(...a),
+    sendMessage: (...a) => resolve().sendMessage(...a),
+    markRead: (...a) => resolve().markRead(...a),
+    setStatus: (...a) => resolve().setStatus(...a),
+    createConversation: (...a) => resolve().createConversation(...a),
+  }
 }
 
 export function createConversationsPlugin(options?: ConversationsPluginOptions): PluginManifest {
