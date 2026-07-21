@@ -1,4 +1,5 @@
 export { BillingPage } from './BillingPage'
+export { SubscriptionPage } from './SubscriptionPage'
 export { PlanSelector } from './PlanSelector'
 export { SubscriptionCard } from './SubscriptionCard'
 export { InvoiceList } from './InvoiceList'

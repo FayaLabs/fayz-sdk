@@ -14,6 +14,7 @@ import {
   type AuthLayout,
   type AuthPluginOptions,
   type ResolvedAuthPlugin,
+  type LoginAmbassador,
 } from '@fayz-ai/plugin-auth'
 import { NavTransitionProvider } from '@fayz-ai/ui'
 import { createFayzSupabaseClient, getFayzSupabaseClientOptional } from '../supabase/client'
@@ -58,6 +59,8 @@ function resolveAuthRuntime(config: FayzAppConfig): ResolvedAuthPlugin {
     logo: auth?.logo ?? auth?.loginLogo,
     tagline: auth?.tagline ?? auth?.loginTagline,
     description: auth?.description ?? auth?.loginDescription,
+    loginAmbassadors: auth?.loginAmbassadors,
+    loginAmbassadorsLabel: auth?.loginAmbassadorsLabel,
     oauth,
     routes: auth?.routes,
     supabase: {
@@ -76,6 +79,8 @@ export function getAuthShellProps(auth: FayzAppConfig['auth']): {
   loginDescription?: string
   loginLogo?: React.ReactNode
   loginLayout?: AuthLayout
+  loginAmbassadors?: LoginAmbassador[]
+  loginAmbassadorsLabel?: string
   showOAuth?: boolean
   oauthProviders?: Exclude<import('@fayz-ai/core').AuthProvider, 'email'>[]
 } {
@@ -87,6 +92,8 @@ export function getAuthShellProps(auth: FayzAppConfig['auth']): {
       loginDescription: auth.description,
       loginLogo: auth.logo,
       loginLayout: auth.layout,
+      loginAmbassadors: auth.loginAmbassadors,
+      loginAmbassadorsLabel: auth.loginAmbassadorsLabel,
       showOAuth: auth.oauth.enabled,
       oauthProviders: auth.oauth.providers,
     }
@@ -97,6 +104,8 @@ export function getAuthShellProps(auth: FayzAppConfig['auth']): {
     loginDescription: auth.description ?? auth.loginDescription,
     loginLogo: auth.logo ?? auth.loginLogo,
     loginLayout: auth.layout ?? auth.loginLayout,
+    loginAmbassadors: auth.loginAmbassadors,
+    loginAmbassadorsLabel: auth.loginAmbassadorsLabel,
     showOAuth: auth.oauth?.enabled ?? auth.showOAuth,
     oauthProviders: auth.oauth?.providers ?? auth.oauthProviders,
   }
@@ -157,9 +166,13 @@ function buildI18nConfig(config: FayzAppConfig): {
 
 function BillingInitializer({ config }: { config: FayzAppConfig }) {
   const setPlans = useBillingStore((s) => s.setPlans)
+  const setCheckout = useBillingStore((s) => s.setCheckout)
   React.useEffect(() => {
     if (config.billing?.plans) setPlans(config.billing.plans.map(normalizeBillingPlan))
-  }, [config.billing, setPlans])
+    // Seed the payment-gateway seam so the shell's Subscription page can route
+    // plan changes through it (Stripe/Pix) instead of a direct updateOrg.
+    setCheckout(config.billing?.onCheckout ?? null)
+  }, [config.billing, setPlans, setCheckout])
   return null
 }
 

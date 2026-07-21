@@ -2,7 +2,7 @@
 // App factory (main entry point)
 // ---------------------------------------------------------------------------
 export { createFayzApp, AdminProviders } from './app/admin-app'
-export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, CustomPage, PageSection } from './app/config'
+export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, FayzBillingConfig, CustomPage, PageSection } from './app/config'
 
 // Native admin scaffold — manifest-first entry. Importing this registers the
 // 'admin' scaffold so renderApp(manifest) can resolve it.

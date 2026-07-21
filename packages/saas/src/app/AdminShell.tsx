@@ -13,9 +13,6 @@ import {
   DropdownItem,
   DropdownLabel,
   DropdownSeparator,
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
   useLayoutStore,
   Popover,
   PopoverTrigger,
@@ -23,7 +20,7 @@ import {
 } from '@fayz-ai/ui'
 import { CommandPalette, type CommandItem } from '../shell/components/layout/CommandPalette'
 import { useAuth } from '@fayz-ai/auth'
-import { AuthGate } from '@fayz-ai/plugin-auth'
+import { AuthGate, type LoginAmbassador } from '@fayz-ai/plugin-auth'
 import { usePluginRuntime, resolvePluginComponent, useTranslation } from '@fayz-ai/core'
 import type { PermissionAction, PluginNavigationEntry, PluginRouteDefinition, PluginSettingsTab, SystemPermission } from '@fayz-ai/core'
 
@@ -45,7 +42,9 @@ import { TeamTab } from '../shell/components/organization/TeamTab'
 import { PermissionProfilesTab } from '../shell/components/organization/PermissionProfilesTab'
 import { LocationsCrudPage } from '../shell/components/settings/LocationsCrudPage'
 import { ConnectedFieldRulesSettings } from '../shell/components/settings/ConnectedFieldRulesSettings'
-import { Bell, MapPin, Puzzle, ShieldAlert, ShieldCheck, SlidersHorizontal, Users } from 'lucide-react'
+import { SubscriptionPage } from '../shell/components/billing/SubscriptionPage'
+import { useBillingStore, resolvePlanBadge } from '../billing'
+import { Bell, CreditCard, Crown, LogOut, MapPin, Puzzle, Settings as SettingsIcon, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, UserCog, Users } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -66,6 +65,8 @@ export interface AdminShellProps {
   loginDescription?: string
   loginLogo?: React.ReactNode
   loginLayout?: 'split' | 'centered'
+  loginAmbassadors?: LoginAmbassador[]
+  loginAmbassadorsLabel?: string
   showOAuth?: boolean
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
   showSettings?: boolean
@@ -159,43 +160,92 @@ function WorkspaceSwitcher() {
 // AdminUserMenu — user dropdown rendered in the sidebar bottom row.
 // ---------------------------------------------------------------------------
 
+/** Small plan pill shown next to the user across both menus. */
+function PlanBadge({ badge }: { badge: { label: string; paid: boolean } }) {
+  return (
+    <span
+      className={
+        badge.paid
+          ? 'inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300'
+          : 'inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground'
+      }
+    >
+      {badge.paid ? <Crown className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+      {badge.label}
+    </span>
+  )
+}
+
 function AdminUserMenu({
   user,
+  planBadge,
   onProfile,
   onSettings,
+  onBilling,
   onSignOut,
+  profileLabel,
+  settingsLabel,
+  subscriptionLabel,
+  signOutLabel,
 }: {
   user?: { fullName?: string; email: string; avatarUrl?: string }
+  planBadge?: { label: string; paid: boolean } | null
   onProfile?: () => void
   onSettings?: () => void
+  onBilling?: () => void
   onSignOut?: () => void
+  profileLabel: string
+  settingsLabel: string
+  subscriptionLabel: string
+  signOutLabel: string
 }) {
   if (!user) return null
-  const name = user.fullName ?? user.email
-  const initials = name.replace(/[^A-Za-z0-9]/g, ' ').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+  const name = user.fullName?.trim() || user.email
+  const initials =
+    name.replace(/[^A-Za-z0-9]/g, ' ').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase() ||
+    (user.email[0]?.toUpperCase() ?? '?')
   return (
     <Dropdown>
       <DropdownTrigger asChild>
-        <button className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-sidebar-accent/50">
-          <Avatar className="h-7 w-7 shrink-0">
-            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={name} />}
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          <span className="min-w-0 truncate text-xs font-medium text-sidebar-foreground">{name}</span>
+        <button className="flex w-full min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              initials
+            )}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-sidebar-foreground">{name}</span>
         </button>
       </DropdownTrigger>
-      <DropdownContent align="start" className="w-56 bg-sidebar text-sidebar-foreground border-sidebar-border">
+      <DropdownContent align="start" className="w-60 bg-sidebar text-sidebar-foreground border-sidebar-border">
         <DropdownLabel className="truncate text-sidebar-muted">{user.email}</DropdownLabel>
         <DropdownSeparator className="bg-sidebar-border" />
         {onProfile && (
-          <DropdownItem onClick={onProfile} className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">Profile</DropdownItem>
+          <DropdownItem onClick={onProfile} className="flex items-center gap-2 focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">
+            <UserCog className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{profileLabel}</span>
+          </DropdownItem>
         )}
         {onSettings && (
-          <DropdownItem onClick={onSettings} className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">Settings</DropdownItem>
+          <DropdownItem onClick={onSettings} className="flex items-center gap-2 focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">
+            <SettingsIcon className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{settingsLabel}</span>
+          </DropdownItem>
+        )}
+        {onBilling && (
+          <DropdownItem onClick={onBilling} className="flex items-center gap-2 focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">
+            <CreditCard className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{subscriptionLabel}</span>
+            {planBadge && <PlanBadge badge={planBadge} />}
+          </DropdownItem>
         )}
         <DropdownSeparator className="bg-sidebar-border" />
         {onSignOut && (
-          <DropdownItem onClick={onSignOut} className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">Sign out</DropdownItem>
+          <DropdownItem onClick={onSignOut} className="flex items-center gap-2 focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{signOutLabel}</span>
+          </DropdownItem>
         )}
       </DropdownContent>
     </Dropdown>
@@ -368,8 +418,21 @@ function buildSettingsTabs(
   hasSystem: (perm: SystemPermission) => boolean,
   t: (key: string, params?: Record<string, string | number>) => string,
   showOrgSettings: boolean,
+  hasBilling: boolean,
 ): { id: string; label: string; icon?: React.ReactNode; component: React.ReactNode }[] {
   const settingsTabs: { id: string; label: string; icon?: React.ReactNode; component: React.ReactNode }[] = []
+
+  // Subscription — present whenever billing is configured, gated (like the other
+  // org tabs) on the system `manage_billing` permission. Route: /settings/subscription.
+  if (hasBilling && hasSystem('manage_billing')) {
+    const subLabel = t('settings.subscription')
+    settingsTabs.push({
+      id: 'subscription',
+      label: subLabel === 'settings.subscription' ? 'Subscription' : subLabel,
+      icon: <Crown className="h-4 w-4" />,
+      component: <SubscriptionPage />,
+    })
+  }
 
   if (showOrgSettings) {
     // Org-management tabs are gated on the profile's SYSTEM permissions (the
@@ -430,6 +493,18 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
   }
   const path = useAdminPath()
   const { user, signOut } = useAuth()
+
+  // Billing surface — plans are seeded into the store from `config.billing` (see
+  // BillingInitializer). A non-empty plan list is the signal that billing is
+  // configured: it drives the Subscription settings tab, the user-menu item, and
+  // the current-plan badge shown next to the user.
+  const billingPlans = useBillingStore((s) => s.plans)
+  const hasBilling = billingPlans.length > 0
+  const orgPlan = useTenantOptional()?.org?.plan
+  const planBadge = React.useMemo(
+    () => (hasBilling ? resolvePlanBadge(orgPlan, billingPlans) : null),
+    [hasBilling, orgPlan, billingPlans],
+  )
 
   // Navigation: plugin entries + custom pages (deduped, plugin order preserved).
   const navigation = React.useMemo<NavigationItem[]>(() => {
@@ -550,8 +625,8 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
   const ActiveComponent = match?.route.Component
   const activeParams = match?.params ?? {}
   const settingsTabs = React.useMemo(
-    () => buildSettingsTabs(runtime.settingsTabs as PluginSettingsTab[], can, hasSystem, t, showOrgSettings),
-    [runtime.settingsTabs, can, hasSystem, t, showOrgSettings],
+    () => buildSettingsTabs(runtime.settingsTabs as PluginSettingsTab[], can, hasSystem, t, showOrgSettings, hasBilling),
+    [runtime.settingsTabs, can, hasSystem, t, showOrgSettings, hasBilling],
   )
 
   // Resolved chrome routes: profile lands on a dedicated /perfil|/profile page
@@ -562,12 +637,10 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     if (explicit) return explicit.path
     return showSettings ? '/settings/profile' : null
   }, [routes, showSettings])
-  const billingRoute = React.useMemo(() => {
-    const hit = routes.find((r) => /^\/(billing|cobranca|planos)$/.test(r.path))
-    return hit?.path ?? null
-  }, [routes])
   const onProfile = profileRoute ? () => navigateTo(profileRoute) : undefined
-  const onBilling = billingRoute ? () => navigateTo(billingRoute) : undefined
+  // Subscription lives at the always-present /settings/subscription tab whenever
+  // billing is configured — no need to hunt for a standalone billing route.
+  const onBilling = hasBilling && showSettings ? () => navigateTo('/settings/subscription') : undefined
 
   const shellUser = user
     ? { fullName: user.fullName ?? user.email, email: user.email, avatarUrl: user.avatarUrl }
@@ -622,6 +695,8 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       onProfile={onProfile}
       onBilling={onBilling}
       onSettings={() => navigateTo('/settings')}
+      userPlan={planBadge ? { label: planBadge.label, paid: planBadge.paid } : undefined}
+      billingLabel={tr('settings.subscription', 'Subscription')}
       sidebarTopContent={showOrgSwitcher ? <WorkspaceSwitcher /> : undefined}
       topbarStart={<WidgetSlot zone="shell.topbar.start" />}
       topbarEnd={<WidgetSlot zone="shell.topbar.end" />}
@@ -629,9 +704,15 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       userMenuSlot={
         <AdminUserMenu
           user={shellUser}
+          planBadge={planBadge}
           onProfile={onProfile}
           onSettings={() => navigateTo('/settings')}
+          onBilling={onBilling}
           onSignOut={() => { void signOut() }}
+          profileLabel={tr('settings.profile', 'Profile')}
+          settingsLabel={tr('settings.title', 'Settings')}
+          subscriptionLabel={tr('settings.subscription', 'Subscription')}
+          signOutLabel={tr('auth.signOut', 'Sign out')}
         />
       }
     >
@@ -680,6 +761,8 @@ export function AdminShell(props: AdminShellProps) {
       layout={props.loginLayout}
       tagline={props.loginTagline}
       description={props.loginDescription}
+      loginAmbassadors={props.loginAmbassadors}
+      loginAmbassadorsLabel={props.loginAmbassadorsLabel}
       showOAuth={props.showOAuth}
       oauthProviders={props.oauthProviders}
     >

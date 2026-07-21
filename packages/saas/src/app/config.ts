@@ -8,7 +8,7 @@ import type {
   LocaleConfig,
   PermissionsConfig,
 } from '@fayz-ai/core'
-import type { AuthPluginOptions, ResolvedAuthPlugin } from '@fayz-ai/plugin-auth'
+import type { AuthPluginOptions, ResolvedAuthPlugin, LoginAmbassador } from '@fayz-ai/plugin-auth'
 import type { BottomNavItem, MobileHeaderVariant } from '@fayz-ai/ui'
 import type { SaasTheme } from '../shell/config/theme/tokens'
 import type { CreateThemeOptions } from '../shell/config/theme/utils'
@@ -63,6 +63,12 @@ export interface AuthConfig {
   loginLayout?: 'split' | 'centered'
   loginTagline?: string
   loginDescription?: string
+  /** Product ambassadors shown as a small social-proof avatar strip above the
+   *  tagline on the split-login brand panel. Each needs a local `image` path;
+   *  degrades to nothing when omitted. */
+  loginAmbassadors?: LoginAmbassador[]
+  /** Optional microtext beside the ambassador strip, e.g. "+2 mil profissionais". */
+  loginAmbassadorsLabel?: string
   showOAuth?: boolean
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
 }
@@ -89,6 +95,14 @@ export interface FayzBillingConfig {
   plans: PlanConfig[]
   stripePublishableKey?: string
   portalUrl?: string
+  /**
+   * Payment-gateway seam. When defined, the shell's Subscription page calls this
+   * with the target plan id INSTEAD of writing `plan` straight onto the org — this
+   * is where Stripe Checkout / Pix / Mercado Pago plug in (create the intent,
+   * redirect, let the webhook persist the plan). Left undefined, changing plan is
+   * an optimistic `adapter.updateOrg(orgId, { plan })`.
+   */
+  onCheckout?: (planId: string) => Promise<void> | void
 }
 
 // ---------------------------------------------------------------------------

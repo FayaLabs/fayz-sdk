@@ -98,6 +98,10 @@ export interface AppShellProps {
   onProfile?: () => void
   onSettings?: () => void
   onBilling?: () => void
+  /** Current-plan pill shown next to the user in the topbar menu. */
+  userPlan?: { label: string; paid: boolean }
+  /** i18n label for the billing/subscription user-menu item. */
+  billingLabel?: string
   pageTitle?: string
   currentPath?: string
   userMenuExtras?: { label: string; icon?: React.ReactNode; onClick: () => void }[]
@@ -307,6 +311,8 @@ function TopbarLayout({
   onProfile,
   onSettings,
   onBilling,
+  userPlan,
+  billingLabel,
   userMenuExtras,
   frame,
   currentPath,
@@ -324,6 +330,8 @@ function TopbarLayout({
   onProfile?: () => void
   onSettings?: () => void
   onBilling?: () => void
+  userPlan?: AppShellProps['userPlan']
+  billingLabel?: AppShellProps['billingLabel']
   userMenuExtras?: AppShellProps['userMenuExtras']
   frame?: boolean
   currentPath?: string
@@ -351,6 +359,8 @@ function TopbarLayout({
         onProfile={onProfile}
         onSettings={onSettings}
         onBilling={onBilling}
+        userPlan={userPlan}
+        billingLabel={billingLabel}
         userMenuExtras={userMenuExtras}
         leftContent={topbarStart}
         rightContent={(topbarEnd || notificationSlot) ? <>{topbarEnd}{notificationSlot}</> : undefined}
@@ -632,6 +642,8 @@ export function AppShell({
   onProfile,
   onSettings,
   onBilling,
+  userPlan,
+  billingLabel,
   pageTitle,
   currentPath,
   userMenuExtras,
@@ -706,6 +718,8 @@ export function AppShell({
           onProfile={onProfile}
           onSettings={onSettings}
           onBilling={onBilling}
+          userPlan={userPlan}
+          billingLabel={billingLabel}
           userMenuExtras={userMenuExtras}
           frame={contentFrame}
           currentPath={currentPath}

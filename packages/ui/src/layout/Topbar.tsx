@@ -104,6 +104,8 @@ import {
   Inbox,
   Star,
   Zap,
+  Crown,
+  LogOut,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '../utils/cn'
@@ -134,17 +136,23 @@ export interface TopbarProps {
   onProfile?: () => void
   onSettings?: () => void
   onBilling?: () => void
+  /** Current-plan pill shown next to the user in the dropdown header. */
+  userPlan?: { label: string; paid: boolean }
+  /** i18n label for the billing/subscription menu item (host owns translation). */
+  billingLabel?: string
   userMenuExtras?: { label: string; icon?: React.ReactNode; onClick: () => void }[]
 }
 
 function TopbarUserMenu({
   user,
+  userPlan,
+  billingLabel = 'Subscription',
   onSignOut,
   onProfile,
   onSettings,
   onBilling,
   userMenuExtras,
-}: Pick<TopbarProps, 'user' | 'onSignOut' | 'onProfile' | 'onSettings' | 'onBilling' | 'userMenuExtras'>) {
+}: Pick<TopbarProps, 'user' | 'userPlan' | 'billingLabel' | 'onSignOut' | 'onProfile' | 'onSettings' | 'onBilling' | 'userMenuExtras'>) {
   const [open, setOpen] = React.useState(false)
   if (!user) return null
   const initial = (user.fullName?.trim()?.[0] ?? user.email?.[0] ?? '?').toUpperCase()
@@ -187,12 +195,33 @@ function TopbarUserMenu({
           <div className="mt-1 space-y-0.5">
             {item('Perfil', onProfile, UserCog)}
             {item('Configurações', onSettings, Settings)}
-            {item('Cobrança', onBilling, CreditCard)}
+            {onBilling && (
+              <button
+                key="billing"
+                onClick={() => { setOpen(false); onBilling() }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-popover-foreground transition-colors hover:bg-muted/70"
+              >
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <span className="flex-1 text-left">{billingLabel}</span>
+                {userPlan && (
+                  <span
+                    className={
+                      userPlan.paid
+                        ? 'inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300'
+                        : 'inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground'
+                    }
+                  >
+                    {userPlan.paid ? <Crown className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+                    {userPlan.label}
+                  </span>
+                )}
+              </button>
+            )}
             {userMenuExtras?.map((e) => item(e.label, e.onClick))}
             {onSignOut && (
               <>
                 <div className="my-1 border-t border-border" />
-                {item('Sair', onSignOut)}
+                {item('Sair', onSignOut, LogOut)}
               </>
             )}
           </div>
@@ -293,6 +322,8 @@ export function Topbar({
   onProfile,
   onSettings,
   onBilling,
+  userPlan,
+  billingLabel,
   userMenuExtras,
 }: TopbarProps) {
   const setCommandPaletteOpen = useLayoutStore((s) => s.setCommandPaletteOpen)
@@ -348,6 +379,8 @@ export function Topbar({
             {rightContent}
             <TopbarUserMenu
               user={user}
+              userPlan={userPlan}
+              billingLabel={billingLabel}
               onSignOut={onSignOut}
               onProfile={onProfile}
               onSettings={onSettings}

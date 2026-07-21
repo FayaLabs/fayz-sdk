@@ -5,6 +5,6 @@ export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest,
 export type { AuthAdapter, AuthUser, AuthSession } from './auth'
 export type { OrgAdapter, Organization, OrgMember } from './org'
 export type { PermissionsConfig, FeatureDeclaration, PermissionAction } from './permissions'
-export type { Plan, BillingConfig } from './billing'
+export type { Plan, BillingConfig, BillingCheckoutFn } from './billing'
 export type { ThemeBrand, ThemeRadius, ThemeMode } from './theme'
 export type { LocaleConfig } from './i18n'
