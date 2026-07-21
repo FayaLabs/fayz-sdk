@@ -6,7 +6,7 @@ import { FinancialContextProvider, type ResolvedFinancialConfig } from './Financ
 import type { FinancialDataProvider } from './data/types'
 import type { FinancialUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
-import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel } from '@fayz-ai/saas'
+import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel, EntitlementGate } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
 import { QuickTransactionForm } from './views/QuickTransactionForm'
 import { usePendingQuickAdd, consumeQuickAdd } from './quick-add'
@@ -293,7 +293,13 @@ export function FinancialPage({ config, provider, store, registries }: {
       case 'statements':
         return <StatementsView onNavigate={navigate} />
       case 'reconciliation':
-        return <ReconciliationView />
+        // Premium submodule: internal tab (not a shell route), so the plan gate
+        // must live here — the route guard never sees it (QA finding B35).
+        return (
+          <EntitlementGate feature="fin_reconciliation">
+            <ReconciliationView />
+          </EntitlementGate>
+        )
       case 'commissions':
         return <CommissionsView />
       case 'cards':

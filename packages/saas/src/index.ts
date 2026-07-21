@@ -124,6 +124,7 @@ export type {
 // Billing
 // ---------------------------------------------------------------------------
 export { useBillingStore } from './billing/index'
+export { EntitlementGate, LimitGate } from './shell/components/billing/gates'
 export type { BillingStore, BillingState, Subscription, Invoice } from './billing/index'
 
 // ---------------------------------------------------------------------------
