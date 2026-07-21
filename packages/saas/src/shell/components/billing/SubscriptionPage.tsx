@@ -8,6 +8,8 @@ import { useBillingStore } from '../../stores/billing.store'
 import { resolvePlanBadge } from '../../../billing/plan-badge'
 import { useTenantOptional, useOrgAdapterOptional } from '../../../org/context'
 import { useOrganizationStore } from '../../../org/store'
+import { usePermissionsStore } from '../../../permissions'
+import { getPlanEntitlements } from './access-contract'
 
 // ---------------------------------------------------------------------------
 // SubscriptionPage — the shell's self-serve subscription surface. Present as the
@@ -73,6 +75,38 @@ export function SubscriptionPage({ className }: { className?: string }) {
     }
     return out
   }, [plans])
+
+  // Real entitlements matrix — derived from plan.entitlements when any plan
+  // declares them. Feature rows show ✓/— per plan; limit rows show "Up to N" /
+  // "Unlimited". Falls back to the marketing-bullet matrix (allFeatures) below
+  // when no plan carries entitlements.
+  const featureCatalog = usePermissionsStore((s) => s.features)
+  const entitlementsMatrix = React.useMemo(() => {
+    const hasAny = plans.some((p) => getPlanEntitlements(p))
+    if (!hasAny) return null
+
+    const featureIds: string[] = []
+    const featureSeen = new Set<string>()
+    const limitKeys: string[] = []
+    const limitSeen = new Set<string>()
+    for (const plan of plans) {
+      const ent = getPlanEntitlements(plan)
+      for (const id of Object.keys(ent?.features ?? {})) {
+        if (!featureSeen.has(id)) { featureSeen.add(id); featureIds.push(id) }
+      }
+      for (const key of Object.keys(ent?.limits ?? {})) {
+        if (!limitSeen.has(key)) { limitSeen.add(key); limitKeys.push(key) }
+      }
+    }
+    if (featureIds.length === 0 && limitKeys.length === 0) return null
+
+    const labelForFeature = (id: string) => featureCatalog.find((f) => f.id === id)?.label ?? id
+    const labelForLimit = (key: string) => {
+      const v = t(`limit.label.${key}`)
+      return !v || v === `limit.label.${key}` ? key : v
+    }
+    return { featureIds, limitKeys, labelForFeature, labelForLimit }
+  }, [plans, featureCatalog, t])
 
   async function applyChange(plan: Plan) {
     setBusy(true)
@@ -230,7 +264,7 @@ export function SubscriptionPage({ className }: { className?: string }) {
       </div>
 
       {/* Feature matrix */}
-      {allFeatures.length > 0 && (
+      {(entitlementsMatrix || allFeatures.length > 0) && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">
             {tr('billing.featureMatrix', 'Feature comparison')}
@@ -253,20 +287,61 @@ export function SubscriptionPage({ className }: { className?: string }) {
                 </tr>
               </thead>
               <tbody>
-                {allFeatures.map((feature, i) => (
-                  <tr key={feature} className={cn(i % 2 === 1 && 'bg-muted/20')}>
-                    <td className="px-4 py-2.5 text-left">{feature}</td>
-                    {plans.map((plan) => (
-                      <td key={plan.id} className="px-4 py-2.5 text-center">
-                        {plan.features.includes(feature) ? (
-                          <Check className="mx-auto h-4 w-4 text-primary" />
-                        ) : (
-                          <Minus className="mx-auto h-4 w-4 text-muted-foreground/40" />
-                        )}
-                      </td>
+                {entitlementsMatrix ? (
+                  <>
+                    {entitlementsMatrix.featureIds.map((id, i) => (
+                      <tr key={`f:${id}`} className={cn(i % 2 === 1 && 'bg-muted/20')}>
+                        <td className="px-4 py-2.5 text-left">{entitlementsMatrix.labelForFeature(id)}</td>
+                        {plans.map((plan) => {
+                          const entitled = getPlanEntitlements(plan)?.features?.[id] !== false
+                          return (
+                            <td key={plan.id} className="px-4 py-2.5 text-center">
+                              {entitled ? (
+                                <Check className="mx-auto h-4 w-4 text-primary" />
+                              ) : (
+                                <Minus className="mx-auto h-4 w-4 text-muted-foreground/40" />
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
+                    {entitlementsMatrix.limitKeys.map((key, i) => (
+                      <tr key={`l:${key}`} className={cn((entitlementsMatrix.featureIds.length + i) % 2 === 1 && 'bg-muted/20')}>
+                        <td className="px-4 py-2.5 text-left">{entitlementsMatrix.labelForLimit(key)}</td>
+                        {plans.map((plan) => {
+                          const cap = getPlanEntitlements(plan)?.limits?.[key]
+                          const cell =
+                            cap === undefined
+                              ? '—'
+                              : cap < 0
+                                ? tr('billing.unlimited', 'Unlimited')
+                                : tr('billing.upTo', 'Up to {count}').replace('{count}', String(cap)).replace('{{count}}', String(cap))
+                          return (
+                            <td key={plan.id} className="px-4 py-2.5 text-center text-muted-foreground">
+                              {cell}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </>
+                ) : (
+                  allFeatures.map((feature, i) => (
+                    <tr key={feature} className={cn(i % 2 === 1 && 'bg-muted/20')}>
+                      <td className="px-4 py-2.5 text-left">{feature}</td>
+                      {plans.map((plan) => (
+                        <td key={plan.id} className="px-4 py-2.5 text-center">
+                          {plan.features.includes(feature) ? (
+                            <Check className="mx-auto h-4 w-4 text-primary" />
+                          ) : (
+                            <Minus className="mx-auto h-4 w-4 text-muted-foreground/40" />
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

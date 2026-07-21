@@ -52,6 +52,31 @@ export const coreAITools: PluginAITool[] = [
 ]
 
 /**
+ * Builds the LLM-facing function name for a registry tool.
+ *
+ * Derived from the registry id, never from the entity's display label: the
+ * label is translated, so a pt-BR app would mint `listCategoriasdeServiço` —
+ * which both violates the provider's `^[a-zA-Z0-9_-]+$` function-name rule and
+ * renames the tool whenever the user switches locale. The id is a stable ASCII
+ * slug. The human plural still drives the description, which is what the model
+ * actually reads to decide when to call it.
+ */
+function pascalCase(value: string): string {
+  return value
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join('')
+}
+
+function registryToolName(pluginId: string, registryId: string): string {
+  // Namespaced by plugin because registry ids only need to be unique within
+  // their own plugin — `crm` and `inventory` can both ship a `tags` registry,
+  // and two tools sharing a function name is ambiguous to the model.
+  return `list${pascalCase(pluginId)}${pascalCase(registryId)}`
+}
+
+/**
  * Auto-generates read tools from plugin registry definitions.
  * Each registry gets a basic "list" tool so plugins get AI capabilities for free.
  */
@@ -62,7 +87,7 @@ export function generateRegistryTools(pluginId: string, registries: PluginRegist
       const plural = registry.entity.namePlural ?? `${registry.entity.name}s`
       return {
         id: `${pluginId}.list-${registry.id}`,
-        name: `list${plural.replace(/\s+/g, '')}`,
+        name: registryToolName(pluginId, registry.id),
         description: `Lists all ${plural.toLowerCase()} for the current business.`,
         icon: registry.icon ?? registry.entity.icon,
         mode: 'read' as const,

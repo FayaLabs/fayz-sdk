@@ -23,7 +23,7 @@ import { useOrgAdapterOptional as useNativeOrgAdapter } from '../../../org'
 import type { OrgAdapter } from '../../types/org-adapter'
 const useOrgAdapterOptional = () => useNativeOrgAdapter() as unknown as OrgAdapter | null
 import { useAuthStore } from '@fayz-ai/auth'
-import { usePermission } from '../../hooks/usePermission'
+import { useSystemPermission } from '../../hooks/useSystemPermission'
 import { useTranslation } from '../../hooks/useTranslation'
 import { dedup } from '../../lib/dedup'
 
@@ -36,7 +36,7 @@ export function TeamTab() {
   const invites = useInviteStore((s) => s.invites)
   const setInvites = useInviteStore((s) => s.setInvites)
   const { user } = useAuthStore()
-  const { hasSystemPermission } = usePermission()
+  const hasSystemPermission = useSystemPermission()
 
   const [inviteOpen, setInviteOpen] = React.useState(false)
 

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {
+  Crown,
   Home,
   Users,
   Settings,
@@ -109,6 +110,10 @@ export interface NavigationItem {
   section: 'main' | 'secondary' | 'settings'
   badge?: string | number
   permission?: { feature: string; action: 'read' | 'create' | 'edit' | 'delete' }
+  /** Freemium discovery: the user's role allows this item, but their plan does
+   *  not entitle the feature. The item stays visible with a small Crown badge
+   *  and, on click, leads to the plan's UpgradePrompt. */
+  premium?: boolean
   children?: NavigationItem[]
 }
 
@@ -211,6 +216,9 @@ function NavItem({
       {!collapsed && (
         <>
           <span className="flex-1 truncate text-left">{item.label}</span>
+          {item.premium && (
+            <Crown className="ml-auto h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
+          )}
           {item.badge !== undefined && (
             <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
               {item.badge}
@@ -232,6 +240,9 @@ function NavItem({
             className="fayz-glass-surface z-50 rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md"
           >
             {item.label}
+            {item.premium && (
+              <Crown className="ml-1.5 inline h-3 w-3 text-amber-500" aria-hidden />
+            )}
             {item.badge !== undefined && (
               <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
                 {item.badge}

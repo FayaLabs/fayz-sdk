@@ -6,11 +6,13 @@ import { useChatStore, type ChatMessage } from '../../stores/chat.store'
 import { useChat } from '../../hooks/useChat'
 import { useAITools } from '../../hooks/useAITools'
 import { ChatSuggestions, ChatToolsPanel } from './ChatSuggestions'
+import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
 
 interface ChatPanelProps {
   title?: string
   apiEndpoint?: string
   systemPrompt?: string
+  agent?: FayzAgentConnectionConfig | false
   className?: string
 }
 
@@ -18,10 +20,11 @@ export function ChatPanel({
   title = 'Assistant',
   apiEndpoint,
   systemPrompt,
+  agent,
   className,
 }: ChatPanelProps) {
   const { isOpen, messages, isStreaming } = useChatStore()
-  const { sendMessage, isConfigured } = useChat({ apiEndpoint, systemPrompt })
+  const { sendMessage, isConfigured } = useChat({ apiEndpoint, systemPrompt, agent })
   const { t } = useTranslation()
   const { suggestions, toolGroups } = useAITools()
   const [input, setInput] = React.useState('')

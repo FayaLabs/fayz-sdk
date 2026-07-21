@@ -43,6 +43,7 @@ import { PermissionProfilesTab } from '../shell/components/organization/Permissi
 import { LocationsCrudPage } from '../shell/components/settings/LocationsCrudPage'
 import { ConnectedFieldRulesSettings } from '../shell/components/settings/ConnectedFieldRulesSettings'
 import { SubscriptionPage } from '../shell/components/billing/SubscriptionPage'
+import { UpgradePrompt, UpgradeModal, SoftLimitBanner, useAccessOptional, getPlanEntitlements } from '../shell/components/billing'
 import { useBillingStore, resolvePlanBadge } from '../billing'
 import { ArrowLeft, Bell, CreditCard, Crown, LogOut, MapPin, Puzzle, Settings as SettingsIcon, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, UserCog, Users } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
@@ -476,6 +477,9 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
   const runtime = usePluginRuntime()
   const t = useTranslation()
   const can = usePermissionOptional()
+  // Composed access (role × plan). Nav + route guard use this to distinguish a
+  // role denial (hide / AccessDenied) from a plan denial (Crown badge / UpgradePrompt).
+  const access = useAccessOptional()
   const currentProfile = usePermissionsStore((s) => s.currentProfile)
   // Org-management (system) permission check. A null profile (owner / no RBAC
   // loaded) passes through so the owner is never blocked — the grants-based
@@ -507,6 +511,13 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     () => (hasBilling ? resolvePlanBadge(orgPlan, billingPlans) : null),
     [hasBilling, orgPlan, billingPlans],
   )
+  // Soft-limit monitoring — every limit key the active plan declares. The banner
+  // only surfaces a key whose usage EXCEEDS its cap (used > max), the Notion-style
+  // overshoot path (e.g. public bookings pushing clients past the free cap).
+  const softLimitKeys = React.useMemo(() => {
+    const plan = billingPlans.find((p) => p.id === (orgPlan || 'free'))
+    return Object.keys(getPlanEntitlements(plan)?.limits ?? {})
+  }, [billingPlans, orgPlan])
 
   // Navigation: plugin entries + custom pages (deduped, plugin order preserved).
   const navigation = React.useMemo<NavigationItem[]>(() => {
@@ -559,20 +570,30 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
 
       items.push(item)
     }
-    // RBAC nav gating — hide entries whose declared permission the user lacks.
-    // (owner/no-profile pass through can()). Children are filtered too; a parent
-    // whose own permission fails is dropped along with its subtree.
-    const allowed = (perm?: NavigationItem['permission']) =>
-      !perm || can(perm.feature, perm.action)
+    // Access-aware nav gating. Role denial hides the entry (owner/no-profile pass
+    // through). Plan denial KEEPS it (freemium discovery) with a Crown badge that
+    // leads to the route's UpgradePrompt. Children follow the same rule.
+    const decide = (perm?: NavigationItem['permission']): { keep: boolean; premium: boolean } => {
+      if (!perm) return { keep: true, premium: false }
+      const d = access.can(perm.feature, perm.action)
+      if (!d.allowed && d.reason === 'role') return { keep: false, premium: false }
+      return { keep: true, premium: !d.allowed && d.reason === 'plan' }
+    }
     return items
-      .filter((item) => allowed(item.permission))
-      .map((item) =>
-        item.children?.length
-          ? { ...item, children: item.children.filter((child) => allowed(child.permission)) }
-          : item,
-      )
+      .map((item): OrderedNavigationItem | null => {
+        const dec = decide(item.permission)
+        if (!dec.keep) return null
+        const children = item.children
+          ?.map((child): NavigationItem | null => {
+            const cd = decide(child.permission)
+            return cd.keep ? { ...child, premium: cd.premium } : null
+          })
+          .filter((c): c is NavigationItem => c !== null)
+        return { ...item, premium: dec.premium, children }
+      })
+      .filter((item): item is OrderedNavigationItem => item !== null)
       .sort(compareNavigation)
-  }, [runtime.navigation, pages, can])
+  }, [runtime.navigation, pages, access])
 
   // Command palette (⌘K + the topbar Search button). The palette owns the ⌘K
   // key listener, so it must be MOUNTED for the shortcut to work — the topbar
@@ -697,13 +718,19 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     return hit?.label ?? candidates.find((n) => n.route === '/')?.label ?? ''
   }, [navigation, path, tr])
 
-  // RBAC route guard — a matched page/plugin route whose permission the user
-  // lacks renders <AccessDenied> instead of the page content.
-  const routeAllowed =
-    !match?.route.permission || can(match.route.permission.feature, match.route.permission.action)
+  // Access-aware route guard. A role denial renders <AccessDenied>; a plan denial
+  // renders a full-page <UpgradePrompt> for the route's feature ("Premium feature"
+  // + upgrade cards) instead of pretending the page doesn't exist.
+  const routeDecision = match?.route.permission
+    ? access.can(match.route.permission.feature, match.route.permission.action)
+    : { allowed: true as const }
   const activeContent = ActiveComponent ? (
-    !routeAllowed ? (
-      <AccessDenied tr={tr} />
+    !routeDecision.allowed ? (
+      routeDecision.reason === 'plan' ? (
+        <UpgradePrompt feature={match!.route.permission!.feature} />
+      ) : (
+        <AccessDenied tr={tr} />
+      )
     ) : match.route.path === '/settings' || match.route.path === '/settings/*' ? (
       <SettingsPage tabs={allSettingsTabs} showCompany={showBranding} showBranding={showBranding} hideNav={inSettings} activeTabId={activeSettingsTab} />
     ) : (
@@ -776,7 +803,12 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
         >
           {match?.route.fullBleed
             ? <div className="h-full min-h-0 overflow-hidden">{activeContent}</div>
-            : <div className="space-y-4 p-3 md:space-y-6 md:p-6">{activeContent}</div>}
+            : (
+              <div className="space-y-4 p-3 md:space-y-6 md:p-6">
+                {softLimitKeys.length > 0 && <SoftLimitBanner keys={softLimitKeys} />}
+                {activeContent}
+              </div>
+            )}
         </PageTransition>
       ) : (
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
@@ -799,6 +831,8 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       open={commandPaletteOpen}
       onOpenChange={setCommandPaletteOpen}
     />
+    {/* Global upgrade dialog — opened imperatively by LimitGate / useLimitGuard. */}
+    <UpgradeModal />
     </ModuleLayoutProvider>
   )
 }

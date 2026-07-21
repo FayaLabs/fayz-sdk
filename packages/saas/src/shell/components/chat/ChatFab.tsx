@@ -6,11 +6,13 @@ import { useOrganizationStore } from '../../stores/organization.store'
 import { useAITools, type ResolvedSuggestion } from '../../hooks/useAITools'
 import { useChat } from '../../hooks/useChat'
 import { useTranslation } from '../../hooks/useTranslation'
+import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
 
 interface ChatFabProps {
   className?: string
   apiEndpoint?: string
   systemPrompt?: string
+  agent?: FayzAgentConnectionConfig | false
 }
 
 function TypewriterText({ text, speed = 28, onDone }: { text: string; speed?: number; onDone?: () => void }) {
@@ -64,11 +66,11 @@ function ensureStyles() {
   document.head.appendChild(style)
 }
 
-export function ChatFab({ className, apiEndpoint, systemPrompt }: ChatFabProps) {
+export function ChatFab({ className, apiEndpoint, systemPrompt, agent }: ChatFabProps) {
   const { isOpen, toggleOpen, setOpen } = useChatStore()
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const { contextualSuggestions } = useAITools()
-  const { sendMessage } = useChat({ apiEndpoint, systemPrompt })
+  const { sendMessage } = useChat({ apiEndpoint, systemPrompt, agent })
   const { t } = useTranslation()
 
   const [phase, setPhase] = React.useState<'idle' | 'expanding' | 'typing' | 'visible' | 'collapsing'>('idle')

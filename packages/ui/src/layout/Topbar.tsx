@@ -120,6 +120,9 @@ export interface NavigationItem {
   badge?: string | number
   children?: NavigationItem[]
   permission?: { feature: string; action: 'read' | 'create' | 'edit' | 'delete' }
+  /** Freemium discovery: role-allowed but not entitled by the current plan.
+   *  Renders a small Crown badge; clicking leads to the plan's UpgradePrompt. */
+  premium?: boolean
 }
 
 export interface TopbarProps {
@@ -434,6 +437,9 @@ export function Topbar({
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
+                  {item.premium && (
+                    <Crown className="h-3 w-3 text-amber-500" aria-hidden />
+                  )}
                   {item.badge !== undefined && (
                     <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
                       {item.badge}
