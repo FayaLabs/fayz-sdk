@@ -80,7 +80,7 @@ export interface UseCreateBookingResult {
 
 /** Create a booking via the provider (mock append / Supabase RPC). */
 export function useCreateBooking(): UseCreateBookingResult {
-  const { provider } = useBooking()
+  const { provider, professionalId } = useBooking()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [done, setDone] = useState(false)
@@ -89,7 +89,12 @@ export function useCreateBooking(): UseCreateBookingResult {
     setSubmitting(true)
     setError(null)
     try {
-      const result = await provider.createBooking(input)
+      // The professional the visitor saw availability for must be the one
+      // booked — thread it unless the caller already pinned another.
+      const result = await provider.createBooking({
+        ...input,
+        assigneeId: input.assigneeId ?? professionalId ?? null,
+      })
       setDone(true)
       return result
     } catch (err) {

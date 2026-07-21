@@ -82,6 +82,9 @@ export function createSupabasePublicBookingProvider(options: SupabasePublicBooki
         p_phone: phone,
         p_email: input.contact.email?.trim() || null,
         p_notes: input.contact.notes?.trim() || null,
+        // Only sent when pinned — keeps compatibility with pools still running
+        // the pre-004 7-arg function (unknown named arg would 404 on PostgREST).
+        ...(input.assigneeId ? { p_assignee_id: input.assigneeId } : {}),
       })
       if (error) throw new Error(`[plugin-agenda/public] createBooking: ${error.message}`)
       const row = (Array.isArray(data) ? data[0] : data) as
