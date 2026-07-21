@@ -174,4 +174,11 @@ export interface EntityDef<T = Record<string, unknown>> {
    * by any signed-in member (same as the CRUD list today).
    */
   permission?: { feature: string; action: string }
+  /**
+   * Exclude this entity from the agent's data primitives. For entities whose
+   * table is an extension/join shape the generic provider can't read usefully
+   * (e.g. staff_members without a name column) — expose a queryEntities
+   * read-model instead and hide the raw one here.
+   */
+  agentHidden?: boolean
 }

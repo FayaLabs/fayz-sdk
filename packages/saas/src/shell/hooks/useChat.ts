@@ -155,6 +155,15 @@ export function useChat(options?: UseChatOptions) {
       const toolByName = new Map(tools.map((t) => [t.name, t]))
 
       const client = getFayzAgentClient(activeConnection)
+      // Small models are bad at weekday math — "próxima segunda" booked a
+      // Friday. Hand them the next 7 dates, solved.
+      const upcoming = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(Date.now() + (i + 1) * 86400e3)
+        return `${d.toLocaleDateString('pt-BR', { weekday: 'long' })}=${d.toISOString().slice(0, 10)}`
+      }).join(', ')
+      // Identical repeated calls burn rounds without new information — cut the
+      // loop with an explicit steering result instead of re-executing.
+      const seenCalls = new Map<string, string>()
       let toolResults: FayzAgentToolResult[] | undefined
       let confirmAction: { id: string; approved: boolean } | undefined
       let message: string | undefined = content
@@ -176,7 +185,9 @@ export function useChat(options?: UseChatOptions) {
             // "tomorrow" against its training cutoff — it booked an appointment
             // in 2023 before this was sent. The browser is the only side that
             // knows the user's actual zone.
-            now: new Date().toISOString(),
+            // Weekday spelled out: small models booked "próxima segunda" on a
+            // Friday because nothing said what weekday `now` is.
+            now: `${new Date().toISOString()} (${new Date().toLocaleDateString('pt-BR', { weekday: 'long' })})`,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             locale: typeof navigator !== 'undefined' ? navigator.language : undefined,
             currentPath: toolContext.currentPath,
@@ -185,6 +196,9 @@ export function useChat(options?: UseChatOptions) {
             // product on day one in any vertical — and can answer "where do I
             // add a professional?" instead of guessing at a generic answer.
             pages: toolContext.routes.map((r) => r.label ?? r.path).join(', '),
+            upcomingDates: upcoming,
+            timeNote:
+              'Datetimes in tool results are UTC unless the field is *_local. The business timezone is the timeZone above — ALWAYS convert to it before telling the user a time.',
             businessName: currentOrg?.name,
             userName: user?.fullName || user?.email,
             ...(options?.systemPrompt ? { appGuidance: options.systemPrompt } : {}),

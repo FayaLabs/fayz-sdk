@@ -169,7 +169,7 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
             client_id: { type: 'string' as const, description: 'Client id (from a search)' },
             service_id: { type: 'string' as const, description: 'Service id (from a search)' },
             professional_id: { type: 'string' as const, description: 'Professional id (optional — auto-assigned when omitted)' },
-            starts_at: { type: 'string' as const, description: 'Start datetime, ISO 8601 with timezone (e.g. 2026-07-27T13:00:00Z)' },
+            starts_at: { type: 'string' as const, description: "LOCAL date-time of the business, NO timezone suffix — e.g. '2026-07-27T10:00' for 10h. The system applies the tenant timezone." },
             notes: { type: 'string' as const, description: 'Optional notes' },
           },
           required: ['client_id', 'service_id', 'starts_at'],

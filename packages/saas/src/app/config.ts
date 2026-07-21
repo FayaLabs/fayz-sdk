@@ -10,6 +10,7 @@ import type {
   LimitDeclaration,
   AgentDomainKnowledge,
   AgentRpcDeclaration,
+  EntityDef,
 } from '@fayz-ai/core'
 import type { AuthPluginOptions, ResolvedAuthPlugin, LoginAmbassador } from '@fayz-ai/plugin-auth'
 import type { BottomNavItem, MobileHeaderVariant } from '@fayz-ai/ui'
@@ -233,5 +234,8 @@ export interface FayzAppConfig {
     knowledge?: AgentDomainKnowledge
     /** RPCs the app itself ships (vertical-specific, e.g. pricing quote). */
     rpcs?: AgentRpcDeclaration[]
+    /** App-level read-models for the agent's data primitives (same contract
+     *  as PluginManifest.queryEntities — stable ASCII keys). */
+    queryEntities?: Array<{ key: string; entity: EntityDef }>
   }
 }

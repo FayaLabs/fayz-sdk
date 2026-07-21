@@ -114,7 +114,13 @@ async function executeDataTool(
     target.mockData,
   )
   const search = typeof args.search === 'string' && args.search.trim() ? args.search.trim() : undefined
-  const result = await provider.list({ search, pageSize: REGISTRY_PAGE_SIZE })
+  const result = await provider.list({
+    search,
+    pageSize: REGISTRY_PAGE_SIZE,
+    ...(typeof args.orderBy === 'string'
+      ? { sortBy: args.orderBy, sortDir: args.direction === 'asc' ? 'asc' : 'desc' }
+      : {}),
+  })
   // Honesty guard: a provider with no searchable columns quietly IGNORES
   // `search` and returns recent rows — which the model then presents as the
   // thing it looked for ("REC-00012 vale R$6000" when no row matched at all).
@@ -233,7 +239,7 @@ export function buildDataToolIndex(input: {
   }
 
   for (const entity of input.entities) {
-    if (!entity.entityDef) continue
+    if (!entity.entityDef || entity.entityDef.agentHidden) continue
     const target = {
       label: entity.labelPlural,
       entity: entity.entityDef,
@@ -388,6 +394,28 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
     }
   }
 
+  // Duplicate guard: same-name record already existing comes back as a
+  // structured warning FIRST — the model confirms intent with the user and
+  // retries with allowDuplicate:true only if they really want a second one.
+  const dupName = typeof clean.name === 'string' ? clean.name.trim() : ''
+  if (dupName && args.allowDuplicate !== true) {
+    const provider0 = resolveDataProvider(
+      target.entity as EntityDef<{ id: string }>,
+      target.mockData,
+    )
+    const existing = await provider0.list({ search: dupName, pageSize: 3 })
+    const dupes = (existing.data as Array<Record<string, unknown>>).filter(
+      (r) => String(r.name ?? '').trim().toLowerCase() === dupName.toLowerCase(),
+    )
+    if (dupes.length) {
+      return {
+        error: 'possible_duplicate',
+        message: `A ${target.entity.name} named "${dupName}" already exists. Ask the user whether they mean the existing record; only retry with allowDuplicate:true if they explicitly want a second one.`,
+        matches: dupes,
+      }
+    }
+  }
+
   const approved = await requestChatConfirmation({
     id: `create-${Date.now()}`,
     toolName: 'createRecord',
@@ -419,7 +447,32 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
 registerAIToolHandler('searchRecords', async (args, ctx) => {
   const resolved = resolveKeyedTarget(ctx, args)
   if ('error' in resolved) return resolved.error
-  return executeDataTool(resolved.target, args)
+  const base = (await executeDataTool(resolved.target, args)) as {
+    records: Array<Record<string, unknown>>
+    [k: string]: unknown
+  }
+  const filters = (args.filters ?? {}) as Record<string, unknown>
+  const keys = Object.keys(filters)
+  if (!keys.length) return base
+  let rows = base.records
+  for (const k of keys) {
+    const sample = rows[0] ?? base.records[0]
+    if (sample) {
+      const fieldKey = resolveFieldKey(sample, k)
+      if (!fieldKey) {
+        return {
+          error: 'unknown_field',
+          message: `Filter field "${k}" does not exist on ${resolved.target.label}. Use one of the available fields and retry.`,
+          availableFields: Object.keys(sample),
+        }
+      }
+      const v = filters[k]
+      rows = isRangeObject(v)
+        ? rows.filter((r) => compareInRange(r[fieldKey], v))
+        : rows.filter((r) => String(r[fieldKey] ?? '') === String(v))
+    }
+  }
+  return { ...base, records: rows, filtered: keys, total: rows.length }
 })
 
 registerAIToolHandler('queryData', async (args, ctx) => {
@@ -533,13 +586,23 @@ registerAIToolHandler('queryData', async (args, ctx) => {
       if (!groups.has(g)) groups.set(g, [])
       groups.get(g)!.push(r)
     }
+    // A group key like professionalId is opaque to the user — attach the
+    // sibling display field (professionalName) when the rows carry one.
+    const labelKey = groupBy.endsWith('Id')
+      ? resolveFieldKey(rows[0] ?? {}, groupBy.slice(0, -2) + 'Name')
+      : null
     return {
       entity: target.label,
       metric,
       ...(field ? { field } : {}),
       groupBy,
       groups: Array.from(groups.entries())
-        .map(([group, subset]) => ({ group, value: aggregate(subset), rows: subset.length }))
+        .map(([group, subset]) => ({
+          group,
+          ...(labelKey && subset[0] ? { label: subset[0][labelKey] } : {}),
+          value: aggregate(subset),
+          rows: subset.length,
+        }))
         .sort((a, b) => Number(b.value) - Number(a.value)),
       matchedRows: rows.length,
       sampled,

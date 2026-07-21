@@ -132,6 +132,10 @@ export function deriveAgentContract(
       if (projected) entityContracts.push(projected)
     }
   }
+  for (const q of config.agentContract?.queryEntities ?? []) {
+    const projected = projectEntity(q.key, q.entity.name, q.entity.namePlural, q.entity)
+    if (projected) entityContracts.push(projected)
+  }
 
   // --- Tools: core + derived reads + plugin-declared --------------------------
   const tools: AIToolContract[] = []
@@ -144,7 +148,10 @@ export function deriveAgentContract(
   // executor resolves it against `agent.entities` and enforces that entity's
   // own read permission.
   const registryMap = new Map(plugins.map((p) => [p.id, p.registries ?? []]))
-  const queryEntities = plugins.flatMap((p) => p.queryEntities ?? [])
+  const queryEntities = [
+    ...plugins.flatMap((p) => p.queryEntities ?? []),
+    ...(config.agentContract?.queryEntities ?? []),
+  ]
   for (const tool of buildDataPrimitiveTools({ entities, registries: registryMap, queryEntities })) {
     tools.push({ ...projectTool(tool), execution: { plane: 'server', kind: 'entity_read', entity: '*' } })
   }

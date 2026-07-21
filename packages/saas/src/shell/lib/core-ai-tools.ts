@@ -148,7 +148,7 @@ export function buildDataPrimitiveTools(input: {
 }): PluginAITool[] {
   const options: Array<{ key: string; label: string }> = []
   for (const e of input.entities) {
-    if (e.entityDef) options.push({ key: e.entityKey, label: e.labelPlural })
+    if (e.entityDef && !e.entityDef.agentHidden) options.push({ key: e.entityKey, label: e.labelPlural })
   }
   for (const [pluginId, defs] of input.registries) {
     for (const registry of defs) {
@@ -212,7 +212,7 @@ export function buildDataPrimitiveTools(input: {
     {
       id: 'data.search-records',
       name: 'searchRecords',
-      description: `Searches or lists records of ONE entity and returns matching rows with their fields. Use for questions about specific records or small lists. Entities: ${catalogLine}.`,
+      description: `Searches or lists records of ONE entity and returns matching rows with their fields. Use \`search\` for names/text and \`filters\` for exact field values (e.g. {"status":"open"}) — never put a status word in search. Entities: ${catalogLine}.`,
       icon: 'Search',
       mode: 'read',
       parameters: {
@@ -220,6 +220,9 @@ export function buildDataPrimitiveTools(input: {
         properties: {
           entity: { type: 'string', description: 'Which entity to search', enum: keys },
           search: { type: 'string', description: 'Name or text to match. Omit to list recent records.' },
+          filters: { type: 'object', description: 'Optional exact-value filters {field: value}, e.g. {"status":"open"}.' },
+          orderBy: { type: 'string', description: 'Field to sort by (e.g. startsAt for "next/upcoming" questions).' },
+          direction: { type: 'string', description: 'Sort direction', enum: ['asc', 'desc'] },
         },
         required: ['entity'],
       },
