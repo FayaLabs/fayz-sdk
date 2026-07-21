@@ -4,7 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { ListView } from '@fayz-ai/ui'
 import { useFinancialConfig, useFinancialProvider, useFinancialStore, formatCurrency } from '../FinancialContext'
 import { SubpageHeader } from '@fayz-ai/ui'
-import { PersonLink } from '@fayz-ai/saas'
+import { PersonLink, usePermissionOptional } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
 import type { TransactionDirection, InvoiceStatus, Invoice, ChartOfAccountsNode, CostCenter } from '../types'
 
@@ -87,6 +87,10 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
   onEdit?: (id: string) => void
 }) {
   const t = useTranslation()
+  // Role-side create gate: hide the "new invoice" affordance (header + empty-state
+  // action) when the role lacks `create` — the module's single route only guards read.
+  const can = usePermissionOptional()
+  const onNewGated = can('financial', 'create') ? onNew : undefined
   const { currency } = useFinancialConfig()
   const provider = useFinancialProvider()
   const invoices = useFinancialStore((s) => s.invoices)
@@ -204,12 +208,12 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
         activeTag={statusFilter.length === 1 ? statusFilter[0] : undefined}
         onTagChange={(v) => setStatusFilter(v ? [v as InvoiceStatus] : [])}
         newLabel={t('financial.invoice.new')}
-        onNew={onNew}
+        onNew={onNewGated}
         onRowClick={(row) => onEdit?.(row.id)}
         emptyIcon={FileText}
         emptyMessage={t('financial.invoice.noInvoices')}
-        emptyActionLabel={onNew ? t('financial.invoice.createFirst') : undefined}
-        onEmptyAction={onNew}
+        emptyActionLabel={onNewGated ? t('financial.invoice.createFirst') : undefined}
+        onEmptyAction={onNewGated}
       />
       {filtered.length > 0 && !invoicesLoading && (
         <div className="flex items-center justify-end gap-6 rounded-lg border bg-muted/30 px-5 py-3 text-sm">

@@ -148,6 +148,15 @@ export function createCrmPlugin(options?: CrmPluginOptions): PluginManifest {
       { id: 'crm.quotes', label: config.labels.quotes, group: config.labels.pageTitle },
       { id: 'crm.pipeline', label: config.labels.pipeline, group: config.labels.pageTitle },
     ],
+    // Stock quantity caps. leads/deals/quotes share core tables partitioned by
+    // `kind` (people/orders), so each declaration carries a kindFilter. A lead
+    // create auto-spawns a deal, so the lead guard also gates deal creation;
+    // `deals` has no standalone create UI (declared for usage banners/counts).
+    declaredLimits: [
+      { key: 'leads', label: 'Leads', table: 'people', kindFilter: 'lead' },
+      { key: 'deals', label: 'Deals', table: 'orders', kindFilter: 'deal' },
+      { key: 'quotes', label: 'Quotes', table: 'orders', kindFilter: 'quote' },
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',

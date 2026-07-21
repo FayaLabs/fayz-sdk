@@ -1,50 +1,62 @@
 import React from 'react'
-import { Search, Inbox as InboxIcon } from 'lucide-react'
-import { Input, cn } from '@fayz-ai/ui'
+import { Search, Inbox as InboxIcon, Plus } from 'lucide-react'
+import { Button, Input, cn } from '@fayz-ai/ui'
+import { PermissionGate } from '@fayz-ai/saas'
+import { useTranslation } from '@fayz-ai/core'
 import { useConversationsStore } from '../ConversationsContext'
 import type { Channel } from '../types'
 import { Avatar, ChannelBadge, relativeTime } from './shared'
+import { NewConversationModal } from './NewConversationModal'
 
-const FILTERS: Array<{ id: Channel | 'all'; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'whatsapp', label: 'WhatsApp' },
-  { id: 'sms', label: 'SMS' },
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'email', label: 'Email' },
-  { id: 'webchat', label: 'Web' },
-]
+const FILTERS: Array<Channel | 'all'> = ['all', 'whatsapp', 'sms', 'instagram', 'email', 'webchat']
 
 export function ConversationList({ className }: { className?: string }) {
+  const t = useTranslation()
   const {
     conversations, selectedId, channelFilter, search, loading,
     select, setChannelFilter, setSearch,
   } = useConversationsStore((s) => s)
+  const [newOpen, setNewOpen] = React.useState(false)
 
   return (
     <aside className={cn('w-full shrink-0 flex-col border-r border-border bg-card lg:w-[320px]', className)}>
       <div className="border-b border-border px-3 py-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-foreground">{t('conversations.title')}</span>
+          <PermissionGate feature="conversations" action="create">
+            <Button
+              size="sm"
+              onClick={() => setNewOpen(true)}
+              aria-label={t('conversations.list.new')}
+              data-testid="conversations-new"
+            >
+              <Plus className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">{t('conversations.list.new')}</span>
+            </Button>
+          </PermissionGate>
+        </div>
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search conversations"
+            placeholder={t('conversations.list.search')}
             className="pl-8"
           />
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
-          {FILTERS.map((f) => (
+          {FILTERS.map((id) => (
             <button
-              key={f.id}
-              onClick={() => setChannelFilter(f.id)}
+              key={id}
+              onClick={() => setChannelFilter(id)}
               className={cn(
                 'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
-                channelFilter === f.id
+                channelFilter === id
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground hover:bg-muted/70',
               )}
             >
-              {f.label}
+              {t(`conversations.filter.${id}`)}
             </button>
           ))}
         </div>
@@ -52,12 +64,12 @@ export function ConversationList({ className }: { className?: string }) {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loading && conversations.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+          <p className="p-4 text-sm text-muted-foreground">{t('conversations.list.loading')}</p>
         )}
         {!loading && conversations.length === 0 && (
           <div className="flex flex-col items-center gap-2 p-8 text-center text-muted-foreground">
             <InboxIcon className="h-6 w-6" />
-            <p className="text-sm">No conversations</p>
+            <p className="text-sm">{t('conversations.list.empty')}</p>
           </div>
         )}
         {conversations.map((c) => {
@@ -85,7 +97,9 @@ export function ConversationList({ className }: { className?: string }) {
                 <div className="mt-1 flex items-center gap-2">
                   <ChannelBadge channel={c.channel} />
                   {c.status !== 'open' && (
-                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">{c.status}</span>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                      {t(`conversations.status.${c.status}`)}
+                    </span>
                   )}
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
@@ -103,6 +117,8 @@ export function ConversationList({ className }: { className?: string }) {
           )
         })}
       </div>
+
+      <NewConversationModal open={newOpen} onOpenChange={setNewOpen} />
     </aside>
   )
 }

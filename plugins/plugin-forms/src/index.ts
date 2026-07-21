@@ -135,6 +135,10 @@ export function createCustomFormsPlugin(options?: CustomFormsPluginOptions): Plu
     declaredFeatures: [
       { id: 'custom_forms', label: config.labels.pageTitle, group: config.labels.pageTitle },
     ],
+    declaredLimits: [
+      { key: 'form_templates', label: 'Form templates', table: 'plg_forms_templates' },
+      { key: 'documents_month', label: 'Documents / month', table: 'documents', period: 'month' },
+    ],
 
     navigation: [],
 

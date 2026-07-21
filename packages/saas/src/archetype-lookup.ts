@@ -107,9 +107,12 @@ export function createArchetypeLookup(config: ArchetypeLookupConfig): EntityLook
       let qb = supabase
         .from(display.table)
         .select('*')
-        .eq('is_active', true)
         .order(display.labelField, { ascending: true })
         .limit(limit)
+
+      qb = config.archetype === 'service'
+        ? qb.or('is_active.eq.true,is_active.is.null')
+        : qb.eq('is_active', true)
 
       if (query) qb = qb.ilike(display.labelField, `%${query}%`)
       qb = applyKindFilter(qb)
@@ -127,9 +130,12 @@ export function createArchetypeLookup(config: ArchetypeLookupConfig): EntityLook
       let qb = supabase
         .from(display.table)
         .select('*')
-        .eq('is_active', true)
         .order(display.labelField, { ascending: true })
         .limit(limit)
+
+      qb = config.archetype === 'service'
+        ? qb.or('is_active.eq.true,is_active.is.null')
+        : qb.eq('is_active', true)
 
       qb = applyKindFilter(qb)
 

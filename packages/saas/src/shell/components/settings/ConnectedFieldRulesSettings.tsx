@@ -1,6 +1,8 @@
 import { FieldRulesSettings } from './FieldRulesSettings'
 import { useOrganizationStore } from '../../stores/organization.store'
-import { useOrgAdapterOptional } from '../../lib/org-context'
+// Native org adapter — see ConnectedCompanySettings. The shell org-context
+// provider is never mounted, so the old import yielded a null adapter (no-op save).
+import { useOrgAdapterOptional } from '../../../org'
 import { getRegisteredEntities } from '../../lib/entity-registry'
 import { toast } from '../notifications/ToastProvider'
 import { useTranslation } from '../../hooks/useTranslation'

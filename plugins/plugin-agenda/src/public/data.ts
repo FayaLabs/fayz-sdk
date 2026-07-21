@@ -25,6 +25,12 @@ export interface PublicCreateBookingInput {
   startsAt: string
   /** name required; phone should include the country dial for real backends. */
   contact: ContactInfo
+  /**
+   * Staff person id the visitor saw availability for. When set, the backend
+   * books THAT professional (or fails if their hours don't cover the slot) —
+   * never silently reassigns. null/undefined → backend auto-picks.
+   */
+  assigneeId?: string | null
 }
 
 export interface PublicBookingResult {

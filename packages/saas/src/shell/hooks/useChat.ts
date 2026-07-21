@@ -1,13 +1,151 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useChatStore, type ChatMessage } from '../stores/chat.store'
+import { useOrganizationStore } from '../stores/organization.store'
+import { useAuthStore } from '../stores/auth.store'
+import { usePluginRuntimeOptional } from '../lib/plugins'
+import { useRouter } from '../lib/router'
+import { useTranslation } from './useTranslation'
+import { useAITools } from './useAITools'
+import {
+  buildAgentToolset,
+  buildDataToolIndex,
+  executeAITool,
+  type AIToolExecutionContext,
+} from '../lib/ai-tool-handlers'
+import { entityToolName, registryToolName } from '../lib/core-ai-tools'
+import { getAllEntities } from '@fayz-ai/core'
+import {
+  getFayzAgentClient,
+  resolveFayzAgentConnection,
+  type FayzAgentConnectionConfig,
+} from '../lib/fayz-agent'
+import type { FayzAgentToolResult } from '@fayz-ai/sdk/agent'
+
+/**
+ * Caps how many times the model may call tools before it must answer in prose.
+ * Each round is a network turn, so a runaway loop is both slow and expensive.
+ */
+const MAX_TOOL_ROUNDS = 4
 
 interface UseChatOptions {
+  /** Bring-your-own backend. Takes precedence over the Fayz agent connection. */
   apiEndpoint?: string
   systemPrompt?: string
+  /** Fayz agent overrides; defaults to the env the container injects. */
+  agent?: FayzAgentConnectionConfig | false
 }
 
 export function useChat(options?: UseChatOptions) {
   const store = useChatStore()
+  const runtime = usePluginRuntimeOptional()
+  const router = useRouter()
+  const { t } = useTranslation()
+  const { tools, activePluginId } = useAITools()
+  const currentOrg = useOrganizationStore((s) => s.currentOrg)
+  const members = useOrganizationStore((s) => s.members)
+  const user = useAuthStore((s) => s.user)
+
+  // The project's Fayz agent, resolved from the env the container injects. An
+  // app-supplied apiEndpoint wins — that is an explicit opt-out.
+  const connection = useMemo(
+    () => (options?.apiEndpoint ? null : resolveFayzAgentConnection(options?.agent)),
+    [options?.apiEndpoint, options?.agent],
+  )
+
+  // The assistant is only "real" when something backs it. Without a backend we
+  // never fake a canned demo reply — the panel disables free-text input and, if
+  // a suggestion chip is clicked anyway, we answer with a clear notice.
+  const isConfigured = !!connection || !!options?.apiEndpoint
+
+  /**
+   * Run the agent turn loop against the project's Fayz agent.
+   *
+   * This is the follow-up the transport-only version of this hook described:
+   * the tool catalog plugins declare (useAITools) is already JSON-Schema shaped,
+   * so it forwards verbatim. Execution stays *client-plane* — the browser runs
+   * each call against the session that is already open and hands results back —
+   * because that is the only side that can touch the running UI (navigateTo) or
+   * the tenant's own data session, and it keeps Fayz free of app credentials.
+   * Server-plane tools (AgentTool grants) execute inside Fayz and never surface
+   * here.
+   */
+  const runFayzAgentTurn = useCallback(
+    async (content: string, activeConnection: NonNullable<typeof connection>) => {
+      const dataTools = buildDataToolIndex({
+        registries: runtime?.registries ?? new Map(),
+        entities: getAllEntities(),
+        registryToolName,
+        entityToolName,
+      })
+      const toolContext: AIToolExecutionContext = {
+        currentOrg,
+        members,
+        currentPath: runtime?.context.currentPath ?? '/',
+        routes: (runtime?.navigation ?? []).map((n) => ({ path: n.route, label: n.label })),
+        navigate: router.navigate,
+        dataTools,
+      }
+      const toolset = buildAgentToolset(tools, { dataTools, activePluginId })
+
+      const client = getFayzAgentClient(activeConnection)
+      let toolResults: FayzAgentToolResult[] | undefined
+      let message: string | undefined = content
+
+      for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+        const response = await client.chat({
+          message,
+          toolResults,
+          // Attribution: an INTERNAL channel rejects turns with no identity, and
+          // without this every conversation lands in the owner's dashboard as
+          // "Anonymous" even though a signed-in user sent it.
+          externalUserId: user?.id,
+          externalUserName: user?.fullName || user?.email,
+          conversationId: useChatStore.getState().conversationId ?? undefined,
+          tools: toolset,
+          context: {
+            // Temporal grounding. Without an explicit clock the model resolves
+            // "tomorrow" against its training cutoff — it booked an appointment
+            // in 2023 before this was sent. The browser is the only side that
+            // knows the user's actual zone.
+            now: new Date().toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            locale: typeof navigator !== 'undefined' ? navigator.language : undefined,
+            currentPath: toolContext.currentPath,
+            // What this app actually contains. Derived from the live navigation
+            // rather than written into each agent, so an assistant knows its own
+            // product on day one in any vertical — and can answer "where do I
+            // add a professional?" instead of guessing at a generic answer.
+            pages: toolContext.routes.map((r) => r.label ?? r.path).join(', '),
+            businessName: currentOrg?.name,
+            userName: user?.fullName || user?.email,
+            ...(options?.systemPrompt ? { appGuidance: options.systemPrompt } : {}),
+          },
+        })
+        store.setConversationId(response.conversationId)
+
+        if (response.content) store.updateLastAssistant(response.content)
+        if (response.toolCalls.length === 0) return
+
+        // Last allowed round still asked for tools — stop looping and let
+        // whatever prose came back stand.
+        if (round === MAX_TOOL_ROUNDS) {
+          if (!response.content) {
+            store.updateLastAssistant('That took too many steps. Could you narrow the question?')
+          }
+          return
+        }
+
+        toolResults = await Promise.all(
+          response.toolCalls.map(async (call) => ({
+            toolCallId: call.id,
+            content: (await executeAITool(call.name, call.arguments, toolContext)).content,
+          })),
+        )
+        message = undefined
+      }
+    },
+    [store, tools, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
+  )
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -19,6 +157,17 @@ export function useChat(options?: UseChatOptions) {
       }
       store.addMessage(userMsg)
 
+      if (!isConfigured) {
+        // Honest non-configured state — no fake "demo response".
+        store.addMessage({
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: t('chat.notConfigured'),
+          timestamp: new Date().toISOString(),
+        })
+        return
+      }
+
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
@@ -28,24 +177,18 @@ export function useChat(options?: UseChatOptions) {
       store.addMessage(assistantMsg)
       store.setStreaming(true)
 
-      if (!options?.apiEndpoint) {
-        // Mock response if no endpoint configured
-        setTimeout(() => {
-          store.updateLastAssistant(
-            "I'm your AI assistant. This is a demo response — connect an API endpoint to enable real conversations."
-          )
-          store.setStreaming(false)
-        }, 800)
-        return
-      }
-
       try {
-        const response = await fetch(options.apiEndpoint, {
+        if (connection) {
+          await runFayzAgentTurn(content, connection)
+          return
+        }
+
+        const response = await fetch(options!.apiEndpoint!, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: [
-              ...(options.systemPrompt
+              ...(options?.systemPrompt
                 ? [{ role: 'system', content: options.systemPrompt }]
                 : []),
               ...store.messages.map((m) => ({ role: m.role, content: m.content })),
@@ -56,7 +199,6 @@ export function useChat(options?: UseChatOptions) {
 
         if (!response.ok) {
           store.updateLastAssistant('Sorry, something went wrong. Please try again.')
-          store.setStreaming(false)
           return
         }
 
@@ -69,13 +211,23 @@ export function useChat(options?: UseChatOptions) {
         store.setStreaming(false)
       }
     },
-    [store, options?.apiEndpoint, options?.systemPrompt]
+    [
+      store,
+      isConfigured,
+      connection,
+      runFayzAgentTurn,
+      options?.apiEndpoint,
+      options?.systemPrompt,
+      t,
+    ],
   )
 
   return {
     messages: store.messages,
     isOpen: store.isOpen,
     isStreaming: store.isStreaming,
+    /** True when a real backend is wired — the project's Fayz agent or a custom endpoint. */
+    isConfigured,
     sendMessage,
     toggleOpen: store.toggleOpen,
     setOpen: store.setOpen,

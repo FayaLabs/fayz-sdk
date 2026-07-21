@@ -1,6 +1,12 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import type { ConversationsProvider } from './data/types'
-import type { Conversation, Message, Channel, ConversationStatus } from './types'
+import type {
+  Conversation,
+  Message,
+  Channel,
+  ConversationStatus,
+  CreateConversationInput,
+} from './types'
 
 export interface ConversationsUIState {
   conversations: Conversation[]
@@ -16,6 +22,7 @@ export interface ConversationsUIState {
   deselect(): void
   setChannelFilter(channel: Channel | 'all'): Promise<void>
   setSearch(search: string): Promise<void>
+  create(input: CreateConversationInput): Promise<Conversation>
   send(body: string): Promise<void>
   setStatus(status: ConversationStatus): Promise<void>
 }
@@ -65,6 +72,22 @@ export function createConversationsStore(
     async setSearch(search) {
       set({ search })
       await get().load()
+    },
+
+    async create(input) {
+      const created = await provider.createConversation(input)
+      // Clear filters that would hide the new thread, then refresh + select it.
+      set({ channelFilter: 'all', search: '' })
+      const conversations = await provider.listConversations({})
+      // Read-after-write guard: if the refetch races the just-inserted row (real
+      // backend) and doesn't return it yet, prepend the created thread so the
+      // inbox shows it immediately instead of intermittently dropping it.
+      const merged = conversations.some((c) => c.id === created.id)
+        ? conversations
+        : [created, ...conversations]
+      set({ conversations: merged, selectedId: created.id })
+      await get().select(created.id)
+      return created
     },
 
     async send(body: string) {

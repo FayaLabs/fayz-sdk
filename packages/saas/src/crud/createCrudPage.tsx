@@ -59,6 +59,8 @@ export function createCrudPage<T extends { id: string }>(
     fields: entityDef.fields,
     source: 'app',
     archetype: entityDef.data?.archetype,
+    entityDef: entityDef as EntityDef,
+    mockData: options?.mockData as Array<{ id: string }> | undefined,
   })
 
   return GeneratedCrudPage

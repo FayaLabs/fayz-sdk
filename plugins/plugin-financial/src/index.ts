@@ -225,6 +225,12 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
       ...(config.modules.payables ? [{ id: 'financial.payables', label: config.labels.payables, group: config.labels.pageTitle }] : []),
       ...(config.modules.commissions ? [{ id: 'financial.commissions', label: config.labels.commissions, group: config.labels.pageTitle }] : []),
     ],
+    // Recurring monthly quota — counts financial movement rows created this
+    // month (invoices write one per installment; quick transactions one, or two
+    // for a transfer).
+    declaredLimits: [
+      { key: 'movements_month', label: 'Financial movements this month', table: 'plg_financial_movements', period: 'month' },
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',

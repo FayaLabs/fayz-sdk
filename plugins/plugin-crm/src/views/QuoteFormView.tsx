@@ -3,6 +3,7 @@ import { Plus, Trash2, X, Check, ChevronDown } from 'lucide-react'
 import { useCrmConfig, useCrmStore, useCrmProvider, formatCurrency } from '../CrmContext'
 import { useTranslation } from '@fayz-ai/core'
 import type { EntityLookupMap } from '@fayz-ai/saas'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 import { SearchSelect, type SearchSelectOption } from '@fayz-ai/ui'
 import { CurrencyInput } from '@fayz-ai/ui'
@@ -195,6 +196,7 @@ export function QuoteFormView({ quoteId, leadId, onSaved }: { quoteId?: string; 
   const { currency, itemTypes } = config
   const createQuote = useCrmStore((s) => s.createQuote)
   const updateQuote = useCrmStore((s) => s.updateQuote)
+  const guardQuotes = useLimitGuard('quotes')
 
   const isEdit = !!quoteId
   const [loadingExisting, setLoadingExisting] = useState(isEdit || !!leadId)
@@ -281,6 +283,8 @@ export function QuoteFormView({ quoteId, leadId, onSaved }: { quoteId?: string; 
 
   async function handleSave() {
     if (items.length === 0) { toast.error(t('crm.quoteForm.errNoItems')); return }
+    // Plan quantity guard (client-side) — only a new quote consumes a slot.
+    if (!isEdit && (await guardQuotes()) === 'blocked') return
     setSaving(true)
     try {
       const input = {
@@ -306,6 +310,7 @@ export function QuoteFormView({ quoteId, leadId, onSaved }: { quoteId?: string; 
         onSaved?.(quoteId)
       } else {
         const created = await createQuote(input)
+        invalidateLimit('quotes')
         onSaved?.(created?.id)
       }
     } finally { setSaving(false) }

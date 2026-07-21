@@ -52,6 +52,7 @@ export function ProductListView({ onNew, onEdit }: {
       onNew={onNew}
       addLabel={t('inventory.productList.newProduct')}
       onRowClick={(row) => onEdit?.((row as { id: string }).id)}
+      feature="inventory"
     />
   )
 }

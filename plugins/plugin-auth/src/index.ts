@@ -15,6 +15,8 @@ export type {
   LoginPageProps,
   ResetPasswordPageProps,
 } from './pages'
+export { AmbassadorBubbles } from './AmbassadorBubbles'
+export type { AmbassadorBubblesProps } from './AmbassadorBubbles'
 export {
   LoginForm,
   SignupForm,
@@ -45,5 +47,6 @@ export type {
   AuthProviderKey,
   AuthLayout,
   AuthFormView,
+  LoginAmbassador,
 } from './types'
 export type { AuthAdapter, AuthSession, AuthUser, AuthProvider as OAuthProvider } from '@fayz-ai/core'

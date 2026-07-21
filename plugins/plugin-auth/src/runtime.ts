@@ -41,6 +41,8 @@ export function createAuthRuntime(options: AuthPluginOptions = {}): ResolvedAuth
     logo: options.logo,
     tagline: options.tagline,
     description: options.description,
+    loginAmbassadors: options.loginAmbassadors,
+    loginAmbassadorsLabel: options.loginAmbassadorsLabel,
     oauth: {
       enabled: options.oauth?.enabled ?? false,
       providers: options.oauth?.providers ?? ['google'],

@@ -2,6 +2,7 @@ import React from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button, DataTable } from '@fayz-ai/ui'
+import { PermissionGate } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
 import { useMarketingConfig, useMarketingStore } from '../MarketingContext'
 import { formatCurrency, formatNumber, formatPercent } from '../format'
@@ -44,7 +45,9 @@ export function CampaignsView() {
         <p className="text-sm text-muted-foreground">{t('marketing.campaigns.subtitle')}</p>
         <div className="flex items-center gap-2">
           <RangeTabs />
-          <Button onClick={() => setComposerOpen(true)}><Plus className="mr-1.5 h-4 w-4" /> {t('marketing.campaigns.new')}</Button>
+          <PermissionGate feature="marketing" action="create">
+            <Button onClick={() => setComposerOpen(true)}><Plus className="mr-1.5 h-4 w-4" /> {t('marketing.campaigns.new')}</Button>
+          </PermissionGate>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react'
 import { ArrowLeft, Image as ImageIcon, Paperclip } from 'lucide-react'
 import { Badge } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import type { CustomFormsConfig } from '../config'
 import type { CustomFormsDataProvider } from '../data/types'
 import type { CustomFormsStore } from '../store'
@@ -27,6 +28,7 @@ type WidgetView =
 
 export function PersonDocumentsWidget({ item, config, provider, store }: PersonDocumentsWidgetProps) {
   const t = useTranslation()
+  const guardDocuments = useLimitGuard('documents_month')
   const [view, setView] = useState<WidgetView>({ type: 'list' })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingFileAccept, setPendingFileAccept] = useState<string>('*/*')
@@ -58,6 +60,10 @@ export function PersonDocumentsWidget({ item, config, provider, store }: PersonD
   }, [provider])
 
   const handleFiles = useCallback(async (files: File[]) => {
+    // Plan monthly-quota guard (client-side, before the provider call) — count
+    // the whole batch. Opens the global UpgradeModal and aborts when the cap
+    // would be exceeded.
+    if ((await guardDocuments(files.length)) === 'blocked') return
     for (const file of files) {
       const isImage = file.type.startsWith('image/')
       await store.getState().createDocument({
@@ -70,7 +76,8 @@ export function PersonDocumentsWidget({ item, config, provider, store }: PersonD
         status: 'completed',
       })
     }
-  }, [store, item.id])
+    invalidateLimit('documents_month')
+  }, [store, item.id, guardDocuments])
 
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])

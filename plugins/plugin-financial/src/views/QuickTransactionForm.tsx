@@ -7,6 +7,7 @@ import {
   Modal, ModalContent, Button, DatePicker, toast,
 } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
+import { useLimitGuard, invalidateLimit, usePermissionOptional } from '@fayz-ai/saas'
 import { useFinancialConfig, useFinancialProvider, useFinancialStore, formatCurrency } from '../FinancialContext'
 import type { QuickTransactionType } from '../types'
 import type { ChartOfAccountsNode, BankAccount } from '../types'
@@ -157,6 +158,8 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
   const { currency } = useFinancialConfig()
   const provider = useFinancialProvider()
   const createQuickTransaction = useFinancialStore((s) => s.createQuickTransaction)
+  const guardMovements = useLimitGuard('movements_month')
+  const can = usePermissionOptional()
 
   const [type, setType] = useState<QuickTransactionType>(defaultType)
   const [amount, setAmount] = useState(0)
@@ -266,12 +269,19 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
       : true)
 
   async function handleSave() {
+    // Defense in depth: never persist for a role without `create`, even if a
+    // stray affordance slipped through.
+    if (!can('financial', 'create')) return
     if (!canSave) {
       if (type === 'transfer' && accountId && accountId === toAccountId) {
         toast.error(t('financial.transfer.sameAccount'))
       }
       return
     }
+    // Plan quantity guard (client-side): a transfer writes two movements (from +
+    // to), other kinds one. Guard that many against the monthly cap before the
+    // store call — the guard opens the global UpgradeModal when it would exceed.
+    if ((await guardMovements(type === 'transfer' ? 2 : 1)) === 'blocked') return
     setSaving(true)
     try {
       await createQuickTransaction({
@@ -286,6 +296,7 @@ export function QuickTransactionForm({ open, onOpenChange, defaultType = 'expens
         recurring: type === 'transfer' ? false : recurring,
         receiptUrl: type === 'transfer' ? undefined : receiptUrl,
       })
+      invalidateLimit('movements_month')
       onOpenChange(false)
     } catch {
       // toast handled by store

@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'app-params': 'src/app-params.ts',
     client: 'src/client.ts',
+    agent: 'src/agent.ts',
     shop: 'src/shop.ts',
     'release-channels': 'src/release-channels.ts',
     'supported-surface': 'src/supported-surface.ts',

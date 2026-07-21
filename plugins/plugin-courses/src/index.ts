@@ -122,6 +122,9 @@ export function createCoursesPlugin(options?: CoursesPluginOptions): PluginManif
       { id: 'courses.sales', label: 'Sales', group: 'Courses' },
       { id: 'courses.finance', label: 'Financial', group: 'Courses' },
     ],
+    declaredLimits: [
+      { key: 'courses', label: 'Courses', table: 'plg_courses_courses' },
+    ],
     navigation,
     routes,
     widgets: [],

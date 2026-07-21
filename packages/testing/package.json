@@ -1,0 +1,58 @@
+{
+  "name": "@fayz-ai/testing",
+  "fayz": {
+    "status": "beta"
+  },
+  "version": "0.8.0",
+  "description": "Fayz SDK — shared Playwright E2E contracts and Checkup reporter for dogfood apps",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./reporter": {
+      "source": "./src/reporter.ts",
+      "types": "./dist/reporter.d.ts",
+      "import": "./dist/reporter.js",
+      "require": "./dist/reporter.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@supabase/supabase-js": "^2.45.0",
+    "@types/node": "^20.0.0",
+    "tsup": "^8.2.0",
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "fayz",
+    "fayz-sdk",
+    "testing",
+    "playwright",
+    "e2e"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

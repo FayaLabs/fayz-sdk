@@ -20,6 +20,7 @@ import type {
   DashboardSurface,
 } from '../types/plugins'
 import type { FeatureDeclaration } from '../types/permissions'
+import type { LimitDeclaration } from '../types/entitlements'
 import type { ConnectorDefinition } from '../integrations'
 import { getComponent } from '../registry'
 
@@ -110,6 +111,7 @@ function createEmptyRuntime(context: PluginRuntimeContext = EMPTY_CONTEXT): Plug
     registries: new Map(),
     connectorsByHost: new Map(),
     pluginFeatures: [],
+    pluginLimits: [],
     issues: [],
   }
 }
@@ -242,6 +244,7 @@ export function resolvePluginRuntime({
   const registries = new Map<string, PluginRegistryDef[]>()
   const connectorsByHost = new Map<string, ConnectorDefinition[]>()
   const pluginFeatures: FeatureDeclaration[] = []
+  const pluginLimits: LimitDeclaration[] = []
 
   for (const plugin of activePlugins) {
     routes.push(...plugin.routes.map((r) => ({ ...r, plugin })))
@@ -261,6 +264,7 @@ export function resolvePluginRuntime({
       connectorsByHost.set(connector.hostPluginId, list)
     }
     if (plugin.declaredFeatures) pluginFeatures.push(...plugin.declaredFeatures)
+    if (plugin.declaredLimits) pluginLimits.push(...plugin.declaredLimits)
     widgets.push(...plugin.widgets.map((w, i) => ({
       ...w,
       order: w.order ?? i,
@@ -283,7 +287,7 @@ export function resolvePluginRuntime({
   widgets.sort((a, b) => a.zone !== b.zone ? a.zone.localeCompare(b.zone) : a.order - b.order)
   dashboardWidgets.sort((a, b) => a.order - b.order)
 
-  return { context, plugins: resolvedPlugins, activePlugins, routes, navigation, settingsTabs, widgets, dashboardWidgets, capabilities, aiTools, issues, registries, connectorsByHost, pluginFeatures }
+  return { context, plugins: resolvedPlugins, activePlugins, routes, navigation, settingsTabs, widgets, dashboardWidgets, capabilities, aiTools, issues, registries, connectorsByHost, pluginFeatures, pluginLimits }
 }
 
 export function getWidgetsForZone(

@@ -1,9 +1,11 @@
 import type { ConversationsProvider } from './types'
+import { CHANNEL_ACCENT_HEX } from './accents'
 import type {
   Conversation,
   Message,
   ListConversationsQuery,
   SendMessageInput,
+  CreateConversationInput,
   ConversationStatus,
 } from '../types'
 
@@ -82,13 +84,90 @@ function msg(
   return { id, conversationId, channel, direction, body, author, at }
 }
 
-export function createMockConversationsProvider(): ConversationsProvider {
-  const { conversations, messages } = seed()
-  let counter = 100
+export interface MockConversationsConfig {
+  /** Tenant id (value or getter) used to namespace the localStorage snapshot. */
+  tenantId?: string | (() => string | undefined)
+  /** Display name stamped as the author of outbound messages. */
+  selfAuthor?: string
+}
+
+interface Snapshot {
+  conversations: Conversation[]
+  messages: Message[]
+  counter: number
+}
+
+// ---------------------------------------------------------------------------
+// In-memory mock inbox with best-effort localStorage persistence, so a browser
+// reload keeps whatever the demo created/sent within the session. The store is
+// namespaced per tenant; SSR / no-window environments degrade to pure memory.
+// ---------------------------------------------------------------------------
+export function createMockConversationsProvider(
+  config?: MockConversationsConfig,
+): ConversationsProvider {
+  const selfAuthor = config?.selfAuthor ?? 'You'
+
+  function resolveTenant(): string {
+    const raw = typeof config?.tenantId === 'function' ? config.tenantId() : config?.tenantId
+    return raw || 'default'
+  }
+
+  const storageKey = () => `saas:mock:conversations:${resolveTenant()}`
+
+  function hasStorage(): boolean {
+    try {
+      return typeof window !== 'undefined' && !!window.localStorage
+    } catch {
+      return false
+    }
+  }
+
+  function load(): Snapshot {
+    if (hasStorage()) {
+      try {
+        const raw = window.localStorage.getItem(storageKey())
+        if (raw) {
+          const parsed = JSON.parse(raw) as Snapshot
+          if (Array.isArray(parsed.conversations) && Array.isArray(parsed.messages)) {
+            return {
+              conversations: parsed.conversations,
+              messages: parsed.messages,
+              counter: parsed.counter ?? 100,
+            }
+          }
+        }
+      } catch {
+        // Corrupt snapshot — fall through to a fresh seed.
+      }
+    }
+    const seeded = seed()
+    return { conversations: seeded.conversations, messages: seeded.messages, counter: 100 }
+  }
+
+  const state = load()
+
+  function persist(): void {
+    if (!hasStorage()) return
+    try {
+      window.localStorage.setItem(
+        storageKey(),
+        JSON.stringify({
+          conversations: state.conversations,
+          messages: state.messages,
+          counter: state.counter,
+        } satisfies Snapshot),
+      )
+    } catch {
+      // Quota / privacy mode — keep working in memory only.
+    }
+  }
+
+  // Persist the initial seed so a first reload is already stable.
+  persist()
 
   return {
     async listConversations(query?: ListConversationsQuery): Promise<Conversation[]> {
-      let list = [...conversations]
+      let list = [...state.conversations]
       if (query?.channel && query.channel !== 'all') list = list.filter((c) => c.channel === query.channel)
       if (query?.status && query.status !== 'all') list = list.filter((c) => c.status === query.status)
       if (query?.search) {
@@ -101,41 +180,80 @@ export function createMockConversationsProvider(): ConversationsProvider {
     },
 
     async getMessages(conversationId: string): Promise<Message[]> {
-      return messages
+      return state.messages
         .filter((m) => m.conversationId === conversationId)
         .sort((a, b) => a.at.localeCompare(b.at))
     },
 
+    async createConversation(input: CreateConversationInput): Promise<Conversation> {
+      const now = new Date().toISOString()
+      const firstMessage = input.firstMessage?.trim()
+      const id = `c${++state.counter}`
+      const conversation: Conversation = {
+        id,
+        contactName: input.contactName.trim(),
+        contactHandle: input.contactHandle?.trim() ?? '',
+        channel: input.channel,
+        lastMessagePreview: firstMessage ?? '',
+        lastMessageAt: now,
+        unreadCount: 0,
+        status: 'open',
+        assignedTo: selfAuthor,
+        accent: CHANNEL_ACCENT_HEX[input.channel],
+        tags: [],
+        note: input.note?.trim() || undefined,
+      }
+      state.conversations.unshift(conversation)
+      if (firstMessage) {
+        state.messages.push({
+          id: `m${++state.counter}`,
+          conversationId: id,
+          channel: input.channel,
+          direction: 'outbound',
+          body: firstMessage,
+          author: selfAuthor,
+          at: now,
+        })
+      }
+      persist()
+      return conversation
+    },
+
     async sendMessage(input: SendMessageInput): Promise<Message> {
-      const conv = conversations.find((c) => c.id === input.conversationId)
+      const conv = state.conversations.find((c) => c.id === input.conversationId)
       const created: Message = {
-        id: `m${++counter}`,
+        id: `m${++state.counter}`,
         conversationId: input.conversationId,
         channel: conv?.channel ?? 'sms',
         direction: 'outbound',
         body: input.body,
-        author: 'You',
+        author: selfAuthor,
         at: new Date().toISOString(),
       }
-      messages.push(created)
+      state.messages.push(created)
       if (conv) {
         conv.lastMessagePreview = input.body
         conv.lastMessageAt = created.at
         conv.unreadCount = 0
         if (conv.status === 'closed') conv.status = 'open'
       }
+      persist()
       return created
     },
 
     async markRead(conversationId: string): Promise<void> {
-      const conv = conversations.find((c) => c.id === conversationId)
-      if (conv) conv.unreadCount = 0
+      const conv = state.conversations.find((c) => c.id === conversationId)
+      if (conv && conv.unreadCount !== 0) {
+        conv.unreadCount = 0
+        persist()
+      }
     },
 
     async setStatus(conversationId: string, status: ConversationStatus): Promise<Conversation> {
-      const conv = conversations.find((c) => c.id === conversationId)
+      const conv = state.conversations.find((c) => c.id === conversationId)
       if (!conv) throw new Error('Conversation not found')
       conv.status = status
+      persist()
       return conv
     },
   }

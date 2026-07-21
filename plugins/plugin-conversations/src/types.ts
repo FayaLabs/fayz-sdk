@@ -49,6 +49,17 @@ export interface SendMessageInput {
   body: string
 }
 
+export interface CreateConversationInput {
+  contactName: string
+  /** Phone, @handle, or email depending on channel. */
+  contactHandle?: string
+  channel: Channel
+  /** Optional first outbound message; stamps preview + last_message_at. */
+  firstMessage?: string
+  /** Optional free-text note surfaced in the contact panel. */
+  note?: string
+}
+
 export const CHANNEL_LABELS: Record<Channel, string> = {
   sms: 'SMS',
   whatsapp: 'WhatsApp',

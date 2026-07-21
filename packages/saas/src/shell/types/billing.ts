@@ -1,3 +1,5 @@
+import type { PlanEntitlements } from '@fayz-ai/core'
+
 export type PlanInterval = 'monthly' | 'yearly'
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
 
@@ -37,6 +39,12 @@ export interface PlanConfig {
   limits?: Record<string, number>
   popular?: boolean
   verticalId?: string
+  /**
+   * Structured plan entitlements (feature gates + quantity caps) — the
+   * enforcement source of truth the access engine reads. Preserved verbatim by
+   * normalizeBillingPlan onto the runtime `Plan`.
+   */
+  entitlements?: PlanEntitlements
 }
 
 export function normalizePlanConfig(plan: PlanConfig, index?: number): Plan {

@@ -14,6 +14,7 @@ import {
   type AuthLayout,
   type AuthPluginOptions,
   type ResolvedAuthPlugin,
+  type LoginAmbassador,
 } from '@fayz-ai/plugin-auth'
 import { NavTransitionProvider } from '@fayz-ai/ui'
 import { createFayzSupabaseClient, getFayzSupabaseClientOptional } from '../supabase/client'
@@ -22,8 +23,10 @@ import { createSupabaseOrgAdapter } from '../org/adapters/supabase'
 import { createMockOrgAdapter } from '../org/adapters/mock'
 import { useOrganizationStore } from '../org/store'
 import { PermissionsProvider } from '../permissions/context'
+import { AccessProvider } from '../access/context'
 import { ToastProvider } from '../shell/components/notifications/ToastProvider'
 import { ChatFab, ChatPanel } from '../shell/components/chat'
+import { resolveFayzAgentConnection } from '../shell/lib/fayz-agent'
 import { useBillingStore } from '../billing/store'
 import type { Plan } from '@fayz-ai/core'
 import type { PlanConfig } from '../shell/types/billing'
@@ -58,6 +61,8 @@ function resolveAuthRuntime(config: FayzAppConfig): ResolvedAuthPlugin {
     logo: auth?.logo ?? auth?.loginLogo,
     tagline: auth?.tagline ?? auth?.loginTagline,
     description: auth?.description ?? auth?.loginDescription,
+    loginAmbassadors: auth?.loginAmbassadors,
+    loginAmbassadorsLabel: auth?.loginAmbassadorsLabel,
     oauth,
     routes: auth?.routes,
     supabase: {
@@ -76,6 +81,8 @@ export function getAuthShellProps(auth: FayzAppConfig['auth']): {
   loginDescription?: string
   loginLogo?: React.ReactNode
   loginLayout?: AuthLayout
+  loginAmbassadors?: LoginAmbassador[]
+  loginAmbassadorsLabel?: string
   showOAuth?: boolean
   oauthProviders?: Exclude<import('@fayz-ai/core').AuthProvider, 'email'>[]
 } {
@@ -87,6 +94,8 @@ export function getAuthShellProps(auth: FayzAppConfig['auth']): {
       loginDescription: auth.description,
       loginLogo: auth.logo,
       loginLayout: auth.layout,
+      loginAmbassadors: auth.loginAmbassadors,
+      loginAmbassadorsLabel: auth.loginAmbassadorsLabel,
       showOAuth: auth.oauth.enabled,
       oauthProviders: auth.oauth.providers,
     }
@@ -97,6 +106,8 @@ export function getAuthShellProps(auth: FayzAppConfig['auth']): {
     loginDescription: auth.description ?? auth.loginDescription,
     loginLogo: auth.logo ?? auth.loginLogo,
     loginLayout: auth.layout ?? auth.loginLayout,
+    loginAmbassadors: auth.loginAmbassadors,
+    loginAmbassadorsLabel: auth.loginAmbassadorsLabel,
     showOAuth: auth.oauth?.enabled ?? auth.showOAuth,
     oauthProviders: auth.oauth?.providers ?? auth.oauthProviders,
   }
@@ -157,9 +168,13 @@ function buildI18nConfig(config: FayzAppConfig): {
 
 function BillingInitializer({ config }: { config: FayzAppConfig }) {
   const setPlans = useBillingStore((s) => s.setPlans)
+  const setCheckout = useBillingStore((s) => s.setCheckout)
   React.useEffect(() => {
     if (config.billing?.plans) setPlans(config.billing.plans.map(normalizeBillingPlan))
-  }, [config.billing, setPlans])
+    // Seed the payment-gateway seam so the shell's Subscription page can route
+    // plan changes through it (Stripe/Pix) instead of a direct updateOrg.
+    setCheckout(config.billing?.onCheckout ?? null)
+  }, [config.billing, setPlans, setCheckout])
   return null
 }
 
@@ -174,6 +189,10 @@ function normalizeBillingPlan(plan: PlanConfig): Plan {
     features: plan.features,
     highlighted: plan.popular,
     stripePriceId: undefined,
+    // Preserve structured entitlements onto the runtime Plan — the access engine
+    // reads these to enforce feature gates + quantity caps. (Previously dropped
+    // here, leaving plan limits dead.)
+    entitlements: plan.entitlements,
   }
 }
 
@@ -210,6 +229,10 @@ function ThemeInitializer({ config }: { config: FayzAppConfig }) {
 
 export function AdminProviders({ config, children }: { config: FayzAppConfig; children: React.ReactNode }) {
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
+  const hasFayzAgent = React.useMemo(
+    () => !!resolveFayzAgentConnection(config.chat?.agent),
+    [config.chat?.agent],
+  )
 
   // Resolve adapters / i18n once per config identity.
   const resolved = React.useMemo(() => {
@@ -261,20 +284,34 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
       <OrgProvider adapter={resolved.orgAdapter} autoCreate={config.org?.autoCreate ?? true}>
         <PluginRuntimeProvider value={runtime}>
           <PermissionsProvider config={config.permissions}>
-            <I18nProvider value={resolved.i18n}>
-              <ThemeInitializer config={config} />
-              <BillingInitializer config={config} />
-              <ToastProvider />
+            <AccessProvider limitDeclarations={config.billing?.limitDeclarations}>
+              <I18nProvider value={resolved.i18n}>
+                <ThemeInitializer config={config} />
+                <BillingInitializer config={config} />
+                <ToastProvider />
               <NavTransitionProvider value={config.navTransition ?? 'slide'}>
                 {children}
               </NavTransitionProvider>
-              {config.chat?.enabled !== false && config.chat ? (
+              {/* The assistant also renders with no `chat` block at all — a
+                  project with a Fayz agent enabled injects its connection via
+                  env, so the app needs no config to light it up. */}
+              {config.chat?.enabled !== false && (config.chat || hasFayzAgent) ? (
                 <>
-                  <ChatFab apiEndpoint={config.chat.apiEndpoint} systemPrompt={config.chat.systemPrompt} />
-                  <ChatPanel title={config.chat.title} apiEndpoint={config.chat.apiEndpoint} systemPrompt={config.chat.systemPrompt} />
+                  <ChatFab
+                    apiEndpoint={config.chat?.apiEndpoint}
+                    systemPrompt={config.chat?.systemPrompt}
+                    agent={config.chat?.agent}
+                  />
+                  <ChatPanel
+                    title={config.chat?.title}
+                    apiEndpoint={config.chat?.apiEndpoint}
+                    systemPrompt={config.chat?.systemPrompt}
+                    agent={config.chat?.agent}
+                  />
                 </>
               ) : null}
-            </I18nProvider>
+              </I18nProvider>
+            </AccessProvider>
           </PermissionsProvider>
         </PluginRuntimeProvider>
       </OrgProvider>

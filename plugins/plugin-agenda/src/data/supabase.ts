@@ -151,8 +151,14 @@ async function hydrateCanonicalBookings(core: any, bookings: any[]): Promise<Cal
       locationId: booking.location_id,
       metadata: booking.metadata ?? {},
       clientId: booking.party_id,
-      // Simple events (no party) fall back to the title stored in metadata.
-      clientName: client?.name ?? (booking.metadata?.title as string | undefined) ?? null,
+      // Simple events (no party) fall back to the title stored in metadata;
+      // partyless blocks/tasks (e.g. imported Google events) get their notes or
+      // a kind label so the calendar never renders an unnamed chip.
+      clientName: client?.name
+        ?? (booking.metadata?.title as string | undefined)
+        ?? (booking.kind === 'appointment'
+          ? null
+          : booking.notes || (booking.kind === 'task' ? 'Tarefa' : 'Bloqueio')),
       clientPhone: client?.phone ?? null,
       clientEmail: client?.email ?? null,
       clientAvatarUrl: client?.avatar_url ?? null,
@@ -206,7 +212,13 @@ async function getCanonicalBookingById(core: any, id: string): Promise<CalendarB
 // Supabase Agenda Provider
 // ---------------------------------------------------------------------------
 
-export function createSupabaseAgendaProvider(): AgendaDataProvider {
+export interface SupabaseAgendaProviderOptions {
+  /** people.kind used for calendar resources/professionals (default 'staff' — schools use 'teacher'). */
+  professionalKind?: string
+}
+
+export function createSupabaseAgendaProvider(providerOptions?: SupabaseAgendaProviderOptions): AgendaDataProvider {
+  const professionalKind = providerOptions?.professionalKind ?? 'staff'
   return {
     // v_appointments is in public schema (PostgREST default)
     async getBookings(query: BookingQuery): Promise<CalendarBooking[]> {
@@ -233,7 +245,37 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       const { core, pub } = getClients()
       const { data, error } = await pub.from('v_appointments').select('*').eq('id', id).maybeSingle()
       if (error) throw error
-      if (data) return mapBooking(data as Record<string, unknown>)
+      if (data) {
+        const booking = mapBooking(data as Record<string, unknown>)
+        // v_appointments is a FLAT read model — it exposes no line items. The
+        // calendar list path merges in the canonical hydration (which carries
+        // `services` from order_items), but this single-record lookup used by the
+        // edit modal previously returned the bare view row. That dropped
+        // `services`, so a booking whose type has `requiresServices` reopened with
+        // an empty service list and kept the "Update" button permanently disabled
+        // (canSubmit stayed false). Hydrate the line items here to stay consistent
+        // with getBookings.
+        if (booking.orderId) {
+          const { data: items } = await core.from('order_items')
+            .select('id, service_id, name, duration_minutes, unit_price, assignee_id, sort_order')
+            .eq('order_id', booking.orderId)
+            .order('sort_order', { ascending: true })
+          if (items && items.length) {
+            const services = items.map((item: any) => ({
+              id: item.id,
+              serviceId: item.service_id,
+              name: item.name,
+              durationMinutes: item.duration_minutes,
+              price: item.unit_price,
+              assigneeId: item.assignee_id,
+            }))
+            booking.services = services
+            const itemDuration = services.reduce((sum: number, s: any) => sum + (s.durationMinutes ?? 0), 0)
+            if (itemDuration) booking.totalDurationMinutes = itemDuration
+          }
+        }
+        return booking
+      }
       return getCanonicalBookingById(core, id)
     },
 
@@ -264,7 +306,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
         kind: input.kind ?? 'appointment',
         status: 'scheduled',
         party_id: input.clientId || null,
-        assignee_id: input.professionalId,
+        assignee_id: input.professionalId || null,
         location_id: input.locationId ?? null,
         subtotal: totalPrice,
         total: totalPrice,
@@ -282,7 +324,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
         tenant_id: tenantId,
         kind: input.kind ?? 'appointment',
         party_id: input.clientId || null,
-        assignee_id: input.professionalId,
+        assignee_id: input.professionalId || null,
         location_id: input.locationId ?? null,
         order_id: order.id,
         starts_at: input.startsAt,
@@ -309,7 +351,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
           total: s.price,
           sort_order: i,
           duration_minutes: s.durationMinutes,
-          assignee_id: s.assigneeId ?? input.professionalId,
+          assignee_id: s.assigneeId || input.professionalId || null,
         }))
         const { error: oiErr } = await core.from('order_items').insert(orderItems)
         if (oiErr) throw oiErr
@@ -413,12 +455,24 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       if (bookingErr) throw bookingErr
 
       const orderId = booking?.order_id as string | null | undefined
-      const { count, error: movementErr } = orderId
-        ? await pub.from('plg_financial_movements').select('id', { count: 'exact', head: true }).eq('invoice_id', orderId)
-        : { count: 0, error: null }
-      if (movementErr) throw movementErr
+      // Financial movements live in the financial plugin's tables. Pools that
+      // don't provision that plugin (e.g. school/event agendas) have no
+      // plg_financial_movements table, and the probe below returns a PostgREST
+      // "relation does not exist" error. Previously that error was rethrown,
+      // which aborted the ENTIRE delete — the modal caught it and left the
+      // booking in place, so "Delete" looked like a silent no-op (works in
+      // beauty, which has the table; fails in school, which doesn't). Treat any
+      // probe failure as "no linked movements" and fall through to a plain delete.
+      let movementCount = 0
+      if (orderId) {
+        const { count, error: movementErr } = await pub
+          .from('plg_financial_movements')
+          .select('id', { count: 'exact', head: true })
+          .eq('invoice_id', orderId)
+        if (!movementErr) movementCount = count ?? 0
+      }
 
-      if (orderId && (count ?? 0) > 0) {
+      if (orderId && movementCount > 0) {
         // Cancel movements + order (don't delete financial records)
         await pub.from('plg_financial_movements').update({ status: 'cancelled' }).eq('invoice_id', orderId)
         await core.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
@@ -516,7 +570,7 @@ export function createSupabaseAgendaProvider(): AgendaDataProvider {
       const { core } = getClients()
       const { data, error } = await core.from('people')
         .select('id, name, avatar_url, is_active')
-        .eq('kind', 'staff')
+        .eq('kind', professionalKind)
         .eq('is_active', true)
         .order('name')
       if (error) throw error

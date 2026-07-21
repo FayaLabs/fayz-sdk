@@ -7,7 +7,10 @@
 -- watch-channel webhook. The booking↔event link is stored on
 -- public.appointments.metadata.googleCalendarEventId (no schema change there).
 
-CREATE TABLE IF NOT EXISTS public.calendar_integrations (
+-- Plugin-owned tables carry the platform `plg_<plugin>_` prefix (DATA-MODEL.md
+-- Ring 1). Legacy pools provisioned under the old `calendar_*` names are migrated
+-- by 003_plg_rename.sql; fresh installs are born with the prefixed names here.
+CREATE TABLE IF NOT EXISTS public.plg_calendar_integrations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   provider text NOT NULL DEFAULT 'google',
@@ -26,10 +29,10 @@ CREATE TABLE IF NOT EXISTS public.calendar_integrations (
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, provider)
 );
-ALTER TABLE public.calendar_integrations ENABLE ROW LEVEL SECURITY;
-CREATE INDEX IF NOT EXISTS idx_calendar_integrations_tenant ON public.calendar_integrations(tenant_id);
+ALTER TABLE public.plg_calendar_integrations ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_plg_calendar_integrations_tenant ON public.plg_calendar_integrations(tenant_id);
 
-CREATE TABLE IF NOT EXISTS public.calendar_sync_log (
+CREATE TABLE IF NOT EXISTS public.plg_calendar_sync_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   direction text NOT NULL,                 -- inbound | outbound
@@ -40,13 +43,13 @@ CREATE TABLE IF NOT EXISTS public.calendar_sync_log (
   error text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE public.calendar_sync_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plg_calendar_sync_log ENABLE ROW LEVEL SECURITY;
 
 -- RLS: tenant isolation.
 DO $$
 DECLARE t text;
 BEGIN
-  FOR t IN SELECT unnest(ARRAY['calendar_integrations','calendar_sync_log'])
+  FOR t IN SELECT unnest(ARRAY['plg_calendar_integrations','plg_calendar_sync_log'])
   LOOP
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', t);
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename=t AND policyname=t||'_rls') THEN

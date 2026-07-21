@@ -15,6 +15,7 @@ import { PersonLink } from '@fayz-ai/saas'
 import { BookingPaymentPanel } from './BookingPaymentPanel'
 import { CrudDetailPage } from '@fayz-ai/saas'
 import { CrudFormPage } from '@fayz-ai/saas'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { Button } from '@fayz-ai/ui'
 import { useAgendaConfig, useAgendaProvider, useAgendaStore } from '../AgendaContext'
 import { useTranslation } from '@fayz-ai/core'
@@ -280,6 +281,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   const provider = useAgendaProvider()
   const initialSnapshot = useRef<string>('')
   const createBooking = useAgendaStore((s) => s.createBooking)
+  const guardBookings = useLimitGuard('bookings_month')
   const updateBooking = useAgendaStore((s) => s.updateBooking)
   const deleteBooking = useAgendaStore((s) => s.deleteBooking)
   const fetchBookings = useAgendaStore((s) => s.fetchBookings)
@@ -515,6 +517,9 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    // Plan quantity guard (client-side, before the store call): opens the global
+    // UpgradeModal and aborts when the monthly booking cap is reached. CREATE only.
+    if (mode === 'create' && (await guardBookings()) === 'blocked') return
     setSaving(true)
     try {
       const startsAt = new Date(`${date}T${startTime}:00`).toISOString()
@@ -522,6 +527,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
         const newBooking = await createBooking({ kind: bookingType, clientId, professionalId, locationId: locationId || undefined, startsAt, notes: notes || undefined,
           title: activeType.fields.title ? title.trim() : undefined,
           services: services.map((s: any) => ({ serviceId: s.serviceId, name: s.name, durationMinutes: s.durationMinutes, price: s.price })) })
+        invalidateLimit('bookings_month')
         onClose()
         onCreated?.(newBooking.id, externalSource)
       } else if (bookingId) {
@@ -547,8 +553,17 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   async function handleDelete() {
     if (!bookingId) return
     setDeleting(true)
-    try { await deleteBooking(bookingId); onClose() } catch { /* toast */ }
-    setDeleting(false)
+    try {
+      await deleteBooking(bookingId)
+      onClose()
+    } catch {
+      // deleteBooking surfaces its own toast. Return the footer to its normal
+      // state (out of the confirm step) so a failure is clear feedback rather
+      // than a modal that silently stays stuck on "Confirm delete".
+      setConfirmingDelete(false)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const isPaidBooking = editPaymentStatus === 'paid'
@@ -814,6 +829,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                       )}
                     </div>
                   ) : !quickCreate ? (
+                    <>
                     <SearchCombobox
                       value={clientSearch}
                       onChange={(v) => { setClientSearch(v); setClientId('') }}
@@ -827,6 +843,12 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                       minimal
                       inlineLabel={t('agenda.appointment.addClient')}
                     />
+                    {clientSearch.trim() && !clientSearching && (
+                      <p className="mt-1 text-[11px] text-warning">
+                        {t('agenda.appointment.selectClientHint')}
+                      </p>
+                    )}
+                    </>
                   ) : (
                     <div className="rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] p-2.5 space-y-2">
                       <div className="flex items-center gap-2">
@@ -858,11 +880,16 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                             }).select('id, name').single()
                             if (personError) throw personError
 
-                            // 2. Insert into public.clients (project extension table)
+                            // 2. Insert into public.clients when the pool has that
+                            // extension table (beauty-style projects). Pools without it
+                            // (school, agency) live off public.people alone — a missing
+                            // table is not an error; any other failure still rolls back.
                             const { error: clientError } = await supabase.from('clients').insert({
                               person_id: personRow.id, tenant_id: tenantId,
                             })
-                            if (clientError) {
+                            const missingExtensionTable = clientError?.code === 'PGRST205'
+                              || clientError?.message?.includes('Could not find the table')
+                            if (clientError && !missingExtensionTable) {
                               // Rollback person if extension insert fails
                               await supabase.from('people').delete().eq('id', personRow.id)
                               throw clientError

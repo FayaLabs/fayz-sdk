@@ -29,6 +29,7 @@ export const en: Record<string, string> = {
   "agenda.appointment.searchService": "Search service to add...",
   "agenda.appointment.selectLocation": "Select location...",
   "agenda.appointment.selectProfessional": "Select professional...",
+  "agenda.appointment.selectClientHint": "Select the client from the list or use New client to enable saving.",
   "agenda.appointment.services": "Services",
   "agenda.appointment.status": "Status",
   "agenda.appointment.to": "to",

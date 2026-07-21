@@ -22,7 +22,7 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
   const config = resolveConfig(options)
   registerTranslations(agendaLocales)
   const provider = options?.dataProvider ?? createSafeDataProvider(
-    () => createSupabaseAgendaProvider(),
+    () => createSupabaseAgendaProvider({ professionalKind: config.professionalKind }),
     () => createMockAgendaProvider(),
   )
   const store = createAgendaStore(provider, options?.financialBridge)
@@ -65,6 +65,12 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
     declaredFeatures: [
       { id: 'appointments', label: config.labels.pageTitle, group: config.labels.pageTitle },
       { id: 'agenda.schedules', label: 'Schedule Management', group: config.labels.pageTitle },
+    ],
+    // Recurring monthly quota — counts appointment rows created this month.
+    // (Clients/patients are the app's CRUD entity, so their cap is declared by
+    // the app's EntityDef.limitKey, not here.)
+    declaredLimits: [
+      { key: 'bookings_month', label: 'Appointments this month', table: 'appointments', period: 'month' },
     ],
 
     navigation: [

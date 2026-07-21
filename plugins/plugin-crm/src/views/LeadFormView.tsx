@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { useCrmStore } from '../CrmContext'
 import { useTranslation } from '@fayz-ai/core'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 
 export function LeadFormView({ onSaved }: { onSaved?: (id?: string) => void }) {
   const t = useTranslation()
   const createLead = useCrmStore((s) => s.createLead)
+  // Creating a lead also auto-creates a deal (store.createLead), so this path is
+  // the create surface for both the pipeline board ("+ Add") and the lead form.
+  const guardLeads = useLimitGuard('leads')
   const fetchPipelines = useCrmStore((s) => s.fetchPipelines)
   const pipelines = useCrmStore((s) => s.pipelines)
 
@@ -21,9 +25,15 @@ export function LeadFormView({ onSaved }: { onSaved?: (id?: string) => void }) {
 
   async function handleSave() {
     if (!name.trim()) { toast.error(t('common.formIncomplete')); return }
+    // Plan quantity guard (client-side, before the store call): opens the global
+    // UpgradeModal and aborts when the lead cap is reached.
+    if ((await guardLeads()) === 'blocked') return
     setSaving(true)
     try {
       const lead = await createLead({ name, email: email || undefined, phone: phone || undefined, company: company || undefined, notes: notes || undefined })
+      // A lead spawns a deal too — refresh both live counts.
+      invalidateLimit('leads')
+      invalidateLimit('deals')
       onSaved?.(lead.id)
     } finally { setSaving(false) }
   }
