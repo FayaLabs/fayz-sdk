@@ -57,4 +57,5 @@ export const ptBR: Record<string, string> = {
   'conversations.new.cancel': 'Cancelar',
   'conversations.new.create': 'Iniciar conversa',
   'conversations.new.creating': 'Iniciando…',
+  'conversations.new.createFailed': 'Não foi possível criar a conversa',
 }

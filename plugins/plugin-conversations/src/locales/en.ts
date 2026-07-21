@@ -57,4 +57,5 @@ export const en: Record<string, string> = {
   'conversations.new.cancel': 'Cancel',
   'conversations.new.create': 'Start conversation',
   'conversations.new.creating': 'Starting…',
+  'conversations.new.createFailed': 'Could not create the conversation',
 }

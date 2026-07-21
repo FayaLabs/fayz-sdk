@@ -79,7 +79,13 @@ export function createConversationsStore(
       // Clear filters that would hide the new thread, then refresh + select it.
       set({ channelFilter: 'all', search: '' })
       const conversations = await provider.listConversations({})
-      set({ conversations, selectedId: created.id })
+      // Read-after-write guard: if the refetch races the just-inserted row (real
+      // backend) and doesn't return it yet, prepend the created thread so the
+      // inbox shows it immediately instead of intermittently dropping it.
+      const merged = conversations.some((c) => c.id === created.id)
+        ? conversations
+        : [created, ...conversations]
+      set({ conversations: merged, selectedId: created.id })
       await get().select(created.id)
       return created
     },

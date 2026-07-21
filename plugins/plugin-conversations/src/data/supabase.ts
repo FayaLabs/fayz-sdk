@@ -130,6 +130,13 @@ export function createSupabaseConversationsProvider(
 
     async createConversation(input: CreateConversationInput): Promise<Conversation> {
       const tenantId = resolveTenantId()
+      // Insert with a null tenant_id fails the plg_conversations RLS WITH CHECK
+      // (tenant_id ∈ user_tenant_ids()) with an opaque Postgres error. When the
+      // active tenant hasn't resolved yet (bootstrap race), fail fast with an
+      // actionable message the compose modal can surface via toast.
+      if (!tenantId) {
+        throw new Error('[plugin-conversations] Active tenant not resolved — cannot create conversation. Try again in a moment.')
+      }
       const now = new Date().toISOString()
       const firstMessage = input.firstMessage?.trim()
 

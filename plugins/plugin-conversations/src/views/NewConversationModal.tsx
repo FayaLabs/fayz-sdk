@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, Input, Modal, ModalContent, cn } from '@fayz-ai/ui'
+import { Button, Input, Modal, ModalContent, cn, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { useConversationsStore } from '../ConversationsContext'
 import { CHANNEL_ACCENT, CHANNEL_ICON, CHANNEL_LABELS } from '../channel'
@@ -48,6 +48,13 @@ export function NewConversationModal({
         firstMessage: firstMessage.trim() || undefined,
       })
       onOpenChange(false)
+    } catch (err) {
+      // A failed insert (unresolved tenant, RLS rejection, offline…) previously
+      // threw past the `finally` — `onOpenChange(false)` never ran, so the modal
+      // stayed open with no feedback and the thread silently vanished. Surface
+      // the failure and keep the form open so the user can retry.
+      const message = err instanceof Error ? err.message : String(err)
+      toast.error(t('conversations.new.createFailed'), { description: message })
     } finally {
       setSubmitting(false)
     }
