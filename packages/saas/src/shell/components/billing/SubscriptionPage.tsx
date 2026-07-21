@@ -183,9 +183,13 @@ export function SubscriptionPage({ className }: { className?: string }) {
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold">{currentBadge.label}</span>
                 {currentBadge.paid && (
-                  <Badge className="border-amber-400/40 bg-amber-400/15 text-amber-700 dark:text-amber-300">
-                    <Crown className="mr-1 h-3 w-3" />
-                    {tr('billing.pro', 'Pro')}
+                  // Paid marker only — a literal "Pro" here was misleading next
+                  // to non-Pro paid tiers ("Starter / Pro", QA finding).
+                  <Badge
+                    aria-label={tr('billing.paidPlan', 'Paid plan')}
+                    className="border-amber-400/40 bg-amber-400/15 text-amber-700 dark:text-amber-300"
+                  >
+                    <Crown className="h-3 w-3" />
                   </Badge>
                 )}
               </div>
