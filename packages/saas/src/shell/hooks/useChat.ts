@@ -1,7 +1,13 @@
 import { useCallback, useMemo } from 'react'
 import { useChatStore, type ChatMessage } from '../stores/chat.store'
 import { useOrganizationStore } from '../stores/organization.store'
-import { useAuthStore } from '../stores/auth.store'
+// The REAL auth store — @fayz-ai/auth is what AuthProvider hydrates (and the
+// same specifier AdminShell uses). shell/stores/auth.store is a legacy shim
+// nothing fills; reading it here sent EVERY turn anonymous, which an INTERNAL
+// channel rejects with AGENT_IDENTITY_REQUIRED (documented gotcha in
+// fayz/docs/architecture/platform/agents.md — the fix had only landed in the
+// retired -qa checkout).
+import { useAuthStore } from '@fayz-ai/auth'
 import { usePluginRuntimeOptional } from '../lib/plugins'
 import { useRouter } from '../lib/router'
 import { useTranslation } from './useTranslation'
