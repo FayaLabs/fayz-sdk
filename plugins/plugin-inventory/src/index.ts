@@ -157,6 +157,8 @@ export function createInventoryPlugin(options?: InventoryPluginOptions): PluginM
           data: {
             table: 'products',
             tenantScoped: true,
+            archetype: 'product',
+            archetypeKind: 'sale',
             searchColumns: ['name', 'sku'],
             defaults: { kind: 'sale', status: 'active', is_active: true },
           },
