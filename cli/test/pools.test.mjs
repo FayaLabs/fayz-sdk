@@ -32,9 +32,9 @@ function cfg() {
 // Config load + validation
 // ---------------------------------------------------------------------------
 
-test('shipped pools.config.json loads: 7 pools, expected refs + flags', () => {
+test('shipped pools.config.json loads: 8 pools, expected refs + flags', () => {
   const config = loadPoolsFile() // default path resolution
-  assert.equal(config.pools.length, 7)
+  assert.equal(config.pools.length, 8)
   assert.equal(findPool(config, 'ecommerce').ref, 'yfxutrkyhydgltakbqle')
   assert.equal(findPool(config, 'creators').flags.canary, true)
   assert.equal(findPool(config, 'dentist').status, 'ACTIVE') // baselined + flipped during M3
