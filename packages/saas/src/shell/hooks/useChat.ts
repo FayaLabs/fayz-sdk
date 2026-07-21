@@ -1,7 +1,15 @@
 import { useCallback, useMemo } from 'react'
-import { useChatStore, type ChatMessage } from '../stores/chat.store'
+import {
+  useChatStore,
+  type ChatMessage,
+  type ChatRecordLink,
+  type ChatToolActivity,
+} from '../stores/chat.store'
 import { useOrganizationStore } from '../stores/organization.store'
-import { useAuthStore } from '../stores/auth.store'
+// Same specifier AdminShell uses to render the signed-in user, so this reads
+// the store AuthProvider actually populates. The shell's own stores/auth.store
+// is a legacy shim that nothing fills — reading it sent every turn anonymous.
+import { useAuthStore } from '@fayz-ai/auth'
 import { usePluginRuntimeOptional } from '../lib/plugins'
 import { useRouter } from '../lib/router'
 import { useTranslation } from './useTranslation'
@@ -10,6 +18,7 @@ import {
   buildAgentToolset,
   buildDataToolIndex,
   executeAITool,
+  extractRecordLinks,
   type AIToolExecutionContext,
 } from '../lib/ai-tool-handlers'
 import { entityToolName, registryToolName } from '../lib/core-ai-tools'
@@ -19,7 +28,7 @@ import {
   resolveFayzAgentConnection,
   type FayzAgentConnectionConfig,
 } from '../lib/fayz-agent'
-import type { FayzAgentToolResult } from '@fayz-ai/sdk/agent'
+import { FayzAgentError, type FayzAgentToolResult } from '@fayz-ai/sdk/agent'
 
 /**
  * Caps how many times the model may call tools before it must answer in prose.
@@ -44,6 +53,7 @@ export function useChat(options?: UseChatOptions) {
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const members = useOrganizationStore((s) => s.members)
   const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.isLoading)
 
   // The project's Fayz agent, resolved from the env the container injects. An
   // app-supplied apiEndpoint wins — that is an explicit opt-out.
@@ -90,6 +100,8 @@ export function useChat(options?: UseChatOptions) {
       const client = getFayzAgentClient(activeConnection)
       let toolResults: FayzAgentToolResult[] | undefined
       let message: string | undefined = content
+      let activity: ChatToolActivity[] = []
+      const links: ChatRecordLink[] = []
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         const response = await client.chat({
@@ -126,6 +138,15 @@ export function useChat(options?: UseChatOptions) {
         if (response.content) store.updateLastAssistant(response.content)
         if (response.toolCalls.length === 0) return
 
+        // Show what it is doing while it does it — the same activity the Fayz
+        // dashboard shows after the fact, but live.
+        store.patchLastAssistant({
+          activity: [
+            ...activity,
+            ...response.toolCalls.map((c) => ({ name: c.name, status: 'running' as const })),
+          ],
+        })
+
         // Last allowed round still asked for tools — stop looping and let
         // whatever prose came back stand.
         if (round === MAX_TOOL_ROUNDS) {
@@ -141,6 +162,14 @@ export function useChat(options?: UseChatOptions) {
             content: (await executeAITool(call.name, call.arguments, toolContext)).content,
           })),
         )
+
+        activity = [...activity, ...response.toolCalls.map((c) => ({ name: c.name, status: 'done' as const }))]
+        for (const result of toolResults) {
+          for (const link of extractRecordLinks(result.content)) {
+            if (!links.some((l) => l.url === link.url)) links.push(link)
+          }
+        }
+        store.patchLastAssistant({ activity, links: links.length ? links : undefined })
         message = undefined
       }
     },
@@ -149,6 +178,12 @@ export function useChat(options?: UseChatOptions) {
 
   const sendMessage = useCallback(
     async (content: string) => {
+      // The FAB and the panel each hold their own useChat over one shared
+      // store, and callers guard on a value captured at render. Reading the
+      // live state here is what actually stops a double submit from posting
+      // the same message twice.
+      if (useChatStore.getState().isStreaming) return
+
       const userMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
         role: 'user',
@@ -156,6 +191,18 @@ export function useChat(options?: UseChatOptions) {
         timestamp: new Date().toISOString(),
       }
       store.addMessage(userMsg)
+
+      // The session is still resolving; an INTERNAL channel would reject a turn
+      // that carries no identity yet.
+      if (isConfigured && connection && authLoading) {
+        store.addMessage({
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: t('chat.signingIn'),
+          timestamp: new Date().toISOString(),
+        })
+        return
+      }
 
       if (!isConfigured) {
         // Honest non-configured state — no fake "demo response".
@@ -205,8 +252,14 @@ export function useChat(options?: UseChatOptions) {
         const data = await response.json()
         const text = data.choices?.[0]?.message?.content ?? data.content ?? 'No response.'
         store.updateLastAssistant(text)
-      } catch {
-        store.updateLastAssistant('Sorry, I could not connect. Please try again later.')
+      } catch (error) {
+        // Surface the broker's own reason. Collapsing every failure into
+        // "could not connect" hid a configuration error behind a network one.
+        store.updateLastAssistant(
+          error instanceof FayzAgentError && error.status < 500
+            ? error.message
+            : 'Sorry, I could not connect. Please try again later.',
+        )
       } finally {
         store.setStreaming(false)
       }
@@ -218,12 +271,61 @@ export function useChat(options?: UseChatOptions) {
       runFayzAgentTurn,
       options?.apiEndpoint,
       options?.systemPrompt,
+      authLoading,
       t,
     ],
   )
 
+  // These read the store through getState rather than closing over `store`.
+  // `useChatStore()` has no selector, so it returns a fresh object on every
+  // state change — depending on it made loadHistory a new function after each
+  // setHistory, which re-fired the panel's effect and looped on /conversations.
+  /** Past conversations for this end user, so the panel can offer to resume. */
+  const loadHistory = useCallback(async () => {
+    if (!connection) return
+    try {
+      const list = await getFayzAgentClient(connection).listConversations(user?.id)
+      useChatStore.getState().setHistory(list)
+    } catch {
+      // History is an affordance, not the feature — a failure here must never
+      // block the user from simply typing.
+      useChatStore.getState().setHistory([])
+    }
+  }, [connection, user?.id])
+
+  const openConversation = useCallback(
+    async (conversationId: string) => {
+      if (!connection) return
+      const state = useChatStore.getState()
+      state.setStreaming(true)
+      try {
+        const conv = await getFayzAgentClient(connection).getConversation(conversationId, user?.id)
+        state.setMessages(conv.messages)
+        state.setConversationId(conv.id)
+      } finally {
+        useChatStore.getState().setStreaming(false)
+      }
+    },
+    [connection, user?.id],
+  )
+
+  const renameConversation = useCallback(
+    async (conversationId: string, title: string) => {
+      if (!connection) return
+      await getFayzAgentClient(connection).renameConversation(conversationId, title, user?.id)
+      await loadHistory()
+    },
+    [connection, user?.id, loadHistory],
+  )
+
   return {
     messages: store.messages,
+    history: store.history,
+    conversationId: store.conversationId,
+    loadHistory,
+    openConversation,
+    renameConversation,
+    startNewConversation: store.startNewConversation,
     isOpen: store.isOpen,
     isStreaming: store.isStreaming,
     /** True when a real backend is wired — the project's Fayz agent or a custom endpoint. */

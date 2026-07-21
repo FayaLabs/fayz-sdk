@@ -77,7 +77,31 @@ export class FayzAgentError extends Error {
   }
 }
 
+export interface FayzAgentSummary {
+  id: string
+  title: string | null
+  lastMessageAt: string
+}
+
+export interface FayzAgentMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+}
+
+export interface FayzAgentConversation {
+  id: string
+  title: string | null
+  messages: FayzAgentMessage[]
+}
+
 export interface FayzAgentClient {
+  /** The end user's own past conversations, newest interaction first. */
+  listConversations(externalUserId?: string): Promise<FayzAgentSummary[]>
+  /** Full transcript of one conversation, tool plumbing already stripped. */
+  getConversation(id: string, externalUserId?: string): Promise<FayzAgentConversation>
+  renameConversation(id: string, title: string, externalUserId?: string): Promise<void>
   /** Identity of the agent behind the key, for rendering its name/icon. */
   getInfo(signal?: AbortSignal): Promise<FayzAgentInfo>
   chat(input: FayzAgentChatInput): Promise<FayzAgentChatResponse>
@@ -100,7 +124,33 @@ export function createFayzAgentClient(options: FayzAgentClientOptions): FayzAgen
     return (await response.json()) as T
   }
 
+  const userQuery = (externalUserId?: string) =>
+    externalUserId ? `?externalUserId=${encodeURIComponent(externalUserId)}` : ''
+
   return {
+    async listConversations(externalUserId) {
+      const body = await request<{ conversations: FayzAgentSummary[] }>(
+        `/conversations${userQuery(externalUserId)}`,
+        { method: 'GET' },
+      )
+      return body.conversations ?? []
+    },
+
+    async getConversation(id, externalUserId) {
+      const body = await request<{ conversation: FayzAgentConversation }>(
+        `/conversations/${id}${userQuery(externalUserId)}`,
+        { method: 'GET' },
+      )
+      return body.conversation
+    },
+
+    async renameConversation(id, title, externalUserId) {
+      await request(`/conversations/${id}${userQuery(externalUserId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title }),
+      })
+    },
+
     async getInfo(signal) {
       const body = await request<{ agent: FayzAgentInfo }>('/config', { method: 'GET', signal })
       return body.agent

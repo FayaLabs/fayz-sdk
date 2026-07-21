@@ -5,14 +5,31 @@ import { cn } from '../utils/cn'
  * Minimal markdown renderer — builds React elements directly (no HTML string,
  * no dangerouslySetInnerHTML), so untrusted content is safe by construction.
  * Supports the subset content docs actually use: h1–h3, ---, blockquote,
- * ul/ol, paragraphs, and inline **bold** / *italic* / `code`.
+ * ul/ol, paragraphs, and inline **bold** / *italic* / `code` / [links](url).
  */
 
-const INLINE_TOKEN = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g
+const INLINE_TOKEN = /(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g
+const LINK = /^\[([^\]]+)\]\(([^)]+)\)$/
 
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   return text.split(INLINE_TOKEN).map((part, i) => {
     const key = `${keyPrefix}-${i}`
+    const link = LINK.exec(part)
+    if (link) {
+      const [, label, href] = link
+      // External targets get the usual isolation; in-app paths stay in the SPA.
+      const external = /^https?:\/\//.test(href)
+      return (
+        <a
+          key={key}
+          href={href}
+          {...(external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+          className="underline underline-offset-2 hover:opacity-80"
+        >
+          {label}
+        </a>
+      )
+    }
     if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
       return <strong key={key}>{part.slice(2, -2)}</strong>
     }
