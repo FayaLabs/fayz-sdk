@@ -231,6 +231,15 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
     declaredLimits: [
       { key: 'movements_month', label: 'Financial movements this month', table: 'plg_financial_movements', period: 'month' },
     ],
+    declaredRpcs: [
+      {
+        name: 'agent_financial_mark_payment_received',
+        kind: 'write' as const,
+        description:
+          'Guarded settle: invoices the order via fn_invoice_from_order (installments for credit card) and marks the receivable paid, audited with the acting user.',
+        audits: true,
+      },
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',
@@ -299,6 +308,34 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
           { label: 'Create an invoice for a new client' },
         ],
         permission: { feature: 'financial', action: 'create' as const },
+      },
+      {
+        id: 'financial.mark-payment-received',
+        name: 'markPaymentReceived',
+        description:
+          'Marks an order/appointment as paid: invoices it (with installments for credit card, e.g. "cartão 2x") and settles the receivable. Resolve the booking or order id via search tools first.',
+        icon: 'BadgeDollarSign',
+        mode: 'persist' as const,
+        execution: { plane: 'server' as const, kind: 'rpc' as const, rpc: 'agent_financial_mark_payment_received' },
+        category: 'Finance',
+        parameters: {
+          type: 'object' as const,
+          properties: {
+            booking_id: { type: 'string' as const, description: 'Appointment id (alternative to order_id)' },
+            order_id: { type: 'string' as const, description: 'Order id' },
+            method: {
+              type: 'string' as const,
+              description: 'Payment method',
+              enum: ['cash', 'pix', 'credit_card', 'debit_card', 'transfer'],
+            },
+            installments: { type: 'number' as const, description: 'Credit-card installments (1-12), e.g. 2 for "cartão 2x"' },
+          },
+          required: ['method'],
+        },
+        suggestions: [
+          { label: 'Marcar o atendimento como pago no cartão em 2x' },
+        ],
+        permission: { feature: 'financial.receivables', action: 'update' as const },
       },
       {
         id: 'financial.list-payables',

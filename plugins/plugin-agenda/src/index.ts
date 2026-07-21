@@ -72,6 +72,15 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
     declaredLimits: [
       { key: 'bookings_month', label: 'Appointments this month', table: 'appointments', period: 'month' },
     ],
+    declaredRpcs: [
+      {
+        name: 'agent_agenda_create_appointment',
+        kind: 'write' as const,
+        description:
+          'Guarded appointment create: agent_guard (role→plan→bookings_month cap), working hours, race-safe conflict check, audited.',
+        audits: true,
+      },
+    ],
 
     navigation: [
       {
@@ -123,6 +132,7 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
         icon: 'CalendarPlus',
         mode: 'persist' as const,
         limitKey: 'bookings_month',
+        execution: { plane: 'server' as const, kind: 'rpc' as const, rpc: 'agent_agenda_create_appointment' },
         category: 'Scheduling',
         parameters: {
           type: 'object' as const,
