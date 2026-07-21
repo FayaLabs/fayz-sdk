@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { Button, useSaveBar } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import type { CustomFormsDataProvider } from '../data/types'
 import type { CustomFormsStore } from '../store'
 import type { FormTemplate, FormDocument } from '../types'
@@ -36,6 +37,7 @@ export function DocumentFormDialog({
   onBack,
 }: DocumentFormDialogProps) {
   const t = useTranslation()
+  const guardDocuments = useLimitGuard('documents_month')
   const [template, setTemplate] = useState<FormTemplate | null>(initialTemplate)
   const [data, setData] = useState<Record<string, unknown>>(existingDocument?.data ?? {})
   const [saving, setSaving] = useState(false)
@@ -49,6 +51,9 @@ export function DocumentFormDialog({
   const handleSave = useCallback(
     async (status: 'draft' | 'completed') => {
       if (!template) return
+      // Plan monthly-quota guard (client-side, before the provider call) — only
+      // on create. Opens the global UpgradeModal and aborts when the cap is hit.
+      if (!existingDocument && (await guardDocuments()) === 'blocked') return
       setSaving(true)
       try {
         const autoTitle = generateTitle(template.name, personName)
@@ -62,13 +67,14 @@ export function DocumentFormDialog({
             data,
             status,
           })
+          invalidateLimit('documents_month')
         }
         onSaved()
       } finally {
         setSaving(false)
       }
     },
-    [template, existingDocument, data, personId, personName, store, onSaved],
+    [template, existingDocument, data, personId, personName, store, onSaved, guardDocuments],
   )
 
   // Dirty detection — snapshot editable field values once template is ready

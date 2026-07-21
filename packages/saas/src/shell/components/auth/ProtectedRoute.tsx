@@ -1,7 +1,15 @@
 import React from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { usePermission } from '../../hooks/usePermission'
+import { useTenantStore } from '../../stores/tenant.store'
 import type { MemberRole } from '../../types'
+
+const ROLE_HIERARCHY: Record<MemberRole, number> = {
+  owner: 5,
+  admin: 4,
+  manager: 3,
+  staff: 2,
+  viewer: 1,
+}
 
 interface ProtectedRouteProps {
   children?: React.ReactNode
@@ -16,7 +24,9 @@ function LoadingSkeleton() {
 
 export function ProtectedRoute({ children, requiredRole, fallback, onUnauthenticated }: ProtectedRouteProps) {
   const { user, loading, initialized } = useAuth()
-  const { requireRole } = usePermission()
+  const currentRole = useTenantStore((s) => s.currentRole)
+  const requireRole = (role: MemberRole): boolean =>
+    currentRole ? ROLE_HIERARCHY[currentRole] >= ROLE_HIERARCHY[role] : false
 
   React.useEffect(() => {
     if (initialized && !loading && !user && onUnauthenticated) {

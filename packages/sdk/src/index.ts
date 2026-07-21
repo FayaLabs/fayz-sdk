@@ -41,6 +41,17 @@ export {
   createFayzRuntimeClient,
   FayzRuntimeError,
 } from './runtime'
+export { createFayzAgentClient, FayzAgentError } from './agent'
+export type {
+  FayzAgentChatInput,
+  FayzAgentChatResponse,
+  FayzAgentClient,
+  FayzAgentClientOptions,
+  FayzAgentInfo,
+  FayzAgentTool,
+  FayzAgentToolCall,
+  FayzAgentToolResult,
+} from './agent'
 export {
   createFayzShopProvider,
   FayzShopError,

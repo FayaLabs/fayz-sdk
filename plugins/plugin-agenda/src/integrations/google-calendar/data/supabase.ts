@@ -7,6 +7,7 @@
 //     tables directly under RLS.
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { channelRowToChannel } from '../mapping'
+import { GCAL_TABLES } from './tables'
 import type {
   CalendarIntegration,
   CalendarSyncLogEntry,
@@ -24,7 +25,7 @@ function sb() {
   return supabase
 }
 
-/** Snake_case patch for calendar_channels writes (RLS-scoped). */
+/** Snake_case patch for plg_calendar_channels writes (RLS-scoped). */
 export interface CalendarChannelInput {
   id?: string
   integrationId?: string
@@ -65,7 +66,7 @@ export interface GoogleCalendarProvider {
 export function createGoogleCalendarProvider(): GoogleCalendarProvider {
   return {
     async getIntegration() {
-      const { data } = await sb().from('calendar_integrations').select('*').eq('provider', 'google').limit(1).maybeSingle()
+      const { data } = await sb().from(GCAL_TABLES.integrations).select('*').eq('provider', 'google').limit(1).maybeSingle()
       if (!data) return null
       return {
         id: data.id,
@@ -86,11 +87,11 @@ export function createGoogleCalendarProvider(): GoogleCalendarProvider {
     },
 
     async setCalendar(calendarId) {
-      await sb().from('calendar_integrations').update({ calendar_id: calendarId, updated_at: new Date().toISOString() }).eq('provider', 'google')
+      await sb().from(GCAL_TABLES.integrations).update({ calendar_id: calendarId, updated_at: new Date().toISOString() }).eq('provider', 'google')
     },
 
     async disconnect() {
-      await sb().from('calendar_integrations').update({ active: false, oauth_refresh_token: null, oauth_access_token: null }).eq('provider', 'google')
+      await sb().from(GCAL_TABLES.integrations).update({ active: false, oauth_refresh_token: null, oauth_access_token: null }).eq('provider', 'google')
     },
 
     async syncNow() {
@@ -100,7 +101,7 @@ export function createGoogleCalendarProvider(): GoogleCalendarProvider {
     },
 
     async getSyncLog() {
-      const { data } = await sb().from('calendar_sync_log').select('*').order('created_at', { ascending: false }).limit(20)
+      const { data } = await sb().from(GCAL_TABLES.syncLog).select('*').order('created_at', { ascending: false }).limit(20)
       return (data ?? []).map((r: any) => ({
         id: r.id, direction: r.direction, trigger: r.trigger ?? undefined,
         status: r.status, fetched: r.fetched ?? 0, written: r.written ?? 0,
@@ -115,7 +116,7 @@ export function createGoogleCalendarProvider(): GoogleCalendarProvider {
     },
 
     async listChannels() {
-      const { data } = await sb().from('calendar_channels').select('*').order('created_at', { ascending: true })
+      const { data } = await sb().from(GCAL_TABLES.channels).select('*').order('created_at', { ascending: true })
       return (data ?? []).map(channelRowToChannel)
     },
 
@@ -124,7 +125,7 @@ export function createGoogleCalendarProvider(): GoogleCalendarProvider {
       // Resolve the integration id when the caller didn't pass one.
       let integrationId = input.integrationId
       if (!integrationId) {
-        const { data } = await sb().from('calendar_integrations').select('id').eq('provider', 'google').limit(1).maybeSingle()
+        const { data } = await sb().from(GCAL_TABLES.integrations).select('id').eq('provider', 'google').limit(1).maybeSingle()
         integrationId = data?.id
       }
       const row: Record<string, unknown> = {
@@ -141,12 +142,12 @@ export function createGoogleCalendarProvider(): GoogleCalendarProvider {
       if (input.targetId !== undefined) row.target_id = input.targetId
       if (input.importMode !== undefined) row.import_mode = input.importMode
       if (input.isActive !== undefined) row.is_active = input.isActive
-      const { error } = await sb().from('calendar_channels').upsert(row, { onConflict: 'integration_id,google_calendar_id' })
+      const { error } = await sb().from(GCAL_TABLES.channels).upsert(row, { onConflict: 'integration_id,google_calendar_id' })
       if (error) throw new Error(error.message)
     },
 
     async deleteChannel(id) {
-      const { error } = await sb().from('calendar_channels').delete().eq('id', id)
+      const { error } = await sb().from(GCAL_TABLES.channels).delete().eq('id', id)
       if (error) throw new Error(error.message)
     },
 

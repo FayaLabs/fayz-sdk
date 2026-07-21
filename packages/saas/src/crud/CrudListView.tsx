@@ -10,6 +10,7 @@ import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@fayz-
 import { fieldToColumns } from './fieldToColumn'
 import { CrudCardGrid } from './CrudCardGrid'
 import { PermissionGate } from '../permissions/PermissionGate'
+import { LimitGate } from '../shell/components/billing/gates'
 
 /** A resolved facet: a field plus the option pills to render. */
 export interface CrudFacet {
@@ -112,6 +113,20 @@ export function CrudListView<T extends { id: string }>({
     ? <Button onClick={onNew}>{addLabel ?? t('crud.list.addEntity', { entity: entityDef.name })}</Button>
     : null
 
+  // Compose the create action's gates: RBAC (PermissionGate, role axis) then the
+  // plan quantity cap (LimitGate, plan axis). At the cap, LimitGate dims the
+  // button and intercepts the click to open the global UpgradeModal.
+  const gatedNewButton = newButton
+    ? (() => {
+        const roleGated = feature
+          ? <PermissionGate feature={feature} action="create">{newButton}</PermissionGate>
+          : newButton
+        return entityDef.limitKey
+          ? <LimitGate limitKey={entityDef.limitKey}>{roleGated}</LimitGate>
+          : roleGated
+      })()
+    : null
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -124,7 +139,7 @@ export function CrudListView<T extends { id: string }>({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {newButton && (feature ? <PermissionGate feature={feature} action="create">{newButton}</PermissionGate> : newButton)}
+          {gatedNewButton}
           {hasImportExport && (
             <Dropdown>
               <DropdownTrigger asChild>

@@ -2,7 +2,8 @@ import * as React from 'react'
 import { useAuth } from '@fayz-ai/auth'
 import type { AuthProvider } from '@fayz-ai/core'
 import { ForgotPasswordForm, LoginForm, ResetPasswordForm, SignupForm } from './forms'
-import type { AuthFormView, AuthLayout } from './types'
+import { AmbassadorBubbles } from './AmbassadorBubbles'
+import type { AuthFormView, AuthLayout, LoginAmbassador } from './types'
 
 export interface LoginPageProps {
   appName?: string
@@ -11,6 +12,11 @@ export interface LoginPageProps {
   layout?: AuthLayout
   tagline?: string
   description?: string
+  /** Product ambassadors shown as a small social-proof avatar strip above the
+   *  tagline on the split-layout brand panel. Renders nothing when empty/imageless. */
+  loginAmbassadors?: LoginAmbassador[]
+  /** Optional microtext beside the ambassador strip, e.g. "+2 mil profissionais". */
+  loginAmbassadorsLabel?: string
   showOAuth?: boolean
   oauthProviders?: Exclude<AuthProvider, 'email'>[]
   resetPasswordUrl?: string
@@ -24,6 +30,8 @@ export function LoginPage({
   layout = 'split',
   tagline,
   description,
+  loginAmbassadors,
+  loginAmbassadorsLabel,
   showOAuth,
   oauthProviders,
   resetPasswordUrl,
@@ -90,8 +98,9 @@ export function LoginPage({
     <div className="flex min-h-screen bg-sidebar">
       <div className="relative hidden w-1/2 overflow-hidden lg:block">
         <div className="absolute inset-0 bg-gradient-to-br from-sidebar-accent/50 via-transparent to-sidebar/80" />
-        <div className="relative flex h-full flex-col justify-end p-12">
+        <div className="relative z-20 flex h-full flex-col justify-end p-12">
           <div className="space-y-4">
+            <AmbassadorBubbles ambassadors={loginAmbassadors} label={loginAmbassadorsLabel} />
             <p className="text-sm font-medium text-sidebar-muted">{appName}</p>
             <h2 className="text-3xl font-bold text-sidebar-foreground">{tagline ?? `Welcome to ${appName}`}</h2>
             {description && <p className="max-w-md text-sm leading-relaxed text-sidebar-muted">{description}</p>}

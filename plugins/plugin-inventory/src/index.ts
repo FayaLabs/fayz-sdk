@@ -126,6 +126,10 @@ export function createInventoryPlugin(options?: InventoryPluginOptions): PluginM
       { id: 'inventory', label: config.labels.pageTitle, group: config.labels.pageTitle },
       ...(config.modules.recipes ? [{ id: 'inventory.recipes', label: config.labels.recipes ?? 'Recipes', group: config.labels.pageTitle }] : []),
     ],
+    declaredLimits: [
+      { key: 'products', label: 'Products', table: 'products' },
+      ...(config.modules.recipes ? [{ key: 'recipes', label: config.labels.recipes ?? 'Recipes', table: 'plg_inventory_recipes' }] : []),
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',

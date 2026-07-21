@@ -1,8 +1,9 @@
 import React from 'react'
 import { SubpageHeader, Button, toast } from '@fayz-ai/ui'
-import { CrudFormPage } from '@fayz-ai/saas'
+import { CrudFormPage, useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import type { EntityDef } from '@fayz-ai/core'
 import { useEntityCrud } from './useEntityCrud'
+import { BLOG_POSTS_TABLE } from '../../data/blogEntities'
 
 // ---------------------------------------------------------------------------
 // Generic create/edit for a blog entity (post or category), rendered through
@@ -24,6 +25,9 @@ export function BlogEntityForm<T extends { id: string }>({
 }) {
   const { getById, create, update, remove } = useEntityCrud(entity)
   const isEdit = !!editId
+  // Plan quantity guard applies to blog POSTS only (categories are unbounded).
+  const isPost = (entity as { data?: { table?: string } }).data?.table === BLOG_POSTS_TABLE
+  const guardBlogPosts = useLimitGuard('blog_posts')
   const namePlural = entity.namePlural ?? entity.name + 's'
   const [initialData, setInitialData] = React.useState<Record<string, any> | null>(isEdit ? null : {})
 
@@ -38,9 +42,14 @@ export function BlogEntityForm<T extends { id: string }>({
   }, [editId, getById])
 
   async function save(values: Record<string, any>) {
+    // Client-side plan guard before the provider create — posts only, on create.
+    if (!isEdit && isPost && (await guardBlogPosts()) === 'blocked') return
     try {
       if (isEdit) await update(editId!, values)
-      else await create(values)
+      else {
+        await create(values)
+        if (isPost) invalidateLimit('blog_posts')
+      }
       toast.success(isEdit ? `${entity.name} updated` : `${entity.name} created`)
       onDone()
     } catch (err) {

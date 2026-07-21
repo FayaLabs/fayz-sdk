@@ -110,6 +110,12 @@ export function createOrdersPlugin(options?: OrdersPluginOptions): PluginManifes
     verticalId: options?.verticalId,
     defaultEnabled: true,
     dependencies: ['menu'],
+    // Orders/month quota. NOTE: order creation currently flows only through the
+    // store/AI-tool (createOrder) with no dedicated UI create handler, so no
+    // client-side guard is wired yet — the declaration keeps the cap countable.
+    declaredLimits: [
+      { key: 'orders_month', label: 'Orders / month', table: 'orders', kindFilter: 'order', period: 'month' },
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',

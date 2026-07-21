@@ -157,6 +157,10 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
       ...(config.modules.contentPlanner ? [{ id: 'marketing.content', label: config.labels.content, group: 'Engage' }] : []),
       ...(config.modules.blog ? [{ id: 'marketing.blog', label: config.labels.blog, group: 'Engage' }] : []),
     ],
+    declaredLimits: [
+      ...(config.modules.contentPlanner ? [{ key: 'content_posts_month', label: 'Content posts / month', table: 'plg_marketing_content_posts', period: 'month' as const }] : []),
+      ...(config.modules.blog ? [{ key: 'blog_posts', label: 'Blog posts', table: 'plg_blog_posts' }] : []),
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',

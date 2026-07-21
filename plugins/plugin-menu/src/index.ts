@@ -98,6 +98,9 @@ export function createMenuPlugin(options?: MenuPluginOptions): PluginManifest {
     scaffolds: ['saas', 'ecommerce'],
     defaultEnabled: true,
     dependencies: [],
+    declaredLimits: [
+      { key: 'menu_items', label: 'Menu items', table: 'menu_items' },
+    ],
     navigation: [
       {
         section: options?.navSection ?? 'main',

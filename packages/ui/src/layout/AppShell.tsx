@@ -98,6 +98,10 @@ export interface AppShellProps {
   onProfile?: () => void
   onSettings?: () => void
   onBilling?: () => void
+  /** Current-plan pill shown next to the user in the topbar menu. */
+  userPlan?: { label: string; paid: boolean }
+  /** i18n label for the billing/subscription user-menu item. */
+  billingLabel?: string
   pageTitle?: string
   currentPath?: string
   userMenuExtras?: { label: string; icon?: React.ReactNode; onClick: () => void }[]
@@ -117,6 +121,13 @@ export interface AppShellProps {
   notificationSlot?: React.ReactNode
   /** Unread notification count */
   unreadCount?: number
+  /** Optional headings above the sidebar nav sections (contextual sidebars). */
+  sidebarSectionLabels?: { main?: string; secondary?: string; settings?: string }
+  /** Identity of the current sidebar context — changing it animates the rail
+   *  swap as a push (new nav in, previous nav out). */
+  sidebarNavKey?: string
+  /** Push direction for a `sidebarNavKey` change. Default 'forward'. */
+  sidebarNavDirection?: 'forward' | 'back'
 }
 
 // ---------------------------------------------------------------------------
@@ -147,6 +158,9 @@ function SidebarLayout({
   unreadCount = 0,
   hasBottomNav = false,
   mobileHeader = 'minimal',
+  sidebarSectionLabels,
+  sidebarNavKey,
+  sidebarNavDirection,
 }: {
   navigation?: NavigationItem[]
   logo?: React.ReactNode
@@ -174,6 +188,9 @@ function SidebarLayout({
   hasBottomNav?: boolean
   /** Mobile header treatment (<md). Desktop keeps its top bar untouched. */
   mobileHeader?: MobileHeaderVariant
+  sidebarSectionLabels?: AppShellProps['sidebarSectionLabels']
+  sidebarNavKey?: string
+  sidebarNavDirection?: 'forward' | 'back'
 }) {
   const sidebarCollapsed = useLayoutStore((s) => s.sidebarCollapsed)
   const setSidebarCollapsed = useLayoutStore((s) => s.setSidebarCollapsed)
@@ -213,6 +230,9 @@ function SidebarLayout({
           userMenuSlot={userMenuSlot}
           notificationSlot={notificationSlot}
           unreadCount={unreadCount}
+          sectionLabels={sidebarSectionLabels}
+          navKey={sidebarNavKey}
+          navDirection={sidebarNavDirection}
         />
       </div>
 
@@ -307,11 +327,14 @@ function TopbarLayout({
   onProfile,
   onSettings,
   onBilling,
+  userPlan,
+  billingLabel,
   userMenuExtras,
   frame,
   currentPath,
   topbarStart,
   topbarEnd,
+  notificationSlot,
   hasBottomNav = false,
 }: {
   navigation?: NavigationItem[]
@@ -323,11 +346,15 @@ function TopbarLayout({
   onProfile?: () => void
   onSettings?: () => void
   onBilling?: () => void
+  userPlan?: AppShellProps['userPlan']
+  billingLabel?: AppShellProps['billingLabel']
   userMenuExtras?: AppShellProps['userMenuExtras']
   frame?: boolean
   currentPath?: string
   topbarStart?: React.ReactNode
   topbarEnd?: React.ReactNode
+  /** Bell/inbox slot — in the topbar layout it renders with the right-side actions. */
+  notificationSlot?: React.ReactNode
   /** When a mobile bottom-nav bar is present, the mobile hamburger is
    *  suppressed so the bottom nav is the primary mobile navigation. */
   hasBottomNav?: boolean
@@ -348,9 +375,11 @@ function TopbarLayout({
         onProfile={onProfile}
         onSettings={onSettings}
         onBilling={onBilling}
+        userPlan={userPlan}
+        billingLabel={billingLabel}
         userMenuExtras={userMenuExtras}
         leftContent={topbarStart}
-        rightContent={topbarEnd}
+        rightContent={(topbarEnd || notificationSlot) ? <>{topbarEnd}{notificationSlot}</> : undefined}
         onMenuClick={hasBottomNav ? undefined : () => setMobileMenuOpen(true)}
       />
       {/* Frame inset/border only from md up, so mobile stays edge-to-edge. The
@@ -629,6 +658,8 @@ export function AppShell({
   onProfile,
   onSettings,
   onBilling,
+  userPlan,
+  billingLabel,
   pageTitle,
   currentPath,
   userMenuExtras,
@@ -643,6 +674,9 @@ export function AppShell({
   userMenuSlot,
   notificationSlot,
   unreadCount = 0,
+  sidebarSectionLabels,
+  sidebarNavKey,
+  sidebarNavDirection,
 }: AppShellProps) {
   const hasBottomNav = !!bottomNav?.length
   const bottomBar = hasBottomNav ? (
@@ -686,6 +720,9 @@ export function AppShell({
           unreadCount={unreadCount}
           hasBottomNav={hasBottomNav}
           mobileHeader={mobileHeader}
+          sidebarSectionLabels={sidebarSectionLabels}
+          sidebarNavKey={sidebarNavKey}
+          sidebarNavDirection={sidebarNavDirection}
         >
           {children}
         </SidebarLayout>
@@ -703,11 +740,14 @@ export function AppShell({
           onProfile={onProfile}
           onSettings={onSettings}
           onBilling={onBilling}
+          userPlan={userPlan}
+          billingLabel={billingLabel}
           userMenuExtras={userMenuExtras}
           frame={contentFrame}
           currentPath={currentPath}
           topbarStart={topbarStart}
           topbarEnd={topbarEnd}
+          notificationSlot={notificationSlot}
           hasBottomNav={hasBottomNav}
         >
           {children}

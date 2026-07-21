@@ -31,8 +31,9 @@ DECLARE
     -- 004 archetypes (self-governed via 004/006 policies)
     'people', 'categories', 'products', 'services', 'orders', 'order_items',
     'transactions', 'appointments', 'appointment_items', 'schedules',
-    -- core, non-API helper tables
-    'sequences', 'documents', 'fayz_migration_ledger'
+    -- core, non-API helper tables (both ledger names kept for pre/post-rename compat;
+    -- `_migrations` is also covered by the NOT LIKE '\_%' filter below)
+    'sequences', 'documents', 'fayz_migration_ledger', '_migrations'
   ];
 BEGIN
   FOR t IN

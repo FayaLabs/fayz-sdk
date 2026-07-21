@@ -6,7 +6,7 @@ import { FinancialContextProvider, type ResolvedFinancialConfig } from './Financ
 import type { FinancialDataProvider } from './data/types'
 import type { FinancialUIState } from './store'
 import type { PluginRegistryDef, PluginQuickAction } from '@fayz-ai/core'
-import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel } from '@fayz-ai/saas'
+import { useModuleNavigation, ModuleActionBar, parseViewId, PluginSettingsPanel, EntitlementGate, PermissionGate, usePermissionOptional } from '@fayz-ai/saas'
 import { SummaryView } from './views/SummaryView'
 import { QuickTransactionForm } from './views/QuickTransactionForm'
 import { usePendingQuickAdd, consumeQuickAdd } from './quick-add'
@@ -178,6 +178,12 @@ export function FinancialPage({ config, provider, store, registries }: {
   }, [onboardingComplete, provider])
 
   const t = useTranslation()
+  // Role-side create gate (QA: create affordances in custom plugin UIs must honor
+  // the role's `create` action, not just the route-level `read` guard). The
+  // financial module owns a single `/financial` route gated on read, so every
+  // in-page "new" affordance below is otherwise ungated.
+  const can = usePermissionOptional()
+  const canCreate = can('financial', 'create')
   const intent = parseIntent(view)
   const isSettings = view === 'settings'
   const nav = buildNav(config, view, navigate, t)
@@ -203,6 +209,9 @@ export function FinancialPage({ config, provider, store, registries }: {
     if (!pendingQuickAdd) return
     const req = consumeQuickAdd()
     if (!req) return
+    // Defense in depth: the app-shell global "+" can request a quick-add even for
+    // a read-only member — swallow it when the role lacks `create`.
+    if (!canCreate) return
     setQuickAddType(req.type)
     setQuickAddReceipt(req.receipt)
     setQuickAddOpen(true)
@@ -217,6 +226,9 @@ export function FinancialPage({ config, provider, store, registries }: {
   // cash actions and no quick-add buttons render — exactly today's behavior.
   const quickActions = useMemo<PluginQuickAction[]>(() => {
     if (config.quickAdd) return []
+    // No `create` action → surface no "new" quick actions (payable/receivable/cash
+    // are all create affordances under the one-primary-action rule).
+    if (!canCreate) return []
     const actions: PluginQuickAction[] = []
     if (config.modules.payables) {
       actions.push({
@@ -246,7 +258,7 @@ export function FinancialPage({ config, provider, store, registries }: {
       })
     }
     return actions
-  }, [config.modules, config.quickAdd])
+  }, [config.modules, config.quickAdd, canCreate, navigate, t])
 
   function handleOnboardingComplete() {
     setOnboardingComplete(true)
@@ -293,7 +305,13 @@ export function FinancialPage({ config, provider, store, registries }: {
       case 'statements':
         return <StatementsView onNavigate={navigate} />
       case 'reconciliation':
-        return <ReconciliationView />
+        // Premium submodule: internal tab (not a shell route), so the plan gate
+        // must live here — the route guard never sees it (QA finding B35).
+        return (
+          <EntitlementGate feature="fin_reconciliation">
+            <ReconciliationView />
+          </EntitlementGate>
+        )
       case 'commissions':
         return <CommissionsView />
       case 'cards':
@@ -319,14 +337,17 @@ export function FinancialPage({ config, provider, store, registries }: {
               // add affordance in B2C mode. The receipt entry point lives inside the
               // sheet's "Fotografar ou anexar recibo" attachment step, so no separate
               // "Enviar recibo" button is needed here.
-              <Button
-                size="sm"
-                className="hidden md:inline-flex"
-                onClick={() => openQuickAdd('expense')}
-              >
-                <Plus className="h-4 w-4" />
-                {t('financial.quickTx.newTransaction')}
-              </Button>
+              // Gated on the role's `create` action so read-only members don't see it.
+              <PermissionGate feature="financial" action="create">
+                <Button
+                  size="sm"
+                  className="hidden md:inline-flex"
+                  onClick={() => openQuickAdd('expense')}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('financial.quickTx.newTransaction')}
+                </Button>
+              </PermissionGate>
             )}
             <ModuleActionBar
               quickActions={quickActions}

@@ -6,11 +6,13 @@ import { useChatStore, type ChatMessage } from '../../stores/chat.store'
 import { useChat } from '../../hooks/useChat'
 import { useAITools } from '../../hooks/useAITools'
 import { ChatSuggestions, ChatToolsPanel } from './ChatSuggestions'
+import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
 
 interface ChatPanelProps {
   title?: string
   apiEndpoint?: string
   systemPrompt?: string
+  agent?: FayzAgentConnectionConfig | false
   className?: string
 }
 
@@ -18,10 +20,11 @@ export function ChatPanel({
   title = 'Assistant',
   apiEndpoint,
   systemPrompt,
+  agent,
   className,
 }: ChatPanelProps) {
   const { isOpen, messages, isStreaming } = useChatStore()
-  const { sendMessage } = useChat({ apiEndpoint, systemPrompt })
+  const { sendMessage, isConfigured } = useChat({ apiEndpoint, systemPrompt, agent })
   const { t } = useTranslation()
   const { suggestions, toolGroups } = useAITools()
   const [input, setInput] = React.useState('')
@@ -49,7 +52,7 @@ export function ChatPanel({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const text = input.trim()
-    if (!text || isStreaming) return
+    if (!text || isStreaming || !isConfigured) return
     setInput('')
     setShowTools(false)
     sendMessage(text)
@@ -103,13 +106,20 @@ export function ChatPanel({
           )}
         >
           {!hasMessages && (
-            <ChatSuggestions
-              suggestions={suggestions}
-              onSelect={(suggestion) => {
-                setInput('')
-                sendMessage(suggestion.prompt ?? suggestion.label)
-              }}
-            />
+            <>
+              {!isConfigured && (
+                <div className="mx-3 mt-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                  {t('chat.notConfigured')}
+                </div>
+              )}
+              <ChatSuggestions
+                suggestions={suggestions}
+                onSelect={(suggestion) => {
+                  setInput('')
+                  sendMessage(suggestion.prompt ?? suggestion.label)
+                }}
+              />
+            </>
           )}
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
@@ -124,7 +134,7 @@ export function ChatPanel({
         </div>
       )}
 
-      {/* Input */}
+      {/* Input — disabled until a real chat.apiEndpoint is configured. */}
       <form onSubmit={handleSubmit} className="border-t border-border/40 p-2">
         <div className="flex items-center gap-1.5 rounded-full border border-border bg-background py-1 pl-3.5 pr-1 transition-colors focus-within:border-foreground/20">
           <input
@@ -132,13 +142,13 @@ export function ChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={t('chat.messagePlaceholder')}
-            className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-            disabled={isStreaming}
+            placeholder={isConfigured ? t('chat.messagePlaceholder') : t('chat.notConfigured')}
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:cursor-not-allowed"
+            disabled={isStreaming || !isConfigured}
           />
           <button
             type="submit"
-            disabled={!input.trim() || isStreaming}
+            disabled={!input.trim() || isStreaming || !isConfigured}
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-opacity hover:opacity-80 disabled:opacity-20"
             aria-label="Send message"
           >

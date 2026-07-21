@@ -53,6 +53,9 @@ export function createBlogPlugin(options?: BlogPluginOptions): BlogWebsitePlugin
     defaultEnabled: true,
     dependencies: [],
     declaredFeatures: [{ id: 'blog', label: 'Blog', group: 'Attract' }],
+    // Blog posts count against the plan cap. The create UI lives in the
+    // marketing "Blog" backoffice, which writes to this plugin's posts table.
+    declaredLimits: [{ key: 'blog_posts', label: 'Blog posts', table: 'plg_blog_posts' }],
     // Host owns website nav; no admin nav in M1.
     navigation: [],
     routes: [

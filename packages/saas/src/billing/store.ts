@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Plan } from '@fayz-ai/core'
+import type { Plan, BillingCheckoutFn } from '@fayz-ai/core'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -31,6 +31,10 @@ export interface BillingState {
   invoices: Invoice[]
   plans: Plan[]
   loading: boolean
+  /** Payment-gateway seam seeded from `config.billing.onCheckout` (see core
+   *  BillingConfig). When set, the Subscription page routes plan changes through
+   *  it instead of writing `plan` straight onto the org. */
+  checkout: BillingCheckoutFn | null
 }
 
 // ---------------------------------------------------------------------------
@@ -42,6 +46,7 @@ export interface BillingStore extends BillingState {
   setInvoices: (invoices: Invoice[]) => void
   setPlans: (plans: Plan[]) => void
   setLoading: (loading: boolean) => void
+  setCheckout: (checkout: BillingCheckoutFn | null) => void
   reset: () => void
 }
 
@@ -50,6 +55,7 @@ const initialState: BillingState = {
   invoices: [],
   plans: [],
   loading: false,
+  checkout: null,
 }
 
 export const useBillingStore = create<BillingStore>((set) => ({
@@ -58,5 +64,6 @@ export const useBillingStore = create<BillingStore>((set) => ({
   setInvoices: (invoices) => set({ invoices }),
   setPlans: (plans) => set({ plans }),
   setLoading: (loading) => set({ loading }),
+  setCheckout: (checkout) => set({ checkout }),
   reset: () => set(initialState),
 }))

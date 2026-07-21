@@ -1,10 +1,13 @@
 import { getSupabaseClientOptional } from '@fayz-ai/core'
 import type { ConversationsProvider } from './types'
+import { T } from './tables'
+import { CHANNEL_ACCENT_HEX } from './accents'
 import type {
   Conversation,
   Message,
   ListConversationsQuery,
   SendMessageInput,
+  CreateConversationInput,
   ConversationStatus,
 } from '../types'
 
@@ -84,7 +87,7 @@ export function createSupabaseConversationsProvider(
 
   return {
     async listConversations(query?: ListConversationsQuery): Promise<Conversation[]> {
-      let q = (client().from('conversations') as { select: (s: string) => Row }).select('*')
+      let q = (client().from(T.conversations) as { select: (s: string) => Row }).select('*')
 
       const tenantId = resolveTenantId()
       if (tenantId) q = (q as { eq: (c: string, v: string) => Row }).eq('tenant_id', tenantId)
@@ -111,7 +114,7 @@ export function createSupabaseConversationsProvider(
 
     async getMessages(conversationId: string): Promise<Message[]> {
       const selected = (
-        client().from('conversation_messages') as { select: (s: string) => Row }
+        client().from(T.messages) as { select: (s: string) => Row }
       ).select('*')
       const filtered = (selected as { eq: (c: string, v: string) => Row }).eq(
         'conversation_id',
@@ -125,11 +128,65 @@ export function createSupabaseConversationsProvider(
       return (data ?? []).map(mapMessage)
     },
 
+    async createConversation(input: CreateConversationInput): Promise<Conversation> {
+      const tenantId = resolveTenantId()
+      // Insert with a null tenant_id fails the plg_conversations RLS WITH CHECK
+      // (tenant_id ∈ user_tenant_ids()) with an opaque Postgres error. When the
+      // active tenant hasn't resolved yet (bootstrap race), fail fast with an
+      // actionable message the compose modal can surface via toast.
+      if (!tenantId) {
+        throw new Error('[plugin-conversations] Active tenant not resolved — cannot create conversation. Try again in a moment.')
+      }
+      const now = new Date().toISOString()
+      const firstMessage = input.firstMessage?.trim()
+
+      const convRow: Row = {
+        contact_name: input.contactName.trim(),
+        contact_handle: input.contactHandle?.trim() || null,
+        channel: input.channel,
+        last_message_preview: firstMessage || null,
+        last_message_at: now,
+        unread_count: 0,
+        status: 'open',
+        assigned_to: selfAuthor,
+        accent: CHANNEL_ACCENT_HEX[input.channel],
+        tags: [],
+        note: input.note?.trim() || null,
+      }
+      if (tenantId) convRow.tenant_id = tenantId
+
+      const { data: created, error } = (await (
+        (client().from(T.conversations) as { insert: (r: Row) => Row }).insert(convRow) as {
+          select: () => { single: () => Promise<{ data: Row | null; error: unknown }> }
+        }
+      )
+        .select()
+        .single()) as { data: Row | null; error: unknown }
+      if (error) throw error
+      if (!created) throw new Error('Conversation not created')
+
+      // Seed the thread with the first outbound message when provided.
+      if (firstMessage) {
+        const msgRow: Row = {
+          conversation_id: String(created.id),
+          channel: input.channel,
+          direction: 'outbound',
+          body: firstMessage,
+          author: selfAuthor,
+          at: now,
+        }
+        if (tenantId) msgRow.tenant_id = tenantId
+        await (client().from(T.messages) as { insert: (r: Row) => Promise<unknown> }).insert(msgRow)
+      }
+
+      return mapConversation(created)
+    },
+
     async sendMessage(input: SendMessageInput): Promise<Message> {
       const tenantId = resolveTenantId()
 
       // Resolve the channel from the parent conversation so the message matches.
-      const convSelected = (client().from('conversations') as { select: (s: string) => Row }).select(
+      const convSelected = (client().from(T.conversations) as { select: (s: string) => Row }).select(
         'channel',
       )
       const convFiltered = (convSelected as { eq: (c: string, v: string) => Row }).eq(
@@ -153,7 +210,7 @@ export function createSupabaseConversationsProvider(
       if (tenantId) row.tenant_id = tenantId
 
       const { data: created, error } = (await (
-        (client().from('conversation_messages') as { insert: (r: Row) => Row }).insert(row) as {
+        (client().from(T.messages) as { insert: (r: Row) => Row }).insert(row) as {
           select: () => { single: () => Promise<{ data: Row | null; error: unknown }> }
         }
       )
@@ -163,7 +220,7 @@ export function createSupabaseConversationsProvider(
 
       // Roll the parent conversation forward (preview / timestamp / unread / reopen).
       await (
-        (client().from('conversations') as {
+        (client().from(T.conversations) as {
           update: (r: Row) => Row
         }).update({
           last_message_preview: input.body,
@@ -178,7 +235,7 @@ export function createSupabaseConversationsProvider(
 
     async markRead(conversationId: string): Promise<void> {
       const { error } = (await (
-        (client().from('conversations') as { update: (r: Row) => Row }).update({
+        (client().from(T.conversations) as { update: (r: Row) => Row }).update({
           unread_count: 0,
         }) as { eq: (c: string, v: string) => Promise<{ error: unknown }> }
       ).eq('id', conversationId)) as { error: unknown }
@@ -186,7 +243,7 @@ export function createSupabaseConversationsProvider(
     },
 
     async setStatus(conversationId: string, status: ConversationStatus): Promise<Conversation> {
-      const updated = (client().from('conversations') as { update: (r: Row) => Row }).update({
+      const updated = (client().from(T.conversations) as { update: (r: Row) => Row }).update({
         status,
       })
       const filtered = (updated as { eq: (c: string, v: string) => Row }).eq('id', conversationId)

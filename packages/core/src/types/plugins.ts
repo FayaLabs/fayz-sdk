@@ -1,6 +1,7 @@
 import type React from 'react'
 import type { EntityDef } from './crud'
 import type { FeatureDeclaration, PermissionAction } from './permissions'
+import type { LimitDeclaration } from './entitlements'
 import type { ConnectorDefinition } from '../integrations'
 
 export type VerticalId = 'beauty' | 'food' | 'health' | 'services' | 'retail' | 'education' | (string & {})
@@ -233,6 +234,14 @@ export interface PluginAITool {
   mode: AIToolMode
   parameters?: AIToolParameters
   permission?: PluginPermissionRequirement
+  /**
+   * Quantity-limit key this tool's writes consume (e.g. 'bookings_month' for a
+   * booking-creating tool). Persist-mode tools that create countable rows MUST
+   * declare it so the agent executor can run the SAME plan-limit guard the UI
+   * runs (guard before execute, invalidate after) — an AI agent never clicks a
+   * gated button, so the declarative contract is its only gate.
+   */
+  limitKey?: string
   suggestions?: AIToolSuggestion[]
   category?: string
   tags?: string[]
@@ -314,6 +323,13 @@ export interface PluginManifest {
   entities?: string[]
   permissions?: string[]
   declaredFeatures?: FeatureDeclaration[]
+  /**
+   * Quantity limits this plugin knows how to count. Aggregated by the plugin
+   * runtime into `PluginRuntime.pluginLimits` and consumed by the access engine
+   * (useLimit / useLimitGuard) so a plugin "is born compatible" with freemium
+   * caps without any per-app wiring. See {@link LimitDeclaration}.
+   */
+  declaredLimits?: LimitDeclaration[]
   registries?: PluginRegistryDef[]
   /**
    * Connectors this plugin contributes. An ADDON plugin declares its connector(s)
@@ -386,4 +402,6 @@ export interface PluginRuntime {
   /** Connectors contributed by active plugins, grouped by the host plugin they extend. */
   connectorsByHost: Map<string, ConnectorDefinition[]>
   pluginFeatures: FeatureDeclaration[]
+  /** Limit declarations aggregated from every active plugin's `declaredLimits`. */
+  pluginLimits: LimitDeclaration[]
 }

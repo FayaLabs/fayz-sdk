@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {
+  Crown,
   Home,
   Users,
   Settings,
@@ -91,6 +92,11 @@ import {
   Boxes,
   Clock3,
   FileCheck2,
+  User,
+  Palette,
+  ShieldCheck,
+  SlidersHorizontal,
+  Puzzle,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '../utils/cn'
@@ -104,6 +110,10 @@ export interface NavigationItem {
   section: 'main' | 'secondary' | 'settings'
   badge?: string | number
   permission?: { feature: string; action: 'read' | 'create' | 'edit' | 'delete' }
+  /** Freemium discovery: the user's role allows this item, but their plan does
+   *  not entitle the feature. The item stays visible with a small Crown badge
+   *  and, on click, leads to the plan's UpgradePrompt. */
+  premium?: boolean
   children?: NavigationItem[]
 }
 
@@ -137,6 +147,17 @@ export interface SidebarProps {
   notificationSlot?: React.ReactNode
   /** Unread notification count for the bell indicator */
   unreadCount?: number
+  /** Optional headings above each nav section. Used by contextual sidebars
+   *  (e.g. /settings swaps the rail for "Settings links" + "Plugins"); the
+   *  normal app rail leaves them undefined and renders no headings. */
+  sectionLabels?: { main?: string; secondary?: string; settings?: string }
+  /** Identity of the current rail context. When it changes, the rail animates
+   *  as a push: the new nav slides in while the previous one slides out.
+   *  Leave undefined for a static rail (no swap animation). */
+  navKey?: string
+  /** Push direction for a `navKey` change. 'forward' pulls the new rail in
+   *  from the right (drilling in), 'back' from the left (returning). */
+  navDirection?: 'forward' | 'back'
 }
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -148,9 +169,19 @@ const ICON_MAP: Record<string, LucideIcon> = {
   PartyPopper, Radio, CalendarDays, CalendarCheck2, CalendarX, BadgeDollarSign, Banknote, Landmark, CircleDollarSign, Layers, Music, Eye, ListMusic, Disc3, UsersRound, Mic,
   Zap, Award, LayoutDashboard, MessageSquare, Inbox, Star, TrendingUp, UserCheck, UserPlus, UserX, Workflow, Boxes, Clock3, FileCheck2,
   GraduationCap, Repeat,
+  User, Palette, ShieldCheck, SlidersHorizontal, Puzzle,
 }
 
 export { ICON_MAP }
+
+/** Kept in sync with --saas-rail-duration in styles.css. */
+const RAIL_PUSH_MS = 260
+
+/** Layout effect on the client, plain effect during SSR (avoids the warning).
+ *  The rail push needs the layout variant: the animation classes must be on
+ *  the DOM before paint, or the new rail shows one frame at its final spot. */
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect
 
 function getIcon(name: string): LucideIcon {
   return ICON_MAP[name] ?? Home
@@ -185,6 +216,9 @@ function NavItem({
       {!collapsed && (
         <>
           <span className="flex-1 truncate text-left">{item.label}</span>
+          {item.premium && (
+            <Crown className="ml-auto h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
+          )}
           {item.badge !== undefined && (
             <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
               {item.badge}
@@ -206,6 +240,9 @@ function NavItem({
             className="fayz-glass-surface z-50 rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md"
           >
             {item.label}
+            {item.premium && (
+              <Crown className="ml-1.5 inline h-3 w-3 text-amber-500" aria-hidden />
+            )}
             {item.badge !== undefined && (
               <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
                 {item.badge}
@@ -342,6 +379,9 @@ export function Sidebar({
   userMenuSlot,
   notificationSlot,
   unreadCount = 0,
+  sectionLabels,
+  navKey,
+  navDirection = 'forward',
 }: SidebarProps) {
   const currentPath = currentPathProp
   const setCommandPaletteOpen = useLayoutStore((s) => s.setCommandPaletteOpen)
@@ -357,6 +397,70 @@ export function Sidebar({
   const handleNavigate = (route: string) => {
     onNavigate?.(route)
   }
+
+  const sectionHeading = (label?: string) =>
+    label && !collapsed ? (
+      <p className="px-2.5 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
+        {label}
+      </p>
+    ) : null
+
+  const renderItem = (item: NavigationItem) =>
+    item.children && item.children.length > 0 ? (
+      <NavGroup key={item.id} item={item} collapsed={collapsed} activeRoute={activeRoute} onNavigate={handleNavigate} />
+    ) : (
+      <NavItem
+        key={item.id}
+        item={item}
+        collapsed={collapsed}
+        isActive={item.route === activeRoute}
+        onNavigate={handleNavigate}
+      />
+    )
+
+  // The swappable part of the rail (top slot + both nav sections). Kept as one
+  // node so a context change can snapshot the outgoing rail and animate it out.
+  const navBody = (
+    <>
+      {topContent && <div className="mb-4 space-y-2">{topContent}</div>}
+      {mainItems.length > 0 && (
+        <div className="space-y-1">
+          {sectionHeading(sectionLabels?.main)}
+          {mainItems.map(renderItem)}
+        </div>
+      )}
+      {secondaryItems.length > 0 && (
+        <div className="mt-6 space-y-1">
+          {sectionHeading(sectionLabels?.secondary)}
+          {secondaryItems.map(renderItem)}
+        </div>
+      )}
+    </>
+  )
+
+  // Rail push: when `navKey` changes, hold the previous rail on screen for one
+  // animation cycle. `lastBodyRef` is refreshed after every render, so the
+  // snapshot is the rail exactly as it looked before the swap (correct active
+  // item included) rather than a stale one.
+  const [outgoing, setOutgoing] = React.useState<{ body: React.ReactNode; direction: 'forward' | 'back' } | null>(null)
+  const lastBodyRef = React.useRef<React.ReactNode>(null)
+  const lastKeyRef = React.useRef(navKey)
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useIsomorphicLayoutEffect(() => {
+    if (lastKeyRef.current !== navKey) {
+      const previousBody = lastBodyRef.current
+      lastKeyRef.current = navKey
+      if (previousBody) {
+        setOutgoing({ body: previousBody, direction: navDirection })
+        if (timerRef.current) clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => setOutgoing(null), RAIL_PUSH_MS)
+      }
+    }
+    lastBodyRef.current = navBody
+  })
+
+  React.useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   return (
     <Tooltip.Provider>
@@ -399,45 +503,35 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Main Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-          {topContent && <div className="mb-4 space-y-2">{topContent}</div>}
-
-          {mainItems.length > 0 && (
-            <div className="space-y-1">
-              {mainItems.map((item) =>
-                item.children && item.children.length > 0 ? (
-                  <NavGroup key={item.id} item={item} collapsed={collapsed} activeRoute={activeRoute} onNavigate={handleNavigate} />
-                ) : (
-                  <NavItem
-                    key={item.id}
-                    item={item}
-                    collapsed={collapsed}
-                    isActive={item.route === activeRoute}
-                    onNavigate={handleNavigate}
-                  />
-                )
+        {/* Main Navigation. During a rail swap the outgoing nav is pinned on
+            top of the incoming one so the two cross-slide; overflow is clipped
+            for the duration so neither pane can scroll the rail sideways. */}
+        <nav
+          className={cn(
+            'relative flex-1 p-2',
+            outgoing ? 'overflow-hidden' : 'overflow-y-auto',
+          )}
+        >
+          {outgoing && (
+            <div
+              aria-hidden
+              className={cn(
+                'pointer-events-none absolute inset-x-2 top-2 space-y-1',
+                outgoing.direction === 'back' ? 'saas-rail-out-back' : 'saas-rail-out-forward',
               )}
+            >
+              {outgoing.body}
             </div>
           )}
-
-          {secondaryItems.length > 0 && (
-            <div className="mt-6 space-y-1">
-              {secondaryItems.map((item) =>
-                item.children && item.children.length > 0 ? (
-                  <NavGroup key={item.id} item={item} collapsed={collapsed} activeRoute={activeRoute} onNavigate={handleNavigate} />
-                ) : (
-                  <NavItem
-                    key={item.id}
-                    item={item}
-                    collapsed={collapsed}
-                    isActive={item.route === activeRoute}
-                    onNavigate={handleNavigate}
-                  />
-                )
-              )}
-            </div>
-          )}
+          <div
+            key={navKey}
+            className={cn(
+              'space-y-1',
+              outgoing && (outgoing.direction === 'back' ? 'saas-rail-in-back' : 'saas-rail-in-forward'),
+            )}
+          >
+          {navBody}
+          </div>
         </nav>
 
         {/* Settings nav items */}

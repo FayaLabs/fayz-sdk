@@ -33,6 +33,7 @@ import {
   resolveTargetChannel,
   channelRowToChannel,
 } from '../../src/integrations/google-calendar/mapping.ts'
+import { GCAL_TABLES } from '../../src/integrations/google-calendar/data/tables.ts'
 import type { ChannelDirection } from '../../src/integrations/google-calendar/types.ts'
 
 const corsHeaders = {
@@ -97,7 +98,7 @@ async function accessToken(db: any, integ: any): Promise<string> {
   if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`)
   const tok = await res.json()
   const expiresAt = new Date(Date.now() + (tok.expires_in ?? 3600) * 1000).toISOString()
-  await db.from('calendar_integrations').update({ oauth_access_token: tok.access_token, token_expires_at: expiresAt }).eq('id', integ.id)
+  await db.from(GCAL_TABLES.integrations).update({ oauth_access_token: tok.access_token, token_expires_at: expiresAt }).eq('id', integ.id)
   return tok.access_token
 }
 
@@ -116,7 +117,7 @@ async function calApi(token: string, path: string, init?: RequestInit): Promise<
 
 /** Active channels for the integration whose direction is in `directions`. */
 async function activeChannels(db: any, integ: any, directions: ChannelDirection[]): Promise<any[]> {
-  const { data } = await db.from('calendar_channels').select('*')
+  const { data } = await db.from(GCAL_TABLES.channels).select('*')
     .eq('integration_id', integ.id).eq('is_active', true).in('direction', directions)
   return data ?? []
 }
@@ -165,7 +166,7 @@ Deno.serve(async (req: Request) => {
       const [tenantId, redirectTo] = state.split('::')
       const tok = await exchangeCode(code)
       const expiresAt = new Date(Date.now() + (tok.expires_in ?? 3600) * 1000).toISOString()
-      await db.from('calendar_integrations').upsert({
+      await db.from(GCAL_TABLES.integrations).upsert({
         tenant_id: tenantId,
         provider: 'google',
         oauth_refresh_token: tok.refresh_token,
@@ -188,7 +189,7 @@ Deno.serve(async (req: Request) => {
     // Resolve the tenant's integration for the data actions. Scope by tenant
     // when provided; fall back to the single active google integration otherwise.
     const tenantId = body.tenantId as string | undefined
-    let integQuery = db.from('calendar_integrations').select('*').eq('provider', 'google').eq('active', true)
+    let integQuery = db.from(GCAL_TABLES.integrations).select('*').eq('provider', 'google').eq('active', true)
     if (tenantId) integQuery = integQuery.eq('tenant_id', tenantId)
     const { data: integ } = await integQuery.maybeSingle()
     if (!integ) return json({ error: 'Not connected' }, 400)
@@ -339,12 +340,12 @@ Deno.serve(async (req: Request) => {
         ? channelRows.map((c) => ({
             calId: c.google_calendar_id,
             token: c.sync_token as string | null,
-            save: (t: string) => db.from('calendar_channels').update({ sync_token: t, updated_at: new Date().toISOString() }).eq('id', c.id),
+            save: (t: string) => db.from(GCAL_TABLES.channels).update({ sync_token: t, updated_at: new Date().toISOString() }).eq('id', c.id),
           }))
         : [{
             calId: integ.calendar_id,
             token: integ.sync_token as string | null,
-            save: (t: string) => db.from('calendar_integrations').update({ sync_token: t, last_sync_at: new Date().toISOString() }).eq('id', integ.id),
+            save: (t: string) => db.from(GCAL_TABLES.integrations).update({ sync_token: t, last_sync_at: new Date().toISOString() }).eq('id', integ.id),
           }]
 
       let fetched = 0
@@ -409,6 +410,6 @@ async function logRun(
     error: opts.error ?? null,
   }
   const row = opts.discovered != null ? { ...base, discovered: opts.discovered } : base
-  const { error } = await db.from('calendar_sync_log').insert(row)
-  if (error && opts.discovered != null) await db.from('calendar_sync_log').insert(base)
+  const { error } = await db.from(GCAL_TABLES.syncLog).insert(row)
+  if (error && opts.discovered != null) await db.from(GCAL_TABLES.syncLog).insert(base)
 }

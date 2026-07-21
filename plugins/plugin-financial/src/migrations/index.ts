@@ -203,8 +203,22 @@ CREATE TABLE IF NOT EXISTS public.sequences (
   current_value bigint NOT NULL DEFAULT 0,
   PRIMARY KEY (tenant_id, kind)
 );
+-- Baseline: RLS ON, deny-all (no policies), like the salon pool. The counter is
+-- an internal, non-API table written ONLY through next_sequence() below, which is
+-- SECURITY DEFINER and so bypasses RLS as the table owner. Legacy pools that
+-- shipped this table without RLS are also remediated by packages/db 013_sequences_rls.sql.
+ALTER TABLE public.sequences ENABLE ROW LEVEL SECURITY;
+
+-- SECURITY DEFINER: next_sequence is called directly via PostgREST RPC by
+-- authenticated users (src/data/supabase.ts → createInvoice), so with deny-all
+-- RLS on public.sequences it MUST run as the table owner to write the counter.
+-- SET search_path pins schema resolution for the definer context.
 CREATE OR REPLACE FUNCTION public.next_sequence(p_tenant_id uuid, p_kind text)
-RETURNS bigint LANGUAGE plpgsql AS $$
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE v_next bigint;
 BEGIN
   INSERT INTO public.sequences (tenant_id, kind, current_value)

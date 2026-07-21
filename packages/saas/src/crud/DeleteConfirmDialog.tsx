@@ -27,7 +27,7 @@ export function DeleteConfirmDialog({ open, onClose, onConfirm, entityName, disp
           <ModalTitle>{t('crud.delete.title', { entity: entityName })}</ModalTitle>
           <ModalDescription>
             {displayValue
-              ? t('crud.delete.confirmNamed', { name: displayValue })
+              ? t('crud.delete.confirmNamed', { displayValue })
               : t('crud.delete.confirmGeneric', { entity: entityName.toLowerCase() })}
           </ModalDescription>
         </ModalHeader>

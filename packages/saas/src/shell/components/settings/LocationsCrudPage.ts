@@ -1,5 +1,7 @@
 import { createCrudPage } from '../../../crud/createCrudPage'
-import type { EntityDef } from '../../types/crud'
+// Core's EntityDef (the type createCrudPage consumes) carries `limitKey` for
+// plan quantity gating; the shell alias does not.
+import type { EntityDef } from '@fayz-ai/core'
 
 export const locationEntityDef: EntityDef = {
   name: 'Location',
@@ -9,6 +11,9 @@ export const locationEntityDef: EntityDef = {
   displayField: 'name',
   subtitleField: 'city',
   defaultSort: 'name',
+  // Plan quantity cap — the generic CRUD (CrudFormPage/CrudPage/CrudListView)
+  // guards create/import and dims "+ Add" at the cap. Core declares 'locations'.
+  limitKey: 'locations',
   fields: [
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true, searchable: true },
     { key: 'phone', label: 'Phone', type: 'phone', showInTable: true },

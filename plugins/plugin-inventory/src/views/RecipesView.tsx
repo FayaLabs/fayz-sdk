@@ -3,6 +3,7 @@ import { BookOpen, Plus, Clock, Layers } from 'lucide-react'
 import { useInventoryStore } from '../InventoryContext'
 import { useTranslation } from '@fayz-ai/core'
 import { SubpageHeader } from '@fayz-ai/ui'
+import { PermissionGate } from '@fayz-ai/saas'
 
 function RecipeSkeleton() {
   return (
@@ -40,9 +41,11 @@ export function RecipesView({ onNew, onView }: { onNew?: () => void; onView?: (i
         title={t('inventory.recipes.title')}
         subtitle={t('inventory.recipes.productionFormulas', { count: String(recipes.length) })}
         actions={onNew && (
-          <button onClick={onNew} className="inline-flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset transition-colors">
-            <Plus className="h-3.5 w-3.5" /> {t('inventory.recipes.newRecipe')}
-          </button>
+          <PermissionGate feature="inventory" action="create">
+            <button onClick={onNew} className="inline-flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset transition-colors">
+              <Plus className="h-3.5 w-3.5" /> {t('inventory.recipes.newRecipe')}
+            </button>
+          </PermissionGate>
         )}
       />
 

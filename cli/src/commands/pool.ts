@@ -203,7 +203,7 @@ async function poolStatus(f: PoolFlags): Promise<number> {
       rows = await readLedger(client)
     } catch (err) {
       if (err instanceof ManagementApiError) {
-        console.log(`      NO LEDGER (fayz_migration_ledger absent — never applied)`)
+        console.log(`      NO LEDGER (public._migrations absent — never applied)`)
       } else {
         console.log(`      ✗ query failed: ${(err as Error).message}`)
       }

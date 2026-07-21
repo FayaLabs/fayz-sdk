@@ -120,7 +120,7 @@ export function eventTimes(ev: GCalEvent): EventTimes {
 
 // --- Channel resolution (outbound destination priority) -------------------
 
-/** Convert a raw calendar_channels row (snake_case) to the camelCase CalendarChannel. */
+/** Convert a raw plg_calendar_channels row (snake_case) to the camelCase CalendarChannel. */
 export function channelRowToChannel(r: CalendarChannelRow): CalendarChannel {
   return {
     id: r.id,

@@ -134,4 +134,12 @@ export interface EntityDef<T = Record<string, unknown>> {
   /** Faceted filters shown as pills below the list search box. Each references a
    *  field whose `options` supply the pills; an "All" pill clears the filter. */
   facets?: { field: string; allLabel?: string }[]
+  /**
+   * Plan quantity-limit key gating creation of this entity (matches a
+   * `PlanEntitlements.limits` key + a `LimitDeclaration`). When set, the CRUD
+   * engine gates the "+ New" button (LimitGate), guards the create-form submit
+   * and the CSV import (useLimitGuard) against the plan cap, and invalidates the
+   * live count after a successful create. Absent ⇒ no plan gating (RBAC only).
+   */
+  limitKey?: string
 }

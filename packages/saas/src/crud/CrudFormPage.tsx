@@ -17,6 +17,7 @@ import { useTranslation } from '@fayz-ai/core'
 import type { FieldDef, FieldGroup, EntityDef } from '@fayz-ai/core'
 import type { FormLayout } from '@fayz-ai/core'
 import { RelationSelect } from './relation-field'
+import { useLimitGuard, invalidateLimit } from '../access'
 
 interface CrudFormPageProps {
   entityDef: EntityDef
@@ -320,7 +321,16 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
 
   const computedKeys = new Set(formFields.filter((f) => f.type === 'computed').map((f) => f.key))
 
+  // Plan quantity guard for CREATE. Hook is called unconditionally (rules of
+  // hooks) with a safe empty key when the entity declares none; the guard then
+  // resolves to 'ok'. Degrades to allow-all outside <AccessProvider>.
+  const limitKey = entityDef.limitKey
+  const guardLimit = useLimitGuard(limitKey ?? '')
+
   const submit = async () => {
+    // Client-side plan cap: block the save (the guard opens the UpgradeModal)
+    // before touching the store. Only CREATE consumes a new slot.
+    if (mode === 'create' && limitKey && (await guardLimit(1)) === 'blocked') return
     setSaving(true)
     try {
       // Sanitize: convert empty strings to null so the DB doesn't choke on e.g. empty date fields.
@@ -331,6 +341,8 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
         sanitized[key] = val === '' ? null : val
       }
       await onSubmit(sanitized)
+      // Refresh the live count so gates/banners reflect the new row immediately.
+      if (mode === 'create' && limitKey) invalidateLimit(limitKey)
     } catch (err: any) {
       const message = err?.message || 'Something went wrong'
       toast.error(t('crud.form.failedToSave', { entity: entityDef.name.toLowerCase() }), { description: message })

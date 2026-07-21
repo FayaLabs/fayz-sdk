@@ -1,6 +1,7 @@
 import React from 'react'
 import { MapPin, User, Tag, Link2, StickyNote, X } from 'lucide-react'
 import { Button, cn } from '@fayz-ai/ui'
+import { useTranslation } from '@fayz-ai/core'
 import { CHANNEL_LABELS } from '../channel'
 import type { Conversation } from '../types'
 import { Avatar, ChannelBadge } from './shared'
@@ -25,12 +26,13 @@ export function ContactPanel({ contact, onClose, className }: {
   onClose?: () => void
   className?: string
 }) {
+  const t = useTranslation()
   return (
     <aside className={cn('flex shrink-0 flex-col overflow-y-auto border-l border-border bg-card', className)}>
       {onClose && (
         <div className="flex items-center justify-between border-b border-border px-3 py-2 xl:hidden">
-          <span className="text-sm font-semibold text-foreground">Details</span>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close details">
+          <span className="text-sm font-semibold text-foreground">{t('conversations.contact.details')}</span>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('conversations.contact.closeDetails')}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -44,25 +46,25 @@ export function ContactPanel({ contact, onClose, className }: {
         <ChannelBadge channel={contact.channel} />
       </div>
 
-      <Section icon={User} title="Details">
+      <Section icon={User} title={t('conversations.contact.details')}>
         <dl className="space-y-1.5 text-sm">
           <div className="flex items-center justify-between gap-2">
-            <dt className="text-muted-foreground">Channel</dt>
+            <dt className="text-muted-foreground">{t('conversations.contact.channel')}</dt>
             <dd className="text-foreground">{CHANNEL_LABELS[contact.channel]}</dd>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <dt className="text-muted-foreground">Status</dt>
-            <dd className="capitalize text-foreground">{contact.status}</dd>
+            <dt className="text-muted-foreground">{t('conversations.contact.status')}</dt>
+            <dd className="text-foreground">{t(`conversations.status.${contact.status}`)}</dd>
           </div>
           {contact.assignedTo && (
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-muted-foreground">Assigned to</dt>
+              <dt className="text-muted-foreground">{t('conversations.contact.assignedTo')}</dt>
               <dd className="text-foreground">{contact.assignedTo}</dd>
             </div>
           )}
           {contact.location && (
             <div className="flex items-center justify-between gap-2">
-              <dt className="flex items-center gap-1 text-muted-foreground"><MapPin className="h-3 w-3" /> Location</dt>
+              <dt className="flex items-center gap-1 text-muted-foreground"><MapPin className="h-3 w-3" /> {t('conversations.contact.location')}</dt>
               <dd className="text-foreground">{contact.location}</dd>
             </div>
           )}
@@ -70,7 +72,7 @@ export function ContactPanel({ contact, onClose, className }: {
       </Section>
 
       {contact.tags.length > 0 && (
-        <Section icon={Tag} title="Tags">
+        <Section icon={Tag} title={t('conversations.contact.tags')}>
           <div className="flex flex-wrap gap-1.5">
             {contact.tags.map((tag) => (
               <span key={tag} className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
@@ -82,13 +84,13 @@ export function ContactPanel({ contact, onClose, className }: {
       )}
 
       {contact.note && (
-        <Section icon={StickyNote} title="Note">
+        <Section icon={StickyNote} title={t('conversations.contact.note')}>
           <p className="text-sm text-foreground">{contact.note}</p>
         </Section>
       )}
 
-      <Section icon={Link2} title="Linked records">
-        <p className="text-xs text-muted-foreground">No linked records yet.</p>
+      <Section icon={Link2} title={t('conversations.contact.linkedRecords')}>
+        <p className="text-xs text-muted-foreground">{t('conversations.contact.noLinkedRecords')}</p>
       </Section>
     </aside>
   )

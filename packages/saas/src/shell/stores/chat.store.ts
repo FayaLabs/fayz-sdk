@@ -16,13 +16,20 @@ interface ChatState {
   addMessage: (message: ChatMessage) => void
   updateLastAssistant: (content: string) => void
   setStreaming: (streaming: boolean) => void
+  setConversationId: (id: string | null) => void
   reset: () => void
+  /**
+   * Server-side thread id when talking to a Fayz agent. History lives in Fayz,
+   * so subsequent turns only send the new message plus this id.
+   */
+  conversationId: string | null
 }
 
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
   isOpen: false,
   isStreaming: false,
+  conversationId: null,
 
   setOpen: (open) => set({ isOpen: open }),
   toggleOpen: () => set((s) => ({ isOpen: !s.isOpen })),
@@ -41,5 +48,6 @@ export const useChatStore = create<ChatState>((set) => ({
     }),
 
   setStreaming: (isStreaming) => set({ isStreaming }),
-  reset: () => set({ messages: [], isStreaming: false }),
+  setConversationId: (conversationId) => set({ conversationId }),
+  reset: () => set({ messages: [], isStreaming: false, conversationId: null }),
 }))

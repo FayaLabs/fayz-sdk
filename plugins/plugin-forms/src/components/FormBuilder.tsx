@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import type { CustomFormsStore } from '../store'
 import type { CustomFormsDataProvider } from '../data/types'
 import type { CustomFormsConfig } from '../config'
@@ -46,6 +47,7 @@ interface FormBuilderProps {
 
 export function FormBuilder({ templateId, store, provider, config, onBack }: FormBuilderProps) {
   const t = useTranslation()
+  const guardTemplates = useLimitGuard('form_templates')
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -146,6 +148,9 @@ export function FormBuilder({ templateId, store, provider, config, onBack }: For
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) { toast.error(t('common.formIncomplete')); return }
+    // Plan quantity guard (client-side, before the provider call) — only on
+    // create. Opens the global UpgradeModal and aborts when the cap is reached.
+    if (!templateId && (await guardTemplates()) === 'blocked') return
     setSaving(true)
     try {
       const schema: FormSchema = { fields, layout: { columns: 12 } }
@@ -154,12 +159,13 @@ export function FormBuilder({ templateId, store, provider, config, onBack }: For
         await store.getState().updateTemplate(templateId, { name, description, category, schema })
       } else {
         await store.getState().createTemplate({ name, description, category, schema })
+        invalidateLimit('form_templates')
       }
       onBack()
     } finally {
       setSaving(false)
     }
-  }, [templateId, name, description, category, fields, store, onBack])
+  }, [templateId, name, description, category, fields, store, onBack, guardTemplates])
 
   // Dirty detection — snapshot editable fields once async load settles
   const currentFields = { name, description, category, fields }

@@ -2,7 +2,7 @@
 // App factory (main entry point)
 // ---------------------------------------------------------------------------
 export { createFayzApp, AdminProviders } from './app/admin-app'
-export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, CustomPage, PageSection } from './app/config'
+export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, FayzBillingConfig, CustomPage, PageSection } from './app/config'
 
 // Native admin scaffold — manifest-first entry. Importing this registers the
 // 'admin' scaffold so renderApp(manifest) can resolve it.
@@ -90,15 +90,42 @@ export {
   usePermissionsStore,
   PermissionsProvider,
   usePermission,
+  usePermissionOptional,
   useHasPermission,
   usePermissions,
 } from './permissions/index'
 export type { PermissionsStore, PermissionsProviderProps } from './permissions/index'
 
 // ---------------------------------------------------------------------------
+// Access engine — role × plan decision, quantity limits, upgrade modal store
+// ---------------------------------------------------------------------------
+export {
+  AccessProvider,
+  useAccess,
+  useAccessOptional,
+  useLimit,
+  useLimitGuard,
+  resolveAccess,
+  isEntitledByPlan,
+  invalidateLimit,
+  useUpgradeModalStore,
+} from './access/index'
+export type {
+  AccessProviderProps,
+  AccessApi,
+  AccessDecision,
+  AccessSession,
+  DenyReason,
+  LimitState,
+  UpgradeModalPayload,
+  UpgradeModalStore,
+} from './access/index'
+
+// ---------------------------------------------------------------------------
 // Billing
 // ---------------------------------------------------------------------------
 export { useBillingStore } from './billing/index'
+export { EntitlementGate, LimitGate } from './shell/components/billing/gates'
 export type { BillingStore, BillingState, Subscription, Invoice } from './billing/index'
 
 // ---------------------------------------------------------------------------
@@ -170,6 +197,8 @@ export { useModuleNavigation } from './hooks/useModuleNavigation'
 export { PersonLink } from './components/shared/PersonLink'
 export { resolveEntityHref } from './lib/entity-routes'
 export { usePluginPrefs } from './hooks/usePluginPrefs'
+export { useTenantPluginSettings } from './shell/hooks/useTenantPluginSettings'
+export type { TenantPluginSettings } from './shell/hooks/useTenantPluginSettings'
 export { setScheduleBlockConfig, getScheduleBlockConfig, subscribeScheduleBlockConfig } from './lib/schedule-config'
 
 // Assistant chat store — lets apps drive the shell's chat panel imperatively

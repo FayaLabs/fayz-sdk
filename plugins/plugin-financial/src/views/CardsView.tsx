@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { CreditCard, Plus, CalendarClock } from 'lucide-react'
 import { useFinancialConfig, useFinancialStore, formatCurrency } from '../FinancialContext'
 import { SubpageHeader } from '@fayz-ai/ui'
+import { PermissionGate } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
 import type { BankAccount } from '../types'
 import { QuickTransactionForm } from './QuickTransactionForm'
@@ -182,15 +183,17 @@ export function CardsView() {
                       )}
                     </div>
 
-                    {/* Add expense against this card */}
-                    <button
-                      type="button"
-                      onClick={() => openAddExpense(card.id)}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-input border border-input bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      {t('financial.cards.addExpense')}
-                    </button>
+                    {/* Add expense against this card — gated on the role's create action */}
+                    <PermissionGate feature="financial" action="create">
+                      <button
+                        type="button"
+                        onClick={() => openAddExpense(card.id)}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-input border border-input bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        {t('financial.cards.addExpense')}
+                      </button>
+                    </PermissionGate>
                   </div>
                 </div>
               )

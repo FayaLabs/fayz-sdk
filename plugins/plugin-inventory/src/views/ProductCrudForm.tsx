@@ -1,7 +1,7 @@
 import React from 'react'
 import { SubpageHeader, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
-import { CrudFormPage } from '@fayz-ai/saas'
+import { CrudFormPage, useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import { useInventoryConfig, useInventoryStore, useInventoryProvider } from '../InventoryContext'
 import type { ProductType } from '../types'
 import { buildProductEntity } from './productEntity'
@@ -19,6 +19,7 @@ export function ProductCrudForm({ editId, onSaved }: { editId?: string; onSaved?
   const { productTypes, currency } = useInventoryConfig()
   const provider = useInventoryProvider()
   const createProduct = useInventoryStore((s) => s.createProduct)
+  const guardProducts = useLimitGuard('products')
   const isEdit = !!editId
 
   const [initialData, setInitialData] = React.useState<Record<string, any> | null>(isEdit ? null : {})
@@ -72,7 +73,11 @@ export function ProductCrudForm({ editId, onSaved }: { editId?: string; onSaved?
     if (isEdit && editId) {
       await provider.updateProduct(editId, payload)
     } else {
+      // Plan quantity guard (client-side, before the provider call). Opens the
+      // global UpgradeModal and aborts when the plan's product cap is reached.
+      if ((await guardProducts()) === 'blocked') return
       await createProduct(payload)
+      invalidateLimit('products')
     }
     onSaved?.()
   }

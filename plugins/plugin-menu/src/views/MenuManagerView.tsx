@@ -17,6 +17,7 @@ import {
 } from '@fayz-ai/ui'
 import { useMenuConfig, useMenuStore, formatCurrency } from '../MenuContext'
 import { useTranslation } from '@fayz-ai/core'
+import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
 import type { MenuCategory, MenuItem } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -89,6 +90,7 @@ function ItemModal({
   const t = useTranslation()
   const config = useMenuConfig()
   const createMenuItem = useMenuStore((s) => s.createMenuItem)
+  const guardMenuItems = useLimitGuard('menu_items')
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? UNCATEGORIZED)
@@ -97,6 +99,9 @@ function ItemModal({
 
   const submit = async () => {
     if (!name.trim()) return
+    // Client-side plan guard before the store create. (Note: this dialog also
+    // has the known board bug B29 — out of scope here, guard only.)
+    if ((await guardMenuItems()) === 'blocked') return
     setSaving(true)
     try {
       await createMenuItem({
@@ -105,6 +110,7 @@ function ItemModal({
         categoryId: categoryId === UNCATEGORIZED ? undefined : categoryId,
         description: description.trim() || undefined,
       })
+      invalidateLimit('menu_items')
       onClose()
     } catch {
       // store surfaces a toast on failure
