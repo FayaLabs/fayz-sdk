@@ -218,7 +218,9 @@ export function useChat(options?: UseChatOptions) {
 
         // Live activity: surface WHICH tools are running while they run — the
         // agent's work should be visible, not a silent pause.
-        useChatStore.getState().setActiveTools(response.toolCalls.map((c) => c.name))
+        const toolNames = response.toolCalls.map((c) => c.name)
+        useChatStore.getState().setActiveTools(toolNames)
+        useChatStore.getState().appendToolsToLastAssistant(toolNames)
         try {
           toolResults = await Promise.all(
             response.toolCalls.map(async (call) => ({

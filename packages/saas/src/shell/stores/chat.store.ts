@@ -5,6 +5,9 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+  /** Tool names this assistant reply used, accumulated across rounds —
+   *  rendered as a persistent trace under the bubble. */
+  toolsUsed?: string[]
 }
 
 /**
@@ -48,6 +51,8 @@ interface ChatState {
   /** Tool names executing right now — rendered as live activity chips. */
   activeTools: string[]
   setActiveTools: (names: string[]) => void
+  /** Record the tools an assistant reply used (persistent per-message trace). */
+  appendToolsToLastAssistant: (names: string[]) => void
   /** The signed-in user's threads (history drawer). */
   conversations: Array<{ id: string; title: string | null; updatedAt: string }>
   setConversations: (rows: Array<{ id: string; title: string | null; updatedAt: string }>) => void
@@ -106,6 +111,18 @@ export const useChatStore = create<ChatState>((set) => ({
 
   activeTools: [],
   setActiveTools: (activeTools) => set({ activeTools }),
+  appendToolsToLastAssistant: (names) =>
+    set((s) => {
+      if (!names.length) return s
+      const msgs = [...s.messages]
+      const lastIdx = msgs.length - 1
+      if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant') {
+        const seen = new Set(msgs[lastIdx].toolsUsed ?? [])
+        for (const n of names) seen.add(n)
+        msgs[lastIdx] = { ...msgs[lastIdx], toolsUsed: Array.from(seen) }
+      }
+      return { messages: msgs }
+    }),
   conversations: [],
   setConversations: (conversations) => set({ conversations }),
   setMessages: (messages) => set({ messages }),

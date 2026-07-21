@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ArrowUp, History, Loader2, SquarePen, Settings2 } from 'lucide-react'
+import { ArrowUp, History, Loader2, SquarePen, Settings2, Wrench } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useChatStore, type ChatMessage } from '../../stores/chat.store'
@@ -236,7 +236,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
 
   return (
-    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
       <div
         className={cn(
           'max-w-[85%] rounded-2xl px-3 py-1.5 text-[13px] leading-relaxed',
@@ -247,6 +247,19 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       >
         {message.content}
       </div>
+      {!isUser && (message.toolsUsed?.length ?? 0) > 0 && (
+        <div className="flex max-w-[85%] flex-wrap items-center gap-1 px-1">
+          {message.toolsUsed!.map((name) => (
+            <span
+              key={name}
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-px font-mono text-[9px] text-muted-foreground"
+            >
+              <Wrench className="h-2 w-2" />
+              {name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
