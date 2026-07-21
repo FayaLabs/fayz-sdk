@@ -3,6 +3,7 @@ import { Clock, FileText, CalendarDays } from 'lucide-react'
 import { Card, CardContent } from '@fayz-ai/ui'
 import { Badge } from '@fayz-ai/ui'
 import { ScheduleEditor } from './ScheduleEditor'
+import { AddressesTab } from './AddressesTab'
 import { useTranslation } from '@fayz-ai/core'
 import { usePluginRuntimeOptional as usePluginsOptional } from '@fayz-ai/core'
 import { getWidgetsForZone } from '@fayz-ai/core'
@@ -101,6 +102,10 @@ export function ScheduleTab({ item }: { item: any }) {
 
 export const PERSON_DETAIL_TABS = [
   { id: 'schedule', label: 'Schedule', icon: 'CalendarDays', component: ScheduleTab, visibleFor: ['staff'] },
+  // Core table (public.addresses), so every app with a person record gets this:
+  // delivery addresses for a client, pickup point for a supplier, home address
+  // for staff. Not shop-specific.
+  { id: 'addresses', label: 'Endereços', icon: 'MapPin', component: AddressesTab },
   { id: 'documents', label: 'Documents', icon: 'FileText', component: DocumentsTab },
   // Per-person financial statement — only shown when the financial plugin contributes
   // its widget (see requiresWidgetZone). Clients = paid invoices; staff = commissions.

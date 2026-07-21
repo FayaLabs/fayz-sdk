@@ -16,6 +16,7 @@ import {
   buildAgentToolset,
   buildDataToolIndex,
   executeAITool,
+  executeRpcTool,
   type AIToolExecutionContext,
 } from '../lib/ai-tool-handlers'
 import { entityToolName, registryToolName } from '../lib/core-ai-tools'
@@ -116,7 +117,11 @@ export function useChat(options?: UseChatOptions) {
           }
         }
       }
-      const result = await executeAITool(call.name, call.arguments, toolContext)
+      const exec = def?.execution
+      const rpcName = exec && exec.plane === 'server' && exec.kind === 'rpc' ? exec.rpc : null
+      const result = rpcName
+        ? await executeRpcTool(rpcName, call.arguments, useAuthStore.getState().user?.id)
+        : await executeAITool(call.name, call.arguments, toolContext)
       if (def?.mode === 'persist' && def.limitKey && result.ok) invalidateLimit(def.limitKey)
       return result.content
     },

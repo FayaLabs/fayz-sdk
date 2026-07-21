@@ -1,5 +1,18 @@
-import { resolveDataProvider } from '@fayz-ai/core'
-import { checkAccess } from '../../access/headless'
+import { resolveDataProvider, getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
+import { checkAccess, guardLimit } from '../../access/headless'
+import { invalidateLimit } from '../../access/limits-registry'
+import { useChatStore } from '../stores/chat.store'
+
+/** Chat-store confirmation gate, callable from any handler. */
+function requestChatConfirmation(action: {
+  id: string
+  toolName: string
+  title: string
+  params: Record<string, unknown>
+  plane: 'client' | 'server'
+}): Promise<boolean> {
+  return useChatStore.getState().requestConfirmation(action)
+}
 import type { EntityDef, OrgMember, Organization } from '@fayz-ai/core'
 import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
 
@@ -27,6 +40,8 @@ export interface DataToolTarget {
   label: string
   entity: EntityDef
   mockData?: Array<{ id: string }>
+  /** Read-model (view/ledger): searchable/queryable but never writable. */
+  readOnly?: boolean
 }
 
 export interface AIToolExecutionContext {
@@ -232,6 +247,7 @@ export function buildDataToolIndex(input: {
     index.set(`key:${q.key}`, {
       label: q.entity.namePlural ?? q.entity.name,
       entity: q.entity,
+      readOnly: true,
     })
   }
 
@@ -320,6 +336,83 @@ registerAIToolHandler('findAnything', async (args, ctx) => {
     ...(matches.length === 0
       ? { hint: 'No records matched anywhere the user can see. Say so — do not retry other search tools with the same text.' }
       : {}),
+  }
+})
+
+registerAIToolHandler('createRecord', async (args, ctx) => {
+  const resolved = resolveKeyedTarget(ctx, args)
+  if ('error' in resolved) return resolved.error
+  const { target } = resolved
+  if (target.readOnly) {
+    return { error: 'read_only', message: `${target.label} is a read-only view — records cannot be created here.` }
+  }
+
+  // Guard chain, in the broker's order: role×plan for CREATE → plan cap →
+  // field validation → human confirmation → write → invalidate the count.
+  const permission = target.entity.permission
+  if (permission) {
+    const access = checkAccess(permission.feature, 'create')
+    if (!access.allowed) return access
+  }
+  if (target.entity.limitKey) {
+    const limit = await guardLimit(target.entity.limitKey)
+    if (!limit.allowed) return limit
+  }
+
+  const values = (args.values ?? {}) as Record<string, unknown>
+  const declared = target.entity.fields ?? []
+  const declaredKeys = declared.map((f) => f.key)
+  const clean: Record<string, unknown> = {}
+  const unknown: string[] = []
+  for (const [k, v] of Object.entries(values)) {
+    const camel = k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+    const match = declaredKeys.includes(k) ? k : declaredKeys.includes(camel) ? camel : null
+    if (match) clean[match] = v
+    else unknown.push(k)
+  }
+  if (unknown.length) {
+    return {
+      error: 'unknown_field',
+      message: `Unknown field(s) ${unknown.join(', ')} for ${target.label}. Use only the available fields and retry.`,
+      availableFields: declaredKeys,
+    }
+  }
+  const missing = declared
+    .filter((f) => f.required && (clean[f.key] === undefined || clean[f.key] === null || clean[f.key] === ''))
+    .map((f) => f.key)
+  if (missing.length) {
+    return {
+      error: 'missing_required',
+      message: `Missing required field(s): ${missing.join(', ')}. Ask the user for them, then retry.`,
+      availableFields: declaredKeys,
+    }
+  }
+
+  const approved = await requestChatConfirmation({
+    id: `create-${Date.now()}`,
+    toolName: 'createRecord',
+    title: `Criar ${target.entity.name}`,
+    params: clean,
+    plane: 'client',
+  })
+  if (!approved) return { ok: false, cancelled: true, reason: 'user_declined' }
+
+  const provider = resolveDataProvider(
+    target.entity as EntityDef<{ id: string }>,
+    target.mockData,
+  )
+  const record = await provider.create(clean as never)
+  if (target.entity.limitKey) invalidateLimit(target.entity.limitKey)
+  return {
+    ok: true,
+    record,
+    ref: {
+      id: (record as { id?: string }).id,
+      resource: target.entity.data?.table,
+      archetype: target.entity.data?.archetype
+        ? `${target.entity.data.archetype}${target.entity.data.archetypeKind ? ':' + target.entity.data.archetypeKind : ''}`
+        : undefined,
+    },
   }
 })
 
@@ -491,7 +584,12 @@ export function buildAgentToolset(
   tools: PluginAITool[],
   { dataTools, activePluginId, maxTools = MAX_TOOLS_PER_TURN }: BuildToolsetOptions,
 ): AgentTool[] {
-  const executable = tools.filter((t) => handlers.has(t.name) || dataTools.has(t.name))
+  const executable = tools.filter(
+    (t) =>
+      handlers.has(t.name) ||
+      dataTools.has(t.name) ||
+      (t.execution?.plane === 'server' && t.execution.kind === 'rpc'),
+  )
 
   const ranked = activePluginId
     ? [
@@ -557,3 +655,32 @@ registerAIToolHandler('navigateTo', (args, ctx) => {
   ctx.navigate(match.path)
   return { navigatedTo: match.path, label: match.label ?? match.path }
 })
+
+
+/**
+ * Client-plane execution of an RPC-bound tool (`execution: {kind:'rpc'}`):
+ * calls the pool function as the signed-in user. The actor is the SESSION
+ * user — spine 016 makes the RPC reject any other p_actor for JWT callers, so
+ * this path cannot borrow someone else's role. Structured denials pass through
+ * to the model (conversational paywall); S4 moves this server-side untouched.
+ */
+export async function executeRpcTool(
+  rpcName: string,
+  args: Record<string, unknown>,
+  userId: string | undefined,
+): Promise<AIToolExecutionResult> {
+  const supabase = getSupabaseClientOptional() as {
+    rpc?: (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
+  } | null
+  const tenantId = getActiveTenantId()
+  if (!supabase?.rpc || !tenantId || !userId) {
+    return errorResult('not_executable', 'No authenticated session/tenant available for this action.')
+  }
+  const { data, error } = await supabase.rpc(rpcName, {
+    p_tenant_id: tenantId,
+    p_actor_user_id: userId,
+    p_payload: args,
+  })
+  if (error) return errorResult('execution_failed', error.message)
+  return { ok: true, content: JSON.stringify(data ?? { ok: true }) }
+}

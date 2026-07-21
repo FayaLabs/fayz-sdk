@@ -156,7 +156,8 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
       {
         id: 'agenda.create-appointment',
         name: 'createAppointment',
-        description: 'Creates a new appointment for a client with a specific professional and service.',
+        description:
+          'Creates a new appointment. Takes IDS, not names: resolve the client/service/professional ids first via findAnything/searchRecords, then call this with an ISO start time in the tenant timezone. The user confirms before booking.',
         icon: 'CalendarPlus',
         mode: 'persist' as const,
         limitKey: 'bookings_month',
@@ -165,13 +166,13 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
         parameters: {
           type: 'object' as const,
           properties: {
-            client: { type: 'string' as const, description: 'Client name' },
-            professional: { type: 'string' as const, description: 'Professional name' },
-            service: { type: 'string' as const, description: 'Service name' },
-            date: { type: 'string' as const, description: 'Date (YYYY-MM-DD)' },
-            time: { type: 'string' as const, description: 'Time (HH:MM)' },
+            client_id: { type: 'string' as const, description: 'Client id (from a search)' },
+            service_id: { type: 'string' as const, description: 'Service id (from a search)' },
+            professional_id: { type: 'string' as const, description: 'Professional id (optional — auto-assigned when omitted)' },
+            starts_at: { type: 'string' as const, description: 'Start datetime, ISO 8601 with timezone (e.g. 2026-07-27T13:00:00Z)' },
+            notes: { type: 'string' as const, description: 'Optional notes' },
           },
-          required: ['client', 'professional', 'service', 'date', 'time'],
+          required: ['client_id', 'service_id', 'starts_at'],
         },
         suggestions: [
           { label: 'Book a haircut for Sarah tomorrow at 10am' },

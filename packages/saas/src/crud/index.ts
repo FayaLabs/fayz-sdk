@@ -15,4 +15,4 @@ export { RelationSelect, RelationCell, useRelationOptions, loadRelationOptions, 
 // its customer).
 // PersonLink is intentionally NOT re-exported: plugin-reports already exports
 // a different component under that name and the collision breaks its build.
-export { EntityLink } from './archetypes/EntityLink'
+export { EntityLink, registerEntityPath, getPersonPath } from './archetypes/EntityLink'

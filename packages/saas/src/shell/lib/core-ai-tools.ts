@@ -159,6 +159,8 @@ export function buildDataPrimitiveTools(input: {
       })
     }
   }
+  // Read-models (views/ledgers) are readable but never writable.
+  const writableKeys = options.map((o) => o.key)
   for (const q of input.queryEntities ?? []) {
     options.push({ key: q.key, label: q.entity.namePlural ?? q.entity.name })
   }
@@ -183,6 +185,30 @@ export function buildDataPrimitiveTools(input: {
       category: 'Data',
       suggestions: [{ label: 'Quem é …?' }],
     },
+    ...(writableKeys.length
+      ? [
+          {
+            id: 'data.create-record',
+            name: 'createRecord',
+            description:
+              'Creates ONE new record of an entity (client, service, supplier, …). ALWAYS search first to avoid duplicates. Field keys and required fields come from the entity — on a field error the response lists the valid fields; fix and retry. The user will confirm before anything is written.',
+            icon: 'Plus',
+            mode: 'persist' as const,
+            // The handler orchestrates its own guard chain (permission → plan
+            // cap → confirmation → create) because the target is dynamic.
+            requiresConfirmation: false,
+            parameters: {
+              type: 'object' as const,
+              properties: {
+                entity: { type: 'string' as const, description: 'Which entity to create', enum: writableKeys },
+                values: { type: 'object' as const, description: 'Field values for the new record, e.g. {"name":"…","phone":"…"}' },
+              },
+              required: ['entity', 'values'],
+            },
+            category: 'Data',
+          } satisfies PluginAITool,
+        ]
+      : []),
     {
       id: 'data.search-records',
       name: 'searchRecords',

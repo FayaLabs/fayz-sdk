@@ -42,9 +42,10 @@ export { WidgetSlot } from './plugins/WidgetSlot'
 export { useFieldRules } from './hooks/useFieldRules'
 
 export { createCrudPage } from './crud/createCrudPage'
-export { EntityLink } from './crud/archetypes/EntityLink'
+export { EntityLink, registerEntityPath, getPersonPath } from './crud/archetypes/EntityLink'
 // Client-orders archetype (used by beauty-saas client detail tab)
 export { ClientOrdersTab } from './shell/components/crud/archetypes/ClientOrdersTab'
+export type { ClientOrdersProvider, ClientOrdersQuery, ClientOrdersNavigator, ClientDocument, ClientDocumentStage, ClientOrdersStageFilter } from './shell/types/client-orders'
 export { createClientOrdersProvider } from './shell/lib/create-client-orders-provider'
 
 // ---------------------------------------------------------------------------
