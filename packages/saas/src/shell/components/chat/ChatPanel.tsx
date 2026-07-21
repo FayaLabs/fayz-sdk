@@ -6,6 +6,7 @@ import { useChatStore, type ChatMessage } from '../../stores/chat.store'
 import { useChat } from '../../hooks/useChat'
 import { useAITools } from '../../hooks/useAITools'
 import { ChatSuggestions, ChatToolsPanel } from './ChatSuggestions'
+import { ConfirmActionCard } from './ConfirmActionCard'
 import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
 
 interface ChatPanelProps {
@@ -24,7 +25,7 @@ export function ChatPanel({
   className,
 }: ChatPanelProps) {
   const { isOpen, messages, isStreaming } = useChatStore()
-  const { sendMessage, isConfigured } = useChat({ apiEndpoint, systemPrompt, agent })
+  const { sendMessage, isConfigured, pendingAction, resolvePendingAction } = useChat({ apiEndpoint, systemPrompt, agent })
   const { t } = useTranslation()
   const { suggestions, toolGroups } = useAITools()
   const [input, setInput] = React.useState('')
@@ -124,7 +125,10 @@ export function ChatPanel({
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
-          {isStreaming && messages[messages.length - 1]?.content === '' && (
+          {pendingAction && (
+            <ConfirmActionCard action={pendingAction} onResolve={resolvePendingAction} />
+          )}
+          {isStreaming && !pendingAction && messages[messages.length - 1]?.content === '' && (
             <div className="flex items-center gap-1 px-2 py-1.5">
               <span className="h-1 w-1 rounded-full bg-muted-foreground/50 animate-pulse" />
               <span className="h-1 w-1 rounded-full bg-muted-foreground/50 animate-pulse [animation-delay:150ms]" />
@@ -142,13 +146,19 @@ export function ChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isConfigured ? t('chat.messagePlaceholder') : t('chat.notConfigured')}
+            placeholder={
+              pendingAction
+                ? t('chat.confirmAction.blocked')
+                : isConfigured
+                  ? t('chat.messagePlaceholder')
+                  : t('chat.notConfigured')
+            }
             className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:cursor-not-allowed"
-            disabled={isStreaming || !isConfigured}
+            disabled={isStreaming || !isConfigured || !!pendingAction}
           />
           <button
             type="submit"
-            disabled={!input.trim() || isStreaming || !isConfigured}
+            disabled={!input.trim() || isStreaming || !isConfigured || !!pendingAction}
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-opacity hover:opacity-80 disabled:opacity-20"
             aria-label="Send message"
           >

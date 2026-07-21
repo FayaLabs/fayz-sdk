@@ -7,6 +7,22 @@ export interface ChatMessage {
   timestamp: string
 }
 
+/**
+ * A write the agent wants to perform, parked until the human decides. The turn
+ * loop awaits the promise this action's resolver settles — the chat composer
+ * stays frozen behind the card, mirroring the broker's PENDING_CONFIRMATION
+ * step for server-plane tools.
+ */
+export interface PendingAgentAction {
+  id: string
+  toolName: string
+  title: string
+  params: Record<string, unknown>
+  /** 'client' = executed locally after approval; 'server' = approval is sent
+   *  back to the broker as confirmAction. */
+  plane: 'client' | 'server'
+}
+
 interface ChatState {
   messages: ChatMessage[]
   isOpen: boolean
@@ -23,7 +39,16 @@ interface ChatState {
    * so subsequent turns only send the new message plus this id.
    */
   conversationId: string | null
+  /** The write awaiting human confirmation (renders the ConfirmActionCard). */
+  pendingAction: PendingAgentAction | null
+  /** Park an action + register its decision resolver. */
+  requestConfirmation: (action: PendingAgentAction) => Promise<boolean>
+  /** Card buttons: settle the parked action. */
+  resolvePendingAction: (approved: boolean) => void
 }
+
+// Module-level so the resolver never round-trips through React state.
+let pendingResolver: ((approved: boolean) => void) | null = null
 
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
@@ -49,5 +74,25 @@ export const useChatStore = create<ChatState>((set) => ({
 
   setStreaming: (isStreaming) => set({ isStreaming }),
   setConversationId: (conversationId) => set({ conversationId }),
-  reset: () => set({ messages: [], isStreaming: false, conversationId: null }),
+  reset: () => {
+    pendingResolver?.(false)
+    pendingResolver = null
+    set({ messages: [], isStreaming: false, conversationId: null, pendingAction: null })
+  },
+
+  pendingAction: null,
+  requestConfirmation: (action) => {
+    // A newer request supersedes an unanswered one (treated as declined).
+    pendingResolver?.(false)
+    return new Promise<boolean>((resolve) => {
+      pendingResolver = resolve
+      set({ pendingAction: action })
+    })
+  },
+  resolvePendingAction: (approved) => {
+    const resolve = pendingResolver
+    pendingResolver = null
+    set({ pendingAction: null })
+    resolve?.(approved)
+  },
 }))

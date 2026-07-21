@@ -49,15 +49,27 @@ export interface FayzAgentChatInput {
   externalUserName?: string
   tools?: FayzAgentTool[]
   toolResults?: FayzAgentToolResult[]
+  /** Decision for a server-parked write (broker PENDING_CONFIRMATION step). */
+  confirmAction?: { id: string; approved: boolean }
   /** Runtime context the agent should know about (page, locale, tenant). */
   context?: Record<string, unknown>
   signal?: AbortSignal
+}
+
+/** A server-plane write the broker parked pending human confirmation. */
+export interface FayzAgentPendingAction {
+  id: string
+  toolName: string
+  title?: string
+  params?: Record<string, unknown>
 }
 
 export interface FayzAgentChatResponse {
   conversationId: string
   content: string
   toolCalls: FayzAgentToolCall[]
+  /** Present when the broker is waiting on a confirmAction for this write. */
+  pendingAction?: FayzAgentPendingAction
 }
 
 export interface FayzAgentInfo {
@@ -116,6 +128,7 @@ export function createFayzAgentClient(options: FayzAgentClientOptions): FayzAgen
         conversationId: body.conversationId ?? '',
         content: body.content ?? '',
         toolCalls: body.toolCalls ?? [],
+        ...(body.pendingAction ? { pendingAction: body.pendingAction } : {}),
       }
     },
   }

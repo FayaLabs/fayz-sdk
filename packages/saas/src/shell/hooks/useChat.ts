@@ -13,7 +13,9 @@ import {
   type AIToolExecutionContext,
 } from '../lib/ai-tool-handlers'
 import { entityToolName, registryToolName } from '../lib/core-ai-tools'
-import { getAllEntities } from '@fayz-ai/core'
+import { getAllEntities, useManifest, type PluginAITool } from '@fayz-ai/core'
+import { checkAccess, guardLimit } from '../../access/headless'
+import { invalidateLimit } from '../../access/limits-registry'
 import {
   getFayzAgentClient,
   resolveFayzAgentConnection,
@@ -69,6 +71,52 @@ export function useChat(options?: UseChatOptions) {
    * Server-plane tools (AgentTool grants) execute inside Fayz and never surface
    * here.
    */
+  const manifest = useManifest()
+  const serverPlane = manifest?.agent?.executionPlane === 'server'
+
+  /**
+   * Client-plane guard around a persist tool, mirroring the broker's
+   * server-plane order: role→plan (checkAccess) → cap (guardLimit) → human
+   * confirmation → execute → invalidate the consumed limit. A denial comes
+   * back to the model as the structured AgentDenial, so the paywall/permission
+   * explanation happens IN the conversation — never a silent failure
+   * (docs/ENTITLEMENTS.md § agentes).
+   */
+  const executeGuarded = useCallback(
+    async (
+      call: { id: string; name: string; arguments: Record<string, unknown> },
+      def: PluginAITool | undefined,
+      toolContext: AIToolExecutionContext,
+    ): Promise<string> => {
+      if (def?.mode === 'persist') {
+        if (def.permission) {
+          const access = checkAccess(def.permission.feature, def.permission.action)
+          if (!access.allowed) return JSON.stringify(access)
+        }
+        if (def.limitKey) {
+          const limit = await guardLimit(def.limitKey)
+          if (!limit.allowed) return JSON.stringify(limit)
+        }
+        if (def.requiresConfirmation !== false) {
+          const approved = await useChatStore.getState().requestConfirmation({
+            id: call.id,
+            toolName: call.name,
+            title: def.description,
+            params: call.arguments,
+            plane: 'client',
+          })
+          if (!approved) {
+            return JSON.stringify({ ok: false, cancelled: true, reason: 'user_declined' })
+          }
+        }
+      }
+      const result = await executeAITool(call.name, call.arguments, toolContext)
+      if (def?.mode === 'persist' && def.limitKey && result.ok) invalidateLimit(def.limitKey)
+      return result.content
+    },
+    [],
+  )
+
   const runFayzAgentTurn = useCallback(
     async (content: string, activeConnection: NonNullable<typeof connection>) => {
       const dataTools = buildDataToolIndex({
@@ -85,16 +133,25 @@ export function useChat(options?: UseChatOptions) {
         navigate: router.navigate,
         dataTools,
       }
-      const toolset = buildAgentToolset(tools, { dataTools, activePluginId })
+      // Server-plane flip (manifest agent.executionPlane): data/RPC tools stop
+      // shipping from the surface — the broker executes them from the synced
+      // contract; only genuinely client-plane tools still go up per request.
+      const clientTools = serverPlane
+        ? tools.filter((t) => t.execution?.plane !== 'server')
+        : tools
+      const toolset = buildAgentToolset(clientTools, { dataTools, activePluginId })
+      const toolByName = new Map(tools.map((t) => [t.name, t]))
 
       const client = getFayzAgentClient(activeConnection)
       let toolResults: FayzAgentToolResult[] | undefined
+      let confirmAction: { id: string; approved: boolean } | undefined
       let message: string | undefined = content
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         const response = await client.chat({
           message,
           toolResults,
+          confirmAction,
           // Attribution: an INTERNAL channel rejects turns with no identity, and
           // without this every conversation lands in the owner's dashboard as
           // "Anonymous" even though a signed-in user sent it.
@@ -124,6 +181,24 @@ export function useChat(options?: UseChatOptions) {
         store.setConversationId(response.conversationId)
 
         if (response.content) store.updateLastAssistant(response.content)
+
+        // Server-parked write: the broker executed nothing and is waiting for a
+        // human decision. Surface the card, send the decision back, continue.
+        if (response.pendingAction) {
+          const approved = await useChatStore.getState().requestConfirmation({
+            id: response.pendingAction.id,
+            toolName: response.pendingAction.toolName,
+            title: response.pendingAction.title ?? response.pendingAction.toolName,
+            params: response.pendingAction.params ?? {},
+            plane: 'server',
+          })
+          confirmAction = { id: response.pendingAction.id, approved }
+          message = undefined
+          toolResults = undefined
+          continue
+        }
+        confirmAction = undefined
+
         if (response.toolCalls.length === 0) return
 
         // Last allowed round still asked for tools — stop looping and let
@@ -138,13 +213,13 @@ export function useChat(options?: UseChatOptions) {
         toolResults = await Promise.all(
           response.toolCalls.map(async (call) => ({
             toolCallId: call.id,
-            content: (await executeAITool(call.name, call.arguments, toolContext)).content,
+            content: await executeGuarded(call, toolByName.get(call.name), toolContext),
           })),
         )
         message = undefined
       }
     },
-    [store, tools, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
+    [store, tools, serverPlane, executeGuarded, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
   )
 
   const sendMessage = useCallback(
@@ -232,5 +307,10 @@ export function useChat(options?: UseChatOptions) {
     toggleOpen: store.toggleOpen,
     setOpen: store.setOpen,
     reset: store.reset,
+    /** Write awaiting human confirmation (render the ConfirmActionCard; the
+     *  composer should stay disabled while set). */
+    pendingAction: store.pendingAction,
+    /** Card decision: true executes/approves, false declines. */
+    resolvePendingAction: store.resolvePendingAction,
   }
 }

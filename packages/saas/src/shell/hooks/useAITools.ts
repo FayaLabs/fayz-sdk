@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { usePluginRuntimeOptional } from '../lib/plugins'
+import { useAccessOptional } from '../../access/context'
 import { coreAITools, generateRegistryTools, generateEntityTools, formatToolSignature } from '../lib/core-ai-tools'
 import type { PluginAITool, AIToolSuggestion } from '../types/plugins'
 
@@ -57,9 +58,11 @@ export function useAITools(): {
   toolGroups: ResolvedToolGroup[]
 } {
   const runtime = usePluginRuntimeOptional()
+  const access = useAccessOptional()
 
   return React.useMemo(() => {
     const hasPermission = runtime?.context.hasPermission
+    const can = access.can
     const verticalId = runtime?.context.tenant?.verticalId
     const activePluginId = detectActivePluginId(runtime)
 
@@ -84,9 +87,13 @@ export function useAITools(): {
       }
     }
 
-    // Filter by permission
+    // Filter by role × plan. UX only — the REAL authorization runs server-side
+    // (broker catalog filter) and in the guarded executor (checkAccess/
+    // guardLimit); hiding here just keeps the visible catalog honest. Falls
+    // back to the runtime's role-only check when no AccessProvider is mounted.
     const tools = allTools.filter((tool) => {
       if (!tool.permission) return true
+      if (can) return can(tool.permission.feature, tool.permission.action).allowed
       if (!hasPermission) return true
       return hasPermission(tool.permission)
     })
@@ -139,5 +146,5 @@ export function useAITools(): {
     }
 
     return { tools, activePluginId, suggestions, contextualSuggestions, toolGroups }
-  }, [runtime])
+  }, [runtime, access.can])
 }
