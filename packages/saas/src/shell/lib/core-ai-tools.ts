@@ -168,6 +168,22 @@ export function buildDataPrimitiveTools(input: {
 
   return [
     {
+      id: 'data.find-anything',
+      name: 'findAnything',
+      description: 'Global search (like the app command center): looks a name/text up across ALL record types the user may see at once and returns grouped matches. Use this FIRST whenever you do not know what kind of record a name refers to ("quem é X?", "o que é Y?") — then drill down with searchRecords.',
+      icon: 'Command',
+      mode: 'read',
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: 'Name or text to look up everywhere.' },
+        },
+        required: ['search'],
+      },
+      category: 'Data',
+      suggestions: [{ label: 'Quem é …?' }],
+    },
+    {
       id: 'data.search-records',
       name: 'searchRecords',
       description: `Searches or lists records of ONE entity and returns matching rows with their fields. Use for questions about specific records or small lists. Entities: ${catalogLine}.`,

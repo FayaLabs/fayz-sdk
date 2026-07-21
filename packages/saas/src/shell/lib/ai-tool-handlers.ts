@@ -214,6 +214,62 @@ function resolveKeyedTarget(
   return { target }
 }
 
+registerAIToolHandler('findAnything', async (args, ctx) => {
+  const search = typeof args.search === 'string' ? args.search.trim() : ''
+  if (!search) return { error: 'missing_search', message: 'Provide the name or text to look up.' }
+
+  // Deduped key-indexed targets, permission-filtered PER TARGET (the palette
+  // semantics: what you cannot see is not searched), person-archetypes first —
+  // "quem é X?" is a person question far more often than not.
+  const seen = new Set<DataToolTarget>()
+  const candidates: Array<{ key: string; target: DataToolTarget }> = []
+  for (const [key, target] of ctx.dataTools) {
+    if (!key.startsWith('key:') || seen.has(target)) continue
+    seen.add(target)
+    candidates.push({ key: key.slice(4), target })
+  }
+  let skippedForPermission = 0
+  const allowed = candidates.filter(({ target }) => {
+    const permission = target.entity.permission
+    if (!permission) return true
+    if (checkAccess(permission.feature, permission.action).allowed) return true
+    skippedForPermission += 1
+    return false
+  })
+  allowed.sort((a, b) => {
+    const ap = a.target.entity.data?.archetype === 'person' ? 0 : 1
+    const bp = b.target.entity.data?.archetype === 'person' ? 0 : 1
+    return ap - bp || a.key.localeCompare(b.key)
+  })
+
+  const MAX_TARGETS = 20
+  const searched = allowed.slice(0, MAX_TARGETS)
+  const settled = await Promise.allSettled(
+    searched.map(async ({ key, target }) => {
+      const provider = resolveDataProvider(
+        target.entity as EntityDef<{ id: string }>,
+        target.mockData,
+      )
+      const result = await provider.list({ search, pageSize: 5 })
+      return { key, label: target.label, total: result.total, records: result.data }
+    }),
+  )
+  const matches = settled
+    .filter((r) => r.status === 'fulfilled' && r.value.records.length > 0)
+    .map((r) => (r as PromiseFulfilledResult<{ key: string; label: string; total: number; records: unknown[] }>).value)
+
+  return {
+    query: search,
+    matches,
+    searchedEntities: searched.length,
+    ...(allowed.length > MAX_TARGETS ? { targetsTruncated: true } : {}),
+    ...(skippedForPermission ? { skippedForPermission } : {}),
+    ...(matches.length === 0
+      ? { hint: 'No records matched anywhere the user can see. Say so — do not retry other search tools with the same text.' }
+      : {}),
+  }
+})
+
 registerAIToolHandler('searchRecords', async (args, ctx) => {
   const resolved = resolveKeyedTarget(ctx, args)
   if ('error' in resolved) return resolved.error
