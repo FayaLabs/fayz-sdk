@@ -7,7 +7,7 @@ import { CurrencyInput } from '@fayz-ai/ui'
 import { DatePicker } from '@fayz-ai/ui'
 import { Button } from '@fayz-ai/ui'
 import type { EntityLookupMap } from '@fayz-ai/saas'
-import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
+import { useLimitGuard, invalidateLimit, usePermissionOptional } from '@fayz-ai/saas'
 import { SubpageHeader, useSaveBar, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import type { TransactionDirection, CreateInvoiceItemInput, CreateMovementInput } from '../types'
@@ -403,6 +403,7 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
     'other'
   const createInvoice = useFinancialStore((s) => s.createInvoice)
   const guardMovements = useLimitGuard('movements_month')
+  const can = usePermissionOptional()
   const hasLocations = locations.length > 0
   const isEdit = !!editId
 
@@ -567,6 +568,8 @@ export function InvoiceFormView({ direction, editId, onSaved }: {
   }
 
   async function handleSave() {
+    // Defense in depth: block creating a new invoice without the `create` action.
+    if (!isEdit && !can('financial', 'create')) return
     if (items.length === 0) { toast.error(t('common.formIncomplete')); return }
     // Plan quantity guard (client-side): an invoice writes one financial movement
     // per installment (min 1). Guard that many against the monthly cap before the

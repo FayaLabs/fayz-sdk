@@ -1,6 +1,7 @@
 import React from 'react'
 import { Search, Inbox as InboxIcon, Plus } from 'lucide-react'
 import { Button, Input, cn } from '@fayz-ai/ui'
+import { PermissionGate } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
 import { useConversationsStore } from '../ConversationsContext'
 import type { Channel } from '../types'
@@ -22,15 +23,17 @@ export function ConversationList({ className }: { className?: string }) {
       <div className="border-b border-border px-3 py-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-sm font-semibold text-foreground">{t('conversations.title')}</span>
-          <Button
-            size="sm"
-            onClick={() => setNewOpen(true)}
-            aria-label={t('conversations.list.new')}
-            data-testid="conversations-new"
-          >
-            <Plus className="h-3.5 w-3.5 sm:mr-1" />
-            <span className="hidden sm:inline">{t('conversations.list.new')}</span>
-          </Button>
+          <PermissionGate feature="conversations" action="create">
+            <Button
+              size="sm"
+              onClick={() => setNewOpen(true)}
+              aria-label={t('conversations.list.new')}
+              data-testid="conversations-new"
+            >
+              <Plus className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">{t('conversations.list.new')}</span>
+            </Button>
+          </PermissionGate>
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

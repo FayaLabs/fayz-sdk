@@ -90,6 +90,7 @@ export {
   usePermissionsStore,
   PermissionsProvider,
   usePermission,
+  usePermissionOptional,
   useHasPermission,
   usePermissions,
 } from './permissions/index'

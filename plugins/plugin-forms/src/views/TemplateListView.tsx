@@ -4,6 +4,7 @@ import { Button } from '@fayz-ai/ui'
 import { Card, CardContent } from '@fayz-ai/ui'
 import { Badge } from '@fayz-ai/ui'
 import { Input } from '@fayz-ai/ui'
+import { PermissionGate } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
 import { getFormsTenantId } from '../lib/tenant'
 import type { CustomFormsStore } from '../store'
@@ -65,10 +66,12 @@ export function TemplateListView({ store, config, onEdit, onNew }: TemplateListV
             className="h-9 pl-8 text-sm"
           />
         </div>
-        <Button onClick={onNew} size="sm" className="h-9">
-          <Plus className="h-3.5 w-3.5 mr-1.5" />
-          {t('customForms.newTemplate')}
-        </Button>
+        <PermissionGate feature="custom_forms" action="create">
+          <Button onClick={onNew} size="sm" className="h-9">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            {t('customForms.newTemplate')}
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Empty state */}
@@ -82,10 +85,12 @@ export function TemplateListView({ store, config, onEdit, onNew }: TemplateListV
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
               {t('customForms.noTemplatesDescription')}
             </p>
-            <Button onClick={onNew} size="sm" className="mt-4">
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              {t('customForms.newTemplate')}
-            </Button>
+            <PermissionGate feature="custom_forms" action="create">
+              <Button onClick={onNew} size="sm" className="mt-4">
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                {t('customForms.newTemplate')}
+              </Button>
+            </PermissionGate>
           </CardContent>
         </Card>
       )}
