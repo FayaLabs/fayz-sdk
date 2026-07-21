@@ -234,6 +234,14 @@ export interface PluginAITool {
   mode: AIToolMode
   parameters?: AIToolParameters
   permission?: PluginPermissionRequirement
+  /**
+   * Quantity-limit key this tool's writes consume (e.g. 'bookings_month' for a
+   * booking-creating tool). Persist-mode tools that create countable rows MUST
+   * declare it so the agent executor can run the SAME plan-limit guard the UI
+   * runs (guard before execute, invalidate after) — an AI agent never clicks a
+   * gated button, so the declarative contract is its only gate.
+   */
+  limitKey?: string
   suggestions?: AIToolSuggestion[]
   category?: string
   tags?: string[]

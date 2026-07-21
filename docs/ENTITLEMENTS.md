@@ -45,3 +45,15 @@
 - **Enforcement é client-side** (mesmo débito do RBAC): RLS por papel/plano no banco é defesa-em-profundidade futura; hoje um client direto ignora caps.
 - Planos `qa-free-test` são visíveis na SubscriptionPage (sem flag `hidden` no PlanConfig) — remover antes de billing real.
 - `orders` (resto) declara limite sem guard (create é mock-only); `quickCreateProduct` do inventory é side-path não guardado; convites pendentes não contam como seat até aceitos.
+
+## Superfície de agentes de IA (sistema operado por agentes)
+
+O sistema será operado também por AI agents (assistente do FAB, builder do fayz, automations) — e **agente não clica botão**: os gates de UI (PermissionGate/LimitGate/UpgradeModal) não o alcançam. O contrato para a superfície de agentes é:
+
+1. **Mesmo resolver, caminho headless.** O motor já é puro fora do React: `resolveAccess(session, feature, action)` e `isEntitledByPlan` (saas/access/resolver), `countByTenant` (core) e o registry de limites (module-level; `invalidateLimit` já funciona fora de componentes). O executor de aiTools DEVE avaliar, antes de executar qualquer tool: papel (`permission.feature/action` da tool) → plano (`entitled(feature)`) → limite (tools `mode:'persist'` com `limitKey` declarado: contar e comparar ao cap; invalidar após sucesso). Falta hoje: um `getAccessSnapshot()`/`guardLimit(key, n)` imperativos empacotados para runtimes sem React (edge/server) — gap registrado.
+2. **`PluginAITool.limitKey`** (novo, tipado): toda tool persist que cria linhas contáveis declara a chave que consome (`createBooking` → `bookings_month`; `sendMessage` não consome). Checklist de plugin novo: declarar `limitKey` nas aiTools de criação junto com `permission`.
+3. **Negação é resposta estruturada, não falha silenciosa.** O executor devolve ao agente `{ allowed: false, reason: 'role'|'plan'|'limit', limit?: {key,max,used}, upgradeUrl: '/settings/subscription' }` — o agente explica ao usuário e pode propor o upgrade em conversa (o paywall conversacional é o equivalente do UpgradeModal).
+4. **Enforcement server-side pesa MAIS aqui.** Um agente fala com providers direto — o débito "client-side only" é amplificado. Regra: agente escreve SEMPRE via as ações guardadas (nunca `.from(table).insert` cru); RLS por papel/plano no banco continua sendo a defesa-em-profundidade pendente.
+5. **Mesma política de soft-limit**: agente agindo por CLIENTE FINAL (booking público, respostas) nunca bloqueia; agente agindo como ADMIN do tenant obedece caps e oferece upgrade.
+6. **Descoberta**: o catálogo de capacidades que o builder lê inclui `declaredFeatures` + `declaredLimits` + `aiTools[].permission/limitKey` — o builder não oferece ao tenant uma ação que o plano não cobre sem apresentar o caminho de upgrade.
+7. **Auditoria**: execuções de tools persist registram ator (usuário em nome de quem o agente age) — `audit_logs` existe no spine dos pools.
