@@ -290,6 +290,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
   return (
     <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
+      {/* Chronological order: the work happened BEFORE the reply — trace on
+          top, answer below, goto buttons (the next step) underneath. */}
+      {!isUser && (message.toolCalls?.length ?? 0) > 0 && (
+        <div className="flex max-w-[85%] flex-col gap-0.5 px-1">
+          {message.toolCalls!.map((call, i) => (
+            <ToolCallRow key={`${call.name}-${i}`} call={call} />
+          ))}
+        </div>
+      )}
       <div
         className={cn(
           'max-w-[85%] rounded-2xl px-3 py-1.5 text-[13px] leading-relaxed',
@@ -304,13 +313,6 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <div className="flex max-w-[85%] flex-wrap gap-1 px-1">
           {message.links!.map((link) => (
             <RecordLinkButton key={link.id} link={link} />
-          ))}
-        </div>
-      )}
-      {!isUser && (message.toolCalls?.length ?? 0) > 0 && (
-        <div className="flex max-w-[85%] flex-col gap-0.5 px-1">
-          {message.toolCalls!.map((call, i) => (
-            <ToolCallRow key={`${call.name}-${i}`} call={call} />
           ))}
         </div>
       )}
