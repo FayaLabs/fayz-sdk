@@ -276,7 +276,7 @@ export function createSupabaseAgendaProvider(providerOptions?: SupabaseAgendaPro
         kind: input.kind ?? 'appointment',
         status: 'scheduled',
         party_id: input.clientId || null,
-        assignee_id: input.professionalId,
+        assignee_id: input.professionalId || null,
         location_id: input.locationId ?? null,
         subtotal: totalPrice,
         total: totalPrice,
@@ -294,7 +294,7 @@ export function createSupabaseAgendaProvider(providerOptions?: SupabaseAgendaPro
         tenant_id: tenantId,
         kind: input.kind ?? 'appointment',
         party_id: input.clientId || null,
-        assignee_id: input.professionalId,
+        assignee_id: input.professionalId || null,
         location_id: input.locationId ?? null,
         order_id: order.id,
         starts_at: input.startsAt,
@@ -321,7 +321,7 @@ export function createSupabaseAgendaProvider(providerOptions?: SupabaseAgendaPro
           total: s.price,
           sort_order: i,
           duration_minutes: s.durationMinutes,
-          assignee_id: s.assigneeId ?? input.professionalId,
+          assignee_id: s.assigneeId || input.professionalId || null,
         }))
         const { error: oiErr } = await core.from('order_items').insert(orderItems)
         if (oiErr) throw oiErr
