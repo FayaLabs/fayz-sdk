@@ -121,6 +121,13 @@ export interface AppShellProps {
   notificationSlot?: React.ReactNode
   /** Unread notification count */
   unreadCount?: number
+  /** Optional headings above the sidebar nav sections (contextual sidebars). */
+  sidebarSectionLabels?: { main?: string; secondary?: string; settings?: string }
+  /** Identity of the current sidebar context — changing it animates the rail
+   *  swap as a push (new nav in, previous nav out). */
+  sidebarNavKey?: string
+  /** Push direction for a `sidebarNavKey` change. Default 'forward'. */
+  sidebarNavDirection?: 'forward' | 'back'
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +158,9 @@ function SidebarLayout({
   unreadCount = 0,
   hasBottomNav = false,
   mobileHeader = 'minimal',
+  sidebarSectionLabels,
+  sidebarNavKey,
+  sidebarNavDirection,
 }: {
   navigation?: NavigationItem[]
   logo?: React.ReactNode
@@ -178,6 +188,9 @@ function SidebarLayout({
   hasBottomNav?: boolean
   /** Mobile header treatment (<md). Desktop keeps its top bar untouched. */
   mobileHeader?: MobileHeaderVariant
+  sidebarSectionLabels?: AppShellProps['sidebarSectionLabels']
+  sidebarNavKey?: string
+  sidebarNavDirection?: 'forward' | 'back'
 }) {
   const sidebarCollapsed = useLayoutStore((s) => s.sidebarCollapsed)
   const setSidebarCollapsed = useLayoutStore((s) => s.setSidebarCollapsed)
@@ -217,6 +230,9 @@ function SidebarLayout({
           userMenuSlot={userMenuSlot}
           notificationSlot={notificationSlot}
           unreadCount={unreadCount}
+          sectionLabels={sidebarSectionLabels}
+          navKey={sidebarNavKey}
+          navDirection={sidebarNavDirection}
         />
       </div>
 
@@ -658,6 +674,9 @@ export function AppShell({
   userMenuSlot,
   notificationSlot,
   unreadCount = 0,
+  sidebarSectionLabels,
+  sidebarNavKey,
+  sidebarNavDirection,
 }: AppShellProps) {
   const hasBottomNav = !!bottomNav?.length
   const bottomBar = hasBottomNav ? (
@@ -701,6 +720,9 @@ export function AppShell({
           unreadCount={unreadCount}
           hasBottomNav={hasBottomNav}
           mobileHeader={mobileHeader}
+          sidebarSectionLabels={sidebarSectionLabels}
+          sidebarNavKey={sidebarNavKey}
+          sidebarNavDirection={sidebarNavDirection}
         >
           {children}
         </SidebarLayout>

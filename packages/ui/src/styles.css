@@ -370,6 +370,7 @@ select.bg-card,
   --saas-page-enter-duration: 250ms;
   --saas-page-enter-offset: 4px;
   --saas-nav-slide-offset: 12px;
+  --saas-rail-duration: 260ms;
 }
 
 /* Page content transition */
@@ -424,4 +425,37 @@ select.bg-card,
 @keyframes saas-slide-back {
   from { opacity: 0; transform: translateX(calc(-1 * var(--saas-nav-slide-offset))); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* Sidebar rail push — when the whole left menu swaps context (e.g. app nav →
+   settings nav) the incoming rail pulls in from one side while the outgoing
+   one slides off the other, iOS-push style. The outgoing pane is absolutely
+   positioned over the incoming one for the duration of the animation. */
+.saas-rail-in-forward  { animation: saas-rail-in-forward  var(--saas-rail-duration) var(--saas-transition-easing) both; }
+.saas-rail-out-forward { animation: saas-rail-out-forward var(--saas-rail-duration) var(--saas-transition-easing) both; }
+.saas-rail-in-back     { animation: saas-rail-in-back     var(--saas-rail-duration) var(--saas-transition-easing) both; }
+.saas-rail-out-back    { animation: saas-rail-out-back    var(--saas-rail-duration) var(--saas-transition-easing) both; }
+
+@keyframes saas-rail-in-forward {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes saas-rail-out-forward {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-35%); }
+}
+@keyframes saas-rail-in-back {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes saas-rail-out-back {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(35%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saas-rail-in-forward, .saas-rail-out-forward,
+  .saas-rail-in-back, .saas-rail-out-back {
+    animation-duration: 1ms;
+  }
 }

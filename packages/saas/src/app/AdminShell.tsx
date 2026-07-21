@@ -37,14 +37,14 @@ import { useTenantOptional } from '../org/context'
 import { WidgetSlot } from '../plugins/WidgetSlot'
 import { useNotifications } from '../shell/hooks/useNotifications'
 import { NotificationInbox } from '../shell/components/notifications/NotificationInbox'
-import { SettingsPage } from '../shell/components/settings/SettingsPage'
+import { SettingsPage, useCoreSettingsTabs, type SettingsTab } from '../shell/components/settings/SettingsPage'
 import { TeamTab } from '../shell/components/organization/TeamTab'
 import { PermissionProfilesTab } from '../shell/components/organization/PermissionProfilesTab'
 import { LocationsCrudPage } from '../shell/components/settings/LocationsCrudPage'
 import { ConnectedFieldRulesSettings } from '../shell/components/settings/ConnectedFieldRulesSettings'
 import { SubscriptionPage } from '../shell/components/billing/SubscriptionPage'
 import { useBillingStore, resolvePlanBadge } from '../billing'
-import { Bell, CreditCard, Crown, LogOut, MapPin, Puzzle, Settings as SettingsIcon, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, UserCog, Users } from 'lucide-react'
+import { ArrowLeft, Bell, CreditCard, Crown, LogOut, MapPin, Puzzle, Settings as SettingsIcon, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, UserCog, Users } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -419,8 +419,8 @@ function buildSettingsTabs(
   t: (key: string, params?: Record<string, string | number>) => string,
   showOrgSettings: boolean,
   hasBilling: boolean,
-): { id: string; label: string; icon?: React.ReactNode; component: React.ReactNode }[] {
-  const settingsTabs: { id: string; label: string; icon?: React.ReactNode; component: React.ReactNode }[] = []
+): SettingsTab[] {
+  const settingsTabs: SettingsTab[] = []
 
   // Subscription — present whenever billing is configured, gated (like the other
   // org tabs) on the system `manage_billing` permission. Route: /settings/subscription.
@@ -430,6 +430,7 @@ function buildSettingsTabs(
       id: 'subscription',
       label: subLabel === 'settings.subscription' ? 'Subscription' : subLabel,
       icon: <Crown className="h-4 w-4" />,
+      iconName: 'Crown',
       component: <SubscriptionPage />,
     })
   }
@@ -439,13 +440,13 @@ function buildSettingsTabs(
     // grants-based can() has no team/permissions/locations feature). Owner and
     // no-RBAC profiles pass hasSystem() through, so the owner is never blocked.
     if (hasSystem('manage_team'))
-      settingsTabs.push({ id: 'team', label: t('settings.team'), icon: <Users className="h-4 w-4" />, component: <TeamTab /> })
+      settingsTabs.push({ id: 'team', label: t('settings.team'), icon: <Users className="h-4 w-4" />, iconName: 'Users', component: <TeamTab /> })
     if (hasSystem('manage_permissions'))
-      settingsTabs.push({ id: 'permissions', label: t('settings.permissions'), icon: <ShieldCheck className="h-4 w-4" />, component: <PermissionProfilesTab /> })
+      settingsTabs.push({ id: 'permissions', label: t('settings.permissions'), icon: <ShieldCheck className="h-4 w-4" />, iconName: 'ShieldCheck', component: <PermissionProfilesTab /> })
     if (hasSystem('manage_settings')) {
       settingsTabs.push(
-        { id: 'locations', label: t('settings.locations'), icon: <MapPin className="h-4 w-4" />, component: <LocationsCrudPage /> },
-        { id: 'field-rules', label: t('settings.fieldRules'), icon: <SlidersHorizontal className="h-4 w-4" />, component: <ConnectedFieldRulesSettings /> },
+        { id: 'locations', label: t('settings.locations'), icon: <MapPin className="h-4 w-4" />, iconName: 'MapPin', component: <LocationsCrudPage /> },
+        { id: 'field-rules', label: t('settings.fieldRules'), icon: <SlidersHorizontal className="h-4 w-4" />, iconName: 'SlidersHorizontal', component: <ConnectedFieldRulesSettings /> },
       )
     }
   }
@@ -461,10 +462,11 @@ function buildSettingsTabs(
       id: tab.id,
       label: translated === labelKey ? tab.label : translated,
       icon: React.createElement(IconComp as React.ComponentType<{ className?: string }>, { className: 'h-4 w-4' }),
+      iconName: tab.icon ?? 'Puzzle',
       component: React.createElement(tab.component),
       // Flag plugin-contributed tabs so SettingsPage draws the core/plugins divider.
       isPlugin: true,
-    } as any)
+    })
   }
 
   return settingsTabs
@@ -642,6 +644,38 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
   // billing is configured — no need to hunt for a standalone billing route.
   const onBilling = hasBilling && showSettings ? () => navigateTo('/settings/subscription') : undefined
 
+  // Contextual /settings sidebar (desktop sidebar layout only): the app rail is
+  // replaced by "← Back to home" + the settings links, so settings isn't a menu
+  // inside a menu. `coreSettingsTabs` mirrors what SettingsPage renders.
+  const coreSettingsTabs = useCoreSettingsTabs({ showCompany: showBranding, showBranding })
+  const allSettingsTabs = React.useMemo(
+    () => [...coreSettingsTabs, ...settingsTabs],
+    [coreSettingsTabs, settingsTabs],
+  )
+  const inSettings = showSettings && layout === 'sidebar' && (path === '/settings' || path.startsWith('/settings/'))
+  const homeRoute = navigation[0]?.route ?? '/'
+  // With the contextual sidebar the shell owns settings navigation, so it also
+  // owns the active tab: parse it from the URL and drive SettingsPage as a
+  // controlled component (bare /settings → first tab). This is what makes
+  // clicking another settings link actually swap the content.
+  const activeSettingsTab = inSettings
+    ? (path === '/settings'
+        ? allSettingsTabs[0]?.id
+        : path.slice('/settings/'.length).split('/')[0])
+    : undefined
+  const settingsNavigation = React.useMemo<NavigationItem[]>(
+    () => allSettingsTabs.map((tab) => ({
+      id: `settings:${tab.id}`,
+      label: tab.label,
+      icon: tab.iconName ?? 'Settings',
+      route: `/settings/${tab.id}`,
+      // Plugin tabs land in the second group so the sidebar can head them
+      // "Plugins", matching the divider the in-page nav used to draw.
+      section: tab.isPlugin ? 'secondary' : 'main',
+    })),
+    [allSettingsTabs],
+  )
+
   const shellUser = user
     ? { fullName: user.fullName ?? user.email, email: user.email, avatarUrl: user.avatarUrl }
     : undefined
@@ -671,22 +705,41 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     !routeAllowed ? (
       <AccessDenied tr={tr} />
     ) : match.route.path === '/settings' || match.route.path === '/settings/*' ? (
-      <SettingsPage extraTabs={settingsTabs} showCompany={showBranding} showBranding={showBranding} />
+      <SettingsPage tabs={allSettingsTabs} showCompany={showBranding} showBranding={showBranding} hideNav={inSettings} activeTabId={activeSettingsTab} />
     ) : (
       <ActiveComponent {...activeParams} />
     )
   ) : null
+
+  const settingsBackLink = (
+    <button
+      onClick={() => navigateTo(homeRoute)}
+      className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+    >
+      <ArrowLeft className="h-4 w-4 shrink-0" />
+      <span className="truncate">{tr('settings.backToHome', 'Back to home')}</span>
+    </button>
+  )
 
   return (
     <ModuleLayoutProvider variant={moduleVariant}>
     <AppShell
       variant={layout}
       contentFrame={contentFrame}
-      navigation={navigation}
+      navigation={inSettings ? settingsNavigation : navigation}
+      sidebarSectionLabels={inSettings ? {
+        main: tr('settings.navLinks', 'Settings links'),
+        secondary: tr('common.plugins', 'Plugins'),
+      } : undefined}
+      // Entering settings pushes forward (new rail in from the right); going
+      // back to the app rail reverses it.
+      sidebarNavKey={inSettings ? 'settings' : 'app'}
+      sidebarNavDirection={inSettings ? 'forward' : 'back'}
       logo={logo ?? <span className="text-lg font-bold">{appName}</span>}
       user={shellUser}
       pageTitle={activePageTitle}
-      currentPath={path}
+      // Bare /settings renders the first tab, so highlight it in the rail too.
+      currentPath={inSettings && path === '/settings' ? `/settings/${allSettingsTabs[0]?.id ?? ''}` : path}
       bottomNav={bottomNav}
       onBottomNavAction={onBottomNavAction}
       mobileHeader={mobileHeader}
@@ -697,7 +750,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       onSettings={() => navigateTo('/settings')}
       userPlan={planBadge ? { label: planBadge.label, paid: planBadge.paid } : undefined}
       billingLabel={tr('settings.subscription', 'Subscription')}
-      sidebarTopContent={showOrgSwitcher ? <WorkspaceSwitcher /> : undefined}
+      sidebarTopContent={inSettings ? settingsBackLink : showOrgSwitcher ? <WorkspaceSwitcher /> : undefined}
       topbarStart={<WidgetSlot zone="shell.topbar.start" />}
       topbarEnd={<WidgetSlot zone="shell.topbar.end" />}
       notificationSlot={<AdminNotifications />}
