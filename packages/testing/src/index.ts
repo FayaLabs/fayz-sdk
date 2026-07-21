@@ -12,6 +12,7 @@ export type {
   ConversationsConfig,
   PermissionsConfig, ReadOnlyExpectation,
   ShellConfig,
+  EntitlementsConfig, EntityFiller,
 } from './config'
 export { defineTestingConfig, ownerUser, timezoneOf } from './config'
 
@@ -19,12 +20,16 @@ export { defineTestingConfig, ownerUser, timezoneOf } from './config'
 export {
   allContracts,
   shellContract, crudContract, agendaContract, conversationsContract, permissionsContract,
+  entitlementsContract,
   sdkTags, moduleId,
 } from './contracts'
 
 // Fixtures
 export { authSetup } from './fixtures/auth'
-export { backendClient, supabaseUrl, supabaseAnonKey } from './fixtures/backend'
+export {
+  backendClient, supabaseUrl, supabaseAnonKey,
+  getTenantPlan, setTenantPlan, countTenantRows,
+} from './fixtures/backend'
 export type { BackendClient, SupabaseClient } from './fixtures/backend'
 export { envVar, requireEnv } from './fixtures/env'
 export {

@@ -13,9 +13,12 @@ let cache: Record<string, string> | null = null
 
 function readDotEnv(): Record<string, string> {
   if (cache) return cache
-  const file = path.resolve(process.cwd(), '.env')
   const out: Record<string, string> = {}
-  if (fs.existsSync(file)) {
+  // Vite precedence: .env first, then .env.local overrides it. Some apps (e.g.
+  // dentist) keep their gitignored secrets ONLY in .env.local, so both are read.
+  for (const name of ['.env', '.env.local']) {
+    const file = path.resolve(process.cwd(), name)
+    if (!fs.existsSync(file)) continue
     for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
       const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
       if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, '')

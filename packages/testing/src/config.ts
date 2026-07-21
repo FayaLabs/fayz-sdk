@@ -142,6 +142,79 @@ export interface PermissionsConfig {
   restrictedText?: string
 }
 
+/** A page-fill closure for the limit probe: fill + submit the create form for a
+ *  row named `name`. The contract owns the (timestamped) name so it can count &
+ *  tear down the exact rows it created. Receives the Playwright `page`. */
+export type EntityFiller = (page: import('@playwright/test').Page, name: string) => Promise<void>
+
+/**
+ * entitlementsContract — plan × role composition: a plan-gated feature paywalls
+ * (not a role AccessDenied), a quantity limit blocks the create past its cap
+ * (UpgradeModal, row NOT persisted), an upgrade unblocks it, the menu badge
+ * tracks the plan, and a role-hidden module stays hidden even under a plan that
+ * would badge it premium. Drives the flip through `tenants.plan` (see
+ * fixtures/backend setTenantPlan), always restoring the original plan.
+ */
+export interface EntitlementsConfig {
+  module?: string // default 'entitlements'
+  /** Tenant whose plan is flipped + whose rows the limit probe counts. */
+  tenantId: string
+  /** The two plan ids the contract flips between. */
+  planFlip: {
+    /** Tiny-caps QA plan (e.g. 'qa-free-test') the paywalls are exercised under. */
+    freeTestPlanId: string
+    /** A paid plan that lifts the caps + unlocks the feature (e.g. 'pro'). */
+    paidPlanId: string
+    /** Display name of the free-test plan (menu-badge assertion). Optional. */
+    freeTestPlanName?: string
+    /** Display name of the paid plan (menu-badge assertion). Optional. */
+    paidPlanName?: string
+  }
+  /** A feature gated to a higher plan (Free → premium badge + UpgradePrompt). */
+  planGatedFeature: {
+    /** Feature id (same id space as RBAC/nav), e.g. 'marketing'. */
+    feature: string
+    /** Nav label of the feature's item, e.g. 'Marketing'. */
+    navLabel: string
+    /** Route of the feature, e.g. '/marketing'. */
+    route: string
+  }
+  /** A quantity limit exercised to its cap and past it. */
+  limitProbe: {
+    /** limitKey resolved by the plan caps + a LimitDeclaration, e.g. 'clients'. */
+    limitKey: string
+    /** List route of the entity, e.g. '/clients' or '/students'. */
+    route: string
+    /** The list "+ Add {entity}" button that opens the create form. */
+    addLabel: string | RegExp
+    /** Fill + submit the create form for a row named `name`. */
+    fillEntity: EntityFiller
+    /** The plan's cap for this key under freeTestPlan (e.g. 2). */
+    capForTest: number
+    /** How to count/tear down the rows fillEntity creates. */
+    count: {
+      /** Backend table, e.g. 'people'. */
+      table: string
+      /** Name column used to match & clean up created rows. */
+      column: string
+      /** Optional `kind` filter for multi-kind tables (e.g. 'customer'|'student'). */
+      kind?: string
+    }
+    /** Prefix for the (timestamped) created row names. Default 'QA Ent'. */
+    namePrefix?: string
+  }
+  /** Role×plan composition (test e): a restricted user under the free-test plan. */
+  compose: {
+    /** storageState of a user WITHOUT the gated feature's role grant. */
+    restrictedStorageState: string
+    /** A route to land on before the nav assertion. */
+    landingRoute: string
+  }
+  /** Selector to open the account menu for the plan-badge check (test d).
+   *  Defaults to the last `button[aria-haspopup="menu"]` (sidebar footer). */
+  accountTrigger?: string
+}
+
 /** shellContract — the cross-cutting shell behaviors (settings, toggles, chrome). */
 export interface ShellConfig {
   module?: string // default 'shell'
@@ -185,6 +258,7 @@ export interface TestingAppConfig {
     agenda?: AgendaConfig
     conversations?: ConversationsConfig
     permissions?: PermissionsConfig
+    entitlements?: EntitlementsConfig
   }
   /**
    * Ids of plugins installed in the app. Any id here WITHOUT a matching module

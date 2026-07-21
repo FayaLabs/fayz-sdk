@@ -53,4 +53,43 @@ export function backendClient(): BackendClient {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tenant plan flip — the entitlementsContract's lever. The app reads the active
+// plan from `tenants.plan` (org adapter → org.plan → the access engine's cap
+// resolver), so an authenticated UPDATE here + a page reload re-hydrates the org
+// with the new plan. This is exactly what `adapter.updateOrg(orgId, { plan })`
+// does under the hood — same RLS-gated write, no Management API. The contract
+// captures the original plan (getTenantPlan) before flipping and ALWAYS restores
+// it in a finally/afterAll so a run never leaves the tenant on the QA plan.
+// ---------------------------------------------------------------------------
+
+/** Read a tenant's current `plan` id (null when the column is empty). */
+export async function getTenantPlan(sb: SupabaseClient, tenantId: string): Promise<string | null> {
+  const { data, error } = await sb.from('tenants').select('plan').eq('id', tenantId).single()
+  if (error) throw new Error(`getTenantPlan(${tenantId}): ${error.message}`)
+  return ((data as { plan?: string | null } | null)?.plan ?? null)
+}
+
+/** Flip a tenant's active plan (writes `tenants.plan`, RLS-gated as the owner). */
+export async function setTenantPlan(sb: SupabaseClient, tenantId: string, planId: string): Promise<void> {
+  const { error } = await sb.from('tenants').update({ plan: planId }).eq('id', tenantId)
+  if (error) throw new Error(`setTenantPlan(${tenantId} → ${planId}): ${error.message}`)
+}
+
+/** Tenant-scoped row count (proof an entity did/didn't reach the DB). Mirrors the
+ *  access engine's `countByTenant` but as an authenticated read for the suite. */
+export async function countTenantRows(
+  sb: SupabaseClient,
+  table: string,
+  tenantId: string,
+  opts: { kind?: string; nameColumn?: string; namePrefix?: string } = {},
+): Promise<number> {
+  let q = sb.from(table).select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId)
+  if (opts.kind) q = q.eq('kind', opts.kind)
+  if (opts.nameColumn && opts.namePrefix) q = q.ilike(opts.nameColumn, `${opts.namePrefix}%`)
+  const { count, error } = await q
+  if (error) throw new Error(`countTenantRows(${table}): ${error.message}`)
+  return count ?? 0
+}
+
 export type { SupabaseClient }

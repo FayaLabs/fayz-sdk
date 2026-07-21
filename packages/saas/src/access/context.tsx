@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { LimitDeclaration, PermissionAction, Plan } from '@fayz-ai/core'
-import { countByTenant, usePluginRuntimeOptional } from '@fayz-ai/core'
+import { countByTenant, usePluginRuntimeOptional, getAllEntities } from '@fayz-ai/core'
 import { useAuthStore } from '@fayz-ai/auth'
 import { useOrganizationStore } from '../org/store'
 import { usePermissionsStore } from '../permissions/store'
@@ -50,11 +50,28 @@ export function AccessProvider({ children, limitDeclarations }: AccessProviderPr
   const pluginLimits = runtime?.pluginLimits
 
   // Merge limit declarations by priority (later wins by key): shell built-ins
-  // (users/locations) < plugin `declaredLimits` < app overrides. Then publish to
-  // the module registry consumed by invalidateLimit / the limit hooks.
+  // (users/locations) < entity-derived < plugin `declaredLimits` < app
+  // overrides. Then publish to the module registry consumed by
+  // invalidateLimit / the limit hooks.
+  //
+  // Entity-derived: any registered CRUD entity carrying `limitKey` yields a
+  // declaration for free from its own data mapping (table + archetype kind) —
+  // this is what makes an app's `EntityDef.limitKey: 'clients'` enforceable
+  // with ZERO extra wiring (a cap without a countable binding is a dead cap).
   React.useEffect(() => {
     const byKey = new Map<string, LimitDeclaration>()
     for (const d of CORE_LIMIT_DECLARATIONS) byKey.set(d.key, d)
+    for (const e of getAllEntities()) {
+      const def = e.entityDef
+      if (def?.limitKey && def.data?.table) {
+        byKey.set(def.limitKey, {
+          key: def.limitKey,
+          label: e.labelPlural,
+          table: def.data.table,
+          kindFilter: def.data.archetypeKind,
+        })
+      }
+    }
     for (const d of pluginLimits ?? []) byKey.set(d.key, d)
     for (const d of limitDeclarations ?? []) byKey.set(d.key, d)
     setLimitRegistry(Array.from(byKey.values()))

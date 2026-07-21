@@ -15,12 +15,14 @@ import { crudContract } from './crud'
 import { agendaContract } from './agenda'
 import { conversationsContract } from './conversations'
 import { permissionsContract } from './permissions'
+import { entitlementsContract } from './entitlements'
 
 export { shellContract } from './shell'
 export { crudContract } from './crud'
 export { agendaContract } from './agenda'
 export { conversationsContract } from './conversations'
 export { permissionsContract } from './permissions'
+export { entitlementsContract } from './entitlements'
 export { sdkTags, moduleId } from './util'
 
 /** Instantiate every contract declared in `cfg.modules`. Order is stable so the
@@ -33,4 +35,5 @@ export function allContracts(cfg: TestingAppConfig): void {
   if (m.agenda) agendaContract(cfg, m.agenda)
   if (m.conversations) conversationsContract(cfg, m.conversations)
   if (m.permissions) permissionsContract(cfg, m.permissions)
+  if (m.entitlements) entitlementsContract(cfg, m.entitlements)
 }
