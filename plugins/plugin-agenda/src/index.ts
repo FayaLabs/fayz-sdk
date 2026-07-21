@@ -80,15 +80,17 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
           namePlural: 'Appointments',
           icon: 'Calendar',
           permission: { feature: 'appointments', action: 'read' },
+          // Keys are the PROVIDER's output shape (camelCase) — what filters/
+          // dateField/groupBy match against, not the raw DB columns.
           fields: [
-            { key: 'starts_at', label: 'Starts at', type: 'text' },
-            { key: 'ends_at', label: 'Ends at', type: 'text' },
+            { key: 'startsAt', label: 'Starts at', type: 'text' },
+            { key: 'endsAt', label: 'Ends at', type: 'text' },
             { key: 'status', label: 'Status', type: 'text' },
-            { key: 'client_name', label: 'Client', type: 'text', searchable: true },
-            { key: 'professional_name', label: 'Professional', type: 'text', searchable: true },
-            { key: 'order_total', label: 'Order total', type: 'number' },
-            { key: 'total_duration_minutes', label: 'Duration (min)', type: 'number' },
-            { key: 'created_at', label: 'Created at', type: 'text' },
+            { key: 'clientName', label: 'Client', type: 'text', searchable: true },
+            { key: 'professionalName', label: 'Professional', type: 'text', searchable: true },
+            { key: 'orderTotal', label: 'Order total', type: 'number' },
+            { key: 'totalDurationMinutes', label: 'Duration (min)', type: 'number' },
+            { key: 'createdAt', label: 'Created at', type: 'text' },
           ],
           data: {
             table: 'v_appointments',

@@ -7,6 +7,7 @@ import { useChat } from '../../hooks/useChat'
 import { useAITools } from '../../hooks/useAITools'
 import { ChatSuggestions, ChatToolsPanel } from './ChatSuggestions'
 import { ConfirmActionCard } from './ConfirmActionCard'
+import { ChatMarkdown } from './markdown'
 import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
 
 interface ChatPanelProps {
@@ -272,7 +273,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             : 'rounded-bl-sm bg-muted text-foreground'
         )}
       >
-        {message.content}
+        {isUser ? message.content : <ChatMarkdown content={message.content} />}
       </div>
       {!isUser && (message.toolCalls?.length ?? 0) > 0 && (
         <div className="flex max-w-[85%] flex-col gap-0.5 px-1">

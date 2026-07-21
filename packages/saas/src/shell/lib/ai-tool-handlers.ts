@@ -85,6 +85,11 @@ function errorResult(error: string, message: string): AIToolExecutionResult {
   return { ok: false, content: JSON.stringify({ error, message }) }
 }
 
+function rowContainsText(row: Record<string, unknown>, needle: string): boolean {
+  const n = needle.toLowerCase()
+  return Object.values(row).some((v) => typeof v === 'string' && v.toLowerCase().includes(n))
+}
+
 async function executeDataTool(
   target: DataToolTarget,
   args: Record<string, unknown>,
@@ -93,18 +98,66 @@ async function executeDataTool(
     target.entity as EntityDef<{ id: string }>,
     target.mockData,
   )
-  const result = await provider.list({
-    search: typeof args.search === 'string' ? args.search : undefined,
-    pageSize: REGISTRY_PAGE_SIZE,
-  })
+  const search = typeof args.search === 'string' && args.search.trim() ? args.search.trim() : undefined
+  const result = await provider.list({ search, pageSize: REGISTRY_PAGE_SIZE })
+  // Honesty guard: a provider with no searchable columns quietly IGNORES
+  // `search` and returns recent rows — which the model then presents as the
+  // thing it looked for ("REC-00012 vale R$6000" when no row matched at all).
+  // If nothing in the returned rows contains the text, say so explicitly.
+  const rows = result.data as Array<Record<string, unknown>>
+  const unmatched = !!search && rows.length > 0 && !rows.some((r) => rowContainsText(r, search))
   return {
     entity: target.label,
+    ...(search ? { search } : {}),
     total: result.total,
     // Truthful cap: the model is told the list was trimmed so it can say so
     // rather than presenting one page as the whole set.
     truncated: result.total > result.data.length,
     records: result.data,
+    ...(unmatched
+      ? {
+          warning:
+            'None of these rows contain the search text — they are RECENT records, not matches. Do NOT present them as the searched item; say it was not found or try another entity.',
+        }
+      : {}),
   }
+}
+
+/** Tolerant field resolution: exact key, then camelCase, then snake_case. */
+function resolveFieldKey(row: Record<string, unknown>, name: string): string | null {
+  if (name in row) return name
+  const camel = name.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+  if (camel in row) return camel
+  const snake = name.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase())
+  if (snake in row) return snake
+  return null
+}
+
+function isRangeObject(v: unknown): v is Record<string, unknown> {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    !Array.isArray(v) &&
+    ('from' in v || 'to' in v || 'gte' in v || 'lte' in v || 'gt' in v || 'lt' in v)
+  )
+}
+
+function compareInRange(raw: unknown, range: Record<string, unknown>): boolean {
+  const asNumberOrTime = (v: unknown): number => {
+    if (typeof v === 'number') return v
+    const ts = Date.parse(String(v))
+    if (!Number.isNaN(ts)) return ts
+    return Number(v)
+  }
+  const value = asNumberOrTime(raw)
+  if (Number.isNaN(value)) return false
+  const lo = range.from ?? range.gte ?? range.gt
+  const hi = range.to ?? range.lte ?? range.lt
+  if (lo !== undefined && value < asNumberOrTime(lo)) return false
+  if (lo !== undefined && 'gt' in range && value <= asNumberOrTime(lo)) return false
+  if (hi !== undefined && value > asNumberOrTime(hi)) return false
+  if (hi !== undefined && 'lt' in range && value >= asNumberOrTime(hi)) return false
+  return true
 }
 
 export async function executeAITool(
@@ -282,7 +335,7 @@ registerAIToolHandler('queryData', async (args, ctx) => {
   const { target } = resolved
 
   const metric = args.metric === 'sum' || args.metric === 'avg' ? args.metric : 'count'
-  const field = typeof args.field === 'string' ? args.field : undefined
+  let field = typeof args.field === 'string' ? args.field : undefined
   if (metric !== 'count' && !field) {
     return { error: 'missing_field', message: `metric "${metric}" needs a "field" to aggregate.` }
   }
@@ -297,12 +350,34 @@ registerAIToolHandler('queryData', async (args, ctx) => {
   const page = await provider.list({ pageSize: 1000 })
   let rows = page.data as Array<Record<string, unknown>>
 
-  const dateField = typeof args.dateField === 'string' ? args.dateField : 'created_at'
+  // Field references FAIL LOUD: a typo'd/unknown field must never silently
+  // filter everything to zero ("Não há agendamentos" over a wrong key). The
+  // error carries the row's real keys so the model self-corrects next round.
+  const sampleRow = rows[0]
+  const availableFields = sampleRow ? Object.keys(sampleRow) : []
+  const requireField = (name: string): string | { error: string; message: string; availableFields: string[] } => {
+    if (!sampleRow) return name
+    const resolved = resolveFieldKey(sampleRow, name)
+    if (resolved) return resolved
+    return {
+      error: 'unknown_field',
+      message: `Field \"${name}\" does not exist on ${target.label}. Use one of the available fields and retry.`,
+      availableFields,
+    }
+  }
+
+  const wantsDateRange = typeof args.from === 'string' || typeof args.to === 'string'
+  let dateKey = 'createdAt'
+  if (wantsDateRange || typeof args.dateField === 'string') {
+    const resolved = requireField(typeof args.dateField === 'string' ? args.dateField : 'createdAt')
+    if (typeof resolved !== 'string') return resolved
+    dateKey = resolved
+  }
   const from = typeof args.from === 'string' ? Date.parse(args.from) : NaN
   const to = typeof args.to === 'string' ? Date.parse(args.to) : NaN
   if (!Number.isNaN(from) || !Number.isNaN(to)) {
     rows = rows.filter((r) => {
-      const raw = r[dateField]
+      const raw = r[dateKey]
       const ts = typeof raw === 'string' || typeof raw === 'number' ? Date.parse(String(raw)) : NaN
       if (Number.isNaN(ts)) return false
       if (!Number.isNaN(from) && ts < from) return false
@@ -310,9 +385,18 @@ registerAIToolHandler('queryData', async (args, ctx) => {
       return true
     })
   }
+
   const filters = (args.filters ?? {}) as Record<string, unknown>
   for (const [k, v] of Object.entries(filters)) {
-    rows = rows.filter((r) => String(r[k] ?? '') === String(v))
+    const resolved = requireField(k)
+    if (typeof resolved !== 'string') return resolved
+    if (isRangeObject(v)) {
+      // Models naturally express ranges as {from,to} nested in filters —
+      // honor it instead of comparing against "[object Object]".
+      rows = rows.filter((r) => compareInRange(r[resolved], v))
+    } else {
+      rows = rows.filter((r) => String(r[resolved] ?? '') === String(v))
+    }
   }
 
   const aggregate = (subset: Array<Record<string, unknown>>) => {
@@ -325,7 +409,29 @@ registerAIToolHandler('queryData', async (args, ctx) => {
     return values.length ? Math.round((sum / values.length) * 100) / 100 : 0
   }
 
-  const groupBy = typeof args.groupBy === 'string' ? args.groupBy : undefined
+  if (field && rows[0]) {
+    const resolved = resolveFieldKey(rows[0], field)
+    if (!resolved) {
+      return {
+        error: 'unknown_field',
+        message: `Field "${field}" does not exist on ${target.label}. Use one of the available fields and retry.`,
+        availableFields,
+      }
+    }
+    field = resolved
+  }
+  let groupBy = typeof args.groupBy === 'string' ? args.groupBy : undefined
+  if (groupBy && rows[0]) {
+    const resolved = resolveFieldKey(rows[0], groupBy)
+    if (!resolved) {
+      return {
+        error: 'unknown_field',
+        message: `Field "${groupBy}" does not exist on ${target.label}. Use one of the available fields and retry.`,
+        availableFields,
+      }
+    }
+    groupBy = resolved
+  }
   const sampled = page.total > page.data.length
   if (groupBy) {
     const groups = new Map<string, Array<Record<string, unknown>>>()
