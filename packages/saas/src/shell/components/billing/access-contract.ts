@@ -31,3 +31,16 @@ export type { PlanEntitlements } from '@fayz-ai/core'
 export function getPlanEntitlements(plan: Plan | undefined | null): PlanEntitlements | undefined {
   return plan?.entitlements
 }
+
+/**
+ * Clean a feature's raw permission label into a display name for the upgrade
+ * surfaces. Feature labels in an app's permissions config carry an access-scope
+ * suffix — e.g. "Marketing (acesso)" / "Reports (access)" — which reads as noise
+ * when interpolated into a headline ("Unlock Marketing (acesso)"). Strip a single
+ * trailing parenthetical group and collapse surrounding whitespace. Shared by
+ * UpgradePrompt AND UpgradeModal so the two surfaces stay in lockstep.
+ */
+export function featureDisplayName(label: string | null | undefined): string {
+  if (!label) return ''
+  return label.replace(/\s*\([^)]*\)\s*$/, '').trim() || label.trim()
+}

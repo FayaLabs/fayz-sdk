@@ -6,7 +6,7 @@ import { useBillingStore } from '../../stores/billing.store'
 import { usePermissionsStore } from '../../../permissions'
 import { useOrganizationStore } from '../../../org/store'
 import { navigateTo } from '../../../app/routing'
-import { useUpgradeModalStore, useLimit } from './access-contract'
+import { useUpgradeModalStore, useLimit, featureDisplayName } from './access-contract'
 
 // ---------------------------------------------------------------------------
 // UpgradeModal — the single global upgrade dialog. Mounted once in the shell
@@ -35,12 +35,14 @@ function UpgradeModalBody({ limitKey, feature }: { limitKey?: string; feature?: 
 
   const limit = useLimit(limitKey ?? '')
 
-  const featureLabel = feature ? (features.find((f) => f.id === feature)?.label ?? feature) : null
+  const featureLabel = feature ? featureDisplayName(features.find((f) => f.id === feature)?.label ?? feature) : null
   const limitLabel = limitKey
     ? (tr(`limit.label.${limitKey}`, limitKey))
     : null
 
-  const title = tr('upgrade.title', 'Premium feature')
+  const title = featureLabel && !limitKey
+    ? tr('upgrade.unlock', 'Unlock {feature}', { feature: featureLabel })
+    : tr('upgrade.title', 'Premium feature')
   const description = limitKey
     ? tr('limit.reached', "You've reached the {label} limit of the {plan} plan.", { label: limitLabel ?? limitKey, plan: planName })
     : featureLabel
