@@ -72,6 +72,32 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
     declaredLimits: [
       { key: 'bookings_month', label: 'Appointments this month', table: 'appointments', period: 'month' },
     ],
+    queryEntities: [
+      {
+        key: 'agenda:appointments',
+        entity: {
+          name: 'Appointment',
+          namePlural: 'Appointments',
+          icon: 'Calendar',
+          permission: { feature: 'appointments', action: 'read' },
+          fields: [
+            { key: 'starts_at', label: 'Starts at', type: 'text' },
+            { key: 'ends_at', label: 'Ends at', type: 'text' },
+            { key: 'status', label: 'Status', type: 'text' },
+            { key: 'client_name', label: 'Client', type: 'text', searchable: true },
+            { key: 'professional_name', label: 'Professional', type: 'text', searchable: true },
+            { key: 'order_total', label: 'Order total', type: 'number' },
+            { key: 'total_duration_minutes', label: 'Duration (min)', type: 'number' },
+            { key: 'created_at', label: 'Created at', type: 'text' },
+          ],
+          data: {
+            table: 'v_appointments',
+            tenantScoped: true,
+            searchColumns: ['client_name', 'professional_name'],
+          },
+        },
+      },
+    ],
     declaredRpcs: [
       {
         name: 'agent_agenda_create_appointment',

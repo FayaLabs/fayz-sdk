@@ -1,6 +1,6 @@
 // Types
 export type { EntityArchetype, BaseEntity, PersonEntity, ProductEntity, ServiceEntity, OrderEntity, TransactionEntity, LocationEntity, ScheduleEntity, CategoryEntity } from './types/entities'
-export type { EntityDef, FieldDef, FieldType, FieldRelation, FieldGroup, DetailTab, FormLayout, ComputedFieldValue } from './types/crud'
+export type { EntityDef, EntityImageConfig, FieldDef, FieldType, FieldRelation, FieldGroup, DetailTab, FormLayout, ComputedFieldValue } from './types/crud'
 export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, AIToolMode, AIToolExecution, AgentRpcDeclaration, AIToolParameterProperty, AIToolParameters, AIToolSuggestion, PluginRegistryDef, PluginMigration, PluginDiagnostic, VerticalId, ScaffoldType, TenantPluginBinding, DashboardWidgetDef, DashboardWidgetKind, DashboardSurface, DashboardLayoutConfig, ResolvedDashboardWidget } from './types/plugins'
 export { WidgetZone } from './types/plugins'
 export type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from './types/auth'

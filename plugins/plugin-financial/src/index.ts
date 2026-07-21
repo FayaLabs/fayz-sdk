@@ -231,6 +231,33 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
     declaredLimits: [
       { key: 'movements_month', label: 'Financial movements this month', table: 'plg_financial_movements', period: 'month' },
     ],
+    queryEntities: [
+      {
+        key: 'financial:movements',
+        entity: {
+          name: 'Financial movement',
+          namePlural: 'Financial movements',
+          icon: 'Banknote',
+          permission: { feature: 'financial', action: 'read' },
+          fields: [
+            { key: 'direction', label: 'Direction', type: 'text' },
+            { key: 'movement_kind', label: 'Kind', type: 'text' },
+            { key: 'amount', label: 'Amount', type: 'number' },
+            { key: 'paid_amount', label: 'Paid amount', type: 'number' },
+            { key: 'status', label: 'Status', type: 'text' },
+            { key: 'due_date', label: 'Due date', type: 'text' },
+            { key: 'payment_date', label: 'Payment date', type: 'text' },
+            { key: 'installment_number', label: 'Installment', type: 'number' },
+            { key: 'card_installments', label: 'Card installments', type: 'number' },
+            { key: 'created_at', label: 'Created at', type: 'text' },
+          ],
+          data: {
+            table: 'plg_financial_movements',
+            tenantScoped: true,
+          },
+        },
+      },
+    ],
     declaredRpcs: [
       {
         name: 'agent_financial_mark_payment_received',

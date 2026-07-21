@@ -494,6 +494,24 @@
               }
             }
           }
+        },
+        "permission": {
+          "type": "object",
+          "required": [
+            "feature",
+            "action"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "feature": {
+              "type": "string",
+              "minLength": 1
+            },
+            "action": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     },

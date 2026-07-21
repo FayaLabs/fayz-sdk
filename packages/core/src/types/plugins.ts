@@ -29,6 +29,14 @@ export interface PluginNavigationEntry {
   icon?: string
   badge?: string | number
   permission?: PluginPermissionRequirement
+  /**
+   * When this entry gains sub-path children, the shell also synthesizes a child
+   * pointing back at the parent's own route (so /courses stays reachable under
+   * the "Courses" group). Set false when the parent route is a duplicate of its
+   * first child — e.g. /shop and /shop/products render the same catalog, and
+   * listing both reads as a bug. Defaults to true.
+   */
+  indexChild?: boolean
 }
 
 export interface PluginSettingsTab {
@@ -370,6 +378,14 @@ export interface PluginManifest {
   declaredLimits?: LimitDeclaration[]
   /** Pool RPCs this plugin ships for the server-plane agent executor. */
   declaredRpcs?: AgentRpcDeclaration[]
+  /**
+   * Read-models this plugin exposes to the agent's generic data primitives
+   * (searchRecords/queryData) BEYOND its CRUD registries — typically its
+   * views/ledgers (v_appointments, plg_financial_movements). `key` is a stable
+   * ASCII id (never derived from a translated label); the entity's own
+   * `permission` gates each call.
+   */
+  queryEntities?: Array<{ key: string; entity: EntityDef }>
   registries?: PluginRegistryDef[]
   /**
    * Connectors this plugin contributes. An ADDON plugin declares its connector(s)

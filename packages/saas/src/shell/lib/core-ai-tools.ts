@@ -1,4 +1,5 @@
 import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
+import type { EntityDef } from '@fayz-ai/core'
 import { getAllEntities, type RegisteredEntity } from '@fayz-ai/core'
 
 /**
@@ -134,6 +135,79 @@ export function entityToolName(entityKey: string): string {
  * without anyone hand-writing tools: whatever the app declares, the agent can
  * read.
  */
+/**
+ * The TWO generic data primitives that replace the per-entity/per-registry
+ * generated tools (43 searches → 2 tools): the model picks the TARGET as a
+ * parameter (closed enum), and the executor checks the target entity's OWN
+ * read permission at call time — one tool, per-user access preserved.
+ */
+export function buildDataPrimitiveTools(input: {
+  entities: RegisteredEntity[]
+  registries: Map<string, PluginRegistryDef[]>
+  queryEntities?: Array<{ key: string; entity: EntityDef }>
+}): PluginAITool[] {
+  const options: Array<{ key: string; label: string }> = []
+  for (const e of input.entities) {
+    if (e.entityDef) options.push({ key: e.entityKey, label: e.labelPlural })
+  }
+  for (const [pluginId, defs] of input.registries) {
+    for (const registry of defs) {
+      if (registry.readOnly) continue
+      options.push({
+        key: `${pluginId}:${registry.id}`,
+        label: registry.entity.namePlural ?? registry.entity.name,
+      })
+    }
+  }
+  for (const q of input.queryEntities ?? []) {
+    options.push({ key: q.key, label: q.entity.namePlural ?? q.entity.name })
+  }
+  if (!options.length) return []
+  const keys = options.map((o) => o.key)
+  const catalogLine = options.map((o) => `${o.key} (${o.label.toLowerCase()})`).join(', ')
+
+  return [
+    {
+      id: 'data.search-records',
+      name: 'searchRecords',
+      description: `Searches or lists records of ONE entity and returns matching rows with their fields. Use for questions about specific records or small lists. Entities: ${catalogLine}.`,
+      icon: 'Search',
+      mode: 'read',
+      parameters: {
+        type: 'object',
+        properties: {
+          entity: { type: 'string', description: 'Which entity to search', enum: keys },
+          search: { type: 'string', description: 'Name or text to match. Omit to list recent records.' },
+        },
+        required: ['entity'],
+      },
+      category: 'Data',
+    },
+    {
+      id: 'data.query-data',
+      name: 'queryData',
+      description: `Aggregates over ONE entity: count, sum or avg of a field, with optional date range, equality filters and a group-by. Use for analytical questions (revenue this week, new clients this month, busiest professional). Entities: ${catalogLine}.`,
+      icon: 'Sigma',
+      mode: 'read',
+      parameters: {
+        type: 'object',
+        properties: {
+          entity: { type: 'string', description: 'Which entity to aggregate', enum: keys },
+          metric: { type: 'string', description: 'Aggregation', enum: ['count', 'sum', 'avg'] },
+          field: { type: 'string', description: 'Field to sum/avg (record field name). Ignored for count.' },
+          dateField: { type: 'string', description: "Date field to range-filter (default 'created_at')." },
+          from: { type: 'string', description: 'ISO date/datetime lower bound (inclusive).' },
+          to: { type: 'string', description: 'ISO date/datetime upper bound (inclusive).' },
+          groupBy: { type: 'string', description: 'Optional field to group results by.' },
+          filters: { type: 'object', description: 'Optional equality filters {field: value}.' },
+        },
+        required: ['entity', 'metric'],
+      },
+      category: 'Data',
+    },
+  ]
+}
+
 export function generateEntityTools(entities: RegisteredEntity[] = getAllEntities()): PluginAITool[] {
   return entities
     .filter((e) => !!e.entityDef)

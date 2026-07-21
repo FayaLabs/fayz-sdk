@@ -79,7 +79,8 @@ export interface FieldGroup {
   label: string
   description?: string
   columns?: 1 | 2 | 3
-  /** Renders a decorative image slot to the left of the group's fields. */
+  /** Renders an image slot to the left of the group's fields. Functional when
+   *  the EntityDef supplies `image`; a plain placeholder otherwise. */
   imageSlot?: boolean
 }
 
@@ -104,6 +105,28 @@ export interface DetailTab {
 
 export type FormLayout = 'person' | 'product' | 'service' | 'location' | 'order' | 'subject' | 'generic'
 
+/**
+ * Makes a field group's `imageSlot` functional. Without this the slot renders as
+ * a decorative placeholder — it always did, which is why product forms showed an
+ * empty thumbnail even for products that have images.
+ *
+ * Upload needs the record to exist (the file is attached to its id), so the slot
+ * stays read-only in create mode and becomes editable after the first save.
+ */
+export interface EntityImageConfig {
+  // Rows are loosely typed here on purpose: EntityDef<T> is consumed as
+  // EntityDef<Record<string, unknown>> by the generic CRUD machinery, and a
+  // T-parameterised callback makes the whole EntityDef invariant in T.
+  /** Current image URL for this record, if any. */
+  get: (row: Record<string, any>) => string | undefined
+  /** Persist a new image and return its URL. Omit to keep the slot read-only. */
+  upload?: (file: File, row: Record<string, any>) => Promise<string>
+  /** Remove the current image. Omit to hide the remove affordance. */
+  remove?: (row: Record<string, any>) => Promise<void>
+  /** Accepted mime types. Defaults to image/*. */
+  accept?: string
+}
+
 export interface EntityDef<T = Record<string, unknown>> {
   name: string
   namePlural?: string
@@ -111,6 +134,8 @@ export interface EntityDef<T = Record<string, unknown>> {
   layout?: FormLayout
   fields: FieldDef[]
   fieldGroups?: FieldGroup[]
+  /** Wiring for the `imageSlot` of whichever field group declares one. */
+  image?: EntityImageConfig
   detailTabs?: DetailTab[]
   data?: {
     table: string
@@ -142,4 +167,11 @@ export interface EntityDef<T = Record<string, unknown>> {
    * live count after a successful create. Absent ⇒ no plan gating (RBAC only).
    */
   limitKey?: string
+  /**
+   * Permission required to READ this entity through the agent's generic data
+   * primitives (searchRecords/queryData) — checked per TARGET at execution
+   * time, so one generic tool still honors per-user access. Absent ⇒ readable
+   * by any signed-in member (same as the CRUD list today).
+   */
+  permission?: { feature: string; action: string }
 }

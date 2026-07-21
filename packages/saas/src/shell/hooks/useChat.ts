@@ -130,6 +130,7 @@ export function useChat(options?: UseChatOptions) {
         entities: getAllEntities(),
         registryToolName,
         entityToolName,
+        queryEntities: runtime?.activePlugins.flatMap((p) => p.queryEntities ?? []) ?? [],
       })
       const toolContext: AIToolExecutionContext = {
         currentOrg,

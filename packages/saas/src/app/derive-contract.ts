@@ -11,11 +11,7 @@ import type {
 } from '@fayz-ai/core'
 import { getAllEntities, deriveEntityKey } from '@fayz-ai/core'
 import { mergeLimitDeclarations } from '@fayz-ai/core/access'
-import {
-  coreAITools,
-  generateEntityTools,
-  generateRegistryTools,
-} from '../shell/lib/core-ai-tools'
+import { coreAITools, buildDataPrimitiveTools } from '../shell/lib/core-ai-tools'
 import { CORE_LIMIT_DECLARATIONS, entityDerivedLimitDeclarations } from './../access/limits-registry'
 import type { FayzAppConfig } from './config'
 
@@ -36,6 +32,7 @@ function projectEntity(key: string, label: string, labelPlural: string | undefin
     label,
     ...(labelPlural ? { labelPlural } : {}),
     ...(def.limitKey ? { limitKey: def.limitKey } : {}),
+    ...(def.permission ? { permission: def.permission } : {}),
     data: {
       table: data.table,
       ...(data.schema ? { schema: data.schema } : {}),
@@ -130,6 +127,10 @@ export function deriveAgentContract(
       )
       if (projected) entityContracts.push(projected)
     }
+    for (const q of plugin.queryEntities ?? []) {
+      const projected = projectEntity(q.key, q.entity.name, q.entity.namePlural, q.entity)
+      if (projected) entityContracts.push(projected)
+    }
   }
 
   // --- Tools: core + derived reads + plugin-declared --------------------------
@@ -138,24 +139,14 @@ export function deriveAgentContract(
   for (const tool of coreAITools) {
     tools.push({ ...projectTool(tool), execution: { plane: 'client' } })
   }
-  // Derived entity searches — the generic server-side read covers them.
-  // (generateEntityTools mints ids as `entity.<entityKey>`.)
-  for (const tool of generateEntityTools(entities)) {
-    const entityKey = tool.id.replace(/^entity\./, '')
-    tools.push({ ...projectTool(tool), execution: { plane: 'server', kind: 'entity_read', entity: entityKey } })
-  }
-  // Derived registry lists — same server-side read against the registry entity.
-  // (generateRegistryTools mints ids as `<pluginId>.list-<registryId>` and
-  // skips readOnly registries, mirroring the live catalog.)
-  for (const plugin of plugins) {
-    if (!plugin.registries?.length) continue
-    for (const tool of generateRegistryTools(plugin.id, plugin.registries)) {
-      const registryId = tool.id.slice(`${plugin.id}.list-`.length)
-      tools.push({
-        ...projectTool(tool, plugin.id),
-        execution: { plane: 'server', kind: 'entity_read', entity: `${plugin.id}:${registryId}` },
-      })
-    }
+  // The data primitives: one search + one aggregate over every entity/registry.
+  // `entity: '*'` = the target arrives as the call's `entity` argument; the
+  // executor resolves it against `agent.entities` and enforces that entity's
+  // own read permission.
+  const registryMap = new Map(plugins.map((p) => [p.id, p.registries ?? []]))
+  const queryEntities = plugins.flatMap((p) => p.queryEntities ?? [])
+  for (const tool of buildDataPrimitiveTools({ entities, registries: registryMap, queryEntities })) {
+    tools.push({ ...projectTool(tool), execution: { plane: 'server', kind: 'entity_read', entity: '*' } })
   }
   // Plugin-authored tools keep their declared execution (persist tools bind to
   // RPCs via `execution: { kind:'rpc' }`; absent ⇒ client-plane executor).

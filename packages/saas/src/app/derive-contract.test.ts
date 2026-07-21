@@ -106,11 +106,17 @@ describe('deriveAgentContract', () => {
     expect(agent.entities?.some((e) => e.key === 'agenda:cancellation-reasons')).toBe(true)
   })
 
-  it('derives entity/registry read tools with entity_read execution', () => {
-    const search = agent.tools?.find((t) => t.id === 'entity.person:customer')
-    expect(search?.execution).toEqual({ plane: 'server', kind: 'entity_read', entity: 'person:customer' })
-    const list = agent.tools?.find((t) => t.id === 'agenda.list-cancellation-reasons')
-    expect(list?.execution).toEqual({ plane: 'server', kind: 'entity_read', entity: 'agenda:cancellation-reasons' })
+  it('derives the two data primitives covering entities + registries', () => {
+    const search = agent.tools?.find((t) => t.name === 'searchRecords')
+    const query = agent.tools?.find((t) => t.name === 'queryData')
+    expect(search?.execution).toEqual({ plane: 'server', kind: 'entity_read', entity: '*' })
+    expect(query?.execution).toEqual({ plane: 'server', kind: 'entity_read', entity: '*' })
+    // The closed target enum lists both the CRUD entity and the registry key.
+    const searchEnum = (search?.parameters?.properties?.entity as { enum?: string[] })?.enum ?? []
+    expect(searchEnum).toContain('person:customer')
+    expect(searchEnum).toContain('agenda:cancellation-reasons')
+    // No per-entity tool remains — the catalog is primitives + declared tools.
+    expect(agent.tools?.some((t) => t.id.startsWith('entity.'))).toBe(false)
   })
 
   it('keeps plugin-authored execution and defaults persist tools to confirmation', () => {

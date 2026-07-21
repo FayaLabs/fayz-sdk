@@ -42,6 +42,7 @@ export { WidgetSlot } from './plugins/WidgetSlot'
 export { useFieldRules } from './hooks/useFieldRules'
 
 export { createCrudPage } from './crud/createCrudPage'
+export { EntityLink } from './crud/archetypes/EntityLink'
 // Client-orders archetype (used by beauty-saas client detail tab)
 export { ClientOrdersTab } from './shell/components/crud/archetypes/ClientOrdersTab'
 export { createClientOrdersProvider } from './shell/lib/create-client-orders-provider'
@@ -136,6 +137,7 @@ export type {
 // ---------------------------------------------------------------------------
 export { useBillingStore } from './billing/index'
 export { EntitlementGate, LimitGate } from './shell/components/billing/gates'
+export { UpgradePrompt } from './shell/components/billing/UpgradePrompt'
 export type { BillingStore, BillingState, Subscription, Invoice } from './billing/index'
 
 // ---------------------------------------------------------------------------

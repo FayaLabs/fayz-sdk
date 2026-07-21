@@ -89,6 +89,8 @@ export interface EntityContract {
   labelPlural?: string
   /** Plan-limit key rows of this entity consume (EntityDef.limitKey). */
   limitKey?: string
+  /** Permission to READ via the generic data primitives (EntityDef.permission). */
+  permission?: { feature: string; action: string }
   data: {
     table: string
     schema?: string
