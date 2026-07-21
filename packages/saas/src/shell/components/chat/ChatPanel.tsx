@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ArrowUp, Settings2 } from 'lucide-react'
+import { ArrowUp, History, Loader2, SquarePen, Settings2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useChatStore, type ChatMessage } from '../../stores/chat.store'
@@ -25,11 +25,15 @@ export function ChatPanel({
   className,
 }: ChatPanelProps) {
   const { isOpen, messages, isStreaming } = useChatStore()
-  const { sendMessage, isConfigured, pendingAction, resolvePendingAction } = useChat({ apiEndpoint, systemPrompt, agent })
+  const {
+    sendMessage, isConfigured, pendingAction, resolvePendingAction,
+    activeTools, conversations, loadConversations, resumeConversation, startNewConversation,
+  } = useChat({ apiEndpoint, systemPrompt, agent })
   const { t } = useTranslation()
   const { suggestions, toolGroups } = useAITools()
   const [input, setInput] = React.useState('')
   const [showTools, setShowTools] = React.useState(false)
+  const [showHistory, setShowHistory] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
@@ -42,11 +46,13 @@ export function ChatPanel({
 
   React.useEffect(() => {
     if (isOpen) {
+      loadConversations()
       const timer = setTimeout(() => inputRef.current?.focus(), 100)
       return () => clearTimeout(timer)
     }
     setShowTools(false)
-  }, [isOpen])
+    setShowHistory(false)
+  }, [isOpen, loadConversations])
 
   if (!isOpen) return null
 
@@ -77,9 +83,31 @@ export function ChatPanel({
           <div className="h-1.5 w-1.5 rounded-full bg-success" />
           <span className="text-xs font-semibold text-foreground">{title}</span>
         </div>
+        <div className="flex items-center gap-0.5">
+        {hasMessages && (
+          <button
+            onClick={startNewConversation}
+            className="inline-flex items-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            title={t('chat.newConversation')}
+          >
+            <SquarePen className="h-3 w-3" />
+          </button>
+        )}
+        {conversations.length > 0 && (
+          <button
+            onClick={() => { setShowHistory(!showHistory); setShowTools(false) }}
+            className={cn(
+              'inline-flex items-center rounded-md p-1.5 transition-colors',
+              showHistory ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            )}
+            title={t('chat.history')}
+          >
+            <History className="h-3 w-3" />
+          </button>
+        )}
         {totalTools > 0 && (
           <button
-            onClick={() => setShowTools(!showTools)}
+            onClick={() => { setShowTools(!showTools); setShowHistory(false) }}
             className={cn(
               'inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] transition-colors',
               showTools
@@ -92,10 +120,31 @@ export function ChatPanel({
             <span className="font-medium">{totalTools}</span>
           </button>
         )}
+        </div>
       </div>
 
-      {/* Tools panel overlay */}
-      {showTools ? (
+      {/* History drawer */}
+      {showHistory ? (
+        <div className="min-h-0 flex-1 overflow-y-auto py-1">
+          {conversations.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => {
+                setShowHistory(false)
+                resumeConversation(c.id)
+              }}
+              className="flex w-full flex-col items-start gap-0.5 px-4 py-2 text-left transition-colors hover:bg-muted/50"
+            >
+              <span className="line-clamp-1 text-[13px] text-foreground">
+                {c.title ?? t('chat.newConversation')}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(c.updatedAt).toLocaleString()}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : showTools ? (
         <ChatToolsPanel toolGroups={toolGroups} onClose={() => setShowTools(false)} />
       ) : (
         /* Messages / suggestions area */
@@ -128,7 +177,20 @@ export function ChatPanel({
           {pendingAction && (
             <ConfirmActionCard action={pendingAction} onResolve={resolvePendingAction} />
           )}
-          {isStreaming && !pendingAction && messages[messages.length - 1]?.content === '' && (
+          {activeTools.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 px-2 py-1">
+              {activeTools.map((name) => (
+                <span
+                  key={name}
+                  className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground"
+                >
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  {name}
+                </span>
+              ))}
+            </div>
+          )}
+          {isStreaming && !pendingAction && activeTools.length === 0 && messages[messages.length - 1]?.content === '' && (
             <div className="flex items-center gap-1 px-2 py-1.5">
               <span className="h-1 w-1 rounded-full bg-muted-foreground/50 animate-pulse" />
               <span className="h-1 w-1 rounded-full bg-muted-foreground/50 animate-pulse [animation-delay:150ms]" />

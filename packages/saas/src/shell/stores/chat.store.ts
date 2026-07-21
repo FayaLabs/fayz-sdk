@@ -45,6 +45,14 @@ interface ChatState {
   requestConfirmation: (action: PendingAgentAction) => Promise<boolean>
   /** Card buttons: settle the parked action. */
   resolvePendingAction: (approved: boolean) => void
+  /** Tool names executing right now — rendered as live activity chips. */
+  activeTools: string[]
+  setActiveTools: (names: string[]) => void
+  /** The signed-in user's threads (history drawer). */
+  conversations: Array<{ id: string; title: string | null; updatedAt: string }>
+  setConversations: (rows: Array<{ id: string; title: string | null; updatedAt: string }>) => void
+  /** Replace the transcript wholesale (resuming a past conversation). */
+  setMessages: (messages: ChatMessage[]) => void
 }
 
 // Module-level so the resolver never round-trips through React state.
@@ -77,7 +85,7 @@ export const useChatStore = create<ChatState>((set) => ({
   reset: () => {
     pendingResolver?.(false)
     pendingResolver = null
-    set({ messages: [], isStreaming: false, conversationId: null, pendingAction: null })
+    set({ messages: [], isStreaming: false, conversationId: null, pendingAction: null, activeTools: [] })
   },
 
   pendingAction: null,
@@ -95,4 +103,10 @@ export const useChatStore = create<ChatState>((set) => ({
     set({ pendingAction: null })
     resolve?.(approved)
   },
+
+  activeTools: [],
+  setActiveTools: (activeTools) => set({ activeTools }),
+  conversations: [],
+  setConversations: (conversations) => set({ conversations }),
+  setMessages: (messages) => set({ messages }),
 }))

@@ -20,7 +20,7 @@ export const coreAITools: PluginAITool[] = [
   {
     id: 'core.team-members',
     name: 'getTeamMembers',
-    description: 'Lists team members for the current tenant with their roles and status.',
+    description: 'Lists the WORKSPACE USERS (people with a login) and their roles. This is NOT the professionals/staff registry — for professionals, stylists or other staff the business manages as records, use the staff/people search tools instead.',
     icon: 'Users',
     mode: 'read',
     parameters: {

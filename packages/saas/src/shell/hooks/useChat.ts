@@ -216,12 +216,19 @@ export function useChat(options?: UseChatOptions) {
           return
         }
 
-        toolResults = await Promise.all(
-          response.toolCalls.map(async (call) => ({
-            toolCallId: call.id,
-            content: await executeGuarded(call, toolByName.get(call.name), toolContext),
-          })),
-        )
+        // Live activity: surface WHICH tools are running while they run — the
+        // agent's work should be visible, not a silent pause.
+        useChatStore.getState().setActiveTools(response.toolCalls.map((c) => c.name))
+        try {
+          toolResults = await Promise.all(
+            response.toolCalls.map(async (call) => ({
+              toolCallId: call.id,
+              content: await executeGuarded(call, toolByName.get(call.name), toolContext),
+            })),
+          )
+        } finally {
+          useChatStore.getState().setActiveTools([])
+        }
         message = undefined
       }
     },
@@ -303,6 +310,47 @@ export function useChat(options?: UseChatOptions) {
     ],
   )
 
+  /** Refresh the signed-in user's thread list (history drawer). */
+  const loadConversations = useCallback(async () => {
+    if (!connection) return
+    try {
+      const rows = await getFayzAgentClient(connection).listConversations(user?.id)
+      useChatStore.getState().setConversations(rows)
+    } catch {
+      // History is an enhancement — a failed load never breaks the chat.
+    }
+  }, [connection, user?.id])
+
+  /** Resume a past thread: hydrate its transcript + continue under its id. */
+  const resumeConversation = useCallback(
+    async (conversationId: string) => {
+      if (!connection) return
+      try {
+        const detail = await getFayzAgentClient(connection).getConversation(conversationId, user?.id)
+        const messages: ChatMessage[] = detail.messages
+          .filter((m) => m.role === 'USER' || m.role === 'ASSISTANT' || m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({
+            id: m.id,
+            role: m.role.toLowerCase() === 'user' ? ('user' as const) : ('assistant' as const),
+            content: m.content,
+            timestamp: m.createdAt,
+          }))
+        const s = useChatStore.getState()
+        s.setMessages(messages)
+        s.setConversationId(detail.id)
+      } catch {
+        // Thread gone (archived / another device cleaned it) — start fresh.
+        useChatStore.getState().reset()
+      }
+    },
+    [connection, user?.id],
+  )
+
+  /** Fresh thread: clear the transcript, next turn creates a new conversation. */
+  const startNewConversation = useCallback(() => {
+    store.reset()
+  }, [store])
+
   return {
     messages: store.messages,
     isOpen: store.isOpen,
@@ -318,5 +366,12 @@ export function useChat(options?: UseChatOptions) {
     pendingAction: store.pendingAction,
     /** Card decision: true executes/approves, false declines. */
     resolvePendingAction: store.resolvePendingAction,
+    /** Tool names executing right now (live activity chips). */
+    activeTools: store.activeTools,
+    /** History drawer data + actions. */
+    conversations: store.conversations,
+    loadConversations,
+    resumeConversation,
+    startNewConversation,
   }
 }
