@@ -9,6 +9,8 @@ export { resolveAccess, isEntitledByPlan } from './resolver'
 
 export { invalidateLimit, setLimitRegistry, getLimitDeclaration, CORE_LIMIT_DECLARATIONS } from './limits-registry'
 
+export { useModuleNavAccess, applyNavAccess } from './module-nav'
+
 export { useUpgradeModalStore } from './upgrade-modal-store'
 export type { UpgradeModalPayload, UpgradeModalStore } from './upgrade-modal-store'
 
