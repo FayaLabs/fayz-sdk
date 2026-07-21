@@ -312,6 +312,7 @@ function TopbarLayout({
   currentPath,
   topbarStart,
   topbarEnd,
+  notificationSlot,
   hasBottomNav = false,
 }: {
   navigation?: NavigationItem[]
@@ -328,6 +329,8 @@ function TopbarLayout({
   currentPath?: string
   topbarStart?: React.ReactNode
   topbarEnd?: React.ReactNode
+  /** Bell/inbox slot — in the topbar layout it renders with the right-side actions. */
+  notificationSlot?: React.ReactNode
   /** When a mobile bottom-nav bar is present, the mobile hamburger is
    *  suppressed so the bottom nav is the primary mobile navigation. */
   hasBottomNav?: boolean
@@ -350,7 +353,7 @@ function TopbarLayout({
         onBilling={onBilling}
         userMenuExtras={userMenuExtras}
         leftContent={topbarStart}
-        rightContent={topbarEnd}
+        rightContent={(topbarEnd || notificationSlot) ? <>{topbarEnd}{notificationSlot}</> : undefined}
         onMenuClick={hasBottomNav ? undefined : () => setMobileMenuOpen(true)}
       />
       {/* Frame inset/border only from md up, so mobile stays edge-to-edge. The
@@ -708,6 +711,7 @@ export function AppShell({
           currentPath={currentPath}
           topbarStart={topbarStart}
           topbarEnd={topbarEnd}
+          notificationSlot={notificationSlot}
           hasBottomNav={hasBottomNav}
         >
           {children}
