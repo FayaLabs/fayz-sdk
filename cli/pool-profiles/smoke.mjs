@@ -33,9 +33,12 @@ check('core tables in public (tenants/people/appointments/orders/services/tenant
 const old = await q(`SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('persons','bookings','booking_items')`)
 check('no legacy persons/bookings tables', old.length === 0, old.map((r) => r.table_name).join(','))
 
-// 4. ledger present with rows
-const ledger = await q(`SELECT count(*)::int AS n FROM public.fayz_migration_ledger`).catch(() => null)
-check('fayz_migration_ledger populated', !!ledger && ledger[0].n > 0, ledger ? `${ledger[0].n} rows` : 'missing')
+// 4. ledger present with rows (renamed fayz_migration_ledger → _migrations;
+//    fall back to the legacy name for pools not yet rebaselined)
+const ledger =
+  (await q(`SELECT count(*)::int AS n FROM public._migrations`).catch(() => null)) ??
+  (await q(`SELECT count(*)::int AS n FROM public.fayz_migration_ledger`).catch(() => null))
+check('_migrations ledger populated', !!ledger && ledger[0].n > 0, ledger ? `${ledger[0].n} rows` : 'missing')
 
 // 5. functions re-homed
 const fns = await q(`SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND proname IN ('user_tenant_ids','create_tenant_with_owner','handle_updated_at')`)

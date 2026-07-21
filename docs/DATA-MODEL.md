@@ -72,6 +72,8 @@ In code, the spine is declared **references-only**: `packages/db/src/schema/spin
 
 PostgREST cannot join across schemas, so cross-schema reads go through `public.v_*` views (`security_invoker = true`, so RLS still applies): each plugin/app ships views that JOIN its extension tables to the archetypes (`v_clients`, `v_staff`, `v_leads`, `v_deals`, `v_bookings`…). Naming: `v_{table}`, with the overrides map in the archetype provider.
 
+**Report views** (the read-only aggregates consumed by `@fayz-ai/plugin-reports`) are plugin-owned, so they carry the Ring 1 prefix plus a `rep_` marker: `plg_<plugin>_rep_<métrica>` (e.g. `plg_courses_rep_revenue`). Same rules as `v_*` — `security_invoker = true`, `GRANT SELECT` to `authenticated`.
+
 `createArchetypeProvider` (`packages/core/src/data/archetype.ts`) is the standard read/write path for archetype-backed entities: it splits writes into archetype columns (→ `saas_core.<base>`) vs project columns (→ the extension table keyed by `<fk>_id`), reads from the `v_` view (or straight from `saas_core.<base>` for pure-archetype entities where `projectTable === base`), and maps camelCase↔snake_case. Query the views, not the raw tables — reports read canonical views only (§6 invariant 4).
 
 ## 3. RLS — locked and CI-enforced

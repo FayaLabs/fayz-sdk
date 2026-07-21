@@ -1,15 +1,16 @@
 -- ============================================================================
--- @fayz-ai/courses — reporting views for @fayz-ai/plugin-reports
--- One row per course (zero-filled for courses with no paid orders yet),
--- mirroring the revenue-by-course aggregation the hand-rolled ReportsPage
--- used to compute client-side.
+-- 0006_rename_rep_view.sql — standardize the courses reporting view onto the
+-- plugin report-view convention `plg_<plugin>_rep_<métrica>`:
 --
--- Naming: plugin-owned report views follow `plg_<plugin>_rep_<métrica>` — the
--- Ring 1 `plg_<plugin>_` ownership prefix plus a `rep_` marker for the reporting
--- surface consumed by plugin-reports. Legacy pools created the unprefixed
--- `rep_course_revenue`; 0006_rename_rep_view.sql drops + recreates it under the
--- new name (views hold no data, so a recreate is safe).
+--   rep_course_revenue → plg_courses_rep_revenue
+--
+-- Legacy-pool remediation ONLY: 0004_reports_views.sql now creates the prefixed
+-- name directly. A view holds no data, so this drops the legacy view and (re)creates
+-- the canonical one with the same definition, grants and security_invoker setting.
+-- Idempotent: DROP IF EXISTS + CREATE OR REPLACE.
 -- ============================================================================
+
+DROP VIEW IF EXISTS public.rep_course_revenue;
 
 CREATE OR REPLACE VIEW public.plg_courses_rep_revenue AS
 SELECT

@@ -1,0 +1,22 @@
+-- ============================================================================
+-- 013_sequences_rls.sql — close the RLS drift on public.sequences.
+--
+-- public.sequences (the REC-/PAG- numbering counter, created by the financial
+-- plugin's 004_order_to_cash.sql) shipped WITHOUT row-level security on a set of
+-- pools. Baseline = RLS ON, deny-all (no policies), exactly like the salon pool:
+-- the table is written ONLY through the SECURITY DEFINER function
+-- public.next_sequence(), which runs as the table owner and so bypasses RLS.
+-- With RLS on and no policy, the PostgREST anon/authenticated surface is deny-all,
+-- so the counter can never be read or tampered with directly by a tenant.
+--
+-- Legacy-pool remediation: guarded so it is a no-op on pools that never enabled
+-- Payments (sequences absent) and idempotent on pools already at RLS ON. Fresh
+-- installs are born with RLS via the financial plugin's own 004_order_to_cash.sql.
+--
+-- NOTE: next_sequence() MUST be SECURITY DEFINER for the deny-all baseline to
+-- keep working — it is called directly via PostgREST RPC by authenticated users
+-- (plugins/plugin-financial/src/data/supabase.ts → createInvoice). That fix ships
+-- in the financial plugin migration alongside this one.
+-- ============================================================================
+
+ALTER TABLE IF EXISTS public.sequences ENABLE ROW LEVEL SECURITY;

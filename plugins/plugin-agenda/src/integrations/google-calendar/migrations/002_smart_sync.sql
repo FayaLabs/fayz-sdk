@@ -2,14 +2,14 @@
 -- Google Calendar SMART SYNC — multi-calendar de-para + loop-safe two-way sync
 -- ---------------------------------------------------------------------------
 -- Builds on 001_google_calendar.sql. Where 001 modelled a single calendar per
--- tenant (calendar_integrations, one outbound trigger, a pull template), 002
+-- tenant (plg_calendar_integrations, one outbound trigger, a pull template), 002
 -- makes the sync vertical-agnostic and bidirectional-safe:
 --
---   §1  public.calendar_channels     — de-para: one Google calendar → one sync
+--   §1  public.plg_calendar_channels — de-para: one Google calendar → one sync
 --                                       target (whole tenant / assignee / service
 --                                       / location), per direction + import mode
 --   §2  fn_gcal_push_booking (REPLACE)— loop-prevention guard + correlation id
---   §3  calendar_sync_log             — correlation_id + channel_id_ref columns
+--   §3  plg_calendar_sync_log         — correlation_id + channel_id_ref columns
 --   §4  inbound write functions       — the ONLY path Google→booking writes take
 --                                       (gcal_import_event / gcal_apply_event_patch
 --                                        / gcal_unlink_channel), SECURITY DEFINER,
@@ -24,16 +24,16 @@
 -- ---------------------------------------------------------------------------
 
 -- ===========================================================================
--- §1 — calendar_channels: multi-calendar de-para (vertical-agnostic)
+-- §1 — plg_calendar_channels: multi-calendar de-para (vertical-agnostic)
 --   target_kind NULL  → whole tenant agenda (agency-os): every professional
 --   target_kind 'assignee' → calendar maps to one professional (school: teacher)
 --   target_kind 'service' | 'location' → clinic-style mapping
 --   import_mode 'block'       → inbound events become opaque busy blocks
 --   import_mode 'appointment' → inbound events become real appointments
 -- ===========================================================================
-CREATE TABLE IF NOT EXISTS public.calendar_channels (
+CREATE TABLE IF NOT EXISTS public.plg_calendar_channels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  integration_id uuid NOT NULL REFERENCES public.calendar_integrations(id) ON DELETE CASCADE,
+  integration_id uuid NOT NULL REFERENCES public.plg_calendar_integrations(id) ON DELETE CASCADE,
   tenant_id uuid NOT NULL,
   google_calendar_id text NOT NULL,
   summary text,
@@ -54,29 +54,29 @@ CREATE TABLE IF NOT EXISTS public.calendar_channels (
   UNIQUE (integration_id, google_calendar_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_calendar_channels_tenant      ON public.calendar_channels(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_calendar_channels_integration ON public.calendar_channels(integration_id);
+CREATE INDEX IF NOT EXISTS idx_plg_calendar_channels_tenant      ON public.plg_calendar_channels(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_plg_calendar_channels_integration ON public.plg_calendar_channels(integration_id);
 
-ALTER TABLE public.calendar_channels ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.calendar_channels TO authenticated;
+ALTER TABLE public.plg_calendar_channels ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.plg_calendar_channels TO authenticated;
 -- service_role bypasses RLS, but this table is born after 004's blanket grant,
 -- so grant it explicitly (the inbound functions run as definer/service_role).
-GRANT ALL ON public.calendar_channels TO service_role;
+GRANT ALL ON public.plg_calendar_channels TO service_role;
 
-DROP TRIGGER IF EXISTS calendar_channels_updated_at ON public.calendar_channels;
-CREATE TRIGGER calendar_channels_updated_at BEFORE UPDATE ON public.calendar_channels
+DROP TRIGGER IF EXISTS plg_calendar_channels_updated_at ON public.plg_calendar_channels;
+CREATE TRIGGER plg_calendar_channels_updated_at BEFORE UPDATE ON public.plg_calendar_channels
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- RLS: tenant isolation (padrão 001) + explicit service_role FOR ALL policy
 -- (matches the vigente service_role policy pattern from 001_core payment_events).
-DROP POLICY IF EXISTS calendar_channels_rls ON public.calendar_channels;
-CREATE POLICY calendar_channels_rls ON public.calendar_channels
+DROP POLICY IF EXISTS plg_calendar_channels_rls ON public.plg_calendar_channels;
+CREATE POLICY plg_calendar_channels_rls ON public.plg_calendar_channels
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT public.user_tenant_ids()))
   WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()));
 
-DROP POLICY IF EXISTS calendar_channels_service ON public.calendar_channels;
-CREATE POLICY calendar_channels_service ON public.calendar_channels
+DROP POLICY IF EXISTS plg_calendar_channels_service ON public.plg_calendar_channels;
+CREATE POLICY plg_calendar_channels_service ON public.plg_calendar_channels
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ===========================================================================
@@ -136,14 +136,14 @@ CREATE TRIGGER trg_gcal_push
 -- ===========================================================================
 -- §3 — sync log: correlate the two directions + reference the source channel.
 -- ===========================================================================
-ALTER TABLE public.calendar_sync_log
+ALTER TABLE public.plg_calendar_sync_log
   ADD COLUMN IF NOT EXISTS correlation_id uuid;
-ALTER TABLE public.calendar_sync_log
+ALTER TABLE public.plg_calendar_sync_log
   ADD COLUMN IF NOT EXISTS channel_id_ref uuid
-    REFERENCES public.calendar_channels(id) ON DELETE SET NULL;
+    REFERENCES public.plg_calendar_channels(id) ON DELETE SET NULL;
 -- Unlinked future events seen during a pull (import-wizard candidates), so the
 -- log can show "N eventos aguardando import" without re-hitting Google.
-ALTER TABLE public.calendar_sync_log
+ALTER TABLE public.plg_calendar_sync_log
   ADD COLUMN IF NOT EXISTS discovered integer;
 
 -- ===========================================================================
@@ -200,7 +200,7 @@ BEGIN
   -- Resolve the channel mapping (must belong to the same tenant).
   SELECT c.import_mode, c.target_kind, c.target_id
     INTO v_ch
-  FROM calendar_channels c
+  FROM plg_calendar_channels c
   WHERE c.id = p_channel_id AND c.tenant_id = p_tenant_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'gcal_import_event: unknown channel for tenant'; END IF;
 
@@ -365,7 +365,7 @@ AS $$
 DECLARE
   v_id uuid;
 BEGIN
-  UPDATE calendar_channels c
+  UPDATE plg_calendar_channels c
   SET sync_token         = NULL,
       channel_id         = NULL,
       resource_id        = NULL,
@@ -512,6 +512,6 @@ GRANT EXECUTE ON FUNCTION public.get_available_slots(uuid, date, integer, uuid, 
 --         'Authorization','Bearer '||current_setting('app.gcal_service_key')),
 --       body := jsonb_build_object('action','pull_events','channelId',%L))
 --   $CRON$, ch.id))
---   FROM public.calendar_channels ch
+--   FROM public.plg_calendar_channels ch
 --   WHERE ch.is_active AND ch.direction IN ('inbound','bidirectional');
 -- ===========================================================================

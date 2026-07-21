@@ -51,7 +51,7 @@ export type ChannelTargetKind = 'assignee' | 'service' | 'location' | null
 export type ChannelImportMode = 'block' | 'appointment'
 
 /**
- * A per-calendar sync channel (row of public.calendar_channels). One Google
+ * A per-calendar sync channel (row of public.plg_calendar_channels). One Google
  * calendar ↔ one agenda target, with its own direction + incremental cursor.
  */
 export interface CalendarChannel {
@@ -120,7 +120,7 @@ export interface AppointmentRow {
   metadata?: Record<string, any> | null
 }
 
-/** Raw shape of a public.calendar_channels row (snake_case DB columns). */
+/** Raw shape of a public.plg_calendar_channels row (snake_case DB columns). */
 export interface CalendarChannelRow {
   id: string
   integration_id: string
