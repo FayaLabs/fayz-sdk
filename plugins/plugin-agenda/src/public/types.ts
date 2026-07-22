@@ -61,6 +61,23 @@ export interface ResolvedPayment {
 }
 
 // ---------------------------------------------------------------------------
+// Phone verification
+// ---------------------------------------------------------------------------
+
+/**
+ * How the customer's phone number is verified before the details sub-step.
+ *
+ *  • 'otp'  — show the code modal (POC: the code is the literal '0000'; no
+ *             message is actually sent). Use only where a real sender exists.
+ *  • 'none' — trust the typed number: the flow goes straight to the details
+ *             sub-step and the identity is emitted as-is.
+ *
+ * Default is 'none': until a real WhatsApp sender is wired, an OTP nobody can
+ * receive is a dead end for real customers.
+ */
+export type PhoneVerificationMode = 'otp' | 'none'
+
+// ---------------------------------------------------------------------------
 // Brand
 // ---------------------------------------------------------------------------
 
@@ -201,6 +218,10 @@ export interface PublicBookingLabels {
   phoneLabel: string
   phoneHint: string
   sendCodeCta: string
+  /** Phone hint shown when phoneVerification is 'none' (no code is sent). */
+  phoneHintNoVerification: string
+  /** Phone CTA shown when phoneVerification is 'none'. */
+  phoneContinueCta: string
   codeTitle: string
   codeBody: string
   codeInvalid: string

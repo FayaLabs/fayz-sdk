@@ -1,6 +1,6 @@
 import { Check, ChevronDown, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
 import { COUNTRIES, maskPhone, unmaskPhone, type CountryDef } from '@fayz-ai/core'
-import type { PublicBookingLabels, ResolvedPayment } from '../types'
+import type { PhoneVerificationMode, PublicBookingLabels, ResolvedPayment } from '../types'
 
 export interface ContactDraft {
   name: string
@@ -14,6 +14,8 @@ interface ContactStepProps {
   contact: ContactDraft
   onContactChange: (contact: ContactDraft) => void
   contactStep: 'phone' | 'code' | 'details'
+  /** 'none' → no code is sent, so the copy drops every OTP promise. */
+  phoneVerification: PhoneVerificationMode
   country: CountryDef
   onCountryChange: (iso2: string) => void
   code: string
@@ -30,7 +32,7 @@ interface ContactStepProps {
 
 /** Contact step — phone verification first (Quaddro-style), then details. */
 export function ContactStep({
-  labels, contact, onContactChange, contactStep, country, onCountryChange,
+  labels, contact, onContactChange, contactStep, phoneVerification, country, onCountryChange,
   code, onCodeChange, codeError, onSendCode, onConfirmCode, onBackToPhone,
   onSubmitDetails, payment, submitting, error,
 }: ContactStepProps) {
@@ -65,14 +67,16 @@ export function ContactStep({
                 placeholder={`Ex.: ${maskPhone('11987654321', country.mask)}`}
               />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">{labels.phoneHint}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {phoneVerification === 'none' ? labels.phoneHintNoVerification : labels.phoneHint}
+            </p>
           </div>
           <button
             type="submit"
             disabled={unmaskPhone(contact.phone).length < 8}
             className="mt-5 w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {labels.sendCodeCta}
+            {phoneVerification === 'none' ? labels.phoneContinueCta : labels.sendCodeCta}
           </button>
         </form>
       ) : null}
@@ -83,7 +87,8 @@ export function ContactStep({
           <p className="mt-1 text-sm text-muted-foreground">{labels.contactIntro}</p>
           <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-muted/40 px-4 py-3">
             <span className="flex items-center gap-2 text-sm text-foreground">
-              <ShieldCheck className="h-4 w-4 text-primary" /> {labels.phoneVerified} · {country.flag} {country.dial} {contact.phone}
+              <ShieldCheck className="h-4 w-4 text-primary" />{' '}
+              {phoneVerification === 'none' ? labels.phoneLabel : labels.phoneVerified} · {country.flag} {country.dial} {contact.phone}
             </span>
             <button
               type="button"

@@ -26,7 +26,8 @@ type Step = 'overview' | 'datetime' | 'contact' | 'payment' | 'success'
 export function BookingWidget() {
   const {
     services, servicesLoading, professionalName, businessHours, payment, paymentProvider,
-    onIdentityVerified, labels, brand, components: C, window: bookingWindow, locale, currency,
+    phoneVerification, onIdentityVerified, labels, brand, components: C,
+    window: bookingWindow, locale, currency,
   } = useBooking()
   const fmt = useFormatters(locale, currency)
 
@@ -123,8 +124,15 @@ export function BookingWidget() {
   }
 
   // Contact sub-step submit handlers (also used by Enter via <form onSubmit>).
+  // With phoneVerification 'none' the typed number is trusted: skip the code
+  // modal and go straight to details (identity emitted just the same).
   function sendCode() {
     if (unmaskPhone(contact.phone).length < 8) return
+    if (phoneVerification === 'none') {
+      emitIdentity()
+      setContactStep('details')
+      return
+    }
     setCode(''); setCodeError(false); setContactStep('code')
   }
   function confirmCode() {
@@ -254,6 +262,7 @@ export function BookingWidget() {
               }}
               code={code}
               onCodeChange={(v) => { setCode(v); setCodeError(false) }}
+              phoneVerification={phoneVerification}
               codeError={codeError}
               onSendCode={sendCode}
               onConfirmCode={confirmCode}

@@ -13,6 +13,7 @@ import type {
   BookingComponents,
   BookingWindow,
   PaymentConfig,
+  PhoneVerificationMode,
   PublicBookingLabels,
   PublicService,
   ResolvedBookingBrand,
@@ -49,6 +50,12 @@ export interface PublicBookingOptions {
   brand?: BookingBrand
   /** Swap whole subcomponents when structure must change (defaults exported). */
   components?: Partial<BookingComponents>
+  /**
+   * Phone verification before the details sub-step. Default 'none' — the typed
+   * number is trusted. Set 'otp' only where a real code sender is wired: the
+   * built-in modal is a POC that accepts the literal '0000' and sends nothing.
+   */
+  phoneVerification?: PhoneVerificationMode
   /** Adds a final Pagamento (Pix) step. Omit/disable to end the flow at confirmation. */
   payment?: PaymentConfig
   /** Charge provider (from a payments plugin) used by the Pagamento step. Optional. */
@@ -100,6 +107,8 @@ const DEFAULT_LABELS: PublicBookingLabels = {
   phoneHint:
     'Enviaremos um código para confirmar que o número de telefone é seu. Usaremos este número para associar as suas informações à sua conta.',
   sendCodeCta: 'Enviar código via WhatsApp',
+  phoneHintNoVerification: 'Usaremos este número para confirmar seu agendamento pelo WhatsApp.',
+  phoneContinueCta: 'Continuar',
   codeTitle: 'Insira o código',
   codeBody: 'Enviamos um código via WhatsApp para você confirmar seu número.',
   codeInvalid: 'Código inválido. Para testar, use 0000.',
@@ -116,7 +125,9 @@ const DEFAULT_LABELS: PublicBookingLabels = {
   notesPlaceholder: 'Use esse espaço para deixar uma observação sobre este agendamento',
   saveAndContinueCta: 'Salvar e continuar',
   submitError: 'Não foi possível concluir o agendamento. Tente novamente.',
-  noChargeNote: 'Pagamento via Pix · Sem cobrança agora',
+  // Rendered ONLY when the payment step is off — so it must not promise a
+  // payment method the flow never shows.
+  noChargeNote: 'Sem cobrança agora · o pagamento é feito no atendimento',
   // right rail
   railTitle: 'Passos para agendar',
   railWaitingPayment: 'Aguardando pagamento',
@@ -180,6 +191,7 @@ export function createPublicBookingPlugin(options: PublicBookingOptions): Public
   const locale = options.locale ?? 'pt-BR'
   const hours = options.workingHours ?? DEFAULT_HOURS
   const staticServices = options.services ?? null
+  const phoneVerification: PhoneVerificationMode = options.phoneVerification ?? 'none'
   const payment: ResolvedPayment | null = options.payment?.enabled
     ? {
         reservationFeePercent: options.payment.reservationFeePercent ?? 100,
@@ -229,6 +241,7 @@ export function createPublicBookingPlugin(options: PublicBookingOptions): Public
     professionalId,
     professionalName,
     businessHours: hours,
+    phoneVerification,
     payment,
     paymentProvider: options.paymentProvider ?? null,
     onIdentityVerified: options.onIdentityVerified ?? null,
