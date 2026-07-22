@@ -315,36 +315,33 @@ export function FinancialPage({ config, provider, store, registries }: {
         return <CashRegistersView />
       case 'statements':
         return <StatementsView onNavigate={navigate} />
-      case 'reconciliation': {
-        // Premium submodule: internal tab (not a shell route), so the plan gate
-        // must live here — the route guard never sees it (QA finding B35). Full
-        // UpgradePrompt (not the inline banner) fills the empty module panel.
-        const feature = config.navFeatureMap.reconciliation ?? 'fin_reconciliation'
-        return (
-          <EntitlementGate feature={feature} fallback={<UpgradePrompt feature={feature} />}>
-            <ReconciliationView />
-          </EntitlementGate>
-        )
-      }
-      case 'commissions': {
-        const feature = config.navFeatureMap.commissions ?? 'fin_commissions'
-        return (
-          <EntitlementGate feature={feature} fallback={<UpgradePrompt feature={feature} />}>
-            <CommissionsView />
-          </EntitlementGate>
-        )
-      }
-      case 'cards': {
-        const feature = config.navFeatureMap.cards ?? 'fin_cards'
-        return (
-          <EntitlementGate feature={feature} fallback={<UpgradePrompt feature={feature} />}>
-            <CardsView />
-          </EntitlementGate>
-        )
-      }
+      case 'reconciliation':
+        return <ReconciliationView />
+      case 'commissions':
+        return <CommissionsView />
+      case 'cards':
+        return <CardsView />
       default:
         return <SummaryView />
     }
+  }
+
+  // Content side of the sub-module paywall. A sub-module is premium ONLY when
+  // the app mapped its nav id to a feature (`navFeatureMap`) — the plugin ships
+  // no default, so an unmapped view renders ungated. Symmetric with the nav
+  // above: same map drives the Crown on the link and the gate on the content,
+  // so an app can never end up with a free-looking link over locked content.
+  // The gate must live here because an internal tab is not a shell route — the
+  // route guard never sees it (QA finding B35). Full UpgradePrompt (not the
+  // inline banner) fills the whole module panel.
+  function renderGatedView() {
+    const feature = config.navFeatureMap[intent.view]
+    if (!feature) return renderView()
+    return (
+      <EntitlementGate feature={feature} fallback={<UpgradePrompt feature={feature} />}>
+        {renderView()}
+      </EntitlementGate>
+    )
   }
 
   return (
@@ -383,7 +380,7 @@ export function FinancialPage({ config, provider, store, registries }: {
           </div>
         }
       >
-        {renderView()}
+        {renderGatedView()}
 
         {/* FAY-1242: the mobile quick-add + receipt FAB stack was removed — the
             app shell's elevated center "+" bottom-nav button now owns global

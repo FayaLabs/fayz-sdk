@@ -44,3 +44,21 @@ export function featureDisplayName(label: string | null | undefined): string {
   if (!label) return ''
   return label.replace(/\s*\([^)]*\)\s*$/, '').trim() || label.trim()
 }
+
+/**
+ * Which ISO-4217 code to price a plan in. `Plan.currency` is the source of
+ * truth, but apps DO ship billing configs that omit it — and silently printing
+ * "$79" to a tenant billed in reais is worse than any other failure mode here.
+ * So the fallback follows the ACTIVE LOCALE's region rather than a hardcoded
+ * 'USD'; only a locale we can't place at all lands on USD.
+ */
+const CURRENCY_BY_REGION: Record<string, string> = {
+  BR: 'BRL', PT: 'EUR', ES: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR', NL: 'EUR', IE: 'EUR',
+  GB: 'GBP', US: 'USD', CA: 'CAD', AU: 'AUD', MX: 'MXN', AR: 'ARS', CL: 'CLP', CO: 'COP',
+}
+
+export function resolvePlanCurrency(planCurrency: string | undefined, locale: string | undefined): string {
+  if (planCurrency) return planCurrency
+  const region = locale?.split(/[-_]/)[1]?.toUpperCase()
+  return (region && CURRENCY_BY_REGION[region]) || 'USD'
+}

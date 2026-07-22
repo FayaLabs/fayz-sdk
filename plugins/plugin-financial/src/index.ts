@@ -123,12 +123,18 @@ export interface FinancialPluginOptions {
   onBookingClick?: (orderId: string) => void
 
   /**
-   * Override the default internal-nav → access-feature map (nav item id →
-   * feature id). The plugin ships a convention map ({@link DEFAULT_NAV_FEATURE_MAP});
-   * an app whose RBAC/plan uses different ids remaps here (merged over the
-   * defaults, per key). A feature id ABSENT from the app's permissions/
-   * entitlements is treated as allowed (default allow) — remapping a link to an
-   * undeclared feature never hides it.
+   * Which internal-nav links this APP gates, as `nav item id → feature id`.
+   * Empty by default: the plugin ships no opinion about what is paid — packaging
+   * is the app's decision, declared alongside its `permissions.ts` (RBAC) and
+   * `billing.ts` (plan entitlements). An id absent from this map is never hidden
+   * and never gated, in the nav OR in the content.
+   *
+   * {@link FINANCIAL_NAV_FEATURES} is an opt-in preset of the `fin_*` ids used
+   * by the reference apps — spread the entries you actually want:
+   *
+   * ```ts
+   * navFeatureMap: { reconciliation: FINANCIAL_NAV_FEATURES.reconciliation }
+   * ```
    */
   navFeatureMap?: Record<string, string>
 }
@@ -161,14 +167,13 @@ const DEFAULT_LABELS: FinancialPluginLabels = {
 const DEFAULT_CURRENCY = { code: 'BRL', locale: 'pt-BR', symbol: 'R$' }
 
 /**
- * Convention map: internal nav item id → access feature id. Consumed by the
- * `FinancialPage` sub-nav (`useModuleNavAccess`) and the matching content gates.
- * Ids follow the `fin_*` sub-feature convention; an app declares the ones it
- * gates in its `permissions.ts` (RBAC matrix) and/or `plan.entitlements.features`
- * (plan). Any id NOT declared stays allowed (default allow), so enabling this
- * map never breaks apps that haven't opted a sub-module into RBAC/plan gating.
+ * OPT-IN preset of feature ids for the financial sub-modules — a naming
+ * convention offered to apps, NOT a default. Nothing here is applied unless an
+ * app passes the entries it wants through `options.navFeatureMap`, because what
+ * is paid is a product decision that belongs to the app (its `permissions.ts` +
+ * `billing.ts`), never to the plugin.
  */
-export const DEFAULT_NAV_FEATURE_MAP: Record<string, string> = {
+export const FINANCIAL_NAV_FEATURES = {
   reconciliation: 'fin_reconciliation',
   cards: 'fin_cards',
   commissions: 'fin_commissions',
@@ -176,7 +181,7 @@ export const DEFAULT_NAV_FEATURE_MAP: Record<string, string> = {
   receivables: 'fin_receivables',
   payables: 'fin_payables',
   'cash-registers': 'fin_cash_registers',
-}
+} as const satisfies Record<string, string>
 
 const DEFAULT_ITEM_TYPES: ItemTypeOption[] = [
   { value: 'service', label: 'Service', icon: 'Briefcase' },
@@ -214,7 +219,7 @@ function resolveConfig(options?: FinancialPluginOptions): ResolvedFinancialConfi
     entityLookups: options?.entityLookups ?? {},
     contactLookup: options?.contactLookup,
     onBookingClick: options?.onBookingClick,
-    navFeatureMap: { ...DEFAULT_NAV_FEATURE_MAP, ...options?.navFeatureMap },
+    navFeatureMap: { ...options?.navFeatureMap },
   }
 }
 

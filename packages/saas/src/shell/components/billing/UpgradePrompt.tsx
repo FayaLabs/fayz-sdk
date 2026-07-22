@@ -8,7 +8,7 @@ import { useBillingStore } from '../../stores/billing.store'
 import { usePermissionsStore } from '../../../permissions'
 import { useOrganizationStore } from '../../../org/store'
 import { navigateTo } from '../../../app/routing'
-import { getPlanEntitlements, featureDisplayName } from './access-contract'
+import { getPlanEntitlements, featureDisplayName, resolvePlanCurrency } from './access-contract'
 
 // ---------------------------------------------------------------------------
 // UpgradePrompt — the "this is a higher-plan feature" surface. Two variants:
@@ -39,14 +39,15 @@ function planUnlocks(plan: Plan, feature: string | undefined): boolean {
 
 /** Localized "R$ 79" style price, respecting the plan's currency + active locale. */
 function formatPrice(plan: Plan, locale: string | undefined): string {
+  const currency = resolvePlanCurrency(plan.currency, locale)
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: plan.currency || 'USD',
+      currency,
       minimumFractionDigits: Number.isInteger(plan.price) ? 0 : 2,
     }).format(plan.price)
   } catch {
-    return `${plan.currency || ''} ${plan.price}`.trim()
+    return `${currency} ${plan.price}`.trim()
   }
 }
 

@@ -2,24 +2,15 @@ import * as React from 'react'
 import { Badge, Button, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { getCoursesProvider, type Payout, type FinancialSummary, type CreatorAccount } from '@fayz-ai/courses'
-import { EntitlementGate, UpgradePrompt } from '@fayz-ai/saas'
 import { PageContainer, StatCard, StatGrid, SimpleTable, type SimpleColumn } from '../components/CommerceUI'
 import { formatMoney, formatDate, formatPercent } from '../lib/format'
 
-// Plan gate for the courses financial area. The shell route guard already
-// paywalls `/courses/financial` on plan denial (full UpgradePrompt); this inner
-// gate is defense-in-depth so the content stays gated even if the page is ever
-// embedded as a non-route tab. Full UpgradePrompt fills the panel (not the
-// inline banner).
+// No plan gate here on purpose. The page is registered as a shell ROUTE with
+// `permission: read('courses.finance')`, so the route guard already resolves
+// role AND plan for it — and whether `courses.finance` is a paid feature is the
+// APP's call (its billing.ts), never the plugin's. Hardcoding a gate here would
+// bake one product's packaging into the SDK.
 export function FinancialPage() {
-  return (
-    <EntitlementGate feature="courses.finance" fallback={<UpgradePrompt feature="courses.finance" />}>
-      <FinancialPageContent />
-    </EntitlementGate>
-  )
-}
-
-function FinancialPageContent() {
   const t = useTranslation()
   const [summary, setSummary] = React.useState<FinancialSummary | null>(null)
   const [payouts, setPayouts] = React.useState<Payout[] | null>(null)

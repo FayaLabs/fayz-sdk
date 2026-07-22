@@ -39,9 +39,11 @@ export interface ResolvedFinancialConfig {
   entityLookups: EntityLookupMap
   contactLookup?: EntityLookup
   onBookingClick?: (orderId: string) => void
-  /** Resolved map of internal nav item id → access feature id (default map
-   *  merged with the app's `navFeatureMap` override). Drives the sub-module
-   *  link paywall (`useModuleNavAccess`) and the matching content gates. */
+  /** Internal nav item id → access feature id, exactly as the APP declared it
+   *  (`options.navFeatureMap`; empty when the app gates nothing — the plugin
+   *  ships no defaults). Drives BOTH the sub-module link paywall
+   *  (`useModuleNavAccess`) and the matching content gate, so the two can't
+   *  drift. Unmapped ids are ungated. */
   navFeatureMap: Record<string, string>
 }
 
