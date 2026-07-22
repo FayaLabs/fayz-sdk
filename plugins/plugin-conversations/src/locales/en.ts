@@ -52,6 +52,13 @@ export const en: Record<string, string> = {
   'conversations.new.contactNamePlaceholder': 'e.g. Jane Doe',
   'conversations.new.handle': 'Phone / handle / email',
   'conversations.new.handlePlaceholder': '+1 555 000 0000',
+  // The handle field only surfaces when the picked contact has nothing usable
+  // for the active channel — otherwise it is derived and shown on the chip.
+  'conversations.new.addHandle': 'Add {label}',
+  'conversations.new.handleLabel.phone': 'phone',
+  'conversations.new.handleLabel.email': 'email',
+  'conversations.new.handleLabel.instagram': 'Instagram handle',
+  'conversations.new.handleLabel.webchat': 'web chat id',
   'conversations.new.firstMessage': 'First message',
   'conversations.new.firstMessagePlaceholder': 'Write the first message (optional)…',
   'conversations.new.cancel': 'Cancel',

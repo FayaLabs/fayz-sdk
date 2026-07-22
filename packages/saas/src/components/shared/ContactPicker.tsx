@@ -20,6 +20,12 @@ import { PersonLink } from './PersonLink'
 //   • selected  → a compact chip (PersonLink + phone) with an optional clear
 //   • creating  → inline name / phone / email form → `createPerson` → selected
 //
+// ONE look, deliberately: a bordered, always-open field. The agenda used to
+// collapse its client search behind a "+ Add client" link while conversations
+// showed an open field, so the same flow read as two different features. The
+// contact is the primary input on every surface that mounts this — hiding it
+// behind a click bought nothing and cost consistency.
+//
 // Uncontrolled-friendly: pass `value`/`onChange` and the parent owns the id.
 // ---------------------------------------------------------------------------
 
@@ -54,8 +60,12 @@ export interface ContactPickerProps {
   disabled?: boolean
   autoFocus?: boolean
   placeholder?: string
-  /** Collapsed inline label (SearchCombobox `inlineLabel`). Omit for an always-open input. */
-  inlineLabel?: string
+  /**
+   * Right-hand detail on the selected chip. Defaults to the person's phone; a
+   * host that cares about a different datum (the conversations composer shows
+   * the handle for the ACTIVE channel) passes its own.
+   */
+  secondaryText?: string
   /**
    * Copy for the "+ Create …" row. Defaults to the shared "New contact"; a
    * plugin whose vertical calls them something else (the agenda says "client")
@@ -84,7 +94,7 @@ export function ContactPicker({
   disabled,
   autoFocus,
   placeholder,
-  inlineLabel,
+  secondaryText,
   createLabel,
   onCreatingChange,
   className,
@@ -213,7 +223,9 @@ export function ContactPicker({
     return (
       <div className={cn('flex items-center gap-2 rounded-md bg-muted/30 px-2.5 py-1.5 text-sm', className)}>
         <PersonLink personId={value.id} name={value.name} size="default" className="flex-1 min-w-0" />
-        {value.phone && <span className="text-[10px] text-muted-foreground shrink-0">{value.phone}</span>}
+        {(secondaryText ?? value.phone) && (
+          <span className="text-[10px] text-muted-foreground shrink-0">{secondaryText ?? value.phone}</span>
+        )}
         {clearable && !disabled && (
           <button
             type="button"
@@ -292,8 +304,6 @@ export function ContactPicker({
         createLabel={createLabel ?? t('contactPicker.newContact')}
         onCreateNew={startCreate}
         autoFocus={autoFocus}
-        minimal={!!inlineLabel}
-        inlineLabel={inlineLabel}
       />
       {hint && search.trim() && !searching && <div className="mt-1">{hint}</div>}
     </div>

@@ -8,6 +8,28 @@ import type { Channel } from '../types'
 
 const CHANNELS: Channel[] = ['whatsapp', 'sms', 'instagram', 'email', 'webchat']
 
+/**
+ * Which field of a person IS the handle on a given channel. Phone channels read
+ * the phone, email reads the email; Instagram and web chat have no counterpart
+ * on a person record, so they always have to be typed. Deliberately NOT
+ * cross-filling (an email in a WhatsApp handle looked plausible on screen and
+ * was simply wrong).
+ */
+function personHandleFor(channel: Channel, contact: ContactPickerValue | null): string {
+  if (!contact) return ''
+  if (channel === 'email') return contact.email ?? ''
+  if (channel === 'sms' || channel === 'whatsapp') return contact.phone ?? ''
+  return ''
+}
+
+const HANDLE_LABEL_KEY: Record<Channel, string> = {
+  whatsapp: 'conversations.new.handleLabel.phone',
+  sms: 'conversations.new.handleLabel.phone',
+  email: 'conversations.new.handleLabel.email',
+  instagram: 'conversations.new.handleLabel.instagram',
+  webchat: 'conversations.new.handleLabel.webchat',
+}
+
 export function NewConversationModal({
   open,
   onOpenChange,
@@ -22,10 +44,11 @@ export function NewConversationModal({
 
   const [channel, setChannel] = React.useState<Channel>('whatsapp')
   const [contact, setContact] = React.useState<ContactPickerValue | null>(null)
-  const [contactHandle, setContactHandle] = React.useState('')
-  // Once the user edits the handle by hand we stop overwriting it from the
-  // selected person — their typing outranks our autofill.
-  const [handleTouched, setHandleTouched] = React.useState(false)
+  // Handle the user typed themselves. The one taken FROM the contact is derived
+  // (see personHandleFor) and shown on the picker's chip — same as the agenda,
+  // which never had a second phone field.
+  const [typedHandle, setTypedHandle] = React.useState('')
+  const [handleOpen, setHandleOpen] = React.useState(false)
   // While the picker's inline create form is open it already asks for phone and
   // email, so showing our own handle field would ask for the phone twice.
   const [creatingContact, setCreatingContact] = React.useState(false)
@@ -39,8 +62,8 @@ export function NewConversationModal({
     if (open) {
       setChannel('whatsapp')
       setContact(null)
-      setContactHandle('')
-      setHandleTouched(false)
+      setTypedHandle('')
+      setHandleOpen(false)
       setCreatingContact(false)
       setFirstMessage('')
       setSubmitting(false)
@@ -48,15 +71,15 @@ export function NewConversationModal({
     }
   }, [open])
 
-  // Autofill the handle from the picked contact: email channel wants the email,
-  // every other channel wants the phone. Falls back to whichever exists.
-  React.useEffect(() => {
-    if (handleTouched) return
-    if (!contact?.id) return
-    const preferred = channel === 'email' ? contact.email : contact.phone
-    const next = preferred || contact.phone || contact.email || ''
-    setContactHandle(next)
-  }, [contact, channel, handleTouched])
+  // What we'd message on this channel: the contact's own datum when they have
+  // one, otherwise whatever the user typed. Recomputed on every channel switch,
+  // so flipping WhatsApp → Email swaps phone for email with no stale state.
+  const derivedHandle = personHandleFor(channel, contact)
+  const effectiveHandle = derivedHandle || typedHandle
+  const handleLabel = t(HANDLE_LABEL_KEY[channel])
+  // The field only exists when there is nothing to derive — that second
+  // always-on input was what asked for the phone twice.
+  const showHandleField = !creatingContact && !derivedHandle && (handleOpen || !!typedHandle)
 
   const canSubmit = (contact?.name.trim().length ?? 0) > 0 && !submitting
 
@@ -75,7 +98,7 @@ export function NewConversationModal({
         channel,
         contactName: contact!.name.trim(),
         contactPersonId: contact?.id,
-        contactHandle: contactHandle.trim() || undefined,
+        contactHandle: effectiveHandle.trim() || undefined,
         firstMessage: firstMessage.trim() || undefined,
       })
       invalidateLimit('conversations_month')
@@ -149,23 +172,35 @@ export function NewConversationModal({
               onCreatingChange={setCreatingContact}
               autoFocus
               placeholder={t('conversations.new.contactNamePlaceholder')}
+              secondaryText={derivedHandle || undefined}
             />
           </div>
 
-          {/* Handle / phone / email — autofilled from the picked contact, and
-              hidden while the picker's create form owns those fields. */}
-          {!creatingContact && (
-          <div>
-            <label htmlFor="conv-contact-handle" className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              {t('conversations.new.handle')}
-            </label>
-            <Input
-              id="conv-contact-handle"
-              value={contactHandle}
-              onChange={(e) => { setContactHandle(e.target.value); setHandleTouched(true) }}
-              placeholder={t('conversations.new.handlePlaceholder')}
-            />
-          </div>
+          {/* Handle — only when the contact has nothing to derive for this
+              channel (an Instagram @, or a person with no phone). Otherwise it
+              rides on the picker's chip, exactly like the agenda. */}
+          {showHandleField && (
+            <div>
+              <label htmlFor="conv-contact-handle" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                {t('conversations.new.handle')}
+              </label>
+              <Input
+                id="conv-contact-handle"
+                value={typedHandle}
+                onChange={(e) => setTypedHandle(e.target.value)}
+                placeholder={t('conversations.new.handlePlaceholder')}
+                autoFocus={handleOpen}
+              />
+            </div>
+          )}
+          {!creatingContact && !derivedHandle && !showHandleField && (
+            <button
+              type="button"
+              onClick={() => setHandleOpen(true)}
+              className="self-start text-xs font-medium text-primary hover:underline"
+            >
+              + {t('conversations.new.addHandle').replace('{label}', handleLabel)}
+            </button>
           )}
 
           {/* First message */}

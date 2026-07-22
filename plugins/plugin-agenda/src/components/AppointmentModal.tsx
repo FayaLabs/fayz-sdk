@@ -810,7 +810,6 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                     lookup={config.contactLookup}
                     clearable={!isPaidBooking}
                     placeholder={t('agenda.appointment.searchClient')}
-                    inlineLabel={t('agenda.appointment.addClient')}
                     createLabel={t('agenda.appointment.newClient')}
                     hint={
                       <p className="text-[11px] text-warning">
