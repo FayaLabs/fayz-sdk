@@ -57,6 +57,7 @@ export const en: Record<string, string> = {
   "crm.dealSidebar.viewLeadProfile": "View Full Lead Profile",
   "crm.leadDetail.assignedTo": "Assigned to",
   "crm.leadDetail.backToList": "Back to list",
+  "crm.leadDetail.formAnswers": "Form answers",
   "crm.leadDetail.company": "Company",
   "crm.leadDetail.contactInfo": "Contact Information",
   "crm.leadDetail.createQuote": "Create Quote",

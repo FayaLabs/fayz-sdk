@@ -85,7 +85,15 @@ export function createSupabaseCrmProvider(options?: {
       return {
         id: r.id, name: r.name, email: r.email, phone: r.phone,
         company: r.company, status: r.lead_status ?? 'new',
+        sourceName: r.source_name,
         tags: r.tags ?? [], notes: r.notes,
+        // Answers from a public form. Kept as an opaque bag so a new landing
+        // page needs no schema change; the detail view renders whatever is here.
+        metadata: {
+          formId: r.form_id ?? undefined,
+          fields: r.custom_fields ?? {},
+          utm: r.utm ?? {},
+        },
         tenantId: r.tenant_id, createdAt: r.created_at, updatedAt: r.updated_at,
       } as Lead
     },
