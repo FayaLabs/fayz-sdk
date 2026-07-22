@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, S
 import { PersonLink } from '@fayz-ai/saas'
 import { useCrmProvider, useCrmConfig, formatCurrency } from '../CrmContext'
 import { QuoteStatusDropdown } from '../components/QuoteStatusDropdown'
+import { answerEntries, humanizeKey, renderFieldValue } from '../lib/form-answers'
 import type { Deal, Lead, Quote, Activity } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,33 @@ function TabBar({ active, counts, onChange }: { active: TabId; counts: { activit
 // ---------------------------------------------------------------------------
 // Overview tab
 // ---------------------------------------------------------------------------
+
+/** Whatever the public form captured, in the card. Same opaque-bag rendering
+ *  the lead detail page uses — shared so the two cannot drift. */
+function FormAnswers({ lead }: { lead: Lead | null }) {
+  const t = useTranslation()
+  const entries = answerEntries(lead?.metadata?.fields)
+  if (entries.length === 0) return null
+
+  const formId = lead?.metadata?.formId
+  return (
+    <div className="space-y-2">
+      <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        {formId ? `${t('crm.leadDetail.formAnswers')} · ${formId}` : t('crm.leadDetail.formAnswers')}
+      </h4>
+      <div className="rounded-xl border divide-y">
+        {entries.map(([key, value]) => (
+          <div key={key} className="flex items-start gap-3 px-4 py-2.5">
+            <span className="text-[11px] text-muted-foreground shrink-0 min-w-24">{humanizeKey(key)}</span>
+            <span className="text-xs text-right flex-1 break-words">
+              {renderFieldValue(value) ?? <span className="text-muted-foreground/50">—</span>}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function OverviewTab({ deal, lead, currency }: { deal: Deal; lead: Lead | null; currency: { code: string; locale: string; symbol: string } }) {
   const t = useTranslation()
@@ -142,6 +170,9 @@ function OverviewTab({ deal, lead, currency }: { deal: Deal; lead: Lead | null; 
           </div>
         </div>
       )}
+
+      {/* Form answers */}
+      <FormAnswers lead={lead} />
 
       {/* Tags */}
       {deal.tags && deal.tags.length > 0 && (

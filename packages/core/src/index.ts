@@ -26,6 +26,12 @@ export {
   COUNTRIES, DEFAULT_COUNTRY, getCountry, unmaskPhone, maskPhone, maskDigitCount,
 } from './phone'
 export type { CountryDef } from './phone'
+export {
+  normalizePostalCode, formatPostalCode, isValidPostalCode,
+  createViaCepProvider, setPostalLookupProvider, getPostalLookupProvider,
+  lookupPostalCode, clearPostalCache,
+} from './address'
+export type { PostalAddress, PostalLookupProvider } from './address'
 export type {
   PaymentProvider, PaymentMethod, ChargeStatus, CreateChargeInput, PixCharge,
 } from './types/payment'

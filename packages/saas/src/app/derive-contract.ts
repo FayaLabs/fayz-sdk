@@ -13,6 +13,7 @@ import { getAllEntities, deriveEntityKey } from '@fayz-ai/core'
 import { mergeLimitDeclarations } from '@fayz-ai/core/access'
 import { coreAITools, buildDataPrimitiveTools } from '../shell/lib/core-ai-tools'
 import { CORE_LIMIT_DECLARATIONS, entityDerivedLimitDeclarations } from './../access/limits-registry'
+import { CORE_QUERY_ENTITIES } from './core-entities'
 import type { FayzAppConfig } from './config'
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,10 @@ function projectEntity(key: string, label: string, labelPlural: string | undefin
       type: f.type,
       ...(f.required ? { required: true } : {}),
       ...(f.searchable ? { searchable: true } : {}),
+      // The hint is the only place a field says what it EXPECTS rather than
+      // what it is called — an owner id to look up, a default not to restate.
+      // Dropping it here is what left the agent guessing at write time.
+      ...(f.hint ? { hint: f.hint } : {}),
       ...(Array.isArray(f.options) && f.options.length
         ? { options: f.options.map((o) => (typeof o === 'string' ? o : o.value)) }
         : {}),
@@ -136,6 +141,12 @@ export function deriveAgentContract(
     const projected = projectEntity(q.key, q.entity.name, q.entity.namePlural, q.entity)
     if (projected) entityContracts.push(projected)
   }
+  // Spine tables whose surface is a detail TAB, not a page — no app declares
+  // them as CRUD entities, so without this the agent cannot see them at all.
+  for (const q of CORE_QUERY_ENTITIES) {
+    const projected = projectEntity(q.key, q.entity.name, q.entity.namePlural, q.entity)
+    if (projected) entityContracts.push(projected)
+  }
 
   // --- Tools: core + derived reads + plugin-declared --------------------------
   const tools: AIToolContract[] = []
@@ -151,6 +162,10 @@ export function deriveAgentContract(
   const queryEntities = [
     ...plugins.flatMap((p) => p.queryEntities ?? []),
     ...(config.agentContract?.queryEntities ?? []),
+    // CORE_QUERY_ENTITIES is NOT listed here — buildDataPrimitiveTools merges
+    // it in itself, for every caller. It is projected into `entityContracts`
+    // above because that list is what the server-plane executor resolves a
+    // tool call's `entity` argument against.
   ]
   for (const tool of buildDataPrimitiveTools({ entities, registries: registryMap, queryEntities })) {
     tools.push({ ...projectTool(tool), execution: { plane: 'server', kind: 'entity_read', entity: '*' } })

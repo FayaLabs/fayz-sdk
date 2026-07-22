@@ -237,6 +237,11 @@ export class MockShopProvider implements ShopProvider {
       customerEmail: input.customerEmail ?? null,
       discountCode: input.discountCode ?? null,
       notes: input.notes ?? null,
+      shippingAddress: null,
+      // CreateOrderInput has no payment method — that is a PlaceOrderInput
+      // concern; the mock records none rather than inventing one.
+      paymentMethodKind: null,
+      paidAt: null,
       items: input.items.map(i => ({ id: uid(), orderId, productId: i.productId ?? null, name: i.name, sku: i.sku ?? null, quantity: i.quantity, unitPrice: i.unitPrice, total: Math.round(i.quantity * i.unitPrice * 100) / 100, imageUrl: i.imageUrl ?? null })),
       createdAt: now(),
       updatedAt: now(),

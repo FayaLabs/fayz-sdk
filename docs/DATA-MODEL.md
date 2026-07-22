@@ -66,6 +66,8 @@ Every business app is built from five nouns — this is the whole core vocabular
 
 `kind` instead of new tables means one identity model, one search, one CRUD engine, one RLS set — and `createArchetypeLookup` routes UI by (archetype, kind). The beautyplace audit (112 production tables) mapped onto the rings with **zero changes to Ring 0** — the strongest evidence the vocabulary is right (full mapping preserved in `archive/data-model-2026-06.md`).
 
+**`public.addresses` is spine, not commerce.** It ships in `@fayz-ai/db` (`migrations/017_core_addresses.sql`) rather than in `@fayz-ai/shop`, where the SQL physically lived until now. An address is where a client is delivered to, where a supplier is collected from, where a staff member lives — the person archetype's "Endereços" tab queries it unconditionally, so every non-shop vertical was rendering *"Could not find the table `public.addresses`"*. `owner_type` stays `text` because the owner is polymorphic (`person` · `shop_customer` · `location` · `tenant`); the spine runs before plugin migrations, so on a shop pool the plugin's own `CREATE ... IF NOT EXISTS` degrades to a no-op.
+
 In code, the spine is declared **references-only**: `packages/db/src/schema/spine.ts` exposes `pgSchema('saas_core')` tables with just `id uuid PK` so plugin FKs typecheck; live columns are authoritative and never re-created. Plugin schemas import builders from `@fayz-ai/db` (`pgTable`, `tenantId()`, `timestamps`, `createdAt`, spine refs) — **never `drizzle-orm/pg-core` directly** (single drizzle instance rule).
 
 ## 2. Bridge views and the archetype provider
@@ -176,6 +178,8 @@ flowchart TD
   COMMERCE -. canonical views .-> R[(v_revenue · v_receivables · v_appointments)]
   FIN -. canonical views .-> R
 ```
+
+**The shop is now on this spine** (`@fayz-ai/shop` 0023–0025). Placing an order raises a real receivable through `fn_invoice_from_order_internal` — the authorization-free body extracted from `fn_invoice_from_order`, because a storefront checkout runs as the *shopper*, whose `user_tenant_ids()` is empty by definition and could therefore never invoice itself. The parallel ledger the shop used to write (`public.transactions`) is **retired, not dropped**: it keeps its rows and stays the generic archetype table other verticals use; the shop simply stops being one of its writers, and its settled history was migrated across so Financeiro shows the store's whole life rather than only what happened after the bridge shipped.
 
 The five invariants: **one writer per fact** (operational status only on `bookings`; financial status derived); **money is event-sourced** (`financial_movements` append-only; balances are views, never stored); **cross-document transitions are transactional DB functions** (`fn_invoice_from_order`, `fn_pay_invoice`) that plugins call, never re-implement; **reports read canonical views only**; **lifecycle is constrained** (kind→status matrix).
 

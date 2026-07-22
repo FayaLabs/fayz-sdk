@@ -9,4 +9,8 @@ export const T = {
   orderItems: 'plg_shop_order_items',
   customers: 'plg_shop_customers',
   discounts: 'plg_shop_discounts',
+  // Core, not plg_shop_*: a delivery zone is a fact about the business, and
+  // fulfilment and financial read it too. Same reasoning as addresses and
+  // orders — see migration 0021.
+  shippingZones: 'shipping_zones',
 } as const

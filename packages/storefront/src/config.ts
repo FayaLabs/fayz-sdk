@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from 'react'
 import type { ShopProvider } from '@fayz-ai/shop/provider'
 import type { MockShopSeed } from '@fayz-ai/shop/mock'
+import type { PaymentMethodKind } from '@fayz-ai/shop/types'
 import type { StorefrontTheme } from './theme'
 import type { HomeConfig, NavLink, FooterConfig } from './sections'
 import type { StorefrontAuthConfig } from './auth'
@@ -122,7 +123,15 @@ export interface StorefrontConfig {
    * real charge (demo). M4 sets 'pix-mercadopago' so orders stay pending until
    * a real payment webhook confirms settlement.
    */
-  payments?: { mode?: 'mock' | 'pix-mercadopago' }
+  payments?: {
+    mode?: 'mock' | 'pix-mercadopago'
+    /**
+     * Which methods the checkout offers. Declaring them is what lets the order
+     * record how the buyer intends to pay instead of assuming 'credit_card',
+     * which is what it did while the card form was a simulation.
+     */
+    methods?: readonly PaymentMethodKind[]
+  }
   /** Product enquiry behavior for catalog/enquiry stores. */
   enquiry?: StorefrontEnquiryConfig
   /** Feature toggles — defaults depend on commerceMode. */
@@ -139,7 +148,7 @@ export interface ResolvedStorefrontConfig extends StorefrontConfig {
   currency: string
   locale: string
   shipping: { flatRate: number; freeAbove?: number }
-  payments: { mode: 'mock' | 'pix-mercadopago' }
+  payments: { mode: 'mock' | 'pix-mercadopago'; methods: readonly PaymentMethodKind[] }
   commerceMode: StorefrontCommerceMode
   enquiry: Required<Pick<StorefrontEnquiryConfig, 'label' | 'successMessage' | 'subjectPrefix'>> &
     Omit<StorefrontEnquiryConfig, 'label' | 'successMessage' | 'subjectPrefix'>
@@ -159,7 +168,10 @@ export function resolveConfig(config: StorefrontConfig): ResolvedStorefrontConfi
     currency: config.currency ?? 'BRL',
     locale: config.locale ?? 'pt-BR',
     shipping: { flatRate: config.shipping?.flatRate ?? 0, freeAbove: config.shipping?.freeAbove },
-    payments: { mode: config.payments?.mode ?? 'mock' },
+    payments: {
+      mode: config.payments?.mode ?? 'mock',
+      methods: config.payments?.methods?.length ? config.payments.methods : ['pix', 'credit_card', 'cash'],
+    },
     commerceMode,
     enquiry: {
       label: config.enquiry?.label ?? 'Contact me',

@@ -1,5 +1,5 @@
 import { getShopProvider } from '@fayz-ai/shop/runtime'
-import type { Order } from '@fayz-ai/shop/types'
+import type { Order, ShippingAddressInput, PaymentMethodKind } from '@fayz-ai/shop/types'
 import { establishCustomerSession } from '../auth'
 import type { ResolvedStorefrontConfig } from '../config'
 import type { CartState } from '../stores/cart.store'
@@ -24,6 +24,9 @@ export interface PlaceStorefrontOrderInput {
   session?: Pick<SessionState, 'customerId' | 'email'>
   customer: StorefrontCheckoutCustomer
   address?: StorefrontCheckoutAddress
+  /** Structured address; without it the order keeps only the free-text note. */
+  shippingAddress?: ShippingAddressInput
+  paymentMethod?: PaymentMethodKind
   markPaid?: boolean
 }
 
@@ -32,10 +35,25 @@ export interface PlaceStorefrontOrderResult {
   customerId: string
 }
 
-function formatDeliveryNotes(address: StorefrontCheckoutAddress | undefined): string | undefined {
-  if (!address) return undefined
-  if (address.notes?.trim()) return address.notes.trim()
+/**
+ * `notes` is the buyer's free-text message to the store — nothing else.
+ *
+ * It used to double as the delivery address, from back when the order had
+ * nowhere structured to put one. Now that the address is a real snapshot plus a
+ * row in the address book, repeating it here only creates a second copy that
+ * can disagree with the first (it did: it dropped number and district). When a
+ * structured address is present, notes carries only what the customer wrote.
+ */
+function formatDeliveryNotes(
+  address: StorefrontCheckoutAddress | undefined,
+  shippingAddress?: ShippingAddressInput,
+): string | undefined {
+  if (address?.notes?.trim()) return address.notes.trim()
 
+  // Structured address present → the order already knows where to deliver.
+  if (shippingAddress) return undefined
+
+  if (!address) return undefined
   const parts = [address.street, address.city, address.zip]
     .map((part) => part?.trim())
     .filter(Boolean)
@@ -54,6 +72,8 @@ export async function placeStorefrontOrder({
   session,
   customer,
   address,
+  shippingAddress,
+  paymentMethod,
   markPaid = false,
 }: PlaceStorefrontOrderInput): Promise<PlaceStorefrontOrderResult> {
   const email = customer.email.trim().toLowerCase()
@@ -73,9 +93,14 @@ export async function placeStorefrontOrder({
     customerId: customerId ?? undefined,
     customer: { name, email },
     currency: config.currency,
-    notes: formatDeliveryNotes(address),
+    notes: formatDeliveryNotes(address, shippingAddress),
     discountCode: cart.discountCode ?? undefined,
     shippingTotal: selectShipping(cart, config),
+    // Structured address + method are what populate public.addresses and the
+    // transactions ledger. `notes` stays for backwards compatibility with
+    // checkouts that have not been updated yet.
+    shippingAddress,
+    paymentMethod,
     items: cart.lines.map((line) => ({
       productId: line.productId,
       quantity: line.quantity,

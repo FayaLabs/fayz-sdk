@@ -33,6 +33,27 @@ function getClients() {
   return { core: supabase, pub: supabase }
 }
 
+/**
+ * Patch keys into people.metadata, preserving everything already there.
+ *
+ * people.metadata is a single opaque bag holding unrelated things: the lead's
+ * pipeline `status`, plus `formId`/`fields`/`utm` — the public form's answers,
+ * which are the entire content of a lead that arrived from a landing page.
+ * A plain `.update({ metadata: {...} })` REPLACES the column, so any code that
+ * only meant to set the status was deleting the enquiry. Two call sites did
+ * exactly that.
+ *
+ * Read-merge-write rather than a `jsonb ||` RPC: it matches the pattern already
+ * used elsewhere in this file, and these writes are single-operator actions
+ * (dragging one card), not concurrent ones.
+ */
+async function mergePersonMetadata(personId: string, patch: Record<string, unknown>): Promise<void> {
+  const { core } = getClients()
+  const { data: row } = await core.from('people').select('metadata').eq('id', personId).maybeSingle()
+  const current = (row?.metadata ?? {}) as Record<string, unknown>
+  await core.from('people').update({ metadata: { ...current, ...patch } }).eq('id', personId)
+}
+
 export function createSupabaseCrmProvider(options?: {
   clientConversion?: { archetypeKind: string; extensionTable: string; fkColumn: string }
 }): CrmDataProvider {
@@ -119,16 +140,19 @@ export function createSupabaseCrmProvider(options?: {
       if (partial.email !== undefined) row.email = partial.email
       if (partial.phone !== undefined) row.phone = partial.phone
       if (partial.notes !== undefined) row.notes = partial.notes
-      if (partial.status) row.metadata = { status: partial.status }
-      const { data, error } = await core.from('people').update(row).eq('id', id).select().single()
+      const { error } = await core.from('people').update(row).eq('id', id).select().single()
       if (error) throw new Error(error.message)
+      // The third call site that replaced the bag. Editing a lead's status from
+      // the list wiped formId/fields/utm exactly as dragging its card did — the
+      // same fix, applied here too rather than left for the next reader to find.
+      if (partial.status) await mergePersonMetadata(id, { status: partial.status })
       return (await provider.getLeadById(id))!
     },
 
     async convertLeadToDeal(leadId: string, dealInput: CreateDealInput): Promise<Deal> {
       const { core } = getClients()
       // Update lead status to converted
-      await core.from('people').update({ metadata: { status: 'converted' } }).eq('id', leadId)
+      await mergePersonMetadata(leadId, { status: 'converted' })
       return provider.createDeal({ ...dealInput, leadId } as any)
     },
 
@@ -183,6 +207,11 @@ export function createSupabaseCrmProvider(options?: {
         stageName: r.stage_name, stageColor: r.stage_color,
         probability: r.probability ?? 0, status: r.status ?? 'open',
         contactName: r.contact_name, tags: r.tags ?? [],
+        // v_deals exposes de.lead_id and Deal declares leadId, but the mapping
+        // dropped it — so DealSidebar's `if (d?.leadId)` never fired and the
+        // card opened blank: no contact, no form answers. For a card that came
+        // from a form, the lead IS the content.
+        leadId: r.lead_id ?? undefined,
         tenantId: r.tenant_id, createdAt: r.created_at, updatedAt: r.updated_at,
       } as Deal
     },
@@ -198,6 +227,7 @@ export function createSupabaseCrmProvider(options?: {
         stageName: r.stage_name, stageColor: r.stage_color,
         probability: r.probability ?? 0, status: r.status ?? 'open',
         contactName: r.contact_name, tags: r.tags ?? [],
+        leadId: r.lead_id ?? undefined,
         tenantId: r.tenant_id, createdAt: r.created_at, updatedAt: r.updated_at,
       } as Deal))
 
@@ -281,7 +311,12 @@ export function createSupabaseCrmProvider(options?: {
         const { data: ext } = await pub.from(T.dealExtensions).select('lead_id').eq('order_id', dealId).single()
         if (ext?.lead_id) {
           const newLeadStatus = deriveLeadStatus(typedStage)
-          await core.from('people').update({ metadata: { status: newLeadStatus } }).eq('id', ext.lead_id)
+          // MERGE, never replace. people.metadata is the lead's whole opaque
+          // bag — formId, the public form's answers, utm. Writing a bare
+          // { status } here silently destroyed all of it, so dragging a card to
+          // another column erased the enquiry that created it. Same read-merge
+          // pattern already used further down for personMeta/existingMeta.
+          await mergePersonMetadata(ext.lead_id, { status: newLeadStatus })
         }
         // Update quote statuses
         const { data: quotes } = await core.from('orders').select('id, status').eq('kind', 'quote')

@@ -191,6 +191,11 @@ export interface Order {
   customerEmail: string | null
   discountCode: string | null
   notes: string | null
+  /** Frozen delivery address captured at purchase time (0010/0012). */
+  shippingAddress: ShippingAddressSnapshot | null
+  /** How the buyer paid — opens the ledger row in public.transactions. */
+  paymentMethodKind: PaymentMethodKind | null
+  paidAt: string | null
   items: OrderItem[]
   createdAt: string
   updatedAt: string
@@ -266,6 +271,106 @@ export interface PlaceOrderLine {
  * storefront order. Prices, discount math, and inventory are resolved
  * server-side; the client supplies product ids, quantities, and intent only.
  */
+/** Structured delivery address. Mirrors public.addresses so the RPC can both
+ *  freeze it on the order and save it to the customer's address book. */
+export interface ShippingAddressInput {
+  postalCode: string
+  street: string
+  number?: string
+  complement?: string
+  district?: string
+  city: string
+  state: string
+  country?: string
+  recipient?: string
+  phone?: string
+  label?: string
+}
+
+export type PaymentMethodKind = 'pix' | 'credit_card' | 'debit_card' | 'boleto' | 'cash' | 'other'
+
+/**
+ * A range of postal codes the store delivers to, with its own price and ETA.
+ *
+ * `postalFrom`/`postalTo` are 8 digits, no punctuation. Ranges may overlap: the
+ * cheapest match wins, which is how a merchant layers a promotional zone over a
+ * broader one without deleting anything.
+ */
+export interface ShippingZone {
+  id: string
+  tenantId: string
+  name: string
+  carrier?: string | null
+  postalFrom: string
+  postalTo: string
+  rate: number
+  /** Overrides the store-wide free-delivery threshold inside this zone. */
+  freeAbove?: number | null
+  etaMinDays?: number | null
+  etaMaxDays?: number | null
+  active: boolean
+  sortOrder: number
+}
+
+export type CreateShippingZoneInput = Omit<ShippingZone, 'id' | 'tenantId'>
+export type UpdateShippingZoneInput = Partial<CreateShippingZoneInput>
+
+/**
+ * One delivery option for a postal code, as quoted by shop_quote_shipping.
+ *
+ * `rate` already has the zone's free-above threshold applied, so the caller
+ * never re-derives a price — the number shown is the number charged. An EMPTY
+ * list of options is the meaningful answer "we do not deliver there", not an
+ * error condition.
+ */
+export interface ShippingQuoteOption {
+  zoneId: string
+  name: string
+  carrier?: string
+  /** Resolved against the subtotal the quote was requested for. */
+  rate: number
+  /** The zone's price before any free-above rule — lets a caller re-resolve
+   *  `rate` for a changed cart without another round trip, using the same rule
+   *  the server applies. Without it a stale quote had to fall back to the
+   *  store-wide flat rate, which is a different zone's price. */
+  baseRate: number
+  freeAbove?: number | null
+  etaMinDays?: number
+  etaMaxDays?: number
+  /** True when the rate is 0 because the order cleared the zone's threshold. */
+  free: boolean
+}
+
+/**
+ * A row from the customer's address book (public.addresses).
+ *
+ * Only reachable with a signed-in shopper: the addresses_self_read policy joins
+ * plg_shop_customers.auth_user_id to auth.uid(), so an anonymous request sees
+ * nothing. Guests get an empty book and type their address, which is correct —
+ * the alternative is showing them somebody else's.
+ */
+export interface CustomerAddress extends ShippingAddressInput {
+  id: string
+  isDefault?: boolean
+}
+
+/** Address as stored on the order: snake_case, mirroring public.addresses. */
+export interface ShippingAddressSnapshot {
+  postal_code?: string
+  street?: string
+  number?: string
+  complement?: string
+  district?: string
+  city?: string
+  state?: string
+  country?: string
+  recipient?: string
+  phone?: string
+  label?: string
+  raw?: string
+  source?: string
+}
+
 export interface PlaceOrderInput {
   /** Tenant/store id. The Supabase provider falls back to the resolved shop tenant. */
   tenantId?: string
@@ -279,6 +384,11 @@ export interface PlaceOrderInput {
   discountCode?: string
   /** Shipping cost from the store's shipping policy. Clamped to >= 0 server-side. */
   shippingTotal?: number
+  /** Structured delivery address. Without it the address survives only as free
+   *  text in `notes`, which logistics cannot read. */
+  shippingAddress?: ShippingAddressInput
+  /** How the buyer is paying. Opens the ledger row in public.transactions. */
+  paymentMethod?: PaymentMethodKind
   items: PlaceOrderLine[]
 }
 

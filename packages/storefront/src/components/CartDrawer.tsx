@@ -13,6 +13,9 @@ import { useStorefrontConfig } from '../config'
 import { navigateTo } from '../router'
 import { formatMoney } from '../format'
 import { QuantityInput } from './QuantityInput'
+import { formatPostalCode } from '@fayz-ai/core'
+import { useDeliveryStore } from '../stores/delivery.store'
+import { DeliveryEstimator } from './DeliveryEstimator'
 import { TID } from '../testids'
 import { SmoothImage } from './SmoothImage'
 
@@ -34,9 +37,15 @@ export function CartDrawer() {
     return () => document.removeEventListener('keydown', onKey)
   }, [cart.isOpen, cart.closeDrawer])
 
+  // Subscribed, not just read: selectShipping consults this store through
+  // getState(), which does not subscribe, so without this hook a fresh quote
+  // would change the price and leave the drawer showing the old one.
+  const delivery = useDeliveryStore()
+
   const subtotal = selectSubtotal(cart)
   const discountTotal = selectDiscountTotal(cart)
   const shipping = selectShipping(cart, config)
+
   const total = selectTotal(cart, config)
   const money = (v: number) => formatMoney(v, config.currency, config.locale)
 
@@ -198,6 +207,12 @@ export function CartDrawer() {
                 </div>
               )}
 
+              {/* Second chance to give a CEP for anyone who added to cart from
+                  the catalogue and never opened a product page. */}
+              <div className="mb-3">
+                <DeliveryEstimator compact />
+              </div>
+
               <dl className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Subtotal</dt>
@@ -219,7 +234,14 @@ export function CartDrawer() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Frete</dt>
+                  <dt className="text-muted-foreground">
+                    Frete
+                    {delivery.status === 'served' && delivery.postalCode && (
+                      <span className="ml-1 text-xs">
+                        · {formatPostalCode(delivery.postalCode)}
+                      </span>
+                    )}
+                  </dt>
                   <dd data-testid={TID.cartShipping} data-price={shipping.toFixed(2)}>
                     {shipping === 0 ? 'Grátis' : money(shipping)}
                   </dd>

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus } from 'lucide-react'
 import { toast } from '@fayz-ai/ui'
 import { useCrmStore, useCrmConfig, formatCurrency } from '../CrmContext'
-import { useTranslation } from '@fayz-ai/core'
+import { useTranslation, getSupabaseClientOptional } from '@fayz-ai/core'
 import { SubpageHeader } from '@fayz-ai/ui'
 import { DealSidebar } from './DealSidebar'
 import type { Deal } from '../types'
@@ -176,6 +176,39 @@ export function PipelineView({ onDealClick, onViewLead, onViewQuote, onAddLead }
 
   useEffect(() => { fetchPipelines() }, [])
   useEffect(() => { if (pipelines.length > 0) fetchDealsByStage(pipelines[0].id) }, [pipelines])
+
+  // Live board. The card for an incoming lead is created by a DB trigger
+  // (plugin-crm 006), so it appears with no client code involved at all — and
+  // without this subscription the only way to see it was a page reload. A
+  // pipeline left open on a screen all day is the normal case here, which is
+  // exactly when a stale board is worst.
+  //
+  // Subscribes to plg_crm_deal_extensions rather than orders: it is the row
+  // carrying pipeline_id/stage_id, so every board-visible change (card created,
+  // moved, removed) touches it and nothing else does. A refetch rather than a
+  // local patch — the payload alone lacks the joined stage/contact fields the
+  // board renders, and refetching keeps one source of truth for the board.
+  const pipelineId = pipelines[0]?.id
+  useEffect(() => {
+    if (!pipelineId) return
+    const supabase = getSupabaseClientOptional() as {
+      channel: (name: string) => { on: (...a: unknown[]) => { subscribe: () => unknown } }
+      removeChannel: (channel: unknown) => void
+    } | null
+    if (!supabase) return
+
+    // RLS scopes the stream to the caller's own tenants — no tenant filter here.
+    const channel = supabase
+      .channel(`crm:board:${pipelineId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'plg_crm_deal_extensions' },
+        () => { void fetchDealsByStage(pipelineId) },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [pipelineId])
 
   // Clear optimistic state when real data arrives and no moves are in-flight
   useEffect(() => {

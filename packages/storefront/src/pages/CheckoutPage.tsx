@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { CreditCard, Lock, PackageCheck, ShieldCheck, Trash2 } from 'lucide-react'
+import { CreditCard, Lock, PackageCheck, ShieldCheck } from 'lucide-react'
+import { getShopProvider } from '@fayz-ai/shop/runtime'
+import { formatPostalCode, normalizePostalCode, lookupPostalCode } from '@fayz-ai/core'
+import type { CustomerAddress, PaymentMethodKind } from '@fayz-ai/shop/types'
 import { prefersReducedMotion } from '../motion'
 import {
   useCartStore,
@@ -9,6 +12,7 @@ import {
   selectTotal,
 } from '../stores/cart.store'
 import { useSessionStore } from '../stores/session.store'
+import { useDeliveryStore } from '../stores/delivery.store'
 import { useStorefrontConfig } from '../config'
 import { Link, navigateTo } from '../router'
 import { formatMoney } from '../format'
@@ -26,30 +30,36 @@ interface CheckoutForm {
   street: string
   city: string
   zip: string
-  card: string
-  expiry: string
-  cvc: string
+  number: string
+  complement: string
+  district: string
+  state: string
 }
 
 type AddressMode = 'saved' | 'new'
-type PaymentMode = 'saved' | 'new'
 
-const SAVED_ADDRESSES = [
-  { id: 'home', label: 'Casa', street: 'Rua das Flores, 123', city: 'São Paulo', zip: '01310-100' },
-]
-
-const SAVED_PAYMENT_METHODS = [
-  { id: 'visa', label: 'Visa final 4242', card: '4242 4242 4242 4242', expiry: '12/29', cvc: '123' },
-]
+/**
+ * There is no payment service provider connected, so the checkout does not ask
+ * for a card number. It used to, prefilled with 4242 4242 4242 4242, and the
+ * digits were validated and then thrown away — a PAN typed into React state
+ * that reaches no processor is a liability with no upside. The buyer states how
+ * they intend to pay; the order stays `pending` until the merchant confirms the
+ * money arrived (shop_confirm_payment, which since 0019 only they can call).
+ */
+const PAYMENT_LABELS: Record<PaymentMethodKind, { label: string; hint: string }> = {
+  pix:         { label: 'Pix',                  hint: 'Você recebe a chave para pagar após confirmar o pedido' },
+  credit_card: { label: 'Cartão de crédito',    hint: 'Maquininha na entrega' },
+  debit_card:  { label: 'Cartão de débito',     hint: 'Maquininha na entrega' },
+  boleto:      { label: 'Boleto',               hint: 'Enviado por e-mail após a confirmação' },
+  cash:        { label: 'Dinheiro',             hint: 'Pagamento na entrega' },
+  other:       { label: 'Combinar com a loja',  hint: 'A loja entra em contato para acertar o pagamento' },
+}
 
 const PROCESSING_STEPS = [
   { icon: Lock, label: 'Validando seus dados...' },
-  { icon: CreditCard, label: 'Processando pagamento...' },
-  { icon: PackageCheck, label: 'Confirmando seu pedido...' },
+  { icon: PackageCheck, label: 'Registrando seu pedido...' },
 ]
 
-const DEFAULT_ADDRESS = SAVED_ADDRESSES[0]!
-const DEFAULT_PAYMENT = SAVED_PAYMENT_METHODS[0]!
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 function ProcessingOverlay({ step }: { step: number }) {
@@ -98,24 +108,27 @@ export function CheckoutPage() {
   const config = useStorefrontConfig()
   const cart = useCartStore()
   const session = useSessionStore()
+  const delivery = useDeliveryStore()
   const validateDiscount = useDiscountValidator()
   useStorefrontHead({ title: `Checkout — ${config.name}` })
 
-  const [selectedAddressId, setSelectedAddressId] = useState(DEFAULT_ADDRESS.id)
-  const [selectedPaymentId, setSelectedPaymentId] = useState(DEFAULT_PAYMENT.id)
-  const [savedAddresses, setSavedAddresses] = useState(SAVED_ADDRESSES)
-  const [savedPaymentMethods, setSavedPaymentMethods] = useState(SAVED_PAYMENT_METHODS)
-  const [addressMode, setAddressMode] = useState<AddressMode>('saved')
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('saved')
+  const paymentMethods = config.payments.methods
+  const [selectedAddressId, setSelectedAddressId] = useState('new')
+  const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([])
+  // 'new' until the address book actually loads: an empty book must show an
+  // empty form, never a placeholder address belonging to nobody.
+  const [addressMode, setAddressMode] = useState<AddressMode>('new')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKind>(paymentMethods[0] ?? 'pix')
   const [form, setForm] = useState<CheckoutForm>({
     email: session.email ?? '',
     name: session.name ?? '',
-    street: DEFAULT_ADDRESS.street,
-    city: DEFAULT_ADDRESS.city,
-    zip: DEFAULT_ADDRESS.zip,
-    card: DEFAULT_PAYMENT.card,
-    expiry: DEFAULT_PAYMENT.expiry,
-    cvc: DEFAULT_PAYMENT.cvc,
+    street: '',
+    city: '',
+    zip: '',
+    number: '',
+    complement: '',
+    district: '',
+    state: '',
   })
   const [error, setError] = useState<string | null>(null)
   const [discountCode, setDiscountCode] = useState('')
@@ -125,6 +138,7 @@ export function CheckoutPage() {
   const [placing, setPlacing] = useState(false)
   const [processingStep, setProcessingStep] = useState(0)
   const [showSignin, setShowSignin] = useState(false)
+  const [zipLookup, setZipLookup] = useState<'idle' | 'loading' | 'found' | 'not-found'>('idle')
 
   const subtotal = selectSubtotal(cart)
   const discountTotal = selectDiscountTotal(cart)
@@ -136,7 +150,45 @@ export function CheckoutPage() {
     if (cart.lines.length === 0 && !placing) navigateTo(config.catalogPath)
   }, [cart.lines.length, config.catalogPath, placing])
 
+
   const set = (key: keyof CheckoutForm) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
+
+  /**
+   * Editing the CEP re-fetches the address and refills what the postal service
+   * knows, leaving number and complement alone — those are the buyer's and must
+   * survive a correction to the postcode.
+   *
+   * Only what the lookup can supply is overwritten. Silently keeping a stale
+   * street from a previous CEP is worse than an empty one: the parcel goes to
+   * the wrong place and everything on screen looks filled in.
+   */
+  async function setZip(value: string) {
+    const masked = formatPostalCode(value)
+    setForm((current) => ({ ...current, zip: masked }))
+    if (normalizePostalCode(masked).length !== 8) {
+      setZipLookup('idle')
+      return
+    }
+    setZipLookup('loading')
+    try {
+      const found = await lookupPostalCode(masked)
+      if (!found) {
+        setZipLookup('not-found')
+        return
+      }
+      setZipLookup('found')
+      setForm((current) => ({
+        ...current,
+        street: found.street || current.street,
+        district: found.district || current.district,
+        city: found.city,
+        state: found.state,
+      }))
+    } catch {
+      // Offline or the provider is down — the buyer can still type it out.
+      setZipLookup('idle')
+    }
+  }
 
   async function applyDiscountCode() {
     setApplyingDiscount(true)
@@ -166,10 +218,70 @@ export function CheckoutPage() {
     setDiscountError(null)
   }
 
-  function applySavedAddress(address: typeof SAVED_ADDRESSES[number]) {
+  // The signed-in shopper's real address book. RLS scopes it to them, so a
+  // guest (or a customer whose account was never linked to an auth identity)
+  // simply gets nothing back and types their address.
+  useEffect(() => {
+    const customerId = session.customerId
+    if (!customerId) {
+      setSavedAddresses([])
+      setAddressMode('new')
+      return
+    }
+    let cancelled = false
+    const provider = getShopProvider()
+    void provider
+      .listCustomerAddresses?.(customerId)
+      .then((addresses) => {
+        if (cancelled || addresses.length === 0) return
+        setSavedAddresses(addresses)
+        applySavedAddress(addresses[0]!)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [session.customerId])
+
+  /**
+   * The CEP given back on the product page lands here.
+   *
+   * This is the payoff of the whole delivery flow: street, district, city and
+   * UF arrive filled and the buyer types a house number. It only fires when no
+   * saved address was selected — a signed-in shopper's own address book still
+   * wins over a postcode lookup, because it also knows their number and
+   * complement, which no postal service can supply.
+   */
+  useEffect(() => {
+    if (addressMode !== 'new') return
+    const looked = delivery.address
+    if (!looked) return
+    setForm((current) => {
+      if (current.zip.trim() || current.street.trim()) return current
+      return {
+        ...current,
+        zip: formatPostalCode(looked.postalCode),
+        street: looked.street,
+        district: looked.district,
+        city: looked.city,
+        state: looked.state,
+      }
+    })
+  }, [delivery.address, addressMode])
+
+  function applySavedAddress(address: CustomerAddress) {
     setAddressMode('saved')
     setSelectedAddressId(address.id)
-    setForm((current) => ({ ...current, street: address.street, city: address.city, zip: address.zip }))
+    setForm((current) => ({
+      ...current,
+      street: address.street,
+      city: address.city,
+      zip: address.postalCode,
+      number: address.number ?? '',
+      complement: address.complement ?? '',
+      district: address.district ?? '',
+      state: address.state,
+    }))
   }
 
   function selectAddress(addressId: string) {
@@ -180,42 +292,7 @@ export function CheckoutPage() {
   function addNewAddress() {
     setAddressMode('new')
     setSelectedAddressId('new')
-    setForm((current) => ({ ...current, street: '', city: '', zip: '' }))
-  }
-
-  function removeAddress(addressId: string) {
-    const nextAddresses = savedAddresses.filter((item) => item.id !== addressId)
-    setSavedAddresses(nextAddresses)
-    if (selectedAddressId !== addressId) return
-    const fallback = nextAddresses[0]
-    if (fallback) applySavedAddress(fallback)
-    else addNewAddress()
-  }
-
-  function applySavedPayment(method: typeof SAVED_PAYMENT_METHODS[number]) {
-    setPaymentMode('saved')
-    setSelectedPaymentId(method.id)
-    setForm((current) => ({ ...current, card: method.card, expiry: method.expiry, cvc: method.cvc }))
-  }
-
-  function selectPayment(paymentId: string) {
-    const method = savedPaymentMethods.find((item) => item.id === paymentId)
-    if (method) applySavedPayment(method)
-  }
-
-  function addNewPayment() {
-    setPaymentMode('new')
-    setSelectedPaymentId('new')
-    setForm((current) => ({ ...current, card: '', expiry: '', cvc: '' }))
-  }
-
-  function removePayment(paymentId: string) {
-    const nextMethods = savedPaymentMethods.filter((item) => item.id !== paymentId)
-    setSavedPaymentMethods(nextMethods)
-    if (selectedPaymentId !== paymentId) return
-    const fallback = nextMethods[0]
-    if (fallback) applySavedPayment(fallback)
-    else addNewPayment()
+    setForm((current) => ({ ...current, street: '', city: '', zip: '', number: '', complement: '', district: '', state: '' }))
   }
 
   function validate(): boolean {
@@ -228,12 +305,30 @@ export function CheckoutPage() {
       setError('Informe seu nome completo.')
       return false
     }
-    if (!form.street.trim() || !form.city.trim() || !form.zip.trim()) {
+    // Number and district are required because a courier cannot deliver without
+    // them; the old form collected only street/city/CEP and logistics had to guess.
+    if (!form.street.trim() || !form.city.trim() || !form.zip.trim() || !form.district.trim()) {
       setError('Preencha ou selecione o endereço de entrega.')
       return false
     }
-    if (!/^\d{16}$/.test(form.card.replace(/\s+/g, '')) || !form.expiry.trim() || !form.cvc.trim()) {
-      setError('Selecione ou preencha um método de pagamento válido.')
+    // Called out on its own: with the CEP filling everything else, the number is
+    // usually the only thing missing, and "preencha o endereço" sent people
+    // hunting through fields that were already correct.
+    if (!form.number.trim()) {
+      setError('Falta o número do endereço.')
+      return false
+    }
+    // UF is required now: 117 of the 266 addresses already in the pool have no
+    // state, and a carrier cannot quote or ship without one.
+    if (form.state.trim().length !== 2) {
+      setError('Informe a UF com duas letras (ex.: RJ).')
+      return false
+    }
+    // Coverage. shop_place_order refuses an unserved postal code anyway (0021),
+    // so this only turns a raw SQL error into a sentence the buyer can act on —
+    // the rule itself lives on the server, not here.
+    if (delivery.status === 'unserved' && delivery.postalCode === normalizePostalCode(form.zip)) {
+      setError('Ainda não entregamos nesse CEP. Tente outro endereço.')
       return false
     }
     return true
@@ -257,9 +352,22 @@ export function CheckoutPage() {
         session,
         customer: { email: form.email, name: form.name },
         address: { street: form.street, city: form.city, zip: form.zip },
-        // Demo only: mock mode instantly approves. Real Pix/Mercado Pago (M4)
-        // leaves the order pending until the payment webhook confirms.
-        markPaid: config.payments.mode === 'mock',
+        shippingAddress: {
+          postalCode: form.zip.trim(),
+          street: form.street.trim(),
+          number: form.number.trim() || undefined,
+          complement: form.complement.trim() || undefined,
+          district: form.district.trim() || undefined,
+          city: form.city.trim(),
+          state: form.state.trim().toUpperCase(),
+        },
+        // The method the buyer actually chose, which opens the ledger row in
+        // public.transactions with the right kind.
+        paymentMethod,
+        // Never marked paid from the browser. It used to be, through an RPC that
+        // was granted to anon — so any buyer holding their own order id could
+        // declare it settled. The order is now born `pending` and only the
+        // merchant (or a PSP webhook) can confirm the money arrived.
       })
 
       await minDuration
@@ -359,17 +467,13 @@ export function CheckoutPage() {
                           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">Selecionado</span>
                         )}
                       </span>
-                      <span className="mt-1 block text-muted-foreground">{address.street}</span>
-                      <span className="block text-muted-foreground">{address.city} - {address.zip}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeAddress(address.id)}
-                      className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
-                      aria-label={`Remover endereço ${address.label}`}
-                      title="Remover endereço"
-                    >
-                      <Trash2 className="h-4 w-4" />
+                      <span className="mt-1 block text-muted-foreground">
+                        {[address.street, address.number].filter(Boolean).join(', ')}
+                        {address.complement ? ` — ${address.complement}` : ''}
+                      </span>
+                      <span className="block text-muted-foreground">
+                        {[address.district, address.city, address.state].filter(Boolean).join(' · ')} — {address.postalCode}
+                      </span>
                     </button>
                   </div>
                 ))}
@@ -380,75 +484,77 @@ export function CheckoutPage() {
                     addressMode === 'new' ? 'border-primary bg-primary/5' : 'border-border bg-muted/20'
                   }`}
                 >
-                  <span className="block font-semibold text-primary">+ Adicionar novo endereço</span>
+                  <span className="block font-semibold text-primary">
+                    {savedAddresses.length > 0 ? '+ Adicionar novo endereço' : 'Informe o endereço de entrega'}
+                  </span>
                   <span className="mt-1 block text-muted-foreground">Preencher outro endereço para esta compra</span>
                 </button>
               </div>
               {addressMode === 'new' && (
                 <div className="grid gap-3">
-                  {field('Endereço', TID.checkoutStreet, form.street, set('street'), { placeholder: 'Endereço' })}
-                  <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
-                    {field('Cidade', TID.checkoutCity, form.city, set('city'), { placeholder: 'Cidade' })}
-                    {field('CEP', TID.checkoutZip, form.zip, set('zip'), { placeholder: 'CEP' })}
+                  {/* CEP first, because it FILLS the fields below it. With it at
+                      the bottom the buyer typed street, district, city and UF by
+                      hand and only then reached the one field that would have
+                      supplied all four — and editing it later has to refill
+                      them, which reads as the form rewriting itself. */}
+                  <div className="grid gap-1 sm:grid-cols-[200px_1fr] sm:items-center">
+                    {field('CEP', TID.checkoutZip, form.zip, setZip, {
+                      placeholder: 'CEP',
+                      inputMode: 'numeric',
+                      autoComplete: 'postal-code',
+                    })}
+                    <p className="px-1 text-xs text-muted-foreground">
+                      {zipLookup === 'loading' ? 'Buscando endereço…'
+                        : zipLookup === 'not-found' ? 'CEP não encontrado — preencha o endereço à mão.'
+                        : 'Preenchemos o endereço para você.'}
+                    </p>
                   </div>
+                  {field('Endereço', TID.checkoutStreet, form.street, set('street'), { placeholder: 'Rua, avenida…' })}
+                  <div className="grid grid-cols-2 gap-3">
+                    {field('Número', 'checkout-number', form.number, set('number'), { placeholder: 'Número' })}
+                    {field('Complemento', 'checkout-complement', form.complement, set('complement'), { placeholder: 'Apto, bloco (opcional)' })}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {field('Bairro', 'checkout-district', form.district, set('district'), { placeholder: 'Bairro' })}
+                    {field('UF', 'checkout-state', form.state, set('state'), { placeholder: 'UF' })}
+                  </div>
+                  {field('Cidade', TID.checkoutCity, form.city, set('city'), { placeholder: 'Cidade' })}
                 </div>
               )}
             </section>
 
             <section>
               <h2 className="mb-3 text-xl font-semibold tracking-tight">Pagamento</h2>
-              <div className="mb-3 grid gap-3">
-                {savedPaymentMethods.map((method) => (
-                  <div
-                    key={method.id}
-                    className={`group relative rounded-lg border p-3 pr-11 text-left text-sm transition hover:bg-muted/40 ${
-                      selectedPaymentId === method.id ? 'border-primary bg-primary/5' : 'border-border bg-background'
-                    }`}
-                  >
-                    <button type="button" onClick={() => selectPayment(method.id)} className="block w-full text-left">
+              <div className="mb-3 grid gap-3" role="radiogroup" aria-label="Forma de pagamento">
+                {paymentMethods.map((method) => {
+                  const copy = PAYMENT_LABELS[method]
+                  const selected = paymentMethod === method
+                  return (
+                    <button
+                      key={method}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      data-testid={`checkout-payment-${method}`}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`rounded-lg border p-3 text-left text-sm transition hover:bg-muted/40 ${
+                        selected ? 'border-primary bg-primary/5' : 'border-border bg-background'
+                      }`}
+                    >
                       <span className="flex items-center justify-between gap-3 font-semibold">
-                        <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" />{method.label}</span>
-                        {paymentMode === 'saved' && selectedPaymentId === method.id && (
+                        <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" />{copy.label}</span>
+                        {selected && (
                           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">Selecionado</span>
                         )}
                       </span>
-                      <span className="mt-1 block text-muted-foreground">Expira em {method.expiry}</span>
+                      <span className="mt-1 block text-muted-foreground">{copy.hint}</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => removePayment(method.id)}
-                      className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
-                      aria-label={`Remover cartão ${method.label}`}
-                      title="Remover cartão"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addNewPayment}
-                  className={`rounded-lg border border-dashed p-3 text-left text-sm transition hover:bg-muted/40 ${
-                    paymentMode === 'new' ? 'border-primary bg-primary/5' : 'border-border bg-muted/20'
-                  }`}
-                >
-                  <span className="flex items-center gap-2 font-semibold text-primary"><CreditCard className="h-4 w-4" />+ Adicionar novo cartão</span>
-                  <span className="mt-1 block text-muted-foreground">Usar outro cartão nesta compra</span>
-                </button>
+                  )
+                })}
               </div>
-              {paymentMode === 'new' && (
-                <div className="grid gap-3">
-                  {field('Número do cartão', TID.checkoutCard, form.card, set('card'), {
-                    placeholder: 'Número do cartão',
-                    inputMode: 'numeric',
-                  })}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {field('Validade', TID.checkoutExpiry, form.expiry, set('expiry'), { placeholder: 'MM/AA' })}
-                    {field('CVC', TID.checkoutCvc, form.cvc, set('cvc'), { placeholder: 'CVC', inputMode: 'numeric' })}
-                  </div>
-                </div>
-              )}
-              <p className="mt-2 text-xs text-muted-foreground">Pagamento de demonstração - nenhuma cobrança é feita.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Nenhuma cobrança é feita agora. Seu pedido é registrado e a loja confirma o pagamento.
+              </p>
             </section>
 
             {error && (

@@ -1,6 +1,7 @@
 import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
 import type { EntityDef } from '@fayz-ai/core'
 import { getAllEntities, type RegisteredEntity } from '@fayz-ai/core'
+import { CORE_QUERY_ENTITIES } from '../../app/core-entities'
 
 /**
  * Core SaaS-level AI tools — always available, no plugin required.
@@ -141,6 +142,19 @@ export function entityToolName(entityKey: string): string {
  * parameter (closed enum), and the executor checks the target entity's OWN
  * read permission at call time — one tool, per-user access preserved.
  */
+/**
+ * Sentences describing entities that ATTACH to another record instead of
+ * standing alone. Appended to createRecord's description so the relationship is
+ * stated once, up front, rather than discovered through a failed write.
+ * Only entities actually present in this app's catalog are mentioned.
+ */
+function attachedRecordGuidance(writableKeys: string[]): string {
+  const hints = CORE_QUERY_ENTITIES
+    .filter((q) => q.agentHint && writableKeys.includes(q.key))
+    .map((q) => q.agentHint as string)
+  return hints.length ? ` Records that attach to another record: ${hints.join(' ')}` : ''
+}
+
 export function buildDataPrimitiveTools(input: {
   entities: RegisteredEntity[]
   registries: Map<string, PluginRegistryDef[]>
@@ -161,7 +175,11 @@ export function buildDataPrimitiveTools(input: {
   }
   // Read-models are readable; base-table ones may opt into writes.
   const writableKeys = options.map((o) => o.key)
-  for (const q of input.queryEntities ?? []) {
+  // CORE_QUERY_ENTITIES is merged HERE, not at each call site: the primitives
+  // are built from three different places (deriveAgentContract, useAITools and
+  // the conversational e2e harness), and a spine entity added to only some of
+  // them is a catalog that disagrees with itself.
+  for (const q of [...(input.queryEntities ?? []), ...CORE_QUERY_ENTITIES]) {
     options.push({ key: q.key, label: q.entity.namePlural ?? q.entity.name })
     if (q.writable) writableKeys.push(q.key)
   }
@@ -173,7 +191,10 @@ export function buildDataPrimitiveTools(input: {
     {
       id: 'data.find-anything',
       name: 'findAnything',
-      description: 'Global search (like the app command center): looks a name/text up across ALL record types the user may see at once and returns grouped matches. Use this FIRST whenever you do not know what kind of record a name refers to ("quem é X?", "o que é Y?") — then drill down with searchRecords.',
+      description:
+        'Global search (like the app command center): looks a name/text up across ALL record types the user may see at once and returns grouped matches. Use this FIRST whenever you do not know what kind of record a name refers to ("quem é X?", "o que é Y?") — then drill down with searchRecords.' +
+        ' It matches TEXT INSIDE each record, so records attached to a person are never returned by that person\'s name — reaching them takes a second searchRecords call filtered by owner_id.' +
+        attachedRecordGuidance(keys),
       icon: 'Command',
       mode: 'read',
       parameters: {
@@ -192,7 +213,8 @@ export function buildDataPrimitiveTools(input: {
             id: 'data.create-record',
             name: 'createRecord',
             description:
-              'Creates ONE new record of an entity (client, service, supplier, …). ALWAYS search first to avoid duplicates. Field keys and required fields come from the entity — on a field error the response lists the valid fields; fix and retry. The user will confirm before anything is written.',
+              'Creates ONE new record of an entity (client, service, supplier, …). ALWAYS search first to avoid duplicates. Field keys and required fields come from the entity — on a field error the response lists the valid fields; fix and retry. The user will confirm before anything is written.' +
+              attachedRecordGuidance(writableKeys),
             icon: 'Plus',
             mode: 'persist' as const,
             // The handler orchestrates its own guard chain (permission → plan
@@ -236,7 +258,7 @@ export function buildDataPrimitiveTools(input: {
     {
       id: 'data.search-records',
       name: 'searchRecords',
-      description: `Searches or lists records of ONE entity and returns matching rows with their fields. Use \`search\` for names/text and \`filters\` for exact field values (e.g. {"status":"open"}) — never put a status word in search. Entities: ${catalogLine}.`,
+      description: `Searches or lists records of ONE entity and returns matching rows with their fields. Use \`search\` for names/text and \`filters\` for exact field values (e.g. {"status":"open"}) — never put a status word in search. Entities: ${catalogLine}.${attachedRecordGuidance(keys)}`,
       icon: 'Search',
       mode: 'read',
       parameters: {
