@@ -1,13 +1,15 @@
 import React from 'react'
 import type { PluginManifest, PluginScope, VerticalId } from '@fayz-ai/core'
 import { getActiveTenantId, getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
+import type { EntityLookup } from '@fayz-ai/saas'
 import { ConversationsPage } from './ConversationsPage'
+import type { ResolvedConversationsConfig } from './ConversationsContext'
 import type { ConversationsProvider } from './data/types'
 import { createMockConversationsProvider } from './data/mock'
 import { createSupabaseConversationsProvider } from './data/supabase'
 import { createConversationsStore } from './store'
 import { conversationsLocales } from './locales'
-import { MIGRATION_001_CONVERSATIONS } from './migrations'
+import { MIGRATION_001_CONVERSATIONS, MIGRATION_002_CONTACT_PERSON } from './migrations'
 
 // ---------------------------------------------------------------------------
 // @fayz-ai/plugin-conversations — the GoHighLevel "Conversations" equivalent:
@@ -27,6 +29,20 @@ export interface ConversationsPluginOptions {
   scope?: PluginScope
   verticalId?: VerticalId
   dataProvider?: ConversationsProvider
+
+  /**
+   * `people.kind` for contacts created from the compose modal's picker. Each
+   * vertical names its people differently (beauty 'client', agency 'lead'),
+   * hence a knob rather than a hardcoded value. Default: 'contact'.
+   */
+  contactKind?: string
+  /**
+   * Per-vertical extension table linked by `person_id` (e.g. 'clients'). Pools
+   * without it live off `public.people` alone — absent is not an error.
+   */
+  contactExtensionTable?: string
+  /** Custom search source for the picker. Defaults to the person archetype lookup. */
+  contactLookup?: EntityLookup
 }
 
 function createSafeProvider(): ConversationsProvider {
@@ -59,8 +75,14 @@ export function createConversationsPlugin(options?: ConversationsPluginOptions):
   const provider = options?.dataProvider ?? createSafeProvider()
   const store = createConversationsStore(provider)
 
+  const config: ResolvedConversationsConfig = {
+    contactKind: options?.contactKind ?? 'contact',
+    contactExtensionTable: options?.contactExtensionTable,
+    contactLookup: options?.contactLookup,
+  }
+
   const PageComponent: React.ComponentType<unknown> = () =>
-    React.createElement(ConversationsPage, { store })
+    React.createElement(ConversationsPage, { store, config })
   PageComponent.displayName = 'ConversationsPage'
 
   return {
@@ -147,6 +169,12 @@ export function createConversationsPlugin(options?: ConversationsPluginOptions):
         version: '1.0.0',
         sql: MIGRATION_001_CONVERSATIONS,
         description: 'Create plg_conversations and plg_conversation_messages (tenant-scoped RLS)',
+      },
+      {
+        id: 'conversations-002-contact-person',
+        version: '1.1.0',
+        sql: MIGRATION_002_CONTACT_PERSON,
+        description: 'Link threads to public.people via contact_person_id (nullable, ON DELETE SET NULL)',
       },
     ],
     locales: conversationsLocales,

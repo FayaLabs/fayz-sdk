@@ -10,8 +10,8 @@ import {
 } from '@fayz-ai/ui'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@fayz-ai/ui'
 import { cn } from '@fayz-ai/ui'
-import { SearchCombobox, type ComboboxOption } from './SearchCombobox'
-import { PersonLink } from '@fayz-ai/saas'
+import { SearchCombobox, type ComboboxOption } from '@fayz-ai/ui'
+import { ContactPicker, type ContactPickerValue } from '@fayz-ai/saas'
 import { BookingPaymentPanel } from './BookingPaymentPanel'
 import { CrudDetailPage } from '@fayz-ai/saas'
 import { CrudFormPage } from '@fayz-ai/saas'
@@ -319,13 +319,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
   const [showNotes, setShowNotes] = useState(false)
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState(false)
-  const [quickCreate, setQuickCreate] = useState(false)
-  const [newClientName, setNewClientName] = useState('')
-  const [newClientPhone, setNewClientPhone] = useState('')
-  const [newClientEmail, setNewClientEmail] = useState('')
-  const [creatingClient, setCreatingClient] = useState(false)
-  const [clientOptions, setClientOptions] = useState<ComboboxOption[]>([])
-  const [clientSearching, setClientSearching] = useState(false)
+  // Client search/quick-create state now lives inside <ContactPicker>.
   const [serviceOptions, setServiceOptions] = useState<ComboboxOption[]>([])
   const [initialServiceOptions, setInitialServiceOptions] = useState<ComboboxOption[]>([])
   const [editingDate, setEditingDate] = useState(false)
@@ -355,7 +349,6 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
     setProfessionalId(prefill?.professionalId ?? ''); setLocationId(prefill?.locationId ?? ''); setServices([])
     setServiceSearch(''); setNotes(''); setStatus('scheduled'); setShowNotes(false)
     setConflict(false); setLoading(mode === 'edit')
-    setQuickCreate(false); setNewClientName(''); setNewClientPhone(''); setNewClientEmail(''); setCreatingClient(false)
     setBookingType(prefill?.kind ?? defaultBookingType); setTitle('')
     setEditingDate(false); setEditingTime(false); setConfirmingDelete(false); setDeleting(false)
     setEditOrderId(null); setEditOrderTotal(0); setEditPaymentStatus('none'); setPaymentStatusLoading(false)
@@ -451,20 +444,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
     }).catch(() => setInitialServiceOptions([]))
   }, [open])
 
-  // Search effects
-  useEffect(() => {
-    if (!config.contactLookup || clientSearch.length < 1 || clientId) { setClientOptions([]); setClientSearching(false); return }
-    setClientSearching(true)
-    const timer = setTimeout(async () => {
-      try {
-        const results = await config.contactLookup!.search(clientSearch)
-        setClientOptions(results.map((r: any) => ({ id: r.id, label: r.label, subtitle: r.subtitle, price: r.price, data: r.data })))
-      } catch { setClientOptions([]) }
-      setClientSearching(false)
-    }, 250)
-    return () => clearTimeout(timer)
-  }, [clientSearch, clientId])
-
+  // Search effects (client search now lives inside <ContactPicker>)
   useEffect(() => {
     if (!config.serviceLookup || serviceSearch.length < 1) { setServiceOptions([]); return }
     const timer = setTimeout(async () => {
@@ -503,10 +483,6 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
     return () => clearTimeout(timer)
   }, [professionalId, date, startTime, endTime, bookingId])
 
-  function selectClient(opt: ComboboxOption) {
-    setClientId(opt.id); setClientSearch(opt.label); setClientOptions([])
-    setClientPhone((opt.data?.phone as string) ?? '')
-  }
   function addService(opt: ComboboxOption) {
     const duration = (opt.data?.duration_minutes as number) || 60
     setServices((p) => [...p, { serviceId: opt.id, name: opt.label, durationMinutes: duration, price: opt.price ?? 0 }])
@@ -817,96 +793,31 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
               <div className="flex items-center gap-3 py-1">
                 <User className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1">
-                  {clientId && !quickCreate ? (
-                    <div className="flex items-center gap-2 rounded-md bg-muted/30 px-2.5 py-1.5 text-sm">
-                      <PersonLink personId={clientId} name={clientSearch} size="default" className="flex-1 min-w-0" />
-                      {clientPhone && <span className="text-[10px] text-muted-foreground shrink-0">{clientPhone}</span>}
-                      {!isPaidBooking && (
-                        <button type="button" onClick={() => { setClientId(''); setClientSearch(''); setClientPhone('') }}
-                          className="p-0.5 text-muted-foreground hover:text-destructive shrink-0">
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  ) : !quickCreate ? (
-                    <>
-                    <SearchCombobox
-                      value={clientSearch}
-                      onChange={(v) => { setClientSearch(v); setClientId('') }}
-                      onSelect={selectClient}
-                      options={clientOptions}
-                      loading={clientSearching}
-                      placeholder={t('agenda.appointment.searchClient')}
-                      allowCreate
-                      createLabel={t('agenda.appointment.newClient')}
-                      onCreateNew={(name) => { setQuickCreate(true); setNewClientName(name); setNewClientPhone(''); setNewClientEmail('') }}
-                      minimal
-                      inlineLabel={t('agenda.appointment.addClient')}
-                    />
-                    {clientSearch.trim() && !clientSearching && (
-                      <p className="mt-1 text-[11px] text-warning">
+                  {/* Shared find-or-create contact flow (@fayz-ai/saas). The
+                      quick-create that used to live inline here now writes the
+                      SAME people(+clients) rows for every plugin — see
+                      `createPerson`. `clientKind`/`clientExtensionTable` keep the
+                      vertical's discriminator and extension table. */}
+                  <ContactPicker
+                    value={clientId || clientSearch ? { id: clientId || undefined, name: clientSearch, phone: clientPhone } : null}
+                    onChange={(contact) => {
+                      setClientId(contact?.id ?? '')
+                      setClientSearch(contact?.name ?? '')
+                      setClientPhone(contact?.phone ?? '')
+                    }}
+                    kind={config.clientKind}
+                    extensionTable="clients"
+                    lookup={config.contactLookup}
+                    clearable={!isPaidBooking}
+                    placeholder={t('agenda.appointment.searchClient')}
+                    inlineLabel={t('agenda.appointment.addClient')}
+                    createLabel={t('agenda.appointment.newClient')}
+                    hint={
+                      <p className="text-[11px] text-warning">
                         {t('agenda.appointment.selectClientHint')}
                       </p>
-                    )}
-                    </>
-                  ) : (
-                    <div className="rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] p-2.5 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input type="text" value={newClientName} onChange={(e) => setNewClientName(e.target.value)}
-                          placeholder={t('agenda.appointment.name')} className="flex-1 rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2.5 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring" autoFocus />
-                        <button type="button" onClick={() => setQuickCreate(false)}
-                          className="p-1 text-muted-foreground hover:text-foreground shrink-0"><X className="h-3.5 w-3.5" /></button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input type="tel" value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)}
-                          placeholder={t('agenda.appointment.phone')} className="rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                        <input type="email" value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)}
-                          placeholder={t('agenda.appointment.emailOptional')} className="rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                      </div>
-                      <button type="button" disabled={creatingClient || !newClientName.trim()}
-                        onClick={async () => {
-                          setCreatingClient(true)
-                          try {
-                            const { getSupabaseClientOptional } = await import('@fayz-ai/core')
-                            const { getAgendaTenantId } = await import('../lib/tenant')
-                            const supabase = getSupabaseClientOptional() as any
-                            const tenantId = getAgendaTenantId()
-                            if (!supabase || !tenantId) throw new Error('Not initialized')
-
-                            // 1. Insert into public.people (archetype base table)
-                            const { data: personRow, error: personError } = await supabase.from('people').insert({
-                              tenant_id: tenantId, kind: config.clientKind, name: newClientName.trim(),
-                              phone: newClientPhone.trim() || null, email: newClientEmail.trim() || null,
-                            }).select('id, name').single()
-                            if (personError) throw personError
-
-                            // 2. Insert into public.clients when the pool has that
-                            // extension table (beauty-style projects). Pools without it
-                            // (school, agency) live off public.people alone — a missing
-                            // table is not an error; any other failure still rolls back.
-                            const { error: clientError } = await supabase.from('clients').insert({
-                              person_id: personRow.id, tenant_id: tenantId,
-                            })
-                            const missingExtensionTable = clientError?.code === 'PGRST205'
-                              || clientError?.message?.includes('Could not find the table')
-                            if (clientError && !missingExtensionTable) {
-                              // Rollback person if extension insert fails
-                              await supabase.from('people').delete().eq('id', personRow.id)
-                              throw clientError
-                            }
-
-                            setClientId(personRow.id); setClientSearch(personRow.name); setQuickCreate(false)
-                          } catch (err: any) {
-                            const { toast } = await import('@fayz-ai/ui')
-                            toast.error(t('agenda.appointment.createClientFailed'), { description: err?.message })
-                          }
-                          setCreatingClient(false)
-                        }}
-                        className="w-full rounded-md bg-primary border border-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 shadow-button-primary active:shadow-button-inset disabled:opacity-40 transition-colors">
-                        {creatingClient ? t('agenda.appointment.creating') : t('agenda.appointment.create')}
-                      </button>
-                    </div>
-                  )}
+                    }
+                  />
                 </div>
               </div>
             )}

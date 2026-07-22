@@ -1,8 +1,8 @@
 import React from 'react'
 import { Button, Input, Modal, ModalContent, cn, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
-import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
-import { useConversationsStore } from '../ConversationsContext'
+import { useLimitGuard, invalidateLimit, ContactPicker, type ContactPickerValue } from '@fayz-ai/saas'
+import { useConversationsStore, useConversationsConfig } from '../ConversationsContext'
 import { CHANNEL_ACCENT, CHANNEL_ICON, CHANNEL_LABELS } from '../channel'
 import type { Channel } from '../types'
 
@@ -17,26 +17,44 @@ export function NewConversationModal({
 }) {
   const t = useTranslation()
   const create = useConversationsStore((s) => s.create)
+  const config = useConversationsConfig()
   const guardConversations = useLimitGuard('conversations_month')
 
   const [channel, setChannel] = React.useState<Channel>('whatsapp')
-  const [contactName, setContactName] = React.useState('')
+  const [contact, setContact] = React.useState<ContactPickerValue | null>(null)
   const [contactHandle, setContactHandle] = React.useState('')
+  // Once the user edits the handle by hand we stop overwriting it from the
+  // selected person — their typing outranks our autofill.
+  const [handleTouched, setHandleTouched] = React.useState(false)
   const [firstMessage, setFirstMessage] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
 
-  // Reset the form each time the modal opens.
+  // Reset the form each time the modal opens. `pickerKey` remounts the picker so
+  // its internal search text resets too.
+  const [pickerKey, setPickerKey] = React.useState(0)
   React.useEffect(() => {
     if (open) {
       setChannel('whatsapp')
-      setContactName('')
+      setContact(null)
       setContactHandle('')
+      setHandleTouched(false)
       setFirstMessage('')
       setSubmitting(false)
+      setPickerKey((k) => k + 1)
     }
   }, [open])
 
-  const canSubmit = contactName.trim().length > 0 && !submitting
+  // Autofill the handle from the picked contact: email channel wants the email,
+  // every other channel wants the phone. Falls back to whichever exists.
+  React.useEffect(() => {
+    if (handleTouched) return
+    if (!contact?.id) return
+    const preferred = channel === 'email' ? contact.email : contact.phone
+    const next = preferred || contact.phone || contact.email || ''
+    setContactHandle(next)
+  }, [contact, channel, handleTouched])
+
+  const canSubmit = (contact?.name.trim().length ?? 0) > 0 && !submitting
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,7 +66,8 @@ export function NewConversationModal({
     try {
       await create({
         channel,
-        contactName: contactName.trim(),
+        contactName: contact!.name.trim(),
+        contactPersonId: contact?.id,
         contactHandle: contactHandle.trim() || undefined,
         firstMessage: firstMessage.trim() || undefined,
       })
@@ -103,21 +122,29 @@ export function NewConversationModal({
             </div>
           </div>
 
-          {/* Contact name */}
+          {/* Contact — shared find-or-create flow (@fayz-ai/saas), the same one
+              the agenda uses to pick a client: search the tenant's people, and
+              when there's no match create one inline with name/phone/email. A
+              typed-but-unmatched name still starts a thread (allowFreeText),
+              just without a person link. */}
           <div>
-            <label htmlFor="conv-contact-name" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               {t('conversations.new.contactName')}
             </label>
-            <Input
-              id="conv-contact-name"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder={t('conversations.new.contactNamePlaceholder')}
+            <ContactPicker
+              key={pickerKey}
+              value={contact}
+              onChange={setContact}
+              kind={config.contactKind}
+              extensionTable={config.contactExtensionTable}
+              lookup={config.contactLookup}
+              allowFreeText
               autoFocus
+              placeholder={t('conversations.new.contactNamePlaceholder')}
             />
           </div>
 
-          {/* Handle / phone / email */}
+          {/* Handle / phone / email — autofilled from the picked contact. */}
           <div>
             <label htmlFor="conv-contact-handle" className="mb-1.5 block text-xs font-medium text-muted-foreground">
               {t('conversations.new.handle')}
@@ -125,7 +152,7 @@ export function NewConversationModal({
             <Input
               id="conv-contact-handle"
               value={contactHandle}
-              onChange={(e) => setContactHandle(e.target.value)}
+              onChange={(e) => { setContactHandle(e.target.value); setHandleTouched(true) }}
               placeholder={t('conversations.new.handlePlaceholder')}
             />
           </div>
