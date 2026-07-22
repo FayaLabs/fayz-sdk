@@ -1,7 +1,7 @@
 // Types
 export type { EntityArchetype, BaseEntity, PersonEntity, ProductEntity, ServiceEntity, OrderEntity, TransactionEntity, LocationEntity, ScheduleEntity, CategoryEntity } from './types/entities'
-export type { EntityDef, FieldDef, FieldType, FieldRelation, FieldGroup, DetailTab, FormLayout, ComputedFieldValue } from './types/crud'
-export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, PluginRegistryDef, PluginMigration, PluginDiagnostic, VerticalId, ScaffoldType, TenantPluginBinding, DashboardWidgetDef, DashboardWidgetKind, DashboardSurface, DashboardLayoutConfig, ResolvedDashboardWidget } from './types/plugins'
+export type { EntityDef, EntityImageConfig, FieldDef, FieldType, FieldRelation, FieldGroup, DetailTab, FormLayout, ComputedFieldValue } from './types/crud'
+export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, AIToolMode, AIToolExecution, AgentRpcDeclaration, AIToolParameterProperty, AIToolParameters, AIToolSuggestion, PluginRegistryDef, PluginMigration, PluginDiagnostic, VerticalId, ScaffoldType, TenantPluginBinding, DashboardWidgetDef, DashboardWidgetKind, DashboardSurface, DashboardLayoutConfig, ResolvedDashboardWidget } from './types/plugins'
 export { WidgetZone } from './types/plugins'
 export type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from './types/auth'
 export type { OrgAdapter, Organization, OrgMember, OrgMembership, Location, Invite, CreateOrgOptions } from './types/org'
@@ -151,7 +151,13 @@ export type {
   PageManifest,
   PluginRef,
   ManifestMigration,
+  AgentContract,
+  AgentDomainKnowledge,
+  EntityContract,
+  AIToolContract,
+  RpcContract,
 } from './manifest'
+export { serializeManifest, computeContractHash, serializeManifestWithHash } from './manifest/serialize'
 export { default as appManifestSchema } from './manifest/app-manifest.schema.json'
 
 // App entry points (manifest → running app)

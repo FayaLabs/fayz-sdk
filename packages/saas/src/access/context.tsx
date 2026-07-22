@@ -5,7 +5,9 @@ import { useAuthStore } from '@fayz-ai/auth'
 import { useOrganizationStore } from '../org/store'
 import { usePermissionsStore } from '../permissions/store'
 import { useBillingStore } from '../billing/store'
+import { mergeLimitDeclarations } from '@fayz-ai/core/access'
 import { resolveAccess, isEntitledByPlan, resolveLimit } from './resolver'
+import { entityDerivedLimitDeclarations } from './limits-registry'
 import { setLimitRegistry, getLimitDeclaration, subscribeLimit, CORE_LIMIT_DECLARATIONS } from './limits-registry'
 import { useUpgradeModalStore } from './upgrade-modal-store'
 import type { AccessApi, AccessDecision, AccessSession, LimitState } from './types'
@@ -59,22 +61,14 @@ export function AccessProvider({ children, limitDeclarations }: AccessProviderPr
   // this is what makes an app's `EntityDef.limitKey: 'clients'` enforceable
   // with ZERO extra wiring (a cap without a countable binding is a dead cap).
   React.useEffect(() => {
-    const byKey = new Map<string, LimitDeclaration>()
-    for (const d of CORE_LIMIT_DECLARATIONS) byKey.set(d.key, d)
-    for (const e of getAllEntities()) {
-      const def = e.entityDef
-      if (def?.limitKey && def.data?.table) {
-        byKey.set(def.limitKey, {
-          key: def.limitKey,
-          label: e.labelPlural,
-          table: def.data.table,
-          kindFilter: def.data.archetypeKind,
-        })
-      }
-    }
-    for (const d of pluginLimits ?? []) byKey.set(d.key, d)
-    for (const d of limitDeclarations ?? []) byKey.set(d.key, d)
-    setLimitRegistry(Array.from(byKey.values()))
+    setLimitRegistry(
+      mergeLimitDeclarations(
+        CORE_LIMIT_DECLARATIONS,
+        entityDerivedLimitDeclarations(getAllEntities()),
+        pluginLimits,
+        limitDeclarations,
+      ),
+    )
   }, [pluginLimits, limitDeclarations])
 
   const plan: Plan | null = React.useMemo(

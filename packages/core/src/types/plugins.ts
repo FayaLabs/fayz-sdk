@@ -29,6 +29,14 @@ export interface PluginNavigationEntry {
   icon?: string
   badge?: string | number
   permission?: PluginPermissionRequirement
+  /**
+   * When this entry gains sub-path children, the shell also synthesizes a child
+   * pointing back at the parent's own route (so /courses stays reachable under
+   * the "Courses" group). Set false when the parent route is a duplicate of its
+   * first child — e.g. /shop and /shop/products render the same catalog, and
+   * listing both reads as a bug. Defaults to true.
+   */
+  indexChild?: boolean
 }
 
 export interface PluginSettingsTab {
@@ -226,6 +234,27 @@ export interface AIToolSuggestion {
   verticalId?: VerticalId
 }
 
+export type AIToolExecution =
+  | { plane: 'server'; kind: 'rpc'; rpc: string }
+  | { plane: 'server'; kind: 'entity_read'; entity: string }
+  | { plane: 'client' }
+
+/**
+ * A tenant-scoped pool RPC (`agent_<domain>_<verb>`) this plugin ships for the
+ * server-plane agent executor. Surfaces in the manifest as
+ * `agent.rpcs` (RpcContract) — the broker only ever calls declared functions.
+ */
+export interface AgentRpcDeclaration {
+  /** Function name in the pool, e.g. 'agent_agenda_create_appointment'. */
+  name: string
+  kind: 'read' | 'write'
+  description: string
+  /** JSON Schema of the p_payload argument. */
+  payloadSchema?: AIToolParameters
+  /** Whether the function writes audit_logs itself. */
+  audits?: boolean
+}
+
 export interface PluginAITool {
   id: string
   name: string
@@ -242,6 +271,23 @@ export interface PluginAITool {
    * gated button, so the declarative contract is its only gate.
    */
   limitKey?: string
+  /**
+   * Where the tool runs. Server-plane is what makes browserless channels
+   * (WhatsApp, MCP) able to run the tool at all:
+   * - `{ plane:'server', kind:'rpc', rpc }` — the Fayz broker calls the named
+   *   `agent_*` RPC in the tenant pool (writes / guarded reads).
+   * - `{ plane:'server', kind:'entity_read', entity }` — the broker runs the
+   *   generic tenant-scoped read against the entity's table (derived tools).
+   * - `{ plane:'client' }` (or absent) — a locally registered executor runs it
+   *   in the surface (navigation, modals).
+   */
+  execution?: AIToolExecution
+  /**
+   * Require an explicit human confirmation before executing. Defaults to true
+   * for `mode: 'persist'` tools — the channel renders it natively (FAB modal,
+   * WhatsApp yes/no reply).
+   */
+  requiresConfirmation?: boolean
   suggestions?: AIToolSuggestion[]
   category?: string
   tags?: string[]
@@ -330,6 +376,21 @@ export interface PluginManifest {
    * caps without any per-app wiring. See {@link LimitDeclaration}.
    */
   declaredLimits?: LimitDeclaration[]
+  /** Pool RPCs this plugin ships for the server-plane agent executor. */
+  declaredRpcs?: AgentRpcDeclaration[]
+  /**
+   * Read-models this plugin exposes to the agent's generic data primitives
+   * (searchRecords/queryData) BEYOND its CRUD registries — typically its
+   * views/ledgers (v_appointments, plg_financial_movements). `key` is a stable
+   * ASCII id (never derived from a translated label); the entity's own
+   * `permission` gates each call.
+   */
+  queryEntities?: Array<{
+    key: string
+    entity: EntityDef
+    /** Base tables may opt into createRecord; views/ledgers stay read-only. */
+    writable?: boolean
+  }>
   registries?: PluginRegistryDef[]
   /**
    * Connectors this plugin contributes. An ADDON plugin declares its connector(s)

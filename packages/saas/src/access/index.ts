@@ -7,7 +7,13 @@ export type { AccessProviderProps } from './context'
 
 export { resolveAccess, isEntitledByPlan } from './resolver'
 
+export { getAccessSnapshot, checkAccess, guardLimit } from './headless'
+export { agentDenial, UPGRADE_URL } from '@fayz-ai/core/access'
+export type { AgentDenial, AgentDenialLimit, AgentGuardResult } from '@fayz-ai/core/access'
+
 export { invalidateLimit, setLimitRegistry, getLimitDeclaration, CORE_LIMIT_DECLARATIONS } from './limits-registry'
+
+export { useModuleNavAccess, applyNavAccess } from './module-nav'
 
 export { useUpgradeModalStore } from './upgrade-modal-store'
 export type { UpgradeModalPayload, UpgradeModalStore } from './upgrade-modal-store'

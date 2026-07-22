@@ -273,7 +273,11 @@ export function CrudDetailPage({
   const displayField = entityDef.displayField ?? entityDef.fields[0]?.key ?? 'id'
   const displayValue = item[displayField] ?? 'Untitled'
   const subtitleValue = entityDef.subtitleField ? item[entityDef.subtitleField] : null
-  const imageValue = entityDef.imageField ? item[entityDef.imageField] : null
+  // `imageField` only reaches a plain string column. Entities whose image lives
+  // somewhere richer (a product's images[] relation, say) supply `image.get`,
+  // and without consulting it the hero fell back to the initial letter even for
+  // records that clearly have a photo.
+  const imageValue = entityDef.image?.get(item) ?? (entityDef.imageField ? item[entityDef.imageField] : null)
   const initial = typeof displayValue === 'string' ? displayValue.charAt(0).toUpperCase() : '?'
 
   // Merge archetype tabs + custom entity tabs. Entity-specific tabs win by id

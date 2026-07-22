@@ -10,6 +10,7 @@ export default defineConfig({
     'router/index': 'src/router/index.ts',
     'runtime/index': 'src/runtime/index.ts',
     'types/index': 'src/types/index.ts',
+    'access/index': 'src/access/index.ts',
     'integrations/index': 'src/integrations/index.ts',
     'testing/index': 'src/testing/index.ts',
   },

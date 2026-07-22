@@ -324,7 +324,17 @@ function navEntryToItem(entry: PluginNavigationEntry): NavigationItem {
   }
 }
 
-type OrderedNavigationItem = NavigationItem & { position: number }
+type OrderedNavigationItem = NavigationItem & { position: number; indexChild?: boolean }
+
+/**
+ * Children list a parent starts with once it adopts its first sub-path child:
+ * normally a self-link so the parent's own route stays reachable, but empty
+ * when the entry opted out via `indexChild: false`.
+ */
+function seedChildren(parent: OrderedNavigationItem): OrderedNavigationItem[] {
+  if (parent.indexChild === false) return []
+  return [{ ...parent, id: `${parent.id}:index`, children: undefined, position: -1 }]
+}
 
 interface RouteEntry {
   path: string
@@ -430,8 +440,11 @@ function buildSettingsTabs(
     settingsTabs.push({
       id: 'subscription',
       label: subLabel === 'settings.subscription' ? 'Subscription' : subLabel,
-      icon: <Crown className="h-4 w-4" />,
-      iconName: 'Crown',
+      // CreditCard everywhere the LINK appears (menus + settings nav) — Crown
+      // is reserved for the paid-plan badge. 'Crown' also isn't in the
+      // sidebar ICON_MAP, which made the settings rail fall back to Home.
+      icon: <CreditCard className="h-4 w-4" />,
+      iconName: 'CreditCard',
       component: <SubscriptionPage />,
     })
   }
@@ -527,18 +540,13 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     // scattering across the rail. Sort by position first so parents land
     // before their children.
     const flat = runtime.navigation
-      .map((entry) => ({ ...navEntryToItem(entry), position: entry.position }))
+      .map((entry) => ({ ...navEntryToItem(entry), position: entry.position, indexChild: entry.indexChild }))
       .sort(compareNavigation)
     const items: OrderedNavigationItem[] = []
     for (const item of flat) {
       const parent = findModuleParent(item, items)
       if (parent) {
-        const children = parent.children ?? [{
-          ...parent,
-          id: `${parent.id}:index`,
-          children: undefined,
-          position: -1,
-        }]
+        const children = parent.children ?? seedChildren(parent)
         if (!children.some((child) => child.route === item.route)) {
           parent.children = [...children, item].sort(compareNavigation)
         }
@@ -556,12 +564,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
 
       const parent = findModuleParent(item, items)
       if (parent) {
-        const children = parent.children ?? [{
-          ...parent,
-          id: `${parent.id}:index`,
-          children: undefined,
-          position: -1,
-        }]
+        const children = parent.children ?? seedChildren(parent)
         if (!children.some((child) => child.route === item.route)) {
           parent.children = [...children, item].sort(compareNavigation)
         }
@@ -619,6 +622,13 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     for (const r of runtime.routes as PluginRouteDefinition[]) {
       const Component = resolvePluginComponent(r) as React.ComponentType<Record<string, unknown>> | undefined
       if (Component) {
+        // Same treatment custom pages get in collectPageRoutes: a generated CRUD
+        // page needs to know the path it was mounted at, otherwise its "new" and
+        // "edit" links resolve against '/' (e.g. /new instead of /shop/products/new).
+        if ((Component as any).__isCrudPage) {
+          ;(Component as any).__crudBasePath = r.path
+          registerEntityRoute(Component, r.path, entityRouteMap)
+        }
         list.push({ path: r.path, Component, fullBleed: r.fullBleed, permission: r.permission })
         list.push({ path: `${r.path}/*`, Component, fullBleed: r.fullBleed, permission: r.permission })
       }

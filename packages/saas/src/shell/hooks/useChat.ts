@@ -1,7 +1,13 @@
 import { useCallback, useMemo } from 'react'
 import { useChatStore, type ChatMessage } from '../stores/chat.store'
 import { useOrganizationStore } from '../stores/organization.store'
-import { useAuthStore } from '../stores/auth.store'
+// The REAL auth store — @fayz-ai/auth is what AuthProvider hydrates (and the
+// same specifier AdminShell uses). shell/stores/auth.store is a legacy shim
+// nothing fills; reading it here sent EVERY turn anonymous, which an INTERNAL
+// channel rejects with AGENT_IDENTITY_REQUIRED (documented gotcha in
+// fayz/docs/architecture/platform/agents.md — the fix had only landed in the
+// retired -qa checkout).
+import { useAuthStore } from '@fayz-ai/auth'
 import { usePluginRuntimeOptional } from '../lib/plugins'
 import { useRouter } from '../lib/router'
 import { useTranslation } from './useTranslation'
@@ -10,10 +16,13 @@ import {
   buildAgentToolset,
   buildDataToolIndex,
   executeAITool,
+  executeRpcTool,
   type AIToolExecutionContext,
 } from '../lib/ai-tool-handlers'
 import { entityToolName, registryToolName } from '../lib/core-ai-tools'
-import { getAllEntities } from '@fayz-ai/core'
+import { getAllEntities, useManifest, type PluginAITool } from '@fayz-ai/core'
+import { checkAccess, guardLimit } from '../../access/headless'
+import { invalidateLimit } from '../../access/limits-registry'
 import {
   getFayzAgentClient,
   resolveFayzAgentConnection,
@@ -69,6 +78,56 @@ export function useChat(options?: UseChatOptions) {
    * Server-plane tools (AgentTool grants) execute inside Fayz and never surface
    * here.
    */
+  const manifest = useManifest()
+  const serverPlane = manifest?.agent?.executionPlane === 'server'
+
+  /**
+   * Client-plane guard around a persist tool, mirroring the broker's
+   * server-plane order: role→plan (checkAccess) → cap (guardLimit) → human
+   * confirmation → execute → invalidate the consumed limit. A denial comes
+   * back to the model as the structured AgentDenial, so the paywall/permission
+   * explanation happens IN the conversation — never a silent failure
+   * (docs/ENTITLEMENTS.md § agentes).
+   */
+  const executeGuarded = useCallback(
+    async (
+      call: { id: string; name: string; arguments: Record<string, unknown> },
+      def: PluginAITool | undefined,
+      toolContext: AIToolExecutionContext,
+    ): Promise<string> => {
+      if (def?.mode === 'persist') {
+        if (def.permission) {
+          const access = checkAccess(def.permission.feature, def.permission.action)
+          if (!access.allowed) return JSON.stringify(access)
+        }
+        if (def.limitKey) {
+          const limit = await guardLimit(def.limitKey)
+          if (!limit.allowed) return JSON.stringify(limit)
+        }
+        if (def.requiresConfirmation !== false) {
+          const approved = await useChatStore.getState().requestConfirmation({
+            id: call.id,
+            toolName: call.name,
+            title: def.description,
+            params: call.arguments,
+            plane: 'client',
+          })
+          if (!approved) {
+            return JSON.stringify({ ok: false, cancelled: true, reason: 'user_declined' })
+          }
+        }
+      }
+      const exec = def?.execution
+      const rpcName = exec && exec.plane === 'server' && exec.kind === 'rpc' ? exec.rpc : null
+      const result = rpcName
+        ? await executeRpcTool(rpcName, call.arguments, useAuthStore.getState().user?.id)
+        : await executeAITool(call.name, call.arguments, toolContext)
+      if (def?.mode === 'persist' && def.limitKey && result.ok) invalidateLimit(def.limitKey)
+      return result.content
+    },
+    [],
+  )
+
   const runFayzAgentTurn = useCallback(
     async (content: string, activeConnection: NonNullable<typeof connection>) => {
       const dataTools = buildDataToolIndex({
@@ -76,6 +135,7 @@ export function useChat(options?: UseChatOptions) {
         entities: getAllEntities(),
         registryToolName,
         entityToolName,
+        queryEntities: runtime?.activePlugins.flatMap((p) => p.queryEntities ?? []) ?? [],
       })
       const toolContext: AIToolExecutionContext = {
         currentOrg,
@@ -85,16 +145,73 @@ export function useChat(options?: UseChatOptions) {
         navigate: router.navigate,
         dataTools,
       }
-      const toolset = buildAgentToolset(tools, { dataTools, activePluginId })
+      // Server-plane flip (manifest agent.executionPlane): data/RPC tools stop
+      // shipping from the surface — the broker executes them from the synced
+      // contract; only genuinely client-plane tools still go up per request.
+      const clientTools = serverPlane
+        ? tools.filter((t) => t.execution?.plane !== 'server')
+        : tools
+      const toolset = buildAgentToolset(clientTools, { dataTools, activePluginId })
+      const toolByName = new Map(tools.map((t) => [t.name, t]))
 
       const client = getFayzAgentClient(activeConnection)
+      // Small models are bad at weekday math — "próxima segunda" booked a
+      // Friday. Hand them the next 7 dates, solved.
+      const upcoming = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(Date.now() + (i + 1) * 86400e3)
+        return `${d.toLocaleDateString('pt-BR', { weekday: 'long' })}=${d.toISOString().slice(0, 10)}`
+      }).join(', ')
+      // Identical repeated calls burn rounds without new information — cut the
+      // loop with an explicit steering result instead of re-executing.
+      const seenCalls = new Map<string, string>()
+      // Goto buttons: refs surface from write results (always) and from
+      // single-match reads — the records the reply is ABOUT.
+      const collectRecordLinks = (content: string) => {
+        try {
+          const parsed = JSON.parse(content) as Record<string, unknown>
+          const links: Array<{ id: string; label: string; archetype?: string; kind?: string }> = []
+          const pushRef = (ref: unknown, fallbackLabel?: unknown) => {
+            if (!ref || typeof ref !== 'object') return
+            const r = ref as { id?: string; label?: string; archetype?: string }
+            if (!r.id) return
+            const [archetype, kind] = (r.archetype ?? '').split(':')
+            links.push({
+              id: r.id,
+              label: String(r.label ?? fallbackLabel ?? 'registro'),
+              ...(archetype ? { archetype } : {}),
+              ...(kind ? { kind } : {}),
+            })
+          }
+          pushRef(parsed.ref, (parsed.record as Record<string, unknown> | undefined)?.name)
+          pushRef(
+            (parsed.record as Record<string, unknown> | undefined)?.ref,
+            (parsed.record as Record<string, unknown> | undefined)?.client_name ??
+              (parsed.record as Record<string, unknown> | undefined)?.service_name,
+          )
+          const singleFrom = (rows: unknown) => {
+            if (Array.isArray(rows) && rows.length === 1) {
+              const row = rows[0] as Record<string, unknown>
+              pushRef(row.ref, row.name)
+            }
+          }
+          singleFrom(parsed.records)
+          for (const m of Array.isArray(parsed.matches) ? parsed.matches : []) {
+            singleFrom((m as Record<string, unknown>).records)
+          }
+          if (links.length) useChatStore.getState().appendLinksToLastAssistant(links)
+        } catch {
+          /* non-JSON tool result — nothing to link */
+        }
+      }
       let toolResults: FayzAgentToolResult[] | undefined
+      let confirmAction: { id: string; approved: boolean } | undefined
       let message: string | undefined = content
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         const response = await client.chat({
           message,
           toolResults,
+          confirmAction,
           // Attribution: an INTERNAL channel rejects turns with no identity, and
           // without this every conversation lands in the owner's dashboard as
           // "Anonymous" even though a signed-in user sent it.
@@ -107,7 +224,9 @@ export function useChat(options?: UseChatOptions) {
             // "tomorrow" against its training cutoff — it booked an appointment
             // in 2023 before this was sent. The browser is the only side that
             // knows the user's actual zone.
-            now: new Date().toISOString(),
+            // Weekday spelled out: small models booked "próxima segunda" on a
+            // Friday because nothing said what weekday `now` is.
+            now: `${new Date().toISOString()} (${new Date().toLocaleDateString('pt-BR', { weekday: 'long' })})`,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             locale: typeof navigator !== 'undefined' ? navigator.language : undefined,
             currentPath: toolContext.currentPath,
@@ -116,6 +235,11 @@ export function useChat(options?: UseChatOptions) {
             // product on day one in any vertical — and can answer "where do I
             // add a professional?" instead of guessing at a generic answer.
             pages: toolContext.routes.map((r) => r.label ?? r.path).join(', '),
+            upcomingDates: upcoming,
+            toolHints:
+              'When an id (client, service, record) was already returned by a tool earlier in THIS conversation, REUSE that id directly — do not search for it again.',
+            timeNote:
+              'Datetimes in tool results are UTC unless the field is *_local. The business timezone is the timeZone above — ALWAYS convert to it before telling the user a time.',
             businessName: currentOrg?.name,
             userName: user?.fullName || user?.email,
             ...(options?.systemPrompt ? { appGuidance: options.systemPrompt } : {}),
@@ -124,6 +248,24 @@ export function useChat(options?: UseChatOptions) {
         store.setConversationId(response.conversationId)
 
         if (response.content) store.updateLastAssistant(response.content)
+
+        // Server-parked write: the broker executed nothing and is waiting for a
+        // human decision. Surface the card, send the decision back, continue.
+        if (response.pendingAction) {
+          const approved = await useChatStore.getState().requestConfirmation({
+            id: response.pendingAction.id,
+            toolName: response.pendingAction.toolName,
+            title: response.pendingAction.title ?? response.pendingAction.toolName,
+            params: response.pendingAction.params ?? {},
+            plane: 'server',
+          })
+          confirmAction = { id: response.pendingAction.id, approved }
+          message = undefined
+          toolResults = undefined
+          continue
+        }
+        confirmAction = undefined
+
         if (response.toolCalls.length === 0) return
 
         // Last allowed round still asked for tools — stop looping and let
@@ -135,16 +277,34 @@ export function useChat(options?: UseChatOptions) {
           return
         }
 
-        toolResults = await Promise.all(
-          response.toolCalls.map(async (call) => ({
-            toolCallId: call.id,
-            content: (await executeAITool(call.name, call.arguments, toolContext)).content,
-          })),
-        )
+        // Live activity: surface WHICH tools are running while they run — the
+        // agent's work should be visible, not a silent pause.
+        useChatStore.getState().setActiveTools(response.toolCalls.map((c) => c.name))
+        try {
+          toolResults = await Promise.all(
+            response.toolCalls.map(async (call) => ({
+              toolCallId: call.id,
+              content: await executeGuarded(call, toolByName.get(call.name), toolContext),
+            })),
+          )
+          // Persistent, expandable trace: name + args + (truncated) result per
+          // call, attached to the reply being built.
+          useChatStore.getState().appendToolCallsToLastAssistant(
+            response.toolCalls.map((call, i) => ({
+              name: call.name,
+              args: Object.keys(call.arguments ?? {}).length
+                ? JSON.stringify(call.arguments, null, 1)
+                : '',
+              result: (toolResults?.[i]?.content ?? '').slice(0, 2000),
+            })),
+          )
+        } finally {
+          useChatStore.getState().setActiveTools([])
+        }
         message = undefined
       }
     },
-    [store, tools, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
+    [store, tools, serverPlane, executeGuarded, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
   )
 
   const sendMessage = useCallback(
@@ -222,6 +382,47 @@ export function useChat(options?: UseChatOptions) {
     ],
   )
 
+  /** Refresh the signed-in user's thread list (history drawer). */
+  const loadConversations = useCallback(async () => {
+    if (!connection) return
+    try {
+      const rows = await getFayzAgentClient(connection).listConversations(user?.id)
+      useChatStore.getState().setConversations(rows)
+    } catch {
+      // History is an enhancement — a failed load never breaks the chat.
+    }
+  }, [connection, user?.id])
+
+  /** Resume a past thread: hydrate its transcript + continue under its id. */
+  const resumeConversation = useCallback(
+    async (conversationId: string) => {
+      if (!connection) return
+      try {
+        const detail = await getFayzAgentClient(connection).getConversation(conversationId, user?.id)
+        const messages: ChatMessage[] = detail.messages
+          .filter((m) => m.role === 'USER' || m.role === 'ASSISTANT' || m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({
+            id: m.id,
+            role: m.role.toLowerCase() === 'user' ? ('user' as const) : ('assistant' as const),
+            content: m.content,
+            timestamp: m.createdAt,
+          }))
+        const s = useChatStore.getState()
+        s.setMessages(messages)
+        s.setConversationId(detail.id)
+      } catch {
+        // Thread gone (archived / another device cleaned it) — start fresh.
+        useChatStore.getState().reset()
+      }
+    },
+    [connection, user?.id],
+  )
+
+  /** Fresh thread: clear the transcript, next turn creates a new conversation. */
+  const startNewConversation = useCallback(() => {
+    store.reset()
+  }, [store])
+
   return {
     messages: store.messages,
     isOpen: store.isOpen,
@@ -232,5 +433,17 @@ export function useChat(options?: UseChatOptions) {
     toggleOpen: store.toggleOpen,
     setOpen: store.setOpen,
     reset: store.reset,
+    /** Write awaiting human confirmation (render the ConfirmActionCard; the
+     *  composer should stay disabled while set). */
+    pendingAction: store.pendingAction,
+    /** Card decision: true executes/approves, false declines. */
+    resolvePendingAction: store.resolvePendingAction,
+    /** Tool names executing right now (live activity chips). */
+    activeTools: store.activeTools,
+    /** History drawer data + actions. */
+    conversations: store.conversations,
+    loadConversations,
+    resumeConversation,
+    startNewConversation,
   }
 }

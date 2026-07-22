@@ -52,6 +52,12 @@
       "import": "./dist/runtime/index.js",
       "require": "./dist/runtime/index.cjs"
     },
+    "./access": {
+      "source": "./src/access/index.ts",
+      "types": "./dist/access/index.d.ts",
+      "import": "./dist/access/index.js",
+      "require": "./dist/access/index.cjs"
+    },
     "./types": {
       "source": "./src/types/index.ts",
       "types": "./dist/types/index.d.ts",
@@ -76,8 +82,9 @@
     "src"
   ],
   "scripts": {
-    "build": "tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
+    "build": "node ./scripts/check-access-purity.mjs && tsup && tsc --emitDeclarationOnly --declaration --declarationMap --noEmit false",
     "check:manifest": "node ./scripts/check-manifest-contract.mjs",
+    "check:access": "node ./scripts/check-access-purity.mjs",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

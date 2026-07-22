@@ -121,6 +121,22 @@ export interface FinancialPluginOptions {
 
   /** Callback when user clicks a booking link on an invoice. Receives the order ID. */
   onBookingClick?: (orderId: string) => void
+
+  /**
+   * Which internal-nav links this APP gates, as `nav item id → feature id`.
+   * Empty by default: the plugin ships no opinion about what is paid — packaging
+   * is the app's decision, declared alongside its `permissions.ts` (RBAC) and
+   * `billing.ts` (plan entitlements). An id absent from this map is never hidden
+   * and never gated, in the nav OR in the content.
+   *
+   * {@link FINANCIAL_NAV_FEATURES} is an opt-in preset of the `fin_*` ids used
+   * by the reference apps — spread the entries you actually want:
+   *
+   * ```ts
+   * navFeatureMap: { reconciliation: FINANCIAL_NAV_FEATURES.reconciliation }
+   * ```
+   */
+  navFeatureMap?: Record<string, string>
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +165,23 @@ const DEFAULT_LABELS: FinancialPluginLabels = {
 }
 
 const DEFAULT_CURRENCY = { code: 'BRL', locale: 'pt-BR', symbol: 'R$' }
+
+/**
+ * OPT-IN preset of feature ids for the financial sub-modules — a naming
+ * convention offered to apps, NOT a default. Nothing here is applied unless an
+ * app passes the entries it wants through `options.navFeatureMap`, because what
+ * is paid is a product decision that belongs to the app (its `permissions.ts` +
+ * `billing.ts`), never to the plugin.
+ */
+export const FINANCIAL_NAV_FEATURES = {
+  reconciliation: 'fin_reconciliation',
+  cards: 'fin_cards',
+  commissions: 'fin_commissions',
+  statements: 'fin_statements',
+  receivables: 'fin_receivables',
+  payables: 'fin_payables',
+  'cash-registers': 'fin_cash_registers',
+} as const satisfies Record<string, string>
 
 const DEFAULT_ITEM_TYPES: ItemTypeOption[] = [
   { value: 'service', label: 'Service', icon: 'Briefcase' },
@@ -186,6 +219,7 @@ function resolveConfig(options?: FinancialPluginOptions): ResolvedFinancialConfi
     entityLookups: options?.entityLookups ?? {},
     contactLookup: options?.contactLookup,
     onBookingClick: options?.onBookingClick,
+    navFeatureMap: { ...options?.navFeatureMap },
   }
 }
 
@@ -230,6 +264,65 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
     // for a transfer).
     declaredLimits: [
       { key: 'movements_month', label: 'Financial movements this month', table: 'plg_financial_movements', period: 'month' },
+    ],
+    queryEntities: [
+      {
+        key: 'financial:invoices',
+        entity: {
+          name: 'Invoice',
+          namePlural: 'Invoices (receipts REC- / payables PAG-)',
+          icon: 'Receipt',
+          permission: { feature: 'financial', action: 'read' },
+          fields: [
+            { key: 'referenceNumber', label: 'Reference (REC-/PAG-)', type: 'text', searchable: true },
+            { key: 'flow', label: 'Flow (receivable/payable)', type: 'text' },
+            { key: 'amount', label: 'Amount', type: 'number' },
+            { key: 'paid', label: 'Paid', type: 'number' },
+            { key: 'balance', label: 'Balance', type: 'number' },
+            { key: 'status', label: 'Status', type: 'text' },
+            { key: 'createdAt', label: 'Created at', type: 'text' },
+          ],
+          data: {
+            table: 'v_invoice_balances',
+            tenantScoped: true,
+            searchColumns: ['reference_number'],
+          },
+        },
+      },
+      {
+        key: 'financial:movements',
+        entity: {
+          name: 'Financial movement',
+          namePlural: 'Financial movements (installment ledger)',
+          icon: 'Banknote',
+          permission: { feature: 'financial', action: 'read' },
+          fields: [
+            { key: 'direction', label: 'Direction', type: 'text' },
+            { key: 'movementKind', label: 'Kind (bill/payment)', type: 'text' },
+            { key: 'amount', label: 'Amount', type: 'number' },
+            { key: 'paidAmount', label: 'Paid amount', type: 'number' },
+            { key: 'status', label: 'Status', type: 'text' },
+            { key: 'dueDate', label: 'Due date', type: 'text' },
+            { key: 'paymentDate', label: 'Payment date', type: 'text' },
+            { key: 'installmentNumber', label: 'Installment', type: 'number' },
+            { key: 'cardInstallments', label: 'Card installments', type: 'number' },
+            { key: 'createdAt', label: 'Created at', type: 'text' },
+          ],
+          data: {
+            table: 'plg_financial_movements',
+            tenantScoped: true,
+          },
+        },
+      },
+    ],
+    declaredRpcs: [
+      {
+        name: 'agent_financial_mark_payment_received',
+        kind: 'write' as const,
+        description:
+          'Guarded settle: invoices the order via fn_invoice_from_order (installments for credit card) and marks the receivable paid, audited with the acting user.',
+        audits: true,
+      },
     ],
     navigation: [
       {
@@ -284,6 +377,7 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
         description: 'Creates a new invoice/payable for a contact.',
         icon: 'FileText',
         mode: 'persist' as const,
+        limitKey: 'movements_month',
         category: 'Finance',
         parameters: {
           type: 'object' as const,
@@ -298,6 +392,34 @@ export function createFinancialPlugin(options?: FinancialPluginOptions): PluginM
           { label: 'Create an invoice for a new client' },
         ],
         permission: { feature: 'financial', action: 'create' as const },
+      },
+      {
+        id: 'financial.mark-payment-received',
+        name: 'markPaymentReceived',
+        description:
+          'Marks an order/appointment as paid: invoices it (with installments for credit card, e.g. "cartão 2x") and settles the receivable. Resolve the booking or order id via search tools first.',
+        icon: 'BadgeDollarSign',
+        mode: 'persist' as const,
+        execution: { plane: 'server' as const, kind: 'rpc' as const, rpc: 'agent_financial_mark_payment_received' },
+        category: 'Finance',
+        parameters: {
+          type: 'object' as const,
+          properties: {
+            booking_id: { type: 'string' as const, description: 'Appointment id (alternative to order_id)' },
+            order_id: { type: 'string' as const, description: 'Order id' },
+            method: {
+              type: 'string' as const,
+              description: 'Payment method',
+              enum: ['cash', 'pix', 'credit_card', 'debit_card', 'transfer'],
+            },
+            installments: { type: 'number' as const, description: 'Credit-card installments (1-12), e.g. 2 for "cartão 2x"' },
+          },
+          required: ['method'],
+        },
+        suggestions: [
+          { label: 'Marcar o atendimento como pago no cartão em 2x' },
+        ],
+        permission: { feature: 'financial.receivables', action: 'update' as const },
       },
       {
         id: 'financial.list-payables',

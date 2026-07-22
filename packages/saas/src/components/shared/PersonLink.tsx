@@ -12,6 +12,14 @@ const personLookup = createArchetypeLookup({ archetype: 'person' })
 interface PersonLinkProps {
   /** Person UUID — required for fetching details */
   personId?: string | null
+  /**
+   * Where to load the details from. Defaults to the `person` archetype lookup
+   * (the `people` table). Modules whose "person" lives elsewhere pass their own
+   * loader — a shop customer, for instance, is a plg_shop_customers row and the
+   * default lookup would never find it. Without this the popover silently shows
+   * an empty card, which reads as a bug rather than as a wrong data source.
+   */
+  lookup?: { getById: (id: string) => Promise<EntityLookupResult | null> }
   /** Display name (shown as the clickable text) */
   name: string
   /** Optional href to navigate to the person's profile */
@@ -34,7 +42,7 @@ function formatAge(dob: string): string | null {
   } catch { return null }
 }
 
-export function PersonLink({ personId, name, profileHref, tab, size = 'default', className }: PersonLinkProps) {
+export function PersonLink({ personId, name, lookup, profileHref, tab, size = 'default', className }: PersonLinkProps) {
   const [person, setPerson] = useState<EntityLookupResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [fetched, setFetched] = useState(false)
@@ -44,7 +52,7 @@ export function PersonLink({ personId, name, profileHref, tab, size = 'default',
   const fetchPerson = useCallback(() => {
     if (!fetched && personId) {
       setLoading(true)
-      personLookup.getById(personId).then((result) => {
+      ;(lookup ?? personLookup).getById(personId).then((result) => {
         setPerson(result)
         setFetched(true)
         setLoading(false)
@@ -53,7 +61,7 @@ export function PersonLink({ personId, name, profileHref, tab, size = 'default',
         setLoading(false)
       })
     }
-  }, [personId, fetched])
+  }, [personId, fetched, lookup])
 
   const handleOpenChange = useCallback((v: boolean) => {
     setOpen(v)

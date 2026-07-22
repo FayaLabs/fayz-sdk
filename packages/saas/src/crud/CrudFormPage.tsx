@@ -14,6 +14,7 @@ import { ServiceFormLayout } from './archetypes/ServiceFormLayout'
 import { LocationFormLayout } from './archetypes/LocationFormLayout'
 import { SubjectFormLayout } from './archetypes/SubjectFormLayout'
 import { useTranslation } from '@fayz-ai/core'
+import type { EntityImageConfig } from '@fayz-ai/core'
 import type { FieldDef, FieldGroup, EntityDef } from '@fayz-ai/core'
 import type { FormLayout } from '@fayz-ai/core'
 import { RelationSelect } from './relation-field'
@@ -249,16 +250,104 @@ function FormFieldItem({ field, value, onChange, allValues }: { field: FieldDef;
   )
 }
 
+/**
+ * The image slot, wired. Renders the record's current image and, when the entity
+ * supplies an `upload`, lets it be replaced. Upload attaches the file to an
+ * existing record id, so in create mode the slot explains itself instead of
+ * offering an action that cannot work yet.
+ */
+function ImageSlot({
+  image,
+  row,
+  canEdit,
+}: {
+  image: EntityImageConfig
+  row: Record<string, any>
+  canEdit: boolean
+}) {
+  const t = useTranslation()
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const [url, setUrl] = React.useState<string | undefined>(() => image.get(row))
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  // The form mounts before the record is loaded in edit mode, so the initial
+  // value can be undefined and arrive later.
+  React.useEffect(() => { setUrl(image.get(row)) }, [image.get(row)])
+
+  const pick = () => { if (canEdit && !busy) inputRef.current?.click() }
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !image.upload) return
+    setBusy(true)
+    setError(null)
+    try {
+      setUrl(await image.upload(file, row))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const editable = canEdit && Boolean(image.upload)
+
+  return (
+    <div className="shrink-0">
+      <div
+        onClick={pick}
+        role={editable ? 'button' : undefined}
+        tabIndex={editable ? 0 : undefined}
+        onKeyDown={(e) => { if (editable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick() } }}
+        title={editable ? t('crud.form.changeImage') : undefined}
+        className={`relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border-2 text-muted-foreground transition-colors ${
+          url ? 'border-solid border-border' : 'border-dashed border-muted'
+        } ${editable ? 'cursor-pointer hover:border-primary/30 hover:text-primary/50' : ''}`}
+      >
+        {url
+          ? <img src={url} alt="" className="h-full w-full object-cover" />
+          : <ImagePlus className="h-5 w-5" />}
+        {busy && (
+          <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-[10px]">
+            ...
+          </span>
+        )}
+      </div>
+      {editable && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept={image.accept ?? 'image/*'}
+          className="hidden"
+          onChange={onFile}
+        />
+      )}
+      {!canEdit && (
+        <p className="mt-1 w-20 text-[10px] leading-tight text-muted-foreground">
+          {t('crud.form.imageAfterSave')}
+        </p>
+      )}
+      {error && <p className="mt-1 w-20 text-[10px] leading-tight text-destructive">{error}</p>}
+    </div>
+  )
+}
+
 function FormGroup({
   group,
   fields,
   values,
   onChange,
+  image,
+  canEditImage,
 }: {
   group: FieldGroup
   fields: FieldDef[]
   values: Record<string, any>
   onChange: (key: string, val: any) => void
+  image?: EntityImageConfig
+  canEditImage?: boolean
 }) {
   const cols = group.columns ?? 2
 
@@ -286,12 +375,16 @@ function FormGroup({
         <CardContent className="pt-4">
           {group.imageSlot ? (
             <div className="flex gap-4">
-              {/* Decorative image slot — non-functional placeholder for now. */}
-              <div className="shrink-0">
-                <div className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary/50">
-                  <ImagePlus className="h-5 w-5" />
-                </div>
-              </div>
+              {image
+                ? <ImageSlot image={image} row={values} canEdit={Boolean(canEditImage)} />
+                : (
+                  // No entity image config: keep the old decorative square.
+                  <div className="shrink-0">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-muted text-muted-foreground">
+                      <ImagePlus className="h-5 w-5" />
+                    </div>
+                  </div>
+                )}
               <div className="flex-1">{grid}</div>
             </div>
           ) : (
@@ -458,6 +551,8 @@ export function CrudFormPage({ entityDef, mode, initialData, onSubmit, onCancel,
                   fields={fields}
                   values={values}
                   onChange={handleChange}
+                  image={entityDef.image}
+                  canEditImage={mode === 'edit'}
                 />
               )
             })}

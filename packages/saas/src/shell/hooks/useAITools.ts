@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { usePluginRuntimeOptional } from '../lib/plugins'
-import { coreAITools, generateRegistryTools, generateEntityTools, formatToolSignature } from '../lib/core-ai-tools'
+import { useAccessOptional } from '../../access/context'
+import { getAllEntities } from '@fayz-ai/core'
+import { coreAITools, buildDataPrimitiveTools, formatToolSignature } from '../lib/core-ai-tools'
 import type { PluginAITool, AIToolSuggestion } from '../types/plugins'
 
 export interface ResolvedSuggestion extends AIToolSuggestion {
@@ -57,36 +59,34 @@ export function useAITools(): {
   toolGroups: ResolvedToolGroup[]
 } {
   const runtime = usePluginRuntimeOptional()
+  const access = useAccessOptional()
 
   return React.useMemo(() => {
     const hasPermission = runtime?.context.hasPermission
+    const can = access.can
     const verticalId = runtime?.context.tenant?.verticalId
     const activePluginId = detectActivePluginId(runtime)
 
-    // Collect all tools: core + plugin-declared + auto-generated from the app's
-    // CRUD entities and each plugin's registries. The generated ones are what
-    // make a brand-new vertical useful without hand-written tools.
-    const allTools: PluginAITool[] = [...coreAITools, ...generateEntityTools()]
+    // Collect all tools: core + the TWO data primitives (searchRecords/
+    // queryData over every CRUD entity and plugin registry — the target is a
+    // parameter, its read permission checked per call) + plugin-declared.
+    const allTools: PluginAITool[] = [
+      ...coreAITools,
+      ...buildDataPrimitiveTools({
+        entities: getAllEntities(),
+        registries: runtime?.registries ?? new Map(),
+        queryEntities: runtime?.activePlugins.flatMap((p) => p.queryEntities ?? []) ?? [],
+      }),
+    ]
+    if (runtime) allTools.push(...runtime.aiTools)
 
-    if (runtime) {
-      allTools.push(...runtime.aiTools)
-
-      // Auto-generate registry tools for active plugins
-      for (const [pluginId, registries] of runtime.registries) {
-        const autoTools = generateRegistryTools(pluginId, registries)
-        // Only add auto-tools that weren't explicitly declared
-        const declaredIds = new Set(runtime.aiTools.map((t) => t.id))
-        for (const tool of autoTools) {
-          if (!declaredIds.has(tool.id)) {
-            allTools.push(tool)
-          }
-        }
-      }
-    }
-
-    // Filter by permission
+    // Filter by role × plan. UX only — the REAL authorization runs server-side
+    // (broker catalog filter) and in the guarded executor (checkAccess/
+    // guardLimit); hiding here just keeps the visible catalog honest. Falls
+    // back to the runtime's role-only check when no AccessProvider is mounted.
     const tools = allTools.filter((tool) => {
       if (!tool.permission) return true
+      if (can) return can(tool.permission.feature, tool.permission.action).allowed
       if (!hasPermission) return true
       return hasPermission(tool.permission)
     })
@@ -139,5 +139,5 @@ export function useAITools(): {
     }
 
     return { tools, activePluginId, suggestions, contextualSuggestions, toolGroups }
-  }, [runtime])
+  }, [runtime, access.can])
 }

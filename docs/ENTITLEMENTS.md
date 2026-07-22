@@ -25,10 +25,27 @@
 |---|---|
 | Papel sem grant | Item **some** da nav; rota direta → `AccessDenied` |
 | Plano sem feature | Item **fica** na nav com badge 👑; rota → `UpgradePrompt` (CTA → /settings/subscription) |
+| **Link de sub-módulo premium** (nav INTERNA de plugin) | Link **fica** no menu interno com coroa 👑 (`useModuleNavAccess` seta `ModuleNavItem.premium`; papel nega → link **some**); o clique navega e o **conteúdo** mostra o `UpgradePrompt` full via `EntitlementGate` (não a rota — a rota nunca vê o sub-módulo) |
 | Limite no cap | Botão de criar via `LimitGate` intercepta; submit via `useLimitGuard` aborta; `UpgradeModal` com used/max |
 | Estouro (soft-limit) | `SoftLimitBanner` persistente ("acima do limite — faça upgrade") |
 
 **Política de soft-limit (Notion-style)**: fluxos do CLIENTE FINAL nunca bloqueiam (ex.: booking público cria customer mesmo acima do cap) — o tenant estoura e vê o banner. Só a criação ADMIN é bloqueada no cap.
+
+## Sub-feature de módulo (paywall no LINK da nav interna)
+
+Um módulo pode estar liberado no plano, mas um **sub-módulo** dele (uma aba/link da nav INTERNA do plugin, não uma rota do shell) ficar premium — ex.: Financeiro liberado no Free, mas "Conciliação" gated. Como a aba interna não é uma rota do shell, o guard de rota nunca a vê: o gate mora no próprio plugin, nos dois eixos (LINK + CONTEÚDO).
+
+> **Regra de fronteira — o que é pago é decisão do APP, não do plugin.** O SDK entrega o *mecanismo* (`ModuleNavItem.feature`, `useModuleNavAccess`, `EntitlementGate`, `UpgradePrompt`); o *empacotamento* (quais sub-módulos são premium e sob quais ids) vive no app, em `permissions.ts` + `billing.ts`. Nenhum plugin nasce com sub-módulo gateado: o mapa é vazio por padrão e todo id não-mapeado renderiza sem coroa e sem gate.
+
+- **Vocabulário**: o mesmo id serve RBAC + plano (regra geral acima). O plugin financeiro oferece um preset OPT-IN de ids (`FINANCIAL_NAV_FEATURES`: `fin_reconciliation`, `fin_cards`, `fin_commissions`, `fin_statements`, `fin_receivables`, `fin_payables`, `fin_cash_registers`) — é só uma convenção de nomes, nada é aplicado até o app passar as entradas que quer. **Feature ausente do catálogo = liberado** (default allow).
+- **Onde declarar** (por app, só o que quiser gatear):
+  1. **Mapa do plugin** — na config do `PluginRef`: `navFeatureMap: { reconciliation: FINANCIAL_NAV_FEATURES.reconciliation }`. Sem isso o sub-módulo é livre.
+  2. **RBAC matrix** — `src/config/permissions.ts`: adicionar o feature (`f('fin_reconciliation', …, G.financial)`) e o grant por perfil. Papel sem grant → o link **some** da nav interna.
+  3. **Plano** — `src/config/billing.ts`: `entitlements.features: { fin_reconciliation: false }` no plano base (e `true` nos superiores). Plano sem a feature → link com coroa 👑 + conteúdo → `UpgradePrompt`.
+- **LINK** (SDK): `ModuleNavItem.feature` (id) + `ModuleNavItem.premium` (visual). O plugin chama `useModuleNavAccess(items)` (`@fayz-ai/saas`): papel nega (`can(feature,'read').reason==='role'`) → remove o item; plano nega (`entitled(feature)===false`) → `premium:true` (a coroa aparece nos 3 renderers — rail, mobile tabs, header GHL; tooltip `upgrade.badgeTooltip`). Recursivo em children. Degrada allow-all sem `AccessProvider`.
+- **CONTEÚDO**: o MESMO mapa alimenta o `EntitlementGate` da view, **com fallback full** `fallback={<UpgradePrompt feature={…} />}` (o banner inline default fica só para contextos realmente inline — widgets/linhas; num painel de módulo inteiro usa-se a variante full com cards de plano). Simetria garantida: link sem coroa ⇒ conteúdo sem gate.
+- **Rotas do shell não precisam disso**: uma página registrada com `permission: { feature, action }` já é resolvida (papel × plano) pelo route guard — não envolver em `EntitlementGate` de novo com id cravado.
+- **Exemplo (beauty)**: config do plugin `navFeatureMap: { reconciliation: 'fin_reconciliation' }`; `permissions.ts` declara `fin_reconciliation` (grant `RE`); `billing.ts` starter `{ fin_reconciliation: false }`, pro/premium `true`. No starter, a aba "Conciliação" do Financeiro mostra 👑 e o clique abre o `UpgradePrompt`; ao subir para pro, destrava.
 
 ## Checklist — novo plugin nasce compatível
 

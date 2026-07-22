@@ -1,4 +1,5 @@
 import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
+import type { EntityDef } from '@fayz-ai/core'
 import { getAllEntities, type RegisteredEntity } from '@fayz-ai/core'
 
 /**
@@ -20,7 +21,7 @@ export const coreAITools: PluginAITool[] = [
   {
     id: 'core.team-members',
     name: 'getTeamMembers',
-    description: 'Lists team members for the current tenant with their roles and status.',
+    description: 'Lists the WORKSPACE USERS (people with a login) and their roles. This is NOT the professionals/staff registry — for professionals, stylists or other staff the business manages as records, use the staff/people search tools instead.',
     icon: 'Users',
     mode: 'read',
     parameters: {
@@ -63,7 +64,13 @@ export const coreAITools: PluginAITool[] = [
  * actually reads to decide when to call it.
  */
 function pascalCase(value: string): string {
+  // Transliterate diacritics BEFORE splitting: splitting on [^a-zA-Z0-9]
+  // treated an accent as a word boundary and dropped it mid-word — "Serviço"
+  // became "ServiO" and "Preço de Serviço" became "PreODeServiO", which both
+  // renames tools per locale and can trip the broker's ^[a-zA-Z0-9_-]+$ rule.
   return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
@@ -128,6 +135,148 @@ export function entityToolName(entityKey: string): string {
  * without anyone hand-writing tools: whatever the app declares, the agent can
  * read.
  */
+/**
+ * The TWO generic data primitives that replace the per-entity/per-registry
+ * generated tools (43 searches → 2 tools): the model picks the TARGET as a
+ * parameter (closed enum), and the executor checks the target entity's OWN
+ * read permission at call time — one tool, per-user access preserved.
+ */
+export function buildDataPrimitiveTools(input: {
+  entities: RegisteredEntity[]
+  registries: Map<string, PluginRegistryDef[]>
+  queryEntities?: Array<{ key: string; entity: EntityDef; writable?: boolean }>
+}): PluginAITool[] {
+  const options: Array<{ key: string; label: string }> = []
+  for (const e of input.entities) {
+    if (e.entityDef && !e.entityDef.agentHidden) options.push({ key: e.entityKey, label: e.labelPlural })
+  }
+  for (const [pluginId, defs] of input.registries) {
+    for (const registry of defs) {
+      if (registry.readOnly) continue
+      options.push({
+        key: `${pluginId}:${registry.id}`,
+        label: registry.entity.namePlural ?? registry.entity.name,
+      })
+    }
+  }
+  // Read-models are readable; base-table ones may opt into writes.
+  const writableKeys = options.map((o) => o.key)
+  for (const q of input.queryEntities ?? []) {
+    options.push({ key: q.key, label: q.entity.namePlural ?? q.entity.name })
+    if (q.writable) writableKeys.push(q.key)
+  }
+  if (!options.length) return []
+  const keys = options.map((o) => o.key)
+  const catalogLine = options.map((o) => `${o.key} (${o.label.toLowerCase()})`).join(', ')
+
+  return [
+    {
+      id: 'data.find-anything',
+      name: 'findAnything',
+      description: 'Global search (like the app command center): looks a name/text up across ALL record types the user may see at once and returns grouped matches. Use this FIRST whenever you do not know what kind of record a name refers to ("quem é X?", "o que é Y?") — then drill down with searchRecords.',
+      icon: 'Command',
+      mode: 'read',
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: 'Name or text to look up everywhere.' },
+        },
+        required: ['search'],
+      },
+      category: 'Data',
+      suggestions: [{ label: 'Quem é …?' }],
+    },
+    ...(writableKeys.length
+      ? [
+          {
+            id: 'data.create-record',
+            name: 'createRecord',
+            description:
+              'Creates ONE new record of an entity (client, service, supplier, …). ALWAYS search first to avoid duplicates. Field keys and required fields come from the entity — on a field error the response lists the valid fields; fix and retry. The user will confirm before anything is written.',
+            icon: 'Plus',
+            mode: 'persist' as const,
+            // The handler orchestrates its own guard chain (permission → plan
+            // cap → confirmation → create) because the target is dynamic.
+            requiresConfirmation: false,
+            parameters: {
+              type: 'object' as const,
+              properties: {
+                entity: { type: 'string' as const, description: 'Which entity to create', enum: writableKeys },
+                values: { type: 'object' as const, description: 'Field values for the new record, e.g. {"name":"…","phone":"…"}' },
+              },
+              required: ['entity', 'values'],
+            },
+            category: 'Data',
+          } satisfies PluginAITool,
+        ]
+      : []),
+    ...(writableKeys.length
+      ? [
+          {
+            id: 'data.update-record',
+            name: 'updateRecord',
+            description:
+              'Updates fields on an EXISTING record (add an email, fix a phone, change a name…). Use the record id already known from this conversation or from a search. Only send the fields being changed. The user confirms before anything is written.',
+            icon: 'Pencil',
+            mode: 'persist' as const,
+            requiresConfirmation: false,
+            parameters: {
+              type: 'object' as const,
+              properties: {
+                entity: { type: 'string' as const, description: 'Which entity the record belongs to', enum: writableKeys },
+                id: { type: 'string' as const, description: 'Id of the record to update' },
+                values: { type: 'object' as const, description: 'Only the fields to change, e.g. {"email":"…"}' },
+              },
+              required: ['entity', 'id', 'values'],
+            },
+            category: 'Data',
+          } satisfies PluginAITool,
+        ]
+      : []),
+    {
+      id: 'data.search-records',
+      name: 'searchRecords',
+      description: `Searches or lists records of ONE entity and returns matching rows with their fields. Use \`search\` for names/text and \`filters\` for exact field values (e.g. {"status":"open"}) — never put a status word in search. Entities: ${catalogLine}.`,
+      icon: 'Search',
+      mode: 'read',
+      parameters: {
+        type: 'object',
+        properties: {
+          entity: { type: 'string', description: 'Which entity to search', enum: keys },
+          search: { type: 'string', description: 'Name or text to match. Omit to list recent records.' },
+          filters: { type: 'object', description: 'Optional exact-value filters {field: value}, e.g. {"status":"open"}.' },
+          orderBy: { type: 'string', description: 'Field to sort by (e.g. startsAt for "next/upcoming" questions).' },
+          direction: { type: 'string', description: 'Sort direction', enum: ['asc', 'desc'] },
+        },
+        required: ['entity'],
+      },
+      category: 'Data',
+    },
+    {
+      id: 'data.query-data',
+      name: 'queryData',
+      description: `Aggregates over ONE entity: count, sum or avg of a field, with optional date range, equality filters and a group-by. Use for analytical questions (revenue this week, new clients this month, busiest professional). Entities: ${catalogLine}.`,
+      icon: 'Sigma',
+      mode: 'read',
+      parameters: {
+        type: 'object',
+        properties: {
+          entity: { type: 'string', description: 'Which entity to aggregate', enum: keys },
+          metric: { type: 'string', description: 'Aggregation', enum: ['count', 'sum', 'avg'] },
+          field: { type: 'string', description: 'Field to sum/avg (record field name). Ignored for count.' },
+          dateField: { type: 'string', description: "Date field to range-filter (default 'created_at')." },
+          from: { type: 'string', description: 'ISO date/datetime lower bound (inclusive).' },
+          to: { type: 'string', description: 'ISO date/datetime upper bound (inclusive).' },
+          groupBy: { type: 'string', description: 'Optional field to group results by.' },
+          filters: { type: 'object', description: 'Optional equality filters {field: value}.' },
+        },
+        required: ['entity', 'metric'],
+      },
+      category: 'Data',
+    },
+  ]
+}
+
 export function generateEntityTools(entities: RegisteredEntity[] = getAllEntities()): PluginAITool[] {
   return entities
     .filter((e) => !!e.entityDef)

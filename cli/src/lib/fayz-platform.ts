@@ -69,6 +69,9 @@ export interface PlatformClient {
   ): Promise<{ filesUploaded: number; batches: number }>
   publishProject(projectId: string): Promise<PublishResult>
   getProject(projectId: string): Promise<ProjectInfo>
+  /** PUT the derived app.manifest.json as the project's agent contract.
+   *  Idempotent server-side by contractHash. */
+  syncAgentContract(projectId: string, manifest: Record<string, unknown>): Promise<unknown>
 }
 
 /** Thrown when the platform API responds with a non-2xx status. */
@@ -206,6 +209,10 @@ export function createPlatformClient(options: CreatePlatformClientOptions): Plat
     async getProject(projectId): Promise<ProjectInfo> {
       const body = (await request('GET', `/projects/${projectId}`)) as Record<string, unknown> | null
       return (body ?? {}) as ProjectInfo
+    },
+
+    async syncAgentContract(projectId, manifest) {
+      return request('PUT', `/projects/${projectId}/agent-contract`, { manifest })
     },
   }
 }

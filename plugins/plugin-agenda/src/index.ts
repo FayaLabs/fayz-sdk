@@ -72,6 +72,43 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
     declaredLimits: [
       { key: 'bookings_month', label: 'Appointments this month', table: 'appointments', period: 'month' },
     ],
+    queryEntities: [
+      {
+        key: 'agenda:appointments',
+        entity: {
+          name: 'Appointment',
+          namePlural: 'Appointments',
+          icon: 'Calendar',
+          permission: { feature: 'appointments', action: 'read' },
+          // Keys are the PROVIDER's output shape (camelCase) — what filters/
+          // dateField/groupBy match against, not the raw DB columns.
+          fields: [
+            { key: 'startsAt', label: 'Starts at', type: 'text' },
+            { key: 'endsAt', label: 'Ends at', type: 'text' },
+            { key: 'status', label: 'Status', type: 'text' },
+            { key: 'clientName', label: 'Client', type: 'text', searchable: true },
+            { key: 'professionalName', label: 'Professional', type: 'text', searchable: true },
+            { key: 'orderTotal', label: 'Order total', type: 'number' },
+            { key: 'totalDurationMinutes', label: 'Duration (min)', type: 'number' },
+            { key: 'createdAt', label: 'Created at', type: 'text' },
+          ],
+          data: {
+            table: 'v_appointments',
+            tenantScoped: true,
+            searchColumns: ['client_name', 'professional_name'],
+          },
+        },
+      },
+    ],
+    declaredRpcs: [
+      {
+        name: 'agent_agenda_create_appointment',
+        kind: 'write' as const,
+        description:
+          'Guarded appointment create: agent_guard (role→plan→bookings_month cap), working hours, race-safe conflict check, audited.',
+        audits: true,
+      },
+    ],
 
     navigation: [
       {
@@ -119,20 +156,23 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
       {
         id: 'agenda.create-appointment',
         name: 'createAppointment',
-        description: 'Creates a new appointment for a client with a specific professional and service.',
+        description:
+          'Creates a new appointment. Takes IDS, not names: resolve the client/service/professional ids first via findAnything/searchRecords, then call this with an ISO start time in the tenant timezone. The user confirms before booking.',
         icon: 'CalendarPlus',
         mode: 'persist' as const,
+        limitKey: 'bookings_month',
+        execution: { plane: 'server' as const, kind: 'rpc' as const, rpc: 'agent_agenda_create_appointment' },
         category: 'Scheduling',
         parameters: {
           type: 'object' as const,
           properties: {
-            client: { type: 'string' as const, description: 'Client name' },
-            professional: { type: 'string' as const, description: 'Professional name' },
-            service: { type: 'string' as const, description: 'Service name' },
-            date: { type: 'string' as const, description: 'Date (YYYY-MM-DD)' },
-            time: { type: 'string' as const, description: 'Time (HH:MM)' },
+            client_id: { type: 'string' as const, description: 'Client id (from a search)' },
+            service_id: { type: 'string' as const, description: 'Service id (from a search)' },
+            professional_id: { type: 'string' as const, description: 'Professional id (optional — auto-assigned when omitted)' },
+            starts_at: { type: 'string' as const, description: "LOCAL date-time of the business, NO timezone suffix — e.g. '2026-07-27T10:00' for 10h. The system applies the tenant timezone." },
+            notes: { type: 'string' as const, description: 'Optional notes' },
           },
-          required: ['client', 'professional', 'service', 'date', 'time'],
+          required: ['client_id', 'service_id', 'starts_at'],
         },
         suggestions: [
           { label: 'Book a haircut for Sarah tomorrow at 10am' },

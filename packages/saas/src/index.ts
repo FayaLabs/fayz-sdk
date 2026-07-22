@@ -7,6 +7,8 @@ export type { FayzAppConfig, AuthConfig, OrgConfig, ChatConfig, FayzBillingConfi
 // Native admin scaffold — manifest-first entry. Importing this registers the
 // 'admin' scaffold so renderApp(manifest) can resolve it.
 export { defineSaas, AdminScaffold } from './app/scaffold'
+export { deriveAgentContract } from './app/derive-contract'
+export type { DerivedAgentSections } from './app/derive-contract'
 export { AdminShell } from './app/AdminShell'
 export { LoginPage } from './app/LoginPage'
 export { navigateTo as adminNavigateTo, useAdminPath } from './app/routing'
@@ -40,8 +42,10 @@ export { WidgetSlot } from './plugins/WidgetSlot'
 export { useFieldRules } from './hooks/useFieldRules'
 
 export { createCrudPage } from './crud/createCrudPage'
+export { EntityLink, registerEntityPath, getPersonPath } from './crud/archetypes/EntityLink'
 // Client-orders archetype (used by beauty-saas client detail tab)
 export { ClientOrdersTab } from './shell/components/crud/archetypes/ClientOrdersTab'
+export type { ClientOrdersProvider, ClientOrdersQuery, ClientOrdersNavigator, ClientDocument, ClientDocumentStage, ClientOrdersStageFilter } from './shell/types/client-orders'
 export { createClientOrdersProvider } from './shell/lib/create-client-orders-provider'
 
 // ---------------------------------------------------------------------------
@@ -105,10 +109,16 @@ export {
   useAccessOptional,
   useLimit,
   useLimitGuard,
+  useModuleNavAccess,
   resolveAccess,
   isEntitledByPlan,
   invalidateLimit,
   useUpgradeModalStore,
+  getAccessSnapshot,
+  checkAccess,
+  guardLimit,
+  agentDenial,
+  UPGRADE_URL,
 } from './access/index'
 export type {
   AccessProviderProps,
@@ -119,6 +129,9 @@ export type {
   LimitState,
   UpgradeModalPayload,
   UpgradeModalStore,
+  AgentDenial,
+  AgentDenialLimit,
+  AgentGuardResult,
 } from './access/index'
 
 // ---------------------------------------------------------------------------
@@ -126,6 +139,8 @@ export type {
 // ---------------------------------------------------------------------------
 export { useBillingStore } from './billing/index'
 export { EntitlementGate, LimitGate } from './shell/components/billing/gates'
+export { UpgradePrompt } from './shell/components/billing/UpgradePrompt'
+export type { UpgradePromptProps } from './shell/components/billing/UpgradePrompt'
 export type { BillingStore, BillingState, Subscription, Invoice } from './billing/index'
 
 // ---------------------------------------------------------------------------

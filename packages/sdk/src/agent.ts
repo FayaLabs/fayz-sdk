@@ -49,15 +49,27 @@ export interface FayzAgentChatInput {
   externalUserName?: string
   tools?: FayzAgentTool[]
   toolResults?: FayzAgentToolResult[]
+  /** Decision for a server-parked write (broker PENDING_CONFIRMATION step). */
+  confirmAction?: { id: string; approved: boolean }
   /** Runtime context the agent should know about (page, locale, tenant). */
   context?: Record<string, unknown>
   signal?: AbortSignal
+}
+
+/** A server-plane write the broker parked pending human confirmation. */
+export interface FayzAgentPendingAction {
+  id: string
+  toolName: string
+  title?: string
+  params?: Record<string, unknown>
 }
 
 export interface FayzAgentChatResponse {
   conversationId: string
   content: string
   toolCalls: FayzAgentToolCall[]
+  /** Present when the broker is waiting on a confirmAction for this write. */
+  pendingAction?: FayzAgentPendingAction
 }
 
 export interface FayzAgentInfo {
@@ -77,10 +89,38 @@ export class FayzAgentError extends Error {
   }
 }
 
+export interface FayzAgentConversationSummary {
+  id: string
+  title: string | null
+  /** Last activity — the field the list is ordered by. */
+  updatedAt: string
+}
+
+export interface FayzAgentConversationMessage {
+  id: string
+  role: string
+  content: string
+  createdAt: string
+}
+
+export interface FayzAgentConversationDetail {
+  id: string
+  title: string | null
+  messages: FayzAgentConversationMessage[]
+}
+
 export interface FayzAgentClient {
   /** Identity of the agent behind the key, for rendering its name/icon. */
   getInfo(signal?: AbortSignal): Promise<FayzAgentInfo>
   chat(input: FayzAgentChatInput): Promise<FayzAgentChatResponse>
+  /** The signed-in user's own threads, most-recently-active first. */
+  listConversations(externalUserId?: string, signal?: AbortSignal): Promise<FayzAgentConversationSummary[]>
+  /** One thread with its transcript — 404s on another user's thread. */
+  getConversation(
+    conversationId: string,
+    externalUserId?: string,
+    signal?: AbortSignal,
+  ): Promise<FayzAgentConversationDetail>
 }
 
 export function createFayzAgentClient(options: FayzAgentClientOptions): FayzAgentClient {
@@ -116,7 +156,26 @@ export function createFayzAgentClient(options: FayzAgentClientOptions): FayzAgen
         conversationId: body.conversationId ?? '',
         content: body.content ?? '',
         toolCalls: body.toolCalls ?? [],
+        ...(body.pendingAction ? { pendingAction: body.pendingAction } : {}),
       }
+    },
+
+    async listConversations(externalUserId, signal) {
+      const query = externalUserId ? `?externalUserId=${encodeURIComponent(externalUserId)}` : ''
+      const body = await request<{ conversations?: FayzAgentConversationSummary[] }>(
+        `/conversations${query}`,
+        { method: 'GET', signal },
+      )
+      return body.conversations ?? []
+    },
+
+    async getConversation(conversationId, externalUserId, signal) {
+      const query = externalUserId ? `?externalUserId=${encodeURIComponent(externalUserId)}` : ''
+      const body = await request<{ conversation: FayzAgentConversationDetail }>(
+        `/conversations/${encodeURIComponent(conversationId)}${query}`,
+        { method: 'GET', signal },
+      )
+      return body.conversation
     },
   }
 }

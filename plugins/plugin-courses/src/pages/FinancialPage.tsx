@@ -5,6 +5,11 @@ import { getCoursesProvider, type Payout, type FinancialSummary, type CreatorAcc
 import { PageContainer, StatCard, StatGrid, SimpleTable, type SimpleColumn } from '../components/CommerceUI'
 import { formatMoney, formatDate, formatPercent } from '../lib/format'
 
+// No plan gate here on purpose. The page is registered as a shell ROUTE with
+// `permission: read('courses.finance')`, so the route guard already resolves
+// role AND plan for it — and whether `courses.finance` is a paid feature is the
+// APP's call (its billing.ts), never the plugin's. Hardcoding a gate here would
+// bake one product's packaging into the SDK.
 export function FinancialPage() {
   const t = useTranslation()
   const [summary, setSummary] = React.useState<FinancialSummary | null>(null)

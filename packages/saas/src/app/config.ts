@@ -8,6 +8,9 @@ import type {
   LocaleConfig,
   PermissionsConfig,
   LimitDeclaration,
+  AgentDomainKnowledge,
+  AgentRpcDeclaration,
+  EntityDef,
 } from '@fayz-ai/core'
 import type { AuthPluginOptions, ResolvedAuthPlugin, LoginAmbassador } from '@fayz-ai/plugin-auth'
 import type { BottomNavItem, MobileHeaderVariant } from '@fayz-ai/ui'
@@ -218,4 +221,21 @@ export interface FayzAppConfig {
   // AI Chat
   // -------------------------------------------------------------------------
   chat?: ChatConfig
+
+  // -------------------------------------------------------------------------
+  // Agent contract (manifest v3) — app-level additions to the derived
+  // AgentContract: structured domain knowledge for the prompt, app-shipped
+  // pool RPCs, and the per-app server-plane flip. Everything else (entities,
+  // tools, features, limits) is DERIVED from what the app already declares.
+  // -------------------------------------------------------------------------
+  agentContract?: {
+    /** 'server' flips data tools to broker-side execution for this app. */
+    executionPlane?: 'client' | 'server'
+    knowledge?: AgentDomainKnowledge
+    /** RPCs the app itself ships (vertical-specific, e.g. pricing quote). */
+    rpcs?: AgentRpcDeclaration[]
+    /** App-level read-models for the agent's data primitives (same contract
+     *  as PluginManifest.queryEntities — stable ASCII keys). */
+    queryEntities?: Array<{ key: string; entity: EntityDef }>
+  }
 }
