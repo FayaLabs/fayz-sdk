@@ -26,6 +26,7 @@ export const ptBR: Record<string, string> = {
   "agenda.appointment.save": "Salvar",
   "agenda.appointment.saving": "Salvando...",
   "agenda.appointment.searchClient": "Buscar cliente...",
+  "agenda.appointment.clientLabel": "Cliente",
   "agenda.appointment.searchService": "Buscar serviço para adicionar...",
   "agenda.appointment.selectLocation": "Selecionar local...",
   "agenda.appointment.selectProfessional": "Selecionar profissional...",

@@ -293,6 +293,7 @@ export const shellTranslations: Record<string, Record<string, string>> = {
   "contactPicker.cancel": 'Cancel',
   "contactPicker.clear": 'Clear contact',
   "contactPicker.createFailed": 'Could not create the contact',
+  "contactPicker.addField": 'Add {label}',
 
   "upgrade.includes": 'Includes {feature}',
   "upgrade.cta": 'View plans',
@@ -1031,6 +1032,7 @@ export const shellTranslations: Record<string, Record<string, string>> = {
     "contactPicker.cancel": 'Cancelar',
     "contactPicker.clear": 'Remover contato',
     "contactPicker.createFailed": 'Não foi possível cadastrar o contato',
+    "contactPicker.addField": 'Adicionar {label}',
 
     "upgrade.includes": 'Inclui {feature}',
     "upgrade.cta": 'Ver planos',

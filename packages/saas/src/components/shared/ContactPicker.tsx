@@ -60,12 +60,36 @@ export interface ContactPickerProps {
   disabled?: boolean
   autoFocus?: boolean
   placeholder?: string
+  /** Field label, rendered BY the component so every host gets the same one. */
+  label?: string
   /**
    * Right-hand detail on the selected chip. Defaults to the person's phone; a
    * host that cares about a different datum (the conversations composer shows
    * the handle for the ACTIVE channel) passes its own.
    */
   secondaryText?: string
+  /**
+   * Optional second datum captured alongside the contact — the address to reach
+   * them at in this context (a channel handle, a delivery phone…). Lives HERE,
+   * not in the host, because it is contact data and hosts were rendering their
+   * own field around the picker, which is exactly what made the same flow look
+   * like two different features.
+   *
+   * `derived` is what we already know from the picked person: when set it rides
+   * on the chip and no field is offered. Otherwise the picker shows a discreet
+   * "+ Add {label}" that expands into the input.
+   */
+  handleField?: {
+    /** Human name of the datum, interpolated into "+ Add {label}". */
+    label: string
+    /** Known from the contact — suppresses the field entirely. */
+    derived?: string
+    value: string
+    onChange: (value: string) => void
+    /** Label above the input once open. Defaults to `label`. */
+    fieldLabel?: string
+    placeholder?: string
+  }
   /**
    * Copy for the "+ Create …" row. Defaults to the shared "New contact"; a
    * plugin whose vertical calls them something else (the agenda says "client")
@@ -94,7 +118,9 @@ export function ContactPicker({
   disabled,
   autoFocus,
   placeholder,
+  label,
   secondaryText,
+  handleField,
   createLabel,
   onCreatingChange,
   className,
@@ -117,6 +143,7 @@ export function ContactPicker({
     setCreatingState(next)
     creatingChanged.current?.(next)
   }
+  const [handleOpen, setHandleOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [newEmail, setNewEmail] = useState('')
@@ -218,10 +245,48 @@ export function ContactPicker({
   const inputClass =
     'w-full rounded-input border border-input bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 
+  // Each state renders only its BODY; `frame` below wraps every one of them in
+  // the same label + handle chrome, so the picker looks identical wherever it is
+  // mounted no matter which state it is in.
+  const frame = (body: React.ReactNode) => (
+    <div className={cn('flex flex-col', className)}>
+      {label && (
+        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
+      )}
+      {body}
+      {handleField && !creating && !handleField.derived && (
+        handleOpen || handleField.value ? (
+          <div className="mt-3">
+            <label htmlFor="contact-handle" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              {handleField.fieldLabel ?? handleField.label}
+            </label>
+            <input
+              id="contact-handle"
+              type="text"
+              value={handleField.value}
+              onChange={(e) => handleField.onChange(e.target.value)}
+              placeholder={handleField.placeholder}
+              className={inputClass}
+              autoFocus={handleOpen}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setHandleOpen(true)}
+            className="mt-2 self-start text-xs font-medium text-primary hover:underline"
+          >
+            + {t('contactPicker.addField').replace('{label}', handleField.label)}
+          </button>
+        )
+      )}
+    </div>
+  )
+
   // ---- Selected -----------------------------------------------------------
   if (value?.id && !creating) {
-    return (
-      <div className={cn('flex items-center gap-2 rounded-md bg-muted/30 px-2.5 py-1.5 text-sm', className)}>
+    return frame(
+      <div className="flex items-center gap-2 rounded-md bg-muted/30 px-2.5 py-1.5 text-sm">
         <PersonLink personId={value.id} name={value.name} size="default" className="flex-1 min-w-0" />
         {(secondaryText ?? value.phone) && (
           <span className="text-[10px] text-muted-foreground shrink-0">{secondaryText ?? value.phone}</span>
@@ -236,14 +301,14 @@ export function ContactPicker({
             <X className="h-3 w-3" />
           </button>
         )}
-      </div>
+      </div>,
     )
   }
 
   // ---- Creating -----------------------------------------------------------
   if (creating) {
-    return (
-      <div className={cn('rounded-input border border-input bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] p-2.5 space-y-2', className)}>
+    return frame(
+      <div className="rounded-input border border-input bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] p-2.5 space-y-2">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -286,13 +351,13 @@ export function ContactPicker({
         >
           {saving ? t('contactPicker.creating') : t('contactPicker.create')}
         </button>
-      </div>
+      </div>,
     )
   }
 
   // ---- Empty / searching --------------------------------------------------
-  return (
-    <div className={className}>
+  return frame(
+    <div>
       <SearchCombobox
         value={search}
         onChange={handleSearchChange}
@@ -306,6 +371,6 @@ export function ContactPicker({
         autoFocus={autoFocus}
       />
       {hint && search.trim() && !searching && <div className="mt-1">{hint}</div>}
-    </div>
+    </div>,
   )
 }

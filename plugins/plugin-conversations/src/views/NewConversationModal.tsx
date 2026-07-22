@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, Input, Modal, ModalContent, cn, toast } from '@fayz-ai/ui'
+import { Button, Modal, ModalContent, cn, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
 import { useLimitGuard, invalidateLimit, ContactPicker, type ContactPickerValue } from '@fayz-ai/saas'
 import { useConversationsStore, useConversationsConfig } from '../ConversationsContext'
@@ -48,7 +48,6 @@ export function NewConversationModal({
   // (see personHandleFor) and shown on the picker's chip — same as the agenda,
   // which never had a second phone field.
   const [typedHandle, setTypedHandle] = React.useState('')
-  const [handleOpen, setHandleOpen] = React.useState(false)
   // While the picker's inline create form is open it already asks for phone and
   // email, so showing our own handle field would ask for the phone twice.
   const [creatingContact, setCreatingContact] = React.useState(false)
@@ -63,7 +62,6 @@ export function NewConversationModal({
       setChannel('whatsapp')
       setContact(null)
       setTypedHandle('')
-      setHandleOpen(false)
       setCreatingContact(false)
       setFirstMessage('')
       setSubmitting(false)
@@ -77,9 +75,6 @@ export function NewConversationModal({
   const derivedHandle = personHandleFor(channel, contact)
   const effectiveHandle = derivedHandle || typedHandle
   const handleLabel = t(HANDLE_LABEL_KEY[channel])
-  // The field only exists when there is nothing to derive — that second
-  // always-on input was what asked for the phone twice.
-  const showHandleField = !creatingContact && !derivedHandle && (handleOpen || !!typedHandle)
 
   const canSubmit = (contact?.name.trim().length ?? 0) > 0 && !submitting
 
@@ -153,55 +148,31 @@ export function NewConversationModal({
           </div>
 
           {/* Contact — shared find-or-create flow (@fayz-ai/saas), the same one
-              the agenda uses to pick a client: search the tenant's people, and
-              when there's no match create one inline with name/phone/email. A
-              typed-but-unmatched name still starts a thread (allowFreeText),
-              just without a person link. */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              {t('conversations.new.contactName')}
-            </label>
-            <ContactPicker
-              key={pickerKey}
-              value={contact}
-              onChange={setContact}
-              kind={config.contactKind}
-              extensionTable={config.contactExtensionTable}
-              lookup={config.contactLookup}
-              allowFreeText
-              onCreatingChange={setCreatingContact}
-              autoFocus
-              placeholder={t('conversations.new.contactNamePlaceholder')}
-              secondaryText={derivedHandle || undefined}
-            />
-          </div>
-
-          {/* Handle — only when the contact has nothing to derive for this
-              channel (an Instagram @, or a person with no phone). Otherwise it
-              rides on the picker's chip, exactly like the agenda. */}
-          {showHandleField && (
-            <div>
-              <label htmlFor="conv-contact-handle" className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                {t('conversations.new.handle')}
-              </label>
-              <Input
-                id="conv-contact-handle"
-                value={typedHandle}
-                onChange={(e) => setTypedHandle(e.target.value)}
-                placeholder={t('conversations.new.handlePlaceholder')}
-                autoFocus={handleOpen}
-              />
-            </div>
-          )}
-          {!creatingContact && !derivedHandle && !showHandleField && (
-            <button
-              type="button"
-              onClick={() => setHandleOpen(true)}
-              className="self-start text-xs font-medium text-primary hover:underline"
-            >
-              + {t('conversations.new.addHandle').replace('{label}', handleLabel)}
-            </button>
-          )}
+              the agenda uses to pick a client. The picker owns its label, the
+              search field, the chip and the channel handle, so this composer and
+              the appointment modal render the SAME thing from the same code. */}
+          <ContactPicker
+            key={pickerKey}
+            value={contact}
+            onChange={setContact}
+            kind={config.contactKind}
+            extensionTable={config.contactExtensionTable}
+            lookup={config.contactLookup}
+            allowFreeText
+            onCreatingChange={setCreatingContact}
+            autoFocus
+            label={t('conversations.new.contactName')}
+            placeholder={t('conversations.new.contactNamePlaceholder')}
+            secondaryText={derivedHandle || undefined}
+            handleField={{
+              label: handleLabel,
+              derived: derivedHandle || undefined,
+              value: typedHandle,
+              onChange: setTypedHandle,
+              fieldLabel: t('conversations.new.handle'),
+              placeholder: t('conversations.new.handlePlaceholder'),
+            }}
+          />
 
           {/* First message */}
           <div>
