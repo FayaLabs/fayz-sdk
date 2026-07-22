@@ -791,16 +791,17 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
             {/* Client */}
             {activeType.fields.client && (
               <div className="flex items-center gap-3 py-1">
+                <User className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1">
                   {/* Shared find-or-create contact flow (@fayz-ai/saas). The
                       quick-create that used to live inline here now writes the
                       SAME people(+clients) rows for every plugin — see
                       `createPerson`. `clientKind`/`clientExtensionTable` keep the
                       vertical's discriminator and extension table.
-                      The row's leading User icon was dropped in favour of the
-                      picker's own label: the icon-column grammar of this modal
-                      was the last thing making the SAME field read differently
-                      here and in the conversations composer. */}
+                      `variant="inline"` keeps this modal's grammar: an icon
+                      column and borderless controls (like Scheduled / Add
+                      notes). Same component and same flow as the conversations
+                      composer — only the input's chrome differs. */}
                   <ContactPicker
                     value={clientId || clientSearch ? { id: clientId || undefined, name: clientSearch, phone: clientPhone } : null}
                     onChange={(contact) => {
@@ -812,7 +813,7 @@ export function AppointmentModal({ open, mode, bookingId, prefill, initialTab, e
                     extensionTable="clients"
                     lookup={config.contactLookup}
                     clearable={!isPaidBooking}
-                    label={t('agenda.appointment.clientLabel')}
+                    variant="inline"
                     placeholder={t('agenda.appointment.searchClient')}
                     createLabel={t('agenda.appointment.newClient')}
                     hint={

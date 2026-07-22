@@ -1,4 +1,4 @@
-// AUTO-GENERATED from 000b_v_bookings_rename.sql, 000c_dedupe_customer_phones.sql, 001_public_booking.sql, 002_v_bookings_compat.sql, 003_public_client_kind.sql, 004_public_booking_assignee.sql, 005_agent_rpcs.sql, 006_agent_rpc_localtime.sql, 007_schedule_exception_precedence.sql, 008_agent_rpc_exception_precedence.sql, 009_public_booking_location.sql — regenerate with scripts/embed-migrations.mjs
+// AUTO-GENERATED from 000b_v_bookings_rename.sql, 000c_dedupe_customer_phones.sql, 001_public_booking.sql, 002_v_bookings_compat.sql, 003_public_client_kind.sql, 004_public_booking_assignee.sql, 005_agent_rpcs.sql, 006_agent_rpc_localtime.sql, 007_schedule_exception_precedence.sql, 008_agent_rpc_exception_precedence.sql, 009_public_booking_location.sql, 010_public_service_curation.sql, 011_default_assignee.sql, 012_drop_legacy_booking_overload.sql — regenerate with scripts/embed-migrations.mjs
 // SQL files are the source of truth; this inline copy lets the manifest declare
 // migrations as data. Do not edit by hand — run the embed script instead.
 
@@ -1717,6 +1717,239 @@ $function$;
 GRANT EXECUTE ON FUNCTION public.create_public_booking(uuid, uuid, timestamptz, text, text, text, text) TO anon, authenticated;
 `
 
+export const MIGRATION_010_PUBLIC_SERVICE_CURATION = `-- plugin-agenda 010: curate what the PUBLIC booking page sells.
+--
+-- v_public_services published every active service, so the website catalog was
+-- "whatever exists in the system". That conflates two different questions:
+--
+--   • is this service usable at all?          → services.is_active / status
+--   • should a stranger be able to book it?   → this flag
+--
+-- Without the split, hiding something from the site means deactivating it —
+-- which also removes it from the internal agenda and orphans its history. The
+-- case that forced this: a school whose public page listed 7 services when it
+-- sells 3, and one of the 4 extras already had real bookings attached.
+--
+-- OPT-OUT on purpose: a service is public unless explicitly marked otherwise.
+-- Opt-in would silently empty every live catalog the moment this ships.
+
+CREATE OR REPLACE VIEW public.v_public_services AS
+SELECT id,
+    tenant_id,
+    name,
+    description,
+    price,
+    currency,
+    COALESCE(duration_minutes, 30) AS duration_minutes,
+    image_url,
+    COALESCE(((metadata ->> 'sort_order'::text))::integer, 0) AS sort_order
+   FROM services s
+  WHERE is_active
+    AND status = 'active'::text
+    -- absent → public (back-compat). Only an explicit false hides it.
+    AND COALESCE((metadata ->> 'bookableOnline'::text)::boolean, true);
+`
+
+export const MIGRATION_011_DEFAULT_ASSIGNEE = `-- plugin-agenda 011: honour a tenant's default professional.
+--
+-- create_public_booking picks the assignee from whoever's working hours cover
+-- the slot, ordered by assignee_id — i.e. the lowest UUID wins. That is fine
+-- when the caller names the professional, and wrong when it does not: the
+-- public page confirms "Equipe Great DJs" while the booking silently lands on
+-- an unrelated instructor whose UUID happened to sort first.
+--
+-- Clients shipped before p_assignee_id existed still call this with 7 named
+-- args, so the parameter defaults to NULL and every live booking on those sites
+-- is mis-assigned today. Republishing the SDK fixes the caller, but the sites
+-- already deployed cannot be fixed that way — this can, from the database.
+--
+-- Precedence: explicit arg > tenant default > first covering schedule.
+-- Tenants without the setting keep exactly the previous behaviour.
+
+CREATE OR REPLACE FUNCTION public.create_public_booking(p_tenant_id uuid, p_service_id uuid, p_starts_at timestamp with time zone, p_name text, p_phone text, p_email text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_assignee_id uuid DEFAULT NULL::uuid)
+ RETURNS TABLE(booking_id uuid, starts_at timestamp with time zone, ends_at timestamp with time zone)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_service record;
+  v_person_id uuid;
+  v_assignee uuid;
+  v_requested uuid;
+  v_ends timestamptz;
+  v_order uuid;
+  v_booking uuid;
+  v_phone text;
+  v_tz text;
+  v_notes text;
+  v_client_kind text;
+BEGIN
+  -- validation: anon-callable, everything tight
+  IF p_name IS NULL OR length(trim(p_name)) NOT BETWEEN 2 AND 120 THEN
+    RAISE EXCEPTION 'invalid name';
+  END IF;
+  v_phone := regexp_replace(COALESCE(p_phone, ''), '\\D', '', 'g');
+  IF length(v_phone) NOT BETWEEN 8 AND 15 THEN
+    RAISE EXCEPTION 'invalid phone';
+  END IF;
+  IF p_email IS NOT NULL AND (length(p_email) > 254 OR p_email !~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') THEN
+    RAISE EXCEPTION 'invalid email';
+  END IF;
+  v_notes := left(p_notes, 500);
+  IF p_starts_at IS NULL OR p_starts_at <= now() OR p_starts_at > now() + interval '90 days' THEN
+    RAISE EXCEPTION 'invalid start';
+  END IF;
+
+  SELECT s.id, s.name, s.price, COALESCE(s.duration_minutes, 30) AS duration_minutes
+    INTO v_service
+  FROM services s
+  WHERE s.id = p_service_id AND s.tenant_id = p_tenant_id
+    AND s.is_active AND s.status = 'active';
+  IF NOT FOUND THEN RAISE EXCEPTION 'unknown service'; END IF;
+
+  v_ends := p_starts_at + make_interval(mins => v_service.duration_minutes);
+
+  -- tenant config: timezone + client kind (admin-set; sanitized, never caller input)
+  SELECT COALESCE(t.settings->>'timezone', 'America/Sao_Paulo'),
+         COALESCE(NULLIF(trim(t.settings->'booking'->>'client_kind'), ''), 'customer')
+    INTO v_tz, v_client_kind
+  FROM tenants t WHERE t.id = p_tenant_id;
+  IF v_tz IS NULL THEN RAISE EXCEPTION 'unknown tenant'; END IF;
+  IF v_client_kind !~ '^[a-z_]{2,32}$' THEN v_client_kind := 'customer'; END IF;
+
+  -- resolve the professional, in order of trust:
+  --   1. the id the caller sent (the one the visitor actually saw)
+  --   2. the tenant's configured default (settings->>'defaultAssigneeId')
+  --   3. whoever's working hours cover the slot
+  --
+  -- Step 2 is why this migration exists. Older published clients call this with
+  -- 7 named args, leaving p_assignee_id NULL, and step 3 then resolved to
+  -- "lowest assignee UUID" — an arbitrary instructor who had nothing to do with
+  -- the name the site displayed on the confirmation screen. The default gives
+  -- those clients a correct answer without waiting for a redeploy.
+  v_requested := COALESCE(
+    p_assignee_id,
+    (SELECT NULLIF(t.settings ->> 'defaultAssigneeId', '')::uuid
+       FROM tenants t WHERE t.id = p_tenant_id)
+  );
+
+  SELECT w.assignee_id INTO v_assignee
+  FROM agenda_working_windows(
+         p_tenant_id, (p_starts_at AT TIME ZONE v_tz)::date, v_requested) w
+  WHERE (p_starts_at AT TIME ZONE v_tz)::time >= w.win_start
+    AND (v_ends AT TIME ZONE v_tz)::time <= w.win_end
+  ORDER BY w.assignee_id
+  LIMIT 1;
+  IF v_assignee IS NULL THEN RAISE EXCEPTION 'slot outside working hours'; END IF;
+
+  -- serialize per (tenant, assignee) to kill the double-book race
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_tenant_id::text || v_assignee::text, 0));
+
+  IF EXISTS (
+    SELECT 1 FROM appointments b
+    WHERE b.tenant_id = p_tenant_id
+      AND b.assignee_id = v_assignee
+      AND b.status NOT IN ('cancelled', 'no_show')
+      AND b.starts_at < v_ends
+      AND COALESCE(b.ends_at, b.starts_at) > p_starts_at
+  ) THEN
+    RAISE EXCEPTION 'slot no longer available';
+  END IF;
+
+  -- anti-spam: cap open future public bookings per phone per tenant
+  IF (
+    SELECT count(*) FROM appointments b
+    JOIN people p ON p.id = b.party_id
+    WHERE b.tenant_id = p_tenant_id
+      AND p.phone = v_phone
+      AND b.starts_at > now()
+      AND b.status = 'scheduled'
+  ) >= 3 THEN
+    RAISE EXCEPTION 'too many open bookings for this phone';
+  END IF;
+
+  -- upsert the client by (tenant, kind, phone), serialized by advisory lock
+  -- (kind is tenant-configured, so the customer-only partial index can't
+  -- arbitrate)
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_tenant_id::text || ':' || v_phone, 1));
+
+  SELECT p.id INTO v_person_id
+  FROM people p
+  WHERE p.tenant_id = p_tenant_id AND p.kind = v_client_kind AND p.phone = v_phone
+  ORDER BY p.created_at
+  LIMIT 1;
+
+  IF v_person_id IS NOT NULL THEN
+    UPDATE people SET
+      name = trim(p_name),
+      email = COALESCE(p_email, people.email),
+      updated_at = now()
+    WHERE id = v_person_id;
+  ELSE
+    INSERT INTO people (tenant_id, kind, name, phone, email, metadata)
+    VALUES (p_tenant_id, v_client_kind, trim(p_name), v_phone, p_email,
+            jsonb_build_object('source', 'public_booking'))
+    RETURNING id INTO v_person_id;
+  END IF;
+
+  -- order + booking + order_item (statuses hardcoded — caller cannot set)
+  INSERT INTO orders (tenant_id, kind, status, party_id, assignee_id, subtotal, total, notes, metadata)
+  VALUES (p_tenant_id, 'appointment', 'scheduled', v_person_id, v_assignee,
+          v_service.price, v_service.price, v_notes,
+          jsonb_build_object('source', 'public_booking',
+                             'serviceNames', v_service.name,
+                             'contactName', trim(p_name)))
+  RETURNING id INTO v_order;
+
+  INSERT INTO appointments (tenant_id, kind, party_id, assignee_id, order_id,
+                        starts_at, ends_at, status, notes, metadata)
+  VALUES (p_tenant_id, 'appointment', v_person_id, v_assignee, v_order,
+          p_starts_at, v_ends, 'scheduled', v_notes,
+          jsonb_build_object('source', 'public_booking', 'serviceNames', v_service.name))
+  RETURNING id INTO v_booking;
+
+  INSERT INTO order_items (order_id, service_id, name, quantity, unit_price, total,
+                           sort_order, duration_minutes, assignee_id)
+  VALUES (v_order, v_service.id, v_service.name, 1, v_service.price, v_service.price,
+          0, v_service.duration_minutes, v_assignee);
+
+  RETURN QUERY SELECT v_booking, p_starts_at, v_ends;
+END;
+$function$;
+`
+
+export const MIGRATION_012_DROP_LEGACY_BOOKING_OVERLOAD = `-- plugin-agenda 012: retire the pre-assignee create_public_booking overload.
+--
+-- ⚠️  DO NOT APPLY UNTIL @fayz-ai/plugin-agenda IS REPUBLISHED *AND* EVERY LIVE
+--     SITE HAS BEEN REDEPLOYED. Applying early breaks public booking on any
+--     site still serving a bundle that calls the 7-argument signature — the
+--     call stops resolving and every submission fails.
+--
+-- Some pools carry two overloads side by side:
+--     create_public_booking(uuid,uuid,timestamptz,text,text,text,text)
+--     create_public_booking(uuid,uuid,timestamptz,text,text,text,text,uuid)
+--
+-- Nothing errors when both exist, which is exactly the problem: a stale client
+-- silently resolves to the 7-arg one, which cannot know which professional the
+-- visitor was shown and falls back to "lowest assignee UUID". The site confirms
+-- one name, the agenda records another, and no one finds out until someone
+-- compares the two screens.
+--
+-- 011 makes that fallback survivable (tenant default). This makes it
+-- impossible — but only once no caller needs the old signature.
+--
+-- Verify before running:
+--   1. npm view @fayz-ai/plugin-agenda version   → the republished version
+--   2. every deployed bundle greps for p_assignee_id:
+--        curl -s https://<site>/assets/index-*.js | grep -c p_assignee_id
+--      Each must be ≥ 2 (slots + booking). Zero means that site still needs it.
+
+DROP FUNCTION IF EXISTS public.create_public_booking(
+  uuid, uuid, timestamptz, text, text, text, text
+);
+`
+
 export const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: "000b_v_bookings_rename", sql: MIGRATION_000B_V_BOOKINGS_RENAME },
   { id: "000c_dedupe_customer_phones", sql: MIGRATION_000C_DEDUPE_CUSTOMER_PHONES },
@@ -1729,4 +1962,7 @@ export const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: "007_schedule_exception_precedence", sql: MIGRATION_007_SCHEDULE_EXCEPTION_PRECEDENCE },
   { id: "008_agent_rpc_exception_precedence", sql: MIGRATION_008_AGENT_RPC_EXCEPTION_PRECEDENCE },
   { id: "009_public_booking_location", sql: MIGRATION_009_PUBLIC_BOOKING_LOCATION },
+  { id: "010_public_service_curation", sql: MIGRATION_010_PUBLIC_SERVICE_CURATION },
+  { id: "011_default_assignee", sql: MIGRATION_011_DEFAULT_ASSIGNEE },
+  { id: "012_drop_legacy_booking_overload", sql: MIGRATION_012_DROP_LEGACY_BOOKING_OVERLOAD },
 ]
