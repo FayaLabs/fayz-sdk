@@ -20,11 +20,15 @@ import { PersonLink } from './PersonLink'
 //   • selected  → a compact chip (PersonLink + phone) with an optional clear
 //   • creating  → inline name / phone / email form → `createPerson` → selected
 //
-// ONE look, deliberately: a bordered, always-open field. The agenda used to
-// collapse its client search behind a "+ Add client" link while conversations
-// showed an open field, so the same flow read as two different features. The
-// contact is the primary input on every surface that mounts this — hiding it
-// behind a click bought nothing and cost consistency.
+// ONE behaviour, two skins (`variant`). What used to differ between hosts was
+// the FLOW — the agenda hid its search behind a collapsed "+ Add client" and
+// rendered its own quick-create, conversations rendered its own phone field —
+// and that is what made the same feature read as two. Those are gone: search,
+// chip, inline create, label and handle capture all live here now, and the host
+// passes configuration, not layout. `variant` only picks how much chrome the
+// input wears, so it can sit in a form-shaped modal or in a dense icon row
+// without the surrounding layout looking broken. Always open in both: the
+// contact is the primary input everywhere this is mounted.
 //
 // Uncontrolled-friendly: pass `value`/`onChange` and the parent owns the id.
 // ---------------------------------------------------------------------------
@@ -60,7 +64,19 @@ export interface ContactPickerProps {
   disabled?: boolean
   autoFocus?: boolean
   placeholder?: string
-  /** Field label, rendered BY the component so every host gets the same one. */
+  /**
+   * How much chrome the field carries. The BEHAVIOUR — search, chip, inline
+   * create, handle capture — is identical either way; only the input's skin
+   * changes, so it can sit in whichever layout grammar the host already uses.
+   *
+   *  • 'field' (default) — label above + bordered input. For form-shaped modals
+   *    (the conversations composer), where every control is a labelled field.
+   *  • 'inline' — no label, borderless input that underlines on focus. For the
+   *    appointment modal's icon rows, where a bordered box next to "Scheduled"
+   *    and "Add notes" is the thing that looks out of place.
+   */
+  variant?: 'field' | 'inline'
+  /** Field label, rendered BY the component so every host gets the same one. Ignored when `variant='inline'`. */
   label?: string
   /**
    * Right-hand detail on the selected chip. Defaults to the person's phone; a
@@ -118,6 +134,7 @@ export function ContactPicker({
   disabled,
   autoFocus,
   placeholder,
+  variant = 'field',
   label,
   secondaryText,
   handleField,
@@ -250,7 +267,7 @@ export function ContactPicker({
   // mounted no matter which state it is in.
   const frame = (body: React.ReactNode) => (
     <div className={cn('flex flex-col', className)}>
-      {label && (
+      {label && variant === 'field' && (
         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
       )}
       {body}
@@ -369,6 +386,7 @@ export function ContactPicker({
         createLabel={createLabel ?? t('contactPicker.newContact')}
         onCreateNew={startCreate}
         autoFocus={autoFocus}
+        minimal={variant === 'inline'}
       />
       {hint && search.trim() && !searching && <div className="mt-1">{hint}</div>}
     </div>,
