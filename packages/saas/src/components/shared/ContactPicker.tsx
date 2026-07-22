@@ -62,6 +62,12 @@ export interface ContactPickerProps {
    * passes its own label so the wording doesn't regress into generic SDK copy.
    */
   createLabel?: string
+  /**
+   * Fires when the inline create form opens/closes. The create form owns phone
+   * and email while it is open, so a host that ALSO renders a phone/handle field
+   * (the conversations composer does) hides its own to avoid asking twice.
+   */
+  onCreatingChange?: (creating: boolean) => void
   className?: string
   /** Extra hint under the input while a name is typed but nothing is selected. */
   hint?: React.ReactNode
@@ -80,6 +86,7 @@ export function ContactPicker({
   placeholder,
   inlineLabel,
   createLabel,
+  onCreatingChange,
   className,
   hint,
 }: ContactPickerProps) {
@@ -93,7 +100,13 @@ export function ContactPicker({
   const [options, setOptions] = useState<ComboboxOption[]>([])
   const [searching, setSearching] = useState(false)
 
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreatingState] = useState(false)
+  const creatingChanged = useRef(onCreatingChange)
+  creatingChanged.current = onCreatingChange
+  const setCreating = (next: boolean) => {
+    setCreatingState(next)
+    creatingChanged.current?.(next)
+  }
   const [newName, setNewName] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [newEmail, setNewEmail] = useState('')

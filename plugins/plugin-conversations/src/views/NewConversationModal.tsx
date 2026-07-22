@@ -26,6 +26,9 @@ export function NewConversationModal({
   // Once the user edits the handle by hand we stop overwriting it from the
   // selected person — their typing outranks our autofill.
   const [handleTouched, setHandleTouched] = React.useState(false)
+  // While the picker's inline create form is open it already asks for phone and
+  // email, so showing our own handle field would ask for the phone twice.
+  const [creatingContact, setCreatingContact] = React.useState(false)
   const [firstMessage, setFirstMessage] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
 
@@ -38,6 +41,7 @@ export function NewConversationModal({
       setContact(null)
       setContactHandle('')
       setHandleTouched(false)
+      setCreatingContact(false)
       setFirstMessage('')
       setSubmitting(false)
       setPickerKey((k) => k + 1)
@@ -59,11 +63,14 @@ export function NewConversationModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
-    // Plan quantity guard (client-side, before the store call): opens the global
-    // UpgradeModal and aborts when the monthly conversation cap is reached.
-    if ((await guardConversations()) === 'blocked') return
     setSubmitting(true)
     try {
+      // Plan quantity guard (client-side, before the store call): opens the
+      // global UpgradeModal and aborts when the monthly cap is reached. Inside
+      // the try on purpose — it hits the network to count usage, and a rejection
+      // out here used to escape unhandled, leaving the modal open with no
+      // feedback at all (indistinguishable from a dead button).
+      if ((await guardConversations()) === 'blocked') return
       await create({
         channel,
         contactName: contact!.name.trim(),
@@ -139,12 +146,15 @@ export function NewConversationModal({
               extensionTable={config.contactExtensionTable}
               lookup={config.contactLookup}
               allowFreeText
+              onCreatingChange={setCreatingContact}
               autoFocus
               placeholder={t('conversations.new.contactNamePlaceholder')}
             />
           </div>
 
-          {/* Handle / phone / email — autofilled from the picked contact. */}
+          {/* Handle / phone / email — autofilled from the picked contact, and
+              hidden while the picker's create form owns those fields. */}
+          {!creatingContact && (
           <div>
             <label htmlFor="conv-contact-handle" className="mb-1.5 block text-xs font-medium text-muted-foreground">
               {t('conversations.new.handle')}
@@ -156,6 +166,7 @@ export function NewConversationModal({
               placeholder={t('conversations.new.handlePlaceholder')}
             />
           </div>
+          )}
 
           {/* First message */}
           <div>
