@@ -14,7 +14,7 @@ function requestChatConfirmation(action: {
 }): Promise<boolean> {
   return useChatStore.getState().requestConfirmation(action)
 }
-import type { EntityDef, OrgMember, Organization } from '@fayz-ai/core'
+import type { EntityDef, OrgMember, Organization, TeamPerson } from '@fayz-ai/core'
 import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
 
 /**
@@ -48,6 +48,13 @@ export interface DataToolTarget {
 export interface AIToolExecutionContext {
   currentOrg: Organization | null
   members: OrgMember[]
+  /**
+   * Person-first team resolver — the same source the Team screen renders
+   * (people of the configured `team.personKinds`, each with an OPTIONAL access
+   * overlay). Absent when the app runs in legacy membership-only mode, in
+   * which case `members` is the whole team.
+   */
+  loadTeam?: () => Promise<TeamPerson[]>
   currentPath: string
   /** Pages the surface exposes, used to resolve navigation requests. */
   routes: Array<{ path: string; label?: string }>
@@ -833,7 +840,41 @@ export function buildAgentToolset(
 // Core handlers — the executable counterpart of `coreAITools`.
 // ---------------------------------------------------------------------------
 
-registerAIToolHandler('getBusinessSummary', (_args, ctx) => {
+/**
+ * The team, as the Team screen defines it.
+ *
+ * Person-first apps (`team.personKinds` configured) staff their workspace with
+ * PEOPLE — a teacher or stylist is on the team whether or not they ever log in;
+ * `tenant_members` is just the access overlay on top. Reading memberships alone
+ * answered "who is on my team?" with the single owner row while the Team screen
+ * listed six, so the tool now resolves the same source the screen renders and
+ * only falls back to memberships in legacy mode.
+ */
+async function resolveTeamRows(ctx: AIToolExecutionContext): Promise<
+  Array<{ name: string | null; kind?: string; email: string | null; accessRole: string | null; hasLogin: boolean }>
+> {
+  if (ctx.loadTeam) {
+    const team = await ctx.loadTeam()
+    return team.map((p) => ({
+      name: p.name ?? null,
+      kind: p.kind,
+      email: p.email ?? null,
+      accessRole: p.membership?.profileName ?? null,
+      hasLogin: !!p.membership,
+    }))
+  }
+  // Legacy: every team member IS a membership row. `profileName` is the RBAC
+  // role, never the person's name — reporting it as `name` is what made the
+  // assistant answer "one person, with the role of Owner".
+  return ctx.members.map((m) => ({
+    name: m.user?.fullName ?? null,
+    email: m.user?.email ?? null,
+    accessRole: m.profileName ?? null,
+    hasLogin: true,
+  }))
+}
+
+registerAIToolHandler('getBusinessSummary', async (_args, ctx) => {
   if (!ctx.currentOrg) return { error: 'no_active_business' }
   const org = ctx.currentOrg as Organization & { plan?: string; verticalId?: string }
   return {
@@ -841,22 +882,23 @@ registerAIToolHandler('getBusinessSummary', (_args, ctx) => {
     slug: org.slug,
     plan: org.plan ?? null,
     vertical: org.verticalId ?? null,
-    teamSize: ctx.members.length,
+    teamSize: (await resolveTeamRows(ctx)).length,
     createdAt: org.createdAt ?? null,
   }
 })
 
-registerAIToolHandler('getTeamMembers', (args, ctx) => {
-  const role = typeof args.role === 'string' ? args.role.toLowerCase() : undefined
-  const members = ctx.members
-    .map((m) => m as OrgMember & { role?: string; status?: string })
-    .filter((m) => !role || String(m.role ?? '').toLowerCase() === role)
-    .map((m) => ({
-      name: m.profileName ?? m.user?.fullName ?? null,
-      email: m.user?.email ?? null,
-      role: m.role ?? null,
-      status: m.status ?? null,
-    }))
+registerAIToolHandler('getTeamMembers', async (args, ctx) => {
+  const filter = typeof args.role === 'string' ? args.role.trim().toLowerCase() : undefined
+  const rows = await resolveTeamRows(ctx)
+  // One filter, two vocabularies: users say "os professores" (the person kind)
+  // and "os admins" (the access role) with the same word shape.
+  const members = filter
+    ? rows.filter(
+        (r) =>
+          String(r.kind ?? '').toLowerCase() === filter ||
+          String(r.accessRole ?? '').toLowerCase() === filter,
+      )
+    : rows
   return { total: members.length, members }
 })
 

@@ -22,13 +22,16 @@ export const coreAITools: PluginAITool[] = [
   {
     id: 'core.team-members',
     name: 'getTeamMembers',
-    description: 'Lists the WORKSPACE USERS (people with a login) and their roles. This is NOT the professionals/staff registry — for professionals, stylists or other staff the business manages as records, use the staff/people search tools instead.',
+    description: "Lists the WORKSPACE TEAM exactly as the Team screen shows it: the people who staff this business. Each row carries `kind` (what they do here — teacher, staff…), `accessRole` (their permission role, null when they have no login) and `hasLogin`. Answer headcount questions from this — never report the number of logins as the size of the team.",
     icon: 'Users',
     mode: 'read',
     parameters: {
       type: 'object',
       properties: {
-        role: { type: 'string', description: 'Filter by role: owner, admin, manager, staff, viewer' },
+        role: {
+          type: 'string',
+          description: 'Optional filter, matched against either the person kind (teacher, staff…) or the access role (owner, admin, manager, viewer).',
+        },
       },
     },
     permission: { feature: 'team', action: 'read' },

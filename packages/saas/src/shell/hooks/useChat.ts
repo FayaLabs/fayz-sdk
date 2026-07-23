@@ -9,6 +9,11 @@ import { useOrganizationStore } from '../stores/organization.store'
 // retired -qa checkout).
 import { useAuthStore } from '@fayz-ai/auth'
 import { usePluginRuntimeOptional } from '../lib/plugins'
+// Native org adapter (same import TeamTab uses) — the shell context is
+// un-provided, so the assistant reads the team through the native one.
+import { useOrgAdapterOptional as useNativeOrgAdapter } from '../../org'
+import type { OrgAdapter } from '../types/org-adapter'
+import { dedup } from '../lib/dedup'
 import { useRouter } from '../lib/router'
 import { useTranslation } from './useTranslation'
 import { useAITools } from './useAITools'
@@ -52,7 +57,17 @@ export function useChat(options?: UseChatOptions) {
   const { tools, activePluginId } = useAITools()
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const members = useOrganizationStore((s) => s.members)
+  const teamPersonKinds = useOrganizationStore((s) => s.teamPersonKinds)
   const user = useAuthStore((s) => s.user)
+  const orgAdapter = useNativeOrgAdapter() as unknown as OrgAdapter | null
+
+  // Person-first team resolver for `getTeamMembers`. Fetched on demand (the
+  // chat is reachable without ever opening the Team screen) and deduped with
+  // that screen's own load, so asking the assistant costs no extra round-trip.
+  const loadTeam = useMemo(() => {
+    if (!currentOrg || !teamPersonKinds.length || typeof orgAdapter?.listTeam !== 'function') return undefined
+    return () => dedup('team:people:' + currentOrg.id, () => orgAdapter.listTeam!(currentOrg.id, teamPersonKinds))
+  }, [orgAdapter, currentOrg?.id, teamPersonKinds.join(',')])
 
   // The project's Fayz agent, resolved from the env the container injects. An
   // app-supplied apiEndpoint wins — that is an explicit opt-out.
@@ -140,6 +155,7 @@ export function useChat(options?: UseChatOptions) {
       const toolContext: AIToolExecutionContext = {
         currentOrg,
         members,
+        loadTeam,
         currentPath: runtime?.context.currentPath ?? '/',
         routes: (runtime?.navigation ?? []).map((n) => ({ path: n.route, label: n.label })),
         navigate: router.navigate,
@@ -304,7 +320,7 @@ export function useChat(options?: UseChatOptions) {
         message = undefined
       }
     },
-    [store, tools, serverPlane, executeGuarded, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
+    [store, tools, serverPlane, executeGuarded, activePluginId, runtime, router, currentOrg, members, loadTeam, user, options?.systemPrompt],
   )
 
   const sendMessage = useCallback(
