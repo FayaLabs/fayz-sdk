@@ -13,6 +13,7 @@ import {
   DropdownItem,
   DropdownLabel,
   DropdownSeparator,
+  Skeleton,
   useLayoutStore,
   Popover,
   PopoverTrigger,
@@ -101,11 +102,28 @@ export interface AdminShellProps {
 // setCurrentOrg(partial) path only swapped the name and left stores stale.
 // ---------------------------------------------------------------------------
 
-function WorkspaceSwitcher() {
+function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar' | 'topbar' }) {
   const tenant = useTenantOptional()
   const currentOrg = tenant?.org ?? null
   const t = useTranslation()
-  if (!tenant || !currentOrg) return null
+  if (!tenant) return null
+  // Org still hydrating → hold the slot with a trigger-shaped skeleton instead
+  // of collapsing to nothing and popping in later (layout shift in the bar).
+  if (!currentOrg) {
+    if (!tenant.loading) return null
+    return (
+      <div
+        className={
+          variant === 'topbar'
+            ? 'flex w-[180px] items-center gap-2 rounded-md border border-sidebar-border/60 bg-sidebar-accent/30 px-2 py-1.5'
+            : 'flex w-full items-center gap-2 rounded-md border border-sidebar-border/60 bg-sidebar-accent/30 px-2 py-1.5'
+        }
+      >
+        <Skeleton className="h-6 w-6 shrink-0 rounded bg-sidebar-accent" />
+        <Skeleton className="h-4 flex-1 rounded bg-sidebar-accent" />
+      </div>
+    )
+  }
 
   const { userOrgs, switchOrg, loading } = tenant
   const Building = LucideIcons.Building2
@@ -124,7 +142,13 @@ function WorkspaceSwitcher() {
     <Dropdown>
       <DropdownTrigger asChild>
         <button
-          className="flex w-full items-center gap-2 rounded-md border border-sidebar-border/60 bg-sidebar-accent/30 px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent disabled:opacity-70"
+          className={
+            variant === 'topbar'
+              // Inline beside the topbar logo (same bg-sidebar surface): compact,
+              // capped width instead of filling the row.
+              ? 'flex max-w-[220px] items-center gap-2 rounded-md border border-sidebar-border/60 bg-sidebar-accent/30 px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent disabled:opacity-70'
+              : 'flex w-full items-center gap-2 rounded-md border border-sidebar-border/60 bg-sidebar-accent/30 px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent disabled:opacity-70'
+          }
           disabled={loading}
         >
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-sidebar-accent text-sidebar-accent-foreground">
@@ -134,21 +158,23 @@ function WorkspaceSwitcher() {
           <Chevron className="h-3.5 w-3.5 shrink-0 text-sidebar-muted" />
         </button>
       </DropdownTrigger>
-      <DropdownContent align="start" className="w-56 bg-sidebar text-sidebar-foreground border-sidebar-border">
-        <DropdownLabel className="text-sidebar-muted">{tr('organization.workspaces', 'Workspaces')}</DropdownLabel>
-        <DropdownSeparator className="bg-sidebar-border" />
+      {/* Plain popover-toned dropdown (light in light mode) — only the TRIGGER
+          matches the dark sidebar/topbar surface it sits on. */}
+      <DropdownContent align="start" className="w-56">
+        <DropdownLabel>{tr('organization.workspaces', 'Workspaces')}</DropdownLabel>
+        <DropdownSeparator />
         {options.map((m) => (
           <DropdownItem
             key={m.orgId}
             onClick={() => { if (m.orgId !== currentOrg.id) void switchOrg(m.orgId) }}
-            className="flex items-center gap-2 focus:bg-sidebar-accent focus:text-sidebar-accent-foreground"
+            className="flex items-center gap-2"
           >
             <span className="min-w-0 flex-1 truncate">{m.orgName}</span>
             {currentOrg.id === m.orgId && <Check className="h-4 w-4 shrink-0" />}
           </DropdownItem>
         ))}
         {isSingle && (
-          <p className="px-2 py-1.5 text-xs text-sidebar-muted">
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">
             {tr('organization.onlyWorkspace', 'This is your only workspace.')}
           </p>
         )}
@@ -788,6 +814,10 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       userPlan={planBadge ? { label: planBadge.label, paid: planBadge.paid } : undefined}
       billingLabel={tr('settings.subscription', 'Subscription')}
       sidebarTopContent={inSettings ? settingsBackLink : showOrgSwitcher ? <WorkspaceSwitcher /> : undefined}
+      // Topbar layout has no sidebar top slot — the switcher rides beside the
+      // logo instead (and in the mobile drawer). Sidebar layout keeps using
+      // sidebarTopContent above, so this stays undefined there (no double render).
+      orgSwitcher={layout === 'topbar' && !inSettings && showOrgSwitcher ? <WorkspaceSwitcher variant="topbar" /> : undefined}
       topbarStart={<WidgetSlot zone="shell.topbar.start" />}
       topbarEnd={<WidgetSlot zone="shell.topbar.end" />}
       notificationSlot={<AdminNotifications />}

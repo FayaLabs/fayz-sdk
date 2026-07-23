@@ -103,6 +103,8 @@ export {
   type MarkdownProps,
   MarkdownEditor,
   type MarkdownEditorProps,
+  SearchCombobox,
+  type ComboboxOption,
 } from './primitives'
 
 // Layout

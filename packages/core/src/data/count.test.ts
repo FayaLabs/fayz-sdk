@@ -125,4 +125,28 @@ describe('countByTenant', () => {
     setGlobalSupabaseClient(m.client as object)
     expect(await countByTenant('clients')).toBe(0)
   })
+
+  it('fails open (returns 0) instead of hanging when the query never settles', async () => {
+    // A cold-boot query can be issued before the auth session is ready and then
+    // never resolve. The guard awaiting this must not hang the UI forever.
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            eq: () => neverSettles,
+            gte: () => neverSettles,
+            then: neverSettles.then.bind(neverSettles),
+          }),
+        }),
+      }),
+    }
+    const neverSettles = { then: () => {} } as unknown as Promise<never>
+    setGlobalSupabaseClient(client as object)
+
+    vi.useFakeTimers()
+    const pending = countByTenant('clients', { fresh: true })
+    await vi.advanceTimersByTimeAsync(6_000)
+    await expect(pending).resolves.toBe(0)
+    vi.useRealTimers()
+  })
 })

@@ -57,6 +57,7 @@ export const ptBR: Record<string, string> = {
   "crm.dealSidebar.viewLeadProfile": "Ver Perfil Completo do Lead",
   "crm.leadDetail.assignedTo": "Atribuído a",
   "crm.leadDetail.backToList": "Voltar à lista",
+  "crm.leadDetail.formAnswers": "Dados do formulário",
   "crm.leadDetail.company": "Empresa",
   "crm.leadDetail.contactInfo": "Informações de Contato",
   "crm.leadDetail.createQuote": "Criar Orçamento",

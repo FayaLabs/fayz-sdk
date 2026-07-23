@@ -16,6 +16,21 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 
+/** "hair_remaining" → "Hair remaining". Form answers arrive keyed by whatever
+ *  the landing page called them, so they get humanized rather than shown raw. */
+function humanizeKey(key: string): string {
+  const spaced = key.replace(/[_-]+/g, ' ').replace(/([a-z\d])([A-Z])/g, '$1 $2')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+function renderFieldValue(value: unknown): React.ReactNode {
+  if (value === null || value === undefined || value === '') return null
+  if (Array.isArray(value)) return value.length ? value.join(', ') : null
+  if (typeof value === 'boolean') return value ? 'Sim' : 'Não'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
 function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid grid-cols-3 gap-4 py-3">
@@ -158,6 +173,44 @@ export function LeadDetailView({ leadId, onBack, onCreateQuote, onViewQuote }: {
           </dl>
         </div>
       </div>
+
+      {/* Form answers — whatever the landing page asked. Rendered generically
+          so a new form never needs a change here. */}
+      {(() => {
+        const meta = (lead.metadata ?? {}) as {
+          fields?: Record<string, unknown>
+          utm?: Record<string, unknown>
+        }
+        const fields = Object.entries(meta.fields ?? {}).filter(([, v]) => renderFieldValue(v) !== null)
+        const utm = Object.entries(meta.utm ?? {}).filter(([, v]) => renderFieldValue(v) !== null)
+        if (!fields.length && !utm.length) return null
+        return (
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-1">
+              {t('crm.leadDetail.formAnswers')}
+            </h3>
+            <div className="rounded-xl border bg-card shadow-sm">
+              <dl className="grid divide-y md:grid-cols-2 md:divide-y-0">
+                {fields.map(([key, value]) => (
+                  <div key={key} className="px-5 md:border-b md:last:border-b-0">
+                    <FieldRow label={humanizeKey(key)} value={renderFieldValue(value)} />
+                  </div>
+                ))}
+              </dl>
+              {utm.length > 0 && (
+                <div className="border-t px-5 py-3 flex flex-wrap gap-x-4 gap-y-1">
+                  {utm.map(([key, value]) => (
+                    <span key={key} className="text-xs text-muted-foreground">
+                      {humanizeKey(key.replace(/^utm_/, ''))}:{' '}
+                      <span className="text-foreground">{renderFieldValue(value)}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Pipeline / Deal */}
       {deal && (

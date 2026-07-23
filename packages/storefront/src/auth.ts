@@ -5,6 +5,7 @@ import {
   type AuthPluginOptions,
 } from '@fayz-ai/plugin-auth'
 import { getShopProvider } from '@fayz-ai/shop/runtime'
+import { setShopAccessTokenResolver } from '@fayz-ai/sdk/shop'
 import { useSessionStore } from './stores/session.store'
 
 // ---------------------------------------------------------------------------
@@ -64,13 +65,41 @@ export function resolveAuthAdapter(
   }).adapter
 }
 
+// The shopper's current access token, handed to the shop REST client so its
+// requests reach PostgREST as the signed-in user instead of as `anon`. Held
+// here rather than in the session store because it is a credential: it must not
+// be persisted to localStorage alongside the customer id. The Supabase client
+// owns its own refresh; this is only a mirror of the live value.
+let _accessToken: string | null = null
+
+/** Whether an authenticated identity was ever seen this session. Distinguishes
+ *  "signed out" from "was never signed in" — see the onAuthStateChange guard. */
+let _hadAuthUser = false
+
+/** Refresh the mirrored token from the adapter. Safe to call on any event. */
+async function syncAccessToken(adapter: AuthAdapter): Promise<void> {
+  try {
+    const existing = await adapter.getSession()
+    _accessToken = existing?.session.accessToken ?? null
+  } catch {
+    _accessToken = null
+  }
+}
+
 /** Called once by createStorefrontApp. Restores any persisted session. */
 export function initCustomerAuth(adapter: AuthAdapter): void {
   _adapter = adapter
+
+  // Registered before the first await so no request can slip out anonymously
+  // while the session is still being restored.
+  setShopAccessTokenResolver(() => _accessToken)
+
   adapter
     .getSession()
     .then((existing) => {
+      _accessToken = existing?.session.accessToken ?? null
       if (!existing) return
+      _hadAuthUser = true
       const store = useSessionStore.getState()
       // Re-link only when the persisted shop session doesn't match the auth user
       if (store.email !== existing.user.email) {
@@ -78,8 +107,26 @@ export function initCustomerAuth(adapter: AuthAdapter): void {
       }
     })
     .catch(() => {})
+
   adapter.onAuthStateChange((user) => {
-    if (!user) useSessionStore.getState().signOut()
+    if (!user) {
+      _accessToken = null
+      // Only tear down the shop session if there WAS an authenticated identity
+      // to lose. The Supabase adapter fires this once on boot with a null user
+      // (INITIAL_SESSION), and clearing unconditionally wiped the guest's local
+      // session on every page load — a guest who checked out could no longer
+      // find their order after a reload. The mock adapter never surfaced this
+      // because it always restored a session.
+      if (_hadAuthUser) {
+        _hadAuthUser = false
+        useSessionStore.getState().signOut()
+      }
+      return
+    }
+    _hadAuthUser = true
+    // Covers token refresh too, not just sign-in: the callback carries the user
+    // but not the token, and a stale token would 401 every read an hour in.
+    void syncAccessToken(adapter)
   })
 }
 
@@ -137,6 +184,11 @@ export async function establishCustomerSession(
   if (opts?.password) {
     const adapter = getCustomerAuthAdapter()
     const session = await adapter.signIn(normalized, opts.password)
+    // Before linkCustomer, not after: linkCustomer calls shop_resolve_customer,
+    // which reads auth.uid() to fill auth_user_id. Sent with the old token that
+    // link silently no-ops and the account stays unlinked forever.
+    _accessToken = session.accessToken ?? null
+    _hadAuthUser = true
     return linkCustomer(session.user.email ? session.user : { ...session.user, email: normalized }, opts.name)
   }
   // Guest / passwordless checkout: do NOT create an auth account (that made
@@ -159,6 +211,8 @@ export async function signUpCustomer(
   const adapter = getCustomerAuthAdapter()
   const normalized = email.trim().toLowerCase()
   const session = await adapter.signUp(normalized, password, name)
+  _accessToken = session.accessToken ?? null
+  _hadAuthUser = true
   return linkCustomer(session.user.email ? session.user : { ...session.user, email: normalized }, name)
 }
 
@@ -166,6 +220,8 @@ export async function signOutCustomer(): Promise<void> {
   try {
     await getCustomerAuthAdapter().signOut()
   } finally {
+    _accessToken = null
+    _hadAuthUser = false
     useSessionStore.getState().signOut()
   }
 }

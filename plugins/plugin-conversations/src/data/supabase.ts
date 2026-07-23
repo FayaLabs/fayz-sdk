@@ -37,6 +37,7 @@ function mapConversation(r: Row): Conversation {
   return {
     id: String(r.id),
     contactName: (r.contact_name as string) ?? '',
+    contactPersonId: (r.contact_person_id as string | null) ?? undefined,
     contactHandle: (r.contact_handle as string) ?? '',
     channel: (r.channel as Conversation['channel']) ?? 'sms',
     lastMessagePreview: (r.last_message_preview as string) ?? '',
@@ -142,6 +143,10 @@ export function createSupabaseConversationsProvider(
 
       const convRow: Row = {
         contact_name: input.contactName.trim(),
+        // Only written when the picker resolved a real person — an app that
+        // hasn't run migration 002 yet would reject an unknown column, and
+        // omitting it keeps the free-text path working there.
+        ...(input.contactPersonId ? { contact_person_id: input.contactPersonId } : {}),
         contact_handle: input.contactHandle?.trim() || null,
         channel: input.channel,
         last_message_preview: firstMessage || null,

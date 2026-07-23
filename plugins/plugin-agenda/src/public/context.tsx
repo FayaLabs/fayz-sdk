@@ -4,6 +4,7 @@ import type { PublicBookingDataProvider } from './data'
 import type {
   BookingComponents,
   BookingWindow,
+  PhoneVerificationMode,
   PublicBookingLabels,
   PublicService,
   ResolvedBookingBrand,
@@ -25,6 +26,8 @@ export interface PublicBookingContextValue {
   servicesLoading: boolean
   /** Business opening hours, shown on the overview "Sobre" section. */
   businessHours: WorkingHours
+  /** 'otp' shows the code modal; 'none' trusts the typed number (default). */
+  phoneVerification: PhoneVerificationMode
   /** Payment step config, or null when the flow ends at confirmation. */
   payment: ResolvedPayment | null
   /** Injected charge provider (Pix). When absent, the payment step self-mocks. */

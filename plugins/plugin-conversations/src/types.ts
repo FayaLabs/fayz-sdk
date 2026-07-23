@@ -12,6 +12,12 @@ export type MessageDirection = 'inbound' | 'outbound'
 export interface Conversation {
   id: string
   contactName: string
+  /**
+   * `public.people` id when the thread is tied to a real contact record (the
+   * compose modal resolves one via the shared ContactPicker). Absent for legacy
+   * threads and for inbound messages from an unknown handle.
+   */
+  contactPersonId?: string
   /** Phone, @handle, or email depending on channel */
   contactHandle: string
   channel: Channel
@@ -51,6 +57,8 @@ export interface SendMessageInput {
 
 export interface CreateConversationInput {
   contactName: string
+  /** `public.people` id, when the contact was resolved/created by the picker. */
+  contactPersonId?: string
   /** Phone, @handle, or email depending on channel. */
   contactHandle?: string
   channel: Channel

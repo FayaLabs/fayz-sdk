@@ -109,6 +109,10 @@ export interface EntityContract {
     type: string
     required?: boolean
     searchable?: boolean
+    /** FieldDef.hint — the field's helper text. Carried into the contract
+     *  because it is what tells the agent what a non-obvious column expects:
+     *  an id to look up, a default it should not restate, a format. */
+    hint?: string
     /** Allowed values for select-like fields. */
     options?: string[]
     /** Table the relation field points at (FieldRelation.table). */

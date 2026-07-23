@@ -1,12 +1,34 @@
 import React from 'react'
-import { Button, Input, Modal, ModalContent, cn, toast } from '@fayz-ai/ui'
+import { Button, Modal, ModalContent, cn, toast } from '@fayz-ai/ui'
 import { useTranslation } from '@fayz-ai/core'
-import { useLimitGuard, invalidateLimit } from '@fayz-ai/saas'
-import { useConversationsStore } from '../ConversationsContext'
+import { useLimitGuard, invalidateLimit, ContactPicker, type ContactPickerValue } from '@fayz-ai/saas'
+import { useConversationsStore, useConversationsConfig } from '../ConversationsContext'
 import { CHANNEL_ACCENT, CHANNEL_ICON, CHANNEL_LABELS } from '../channel'
 import type { Channel } from '../types'
 
 const CHANNELS: Channel[] = ['whatsapp', 'sms', 'instagram', 'email', 'webchat']
+
+/**
+ * Which field of a person IS the handle on a given channel. Phone channels read
+ * the phone, email reads the email; Instagram and web chat have no counterpart
+ * on a person record, so they always have to be typed. Deliberately NOT
+ * cross-filling (an email in a WhatsApp handle looked plausible on screen and
+ * was simply wrong).
+ */
+function personHandleFor(channel: Channel, contact: ContactPickerValue | null): string {
+  if (!contact) return ''
+  if (channel === 'email') return contact.email ?? ''
+  if (channel === 'sms' || channel === 'whatsapp') return contact.phone ?? ''
+  return ''
+}
+
+const HANDLE_LABEL_KEY: Record<Channel, string> = {
+  whatsapp: 'conversations.new.handleLabel.phone',
+  sms: 'conversations.new.handleLabel.phone',
+  email: 'conversations.new.handleLabel.email',
+  instagram: 'conversations.new.handleLabel.instagram',
+  webchat: 'conversations.new.handleLabel.webchat',
+}
 
 export function NewConversationModal({
   open,
@@ -17,39 +39,61 @@ export function NewConversationModal({
 }) {
   const t = useTranslation()
   const create = useConversationsStore((s) => s.create)
+  const config = useConversationsConfig()
   const guardConversations = useLimitGuard('conversations_month')
 
   const [channel, setChannel] = React.useState<Channel>('whatsapp')
-  const [contactName, setContactName] = React.useState('')
-  const [contactHandle, setContactHandle] = React.useState('')
+  const [contact, setContact] = React.useState<ContactPickerValue | null>(null)
+  // Handle the user typed themselves. The one taken FROM the contact is derived
+  // (see personHandleFor) and shown on the picker's chip — same as the agenda,
+  // which never had a second phone field.
+  const [typedHandle, setTypedHandle] = React.useState('')
+  // While the picker's inline create form is open it already asks for phone and
+  // email, so showing our own handle field would ask for the phone twice.
+  const [creatingContact, setCreatingContact] = React.useState(false)
   const [firstMessage, setFirstMessage] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
 
-  // Reset the form each time the modal opens.
+  // Reset the form each time the modal opens. `pickerKey` remounts the picker so
+  // its internal search text resets too.
+  const [pickerKey, setPickerKey] = React.useState(0)
   React.useEffect(() => {
     if (open) {
       setChannel('whatsapp')
-      setContactName('')
-      setContactHandle('')
+      setContact(null)
+      setTypedHandle('')
+      setCreatingContact(false)
       setFirstMessage('')
       setSubmitting(false)
+      setPickerKey((k) => k + 1)
     }
   }, [open])
 
-  const canSubmit = contactName.trim().length > 0 && !submitting
+  // What we'd message on this channel: the contact's own datum when they have
+  // one, otherwise whatever the user typed. Recomputed on every channel switch,
+  // so flipping WhatsApp → Email swaps phone for email with no stale state.
+  const derivedHandle = personHandleFor(channel, contact)
+  const effectiveHandle = derivedHandle || typedHandle
+  const handleLabel = t(HANDLE_LABEL_KEY[channel])
+
+  const canSubmit = (contact?.name.trim().length ?? 0) > 0 && !submitting
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
-    // Plan quantity guard (client-side, before the store call): opens the global
-    // UpgradeModal and aborts when the monthly conversation cap is reached.
-    if ((await guardConversations()) === 'blocked') return
     setSubmitting(true)
     try {
+      // Plan quantity guard (client-side, before the store call): opens the
+      // global UpgradeModal and aborts when the monthly cap is reached. Inside
+      // the try on purpose — it hits the network to count usage, and a rejection
+      // out here used to escape unhandled, leaving the modal open with no
+      // feedback at all (indistinguishable from a dead button).
+      if ((await guardConversations()) === 'blocked') return
       await create({
         channel,
-        contactName: contactName.trim(),
-        contactHandle: contactHandle.trim() || undefined,
+        contactName: contact!.name.trim(),
+        contactPersonId: contact?.id,
+        contactHandle: effectiveHandle.trim() || undefined,
         firstMessage: firstMessage.trim() || undefined,
       })
       invalidateLimit('conversations_month')
@@ -103,32 +147,32 @@ export function NewConversationModal({
             </div>
           </div>
 
-          {/* Contact name */}
-          <div>
-            <label htmlFor="conv-contact-name" className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              {t('conversations.new.contactName')}
-            </label>
-            <Input
-              id="conv-contact-name"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder={t('conversations.new.contactNamePlaceholder')}
-              autoFocus
-            />
-          </div>
-
-          {/* Handle / phone / email */}
-          <div>
-            <label htmlFor="conv-contact-handle" className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              {t('conversations.new.handle')}
-            </label>
-            <Input
-              id="conv-contact-handle"
-              value={contactHandle}
-              onChange={(e) => setContactHandle(e.target.value)}
-              placeholder={t('conversations.new.handlePlaceholder')}
-            />
-          </div>
+          {/* Contact — shared find-or-create flow (@fayz-ai/saas), the same one
+              the agenda uses to pick a client. The picker owns its label, the
+              search field, the chip and the channel handle, so this composer and
+              the appointment modal render the SAME thing from the same code. */}
+          <ContactPicker
+            key={pickerKey}
+            value={contact}
+            onChange={setContact}
+            kind={config.contactKind}
+            extensionTable={config.contactExtensionTable}
+            lookup={config.contactLookup}
+            allowFreeText
+            onCreatingChange={setCreatingContact}
+            autoFocus
+            label={t('conversations.new.contactName')}
+            placeholder={t('conversations.new.contactNamePlaceholder')}
+            secondaryText={derivedHandle || undefined}
+            handleField={{
+              label: handleLabel,
+              derived: derivedHandle || undefined,
+              value: typedHandle,
+              onChange: setTypedHandle,
+              fieldLabel: t('conversations.new.handle'),
+              placeholder: t('conversations.new.handlePlaceholder'),
+            }}
+          />
 
           {/* First message */}
           <div>

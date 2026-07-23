@@ -130,6 +130,8 @@ export interface TopbarProps {
   logo?: React.ReactNode
   user?: { fullName: string; avatarUrl?: string; email: string }
   onMenuClick?: () => void
+  /** Workspace/org switcher rendered right after the logo (desktop). */
+  orgSwitcher?: React.ReactNode
   leftContent?: React.ReactNode
   rightContent?: React.ReactNode
   currentPath?: string
@@ -316,6 +318,7 @@ export function Topbar({
   logo,
   user,
   onMenuClick,
+  orgSwitcher,
   leftContent,
   rightContent,
   currentPath = '/',
@@ -360,6 +363,9 @@ export function Topbar({
             <div className="hidden shrink-0 items-center md:flex">
               {logo ?? <span className="text-lg font-bold">App</span>}
             </div>
+            {orgSwitcher && (
+              <div className="hidden min-w-0 items-center md:flex">{orgSwitcher}</div>
+            )}
           </div>
 
           {/* Center: Search (desktop only) */}

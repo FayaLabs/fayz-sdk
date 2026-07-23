@@ -182,7 +182,12 @@ export function createSupabaseFinancialProvider(): FinancialDataProvider {
       }
       if (query.contactId) qb = qb.eq('party_id', query.contactId)
       if (query.search) qb = qb.ilike('notes', `%${query.search}%`)
-      if (query.dateRange) qb = qb.gte('created_at', query.dateRange.from).lte('created_at', query.dateRange.to)
+      // `to` is a plain date from the UI filter — widen it to end-of-day so the
+      // last day of the range isn't cut off at midnight.
+      if (query.dateRange) {
+        const to = query.dateRange.to.length === 10 ? `${query.dateRange.to}T23:59:59.999` : query.dateRange.to
+        qb = qb.gte('created_at', query.dateRange.from).lte('created_at', to)
+      }
       const page = query.page ?? 1
       const pageSize = query.pageSize ?? 50
       qb = qb.range((page - 1) * pageSize, page * pageSize - 1).order('created_at', { ascending: false })

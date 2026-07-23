@@ -6,6 +6,8 @@ import type {
   CreateCategoryInput, UpdateCategoryInput,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions, PlaceOrderInput,
   CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
+  CustomerAddress, ShippingQuoteOption,
+  ShippingZone, CreateShippingZoneInput, UpdateShippingZoneInput,
   CreateDiscountInput, UpdateDiscountInput, ListDiscountsOptions,
 } from './types'
 
@@ -18,6 +20,18 @@ export interface ShopProvider {
   deleteProduct(id: string): Promise<void>
   uploadProductImage(productId: string, file: File): Promise<ProductImage>
   deleteProductImage(imageId: string): Promise<void>
+  /**
+   * Reorder a gallery or promote a photo to primary. Optional so a provider
+   * that only ever holds one image per product need not implement it.
+   *
+   * Setting `isPrimary` is exclusive: the previous primary is demoted in the
+   * same call, because two primaries make "the product photo" ambiguous
+   * everywhere it is read (card, cart line, order item, admin table).
+   */
+  updateProductImage?(
+    imageId: string,
+    input: { isPrimary?: boolean; sortOrder?: number; altText?: string | null },
+  ): Promise<ProductImage>
 
   // Product enquiries
   createProductEnquiry?(input: CreateProductEnquiryInput): Promise<ProductEnquiry>
@@ -60,6 +74,31 @@ export interface ShopProvider {
    * Optional: providers without it fall back to listCustomers+createCustomer.
    */
   resolveCustomer?(input: ResolveCustomerInput): Promise<ShopCustomer>
+  /**
+   * The signed-in shopper's saved delivery addresses, so checkout can offer
+   * them instead of inventing a placeholder. Optional: a provider without it
+   * (or an anonymous request) yields an empty book and a blank form.
+   */
+  listCustomerAddresses?(customerId: string): Promise<CustomerAddress[]>
+
+  // Delivery
+  /**
+   * Delivery options for a postal code at a given subtotal. An empty array
+   * means the store does not deliver there — shown before the buyer commits to
+   * a cart, which is the whole point of quoting on the product page.
+   *
+   * This is for DISPLAY. shop_place_order recomputes the freight from the same
+   * zones and ignores whatever the client sends, so a tampered quote changes
+   * what the shopper sees and nothing about what they are charged.
+   */
+  quoteShipping?(postalCode: string, subtotal: number): Promise<ShippingQuoteOption[]>
+
+  /** Delivery zones the merchant maintains. Admin-only: the storefront reads
+   *  quotes, never the ranges themselves. */
+  listShippingZones?(): Promise<ShippingZone[]>
+  createShippingZone?(input: CreateShippingZoneInput): Promise<ShippingZone>
+  updateShippingZone?(id: string, input: UpdateShippingZoneInput): Promise<ShippingZone>
+  deleteShippingZone?(id: string): Promise<void>
 
   // Discounts
   listDiscounts(options?: ListDiscountsOptions): Promise<Discount[]>

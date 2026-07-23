@@ -4,6 +4,8 @@ import type { InventoryDataProvider } from './data/types'
 import type { InventoryUIState } from './store'
 
 export interface InventoryModules {
+  /** Product catalogue screens. Off when the host registers products elsewhere. */
+  products: boolean
   recipes: boolean
   stockLocations: boolean
   batchTracking: boolean

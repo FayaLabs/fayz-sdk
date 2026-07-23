@@ -54,6 +54,7 @@ export type {
   WorkingHours,
   PaymentConfig,
   ResolvedPayment,
+  PhoneVerificationMode,
   BookingBrand,
   ResolvedBookingBrand,
   BookingHighlight,

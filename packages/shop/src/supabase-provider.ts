@@ -9,8 +9,8 @@ import type {
   CreateCategoryInput, UpdateCategoryInput,
   CreateOrderInput, UpdateOrderInput, ListOrdersOptions, PlaceOrderInput,
   CreateCustomerInput, UpdateCustomerInput, ListCustomersOptions, ResolveCustomerInput,
-  CreateDiscountInput, UpdateDiscountInput, ListDiscountsOptions,
-} from './types'
+  CreateDiscountInput, UpdateDiscountInput, ListDiscountsOptions, OrderItem,
+  ShippingZone, CreateShippingZoneInput, UpdateShippingZoneInput } from './types'
 
 function getDb(): any {
   const supabase = getSupabaseClientOptional()
@@ -29,6 +29,44 @@ function asUuid(value: string | null | undefined): string | null {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
     ? value
     : null
+}
+
+/** 8 bare digits, zero-padded — the shape shipping_zones stores and compares. */
+function toPostalDigits(value: string | undefined | null): string | undefined {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  return digits ? digits.padStart(8, '0').slice(0, 8) : undefined
+}
+
+function rowToShippingZone(row: any): ShippingZone {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    name: row.name,
+    carrier: row.carrier ?? null,
+    postalFrom: String(row.postal_from ?? '').trim(),
+    postalTo: String(row.postal_to ?? '').trim(),
+    rate: Number(row.rate ?? 0),
+    freeAbove: row.free_above == null ? null : Number(row.free_above),
+    etaMinDays: row.eta_min_days ?? null,
+    etaMaxDays: row.eta_max_days ?? null,
+    active: row.active ?? true,
+    sortOrder: row.sort_order ?? 0,
+  }
+}
+
+function shippingZonePayload(input: Partial<CreateShippingZoneInput>): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  if (input.name !== undefined) payload.name = input.name
+  if (input.carrier !== undefined) payload.carrier = input.carrier || null
+  if (input.postalFrom !== undefined) payload.postal_from = toPostalDigits(input.postalFrom)
+  if (input.postalTo !== undefined) payload.postal_to = toPostalDigits(input.postalTo)
+  if (input.rate !== undefined) payload.rate = input.rate
+  if (input.freeAbove !== undefined) payload.free_above = input.freeAbove ?? null
+  if (input.etaMinDays !== undefined) payload.eta_min_days = input.etaMinDays ?? null
+  if (input.etaMaxDays !== undefined) payload.eta_max_days = input.etaMaxDays ?? null
+  if (input.active !== undefined) payload.active = input.active
+  if (input.sortOrder !== undefined) payload.sort_order = input.sortOrder
+  return payload
 }
 
 function rowToProduct(row: any): Product {
@@ -82,6 +120,26 @@ function rowToCategory(row: any): Category {
   }
 }
 
+/**
+ * Order items were being passed through raw, so every snake_case column arrived
+ * undefined on the camelCase type: unit_price, image_url and product_id were all
+ * lost. `total` survived only because the name matches in both, which is exactly
+ * why the bug looked like "price is zero" instead of "nothing is mapped".
+ */
+function rowToOrderItem(row: any): OrderItem {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    productId: row.product_id ?? null,
+    name: row.name,
+    sku: row.sku ?? null,
+    quantity: row.quantity ?? 0,
+    unitPrice: row.unit_price ?? 0,
+    total: row.total ?? 0,
+    imageUrl: row.image_url ?? null,
+  }
+}
+
 function rowToOrder(row: any): Order {
   return {
     id: row.id,
@@ -101,7 +159,10 @@ function rowToOrder(row: any): Order {
     customerEmail: row.customer_email,
     discountCode: row.discount_code,
     notes: row.notes,
-    items: Array.isArray(row.items) ? row.items : [],
+    shippingAddress: row.shipping_address ?? null,
+    paymentMethodKind: row.payment_method_kind ?? null,
+    paidAt: row.paid_at ?? null,
+    items: Array.isArray(row.items) ? row.items.map(rowToOrderItem) : [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -240,10 +301,57 @@ export class SupabaseShopProvider implements ShopProvider {
     const { error: uploadErr } = await db.storage.from('shop-images').upload(path, file)
     if (uploadErr) throw uploadErr
     const { data: { publicUrl } } = db.storage.from('shop-images').getPublicUrl(path)
+
+    // Every upload used to land as sort_order 0 / is_primary false, so a product
+    // whose only photo was uploaded here had NO primary at all, and a second one
+    // tied with the first for position. New photos now go to the end, and the
+    // first photo a product ever gets becomes its primary.
+    const { data: existing } = await db
+      .from(T.productImages)
+      .select('id,sort_order')
+      .eq('product_id', productId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+    const first = !existing || existing.length === 0
+    const nextOrder = first ? 0 : (existing[0].sort_order ?? 0) + 1
+
     const { data, error } = await db
       .from(T.productImages)
-      .insert({ product_id: productId, tenant_id: tenantId, url: publicUrl, sort_order: 0, is_primary: false })
+      .insert({
+        product_id: productId, tenant_id: tenantId, url: publicUrl,
+        sort_order: nextOrder, is_primary: first,
+      })
       .select().single()
+    if (error) throw error
+    return rowToImage(data)
+  }
+
+  async updateProductImage(
+    imageId: string,
+    input: { isPrimary?: boolean; sortOrder?: number; altText?: string | null },
+  ): Promise<ProductImage> {
+    const db = getDb()
+    const updates: Record<string, unknown> = {}
+    if (input.sortOrder !== undefined) updates.sort_order = input.sortOrder
+    if (input.altText !== undefined) updates.alt_text = input.altText
+    if (input.isPrimary !== undefined) updates.is_primary = input.isPrimary
+
+    // Demote the incumbent first. Doing it after would leave a window with two
+    // primaries, and if the second statement failed the product would keep two
+    // for good.
+    if (input.isPrimary) {
+      const { data: target } = await db
+        .from(T.productImages).select('product_id').eq('id', imageId).single()
+      if (target?.product_id) {
+        await db.from(T.productImages)
+          .update({ is_primary: false })
+          .eq('product_id', target.product_id)
+          .neq('id', imageId)
+      }
+    }
+
+    const { data, error } = await db
+      .from(T.productImages).update(updates).eq('id', imageId).select().single()
     if (error) throw error
     return rowToImage(data)
   }
@@ -353,6 +461,71 @@ export class SupabaseShopProvider implements ShopProvider {
     return this.getOrder(id) as Promise<Order>
   }
 
+  // -------------------------------------------------------------------------
+  // Delivery zones
+  //
+  // Postal codes are stored as 8 bare digits so the range test in
+  // shop_quote_shipping is a plain BETWEEN. Accepting '22.041-001' from the
+  // form and normalising here means the merchant never has to think about it.
+  // -------------------------------------------------------------------------
+  async listShippingZones(): Promise<ShippingZone[]> {
+    const tenantId = getTenantId()
+    const { data, error } = await getDb()
+      .from(T.shippingZones)
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('sort_order', { ascending: true })
+      .order('postal_from', { ascending: true })
+    if (error) throw error
+    return (data ?? []).map(rowToShippingZone)
+  }
+
+  async createShippingZone(input: CreateShippingZoneInput): Promise<ShippingZone> {
+    const tenantId = getTenantId()
+    if (!tenantId) throw new Error('@fayz-ai/shop: createShippingZone requires a tenant id.')
+    const { data, error } = await getDb()
+      .from(T.shippingZones)
+      .insert({ tenant_id: tenantId, ...shippingZonePayload(input) })
+      .select()
+      .single()
+    if (error) throw error
+    return rowToShippingZone(data)
+  }
+
+  async updateShippingZone(id: string, input: UpdateShippingZoneInput): Promise<ShippingZone> {
+    const { data, error } = await getDb()
+      .from(T.shippingZones)
+      .update(shippingZonePayload(input))
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return rowToShippingZone(data)
+  }
+
+  async deleteShippingZone(id: string): Promise<void> {
+    const { error } = await getDb().from(T.shippingZones).delete().eq('id', id)
+    if (error) throw error
+  }
+
+  /**
+   * Settle a pending order: the merchant confirming that the money arrived.
+   *
+   * Goes through the RPC rather than an UPDATE so the payment ledger row in
+   * public.transactions closes in the same transaction as the order — set
+   * financial_status by hand and the order says paid while the ledger still
+   * says pending. Since 0019 the RPC also enforces who may call it: a member of
+   * the owning tenant, or a PSP webhook with the service role.
+   */
+  async confirmPayment(id: string, reference?: string): Promise<Order | null> {
+    const { error } = await getDb().rpc('shop_confirm_payment', {
+      p_order_id: id,
+      p_reference: reference ?? null,
+    })
+    if (error) throw error
+    return this.getOrder(id)
+  }
+
   // Trusted placement — delegates all price/discount/inventory authority to the
   // shop_place_order RPC (SECURITY DEFINER). The browser never sets a price.
   async placeOrder(input: PlaceOrderInput): Promise<Order> {
@@ -367,7 +540,25 @@ export class SupabaseShopProvider implements ShopProvider {
       p_customer_email: input.customer?.email ?? null,
       p_currency: input.currency ?? 'BRL',
       p_discount_code: input.discountCode ?? null,
-      p_shipping_total: input.shippingTotal ?? 0,
+          p_shipping_total: input.shippingTotal ?? 0,
+      // snake_case keys on purpose: the RPC freezes this jsonb onto the
+      // order and public.addresses uses these exact column names.
+      p_shipping_address: input.shippingAddress
+        ? {
+        postal_code: input.shippingAddress.postalCode,
+        street: input.shippingAddress.street,
+        number: input.shippingAddress.number ?? null,
+        complement: input.shippingAddress.complement ?? null,
+        district: input.shippingAddress.district ?? null,
+        city: input.shippingAddress.city,
+        state: input.shippingAddress.state,
+        country: input.shippingAddress.country ?? 'BR',
+        recipient: input.shippingAddress.recipient ?? null,
+        phone: input.shippingAddress.phone ?? null,
+        label: input.shippingAddress.label ?? null,
+          }
+        : null,
+      p_payment_method: input.paymentMethod ?? null,
       p_notes: input.notes ?? null,
     })
     if (error) throw error

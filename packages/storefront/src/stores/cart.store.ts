@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { Product } from '@fayz-ai/shop/types'
 import { roundCents } from '../format'
 import type { ResolvedStorefrontConfig } from '../config'
+import { useDeliveryStore, selectQuotedShipping } from './delivery.store'
 import {
   formatProductOptionSelection,
   normalizeProductOptionSelection,
@@ -147,12 +148,32 @@ export const selectSubtotal = (s: Pick<CartState, 'lines'>): number =>
 export const selectDiscountTotal = (s: Pick<CartState, 'lines' | 'discountPercent'>): number =>
   roundCents(selectSubtotal(s) * (s.discountPercent / 100))
 
+/**
+ * Freight to display.
+ *
+ * When the shopper has given a CEP and the store quoted it, that quote wins —
+ * it came from the same shipping_zones rows shop_place_order will charge from.
+ * Otherwise this falls back to the store-wide rate in config, which is what
+ * every storefront did before zones existed.
+ *
+ * The subtotal is PRE-discount on both sides of this. That is 0017's rule, and
+ * the quote is requested against the same number, so a coupon can never make
+ * the cart and the order disagree.
+ *
+ * Read through getState() rather than a hook because this is a plain selector
+ * called from several screens; components that render the value subscribe to
+ * useDeliveryStore themselves so a fresh quote re-renders them.
+ */
 export const selectShipping = (
   s: Pick<CartState, 'lines'>,
   cfg: ResolvedStorefrontConfig,
 ): number => {
   if (s.lines.length === 0) return 0
   const subtotal = selectSubtotal(s)
+
+  const quoted = selectQuotedShipping(useDeliveryStore.getState(), subtotal)
+  if (quoted != null) return quoted
+
   if (cfg.shipping.freeAbove != null && subtotal >= cfg.shipping.freeAbove) return 0
   return cfg.shipping.flatRate
 }

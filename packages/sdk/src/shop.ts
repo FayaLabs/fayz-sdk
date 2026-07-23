@@ -9,6 +9,28 @@ export interface FayzShopProviderOptions {
   fetcher?: typeof fetch
 }
 
+/**
+ * The signed-in shopper's access token, when there is one.
+ *
+ * PostgREST decides who you are from the Authorization bearer, and this client
+ * used to send the publishable key unconditionally — so every request arrived
+ * as `anon` even with a customer logged in. auth.uid() was therefore always
+ * null, which is why shop_resolve_customer never linked auth_user_id (0 of 519
+ * customers in the pool) and why the self-read policy on public.addresses could
+ * never match a row.
+ *
+ * A module-level resolver rather than a per-app option on purpose: the wiring
+ * is done once by initStorefrontRuntime, so a storefront cannot forget it and
+ * silently fall back to anonymous. Mirrors setShopTenantResolver in plugin-shop.
+ */
+type AccessTokenResolver = () => string | null | undefined
+
+let _accessTokenResolver: AccessTokenResolver | null = null
+
+export function setShopAccessTokenResolver(resolver: AccessTokenResolver | null): void {
+  _accessTokenResolver = resolver
+}
+
 export interface FayzShopProductMetadataOverlay {
   sku?: string | null
   slug?: string | null
@@ -141,9 +163,42 @@ interface OrderRow {
   customer_email?: string | null
   discount_code?: string | null
   notes?: string | null
+  shipping_address?: Record<string, string | undefined> | null
+  payment_method_kind?: string | null
+  paid_at?: string | null
   items?: OrderItemRow[] | null
   created_at?: string | null
   updated_at?: string | null
+}
+
+/** One row of shop_quote_shipping's result set. */
+interface ShippingQuoteRow {
+  zone_id: string
+  name: string
+  carrier: string | null
+  rate: number | string | null
+  base_rate: number | string | null
+  free_above: number | string | null
+  eta_min_days: number | null
+  eta_max_days: number | null
+  free: boolean | null
+}
+
+/** public.addresses, as PostgREST returns it. */
+interface AddressRow {
+  id: string
+  label: string | null
+  recipient: string | null
+  phone: string | null
+  postal_code: string | null
+  street: string | null
+  number: string | null
+  complement: string | null
+  district: string | null
+  city: string | null
+  state: string | null
+  country: string | null
+  is_default: boolean | null
 }
 
 interface CustomerRow {
@@ -336,6 +391,9 @@ function rowToOrder(row: OrderRow) {
     customerEmail: row.customer_email ?? null,
     discountCode: row.discount_code ?? null,
     notes: row.notes ?? null,
+    shippingAddress: row.shipping_address ?? null,
+    paymentMethodKind: row.payment_method_kind ?? null,
+    paidAt: row.paid_at ?? null,
     items: Array.isArray(row.items) ? row.items.map(rowToOrderItem) : [],
     createdAt: row.created_at ?? nowIso(),
     updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
@@ -427,7 +485,15 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       ...init,
       headers: {
         apikey: key,
-        Authorization: `Bearer ${key}`,
+        // Declares which store this read is for. Until 0020 tenant isolation was
+        // a client-side convention (a tenant_id filter the caller could simply
+        // omit, returning every merchant's catalogue); the RLS policy now reads
+        // this header, so the scope is enforced server-side.
+        'x-fayz-store': storeId,
+        // The shopper's JWT when signed in, the publishable key otherwise. The
+        // apikey header stays the publishable key either way — Supabase uses it
+        // to route the project, not to authenticate.
+        Authorization: `Bearer ${_accessTokenResolver?.() || key}`,
         ...(init.body ? { 'Content-Type': 'application/json', Prefer: 'return=representation' } : {}),
         ...init.headers,
       },
@@ -533,7 +599,28 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       query.set('order', 'created_at.desc')
       if (options?.limit) query.set('limit', String(options.limit))
       if (options?.offset) query.set('offset', String(options.offset))
-      return (await request<OrderRow[]>('plg_shop_orders', { query })).map(rowToOrder)
+
+      // Same shape as getOrder above: an anon storefront has no table grant, so
+      // the direct read throws 401 and must fall through instead of surfacing as
+      // "you have no orders". This is what made "Minhas compras" empty after a
+      // guest checkout — the order was there, the read just wasn't allowed.
+      try {
+        return (await request<OrderRow[]>('plg_shop_orders', { query })).map(rowToOrder)
+      } catch (err) {
+        // Only the customer-scoped query has an RPC counterpart: shop_list_orders
+        // treats the customer uuid as the read capability, exactly like
+        // shop_get_order treats the order uuid. Any other filter combination has
+        // no anon-safe equivalent, so the original error stands.
+        if (!options?.customerId) throw err
+        const rows = await request<OrderRow[]>('rpc/shop_list_orders', {
+          method: 'POST',
+          body: JSON.stringify({
+            p_customer_id: options.customerId,
+            p_limit: options.limit ?? 50,
+          }),
+        })
+        return (rows ?? []).map(rowToOrder)
+      }
     },
     async getOrder(id: string) {
       const query = singleById(id)
@@ -638,6 +725,22 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       notes?: string
       discountCode?: string
       shippingTotal?: number
+      /** Structured delivery address; frozen on the order and saved to the
+       *  customer's address book by the RPC. */
+      shippingAddress?: {
+        postalCode: string
+        street: string
+        number?: string
+        complement?: string
+        district?: string
+        city: string
+        state: string
+        country?: string
+        recipient?: string
+        phone?: string
+        label?: string
+      }
+      paymentMethod?: 'pix' | 'credit_card' | 'debit_card' | 'boleto' | 'cash' | 'other'
       items: Array<{ productId: string; quantity: number; optionsLabel?: string }>
     }) {
       // Trusted placement: the shop_place_order SECURITY DEFINER RPC re-reads
@@ -658,6 +761,24 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
           p_currency: input.currency ?? 'BRL',
           p_discount_code: input.discountCode ?? null,
           p_shipping_total: input.shippingTotal ?? 0,
+          // snake_case keys on purpose: the RPC freezes this jsonb onto the
+          // order and public.addresses uses these exact column names.
+          p_shipping_address: input.shippingAddress
+            ? {
+                postal_code: input.shippingAddress.postalCode,
+                street: input.shippingAddress.street,
+                number: input.shippingAddress.number ?? null,
+                complement: input.shippingAddress.complement ?? null,
+                district: input.shippingAddress.district ?? null,
+                city: input.shippingAddress.city,
+                state: input.shippingAddress.state,
+                country: input.shippingAddress.country ?? 'BR',
+                recipient: input.shippingAddress.recipient ?? null,
+                phone: input.shippingAddress.phone ?? null,
+                label: input.shippingAddress.label ?? null,
+              }
+            : null,
+          p_payment_method: input.paymentMethod ?? null,
           p_notes: input.notes ?? null,
         }),
       })
@@ -690,6 +811,57 @@ export function createFayzShopProvider(options: FayzShopProviderOptions) {
       const customer = Array.isArray(row) ? row[0] : row
       if (!customer) throw new FayzShopError('shop_resolve_customer returned no row.', 500)
       return rowToCustomer(customer)
+    },
+    async quoteShipping(postalCode: string, subtotal: number) {
+      const digits = (postalCode || '').replace(/\D/g, '')
+      if (digits.length !== 8) return []
+      const rows = await request<ShippingQuoteRow[]>('rpc/shop_quote_shipping', {
+        method: 'POST',
+        body: JSON.stringify({
+          p_tenant_id: storeId,
+          p_postal_code: digits,
+          p_subtotal: subtotal,
+        }),
+      })
+      return (rows ?? []).map((row) => ({
+        zoneId: row.zone_id,
+        name: row.name,
+        carrier: row.carrier ?? undefined,
+        rate: Number(row.rate ?? 0),
+        baseRate: Number(row.base_rate ?? row.rate ?? 0),
+        freeAbove: row.free_above == null ? null : Number(row.free_above),
+        etaMinDays: row.eta_min_days ?? undefined,
+        etaMaxDays: row.eta_max_days ?? undefined,
+        free: Boolean(row.free),
+      }))
+    },
+    async listCustomerAddresses(customerId: string) {
+      if (!asUuid(customerId)) return []
+      const query = new URLSearchParams()
+      query.set('select', 'id,label,recipient,phone,postal_code,street,number,complement,district,city,state,country,is_default')
+      query.set('owner_type', 'eq.shop_customer')
+      query.set('owner_id', `eq.${customerId}`)
+      query.set('order', 'is_default.desc,created_at.desc')
+      // RLS (addresses_self_read) is the real filter — it matches only rows
+      // whose customer is linked to auth.uid(). An anonymous or mismatched
+      // caller gets [] rather than an error, so guest checkout just sees an
+      // empty address book instead of a failure it cannot act on.
+      const rows = await request<AddressRow[]>('addresses', { query }).catch(() => [] as AddressRow[])
+      return rows.map((row) => ({
+        id: row.id,
+        label: row.label ?? undefined,
+        recipient: row.recipient ?? undefined,
+        phone: row.phone ?? undefined,
+        postalCode: row.postal_code ?? '',
+        street: row.street ?? '',
+        number: row.number ?? undefined,
+        complement: row.complement ?? undefined,
+        district: row.district ?? undefined,
+        city: row.city ?? '',
+        state: row.state ?? '',
+        country: row.country ?? undefined,
+        isDefault: row.is_default ?? false,
+      }))
     },
     async createCustomer(input: { firstName: string; lastName?: string; email?: string; phone?: string; notes?: string }) {
       const [customer] = await request<CustomerRow[]>('plg_shop_customers', {

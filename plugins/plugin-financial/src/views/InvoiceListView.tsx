@@ -16,6 +16,30 @@ const STATUS_OPTIONS: { value: InvoiceStatus; labelKey: string; color: string; i
   { value: 'cancelled', labelKey: 'financial.invoice.statusCancelled', color: 'bg-muted text-muted-foreground', icon: Ban },
 ]
 
+const DATE_PRESETS = ['thisMonth', 'lastMonth', 'last30', 'thisYear'] as const
+type DatePreset = (typeof DATE_PRESETS)[number]
+
+const isoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+/** Local-time boundaries so "this month" means the user's month, not UTC's. */
+function presetRange(preset: DatePreset): { from: string; to: string } {
+  const now = new Date()
+  switch (preset) {
+    case 'thisMonth':
+      return { from: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)), to: isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
+    case 'lastMonth':
+      return { from: isoDate(new Date(now.getFullYear(), now.getMonth() - 1, 1)), to: isoDate(new Date(now.getFullYear(), now.getMonth(), 0)) }
+    case 'last30': {
+      const from = new Date(now)
+      from.setDate(from.getDate() - 29)
+      return { from: isoDate(from), to: isoDate(now) }
+    }
+    case 'thisYear':
+      return { from: isoDate(new Date(now.getFullYear(), 0, 1)), to: isoDate(new Date(now.getFullYear(), 11, 31)) }
+  }
+}
+
 function StatusBadge({ status }: { status: string }) {
   const t = useTranslation()
   const opt = STATUS_OPTIONS.find((o) => o.value === status)
@@ -104,6 +128,24 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
   const [costCenterId, setCostCenterId] = useState('')
   const [accounts, setAccounts] = useState<ChartOfAccountsNode[]>([])
   const [costCenters, setCostCenters] = useState<CostCenter[]>([])
+  const [datePreset, setDatePreset] = useState<DatePreset | 'all' | 'custom'>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
+  // Open-ended on either side: a missing bound becomes a sentinel the providers can compare against.
+  const dateRange = useMemo(() => {
+    if (!dateFrom && !dateTo) return undefined
+    return { from: dateFrom || '0001-01-01', to: dateTo || '9999-12-31' }
+  }, [dateFrom, dateTo])
+
+  const applyPreset = (value: DatePreset | 'all' | 'custom') => {
+    setDatePreset(value)
+    if (value === 'all') { setDateFrom(''); setDateTo(''); return }
+    if (value === 'custom') return
+    const range = presetRange(value)
+    setDateFrom(range.from)
+    setDateTo(range.to)
+  }
 
   useEffect(() => {
     let active = true
@@ -128,8 +170,9 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
       search: search || undefined,
       accountId: accountId || undefined,
       costCenterId: costCenterId || undefined,
+      dateRange,
     })
-  }, [direction, statusFilter, search, accountId, costCenterId])
+  }, [direction, statusFilter, search, accountId, costCenterId, dateRange])
 
   const filtered = invoices.filter((inv) => inv.direction === direction)
   const listTitle = direction === 'debit' ? t('financial.invoice.accountsPayable') : t('financial.invoice.accountsReceivable')
@@ -162,8 +205,51 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
         title={listTitle}
         subtitle={t('financial.invoice.invoices', { count: filtered.length })}
       />
-      {(accounts.length > 0 || costCenters.length > 0) && (
-        <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+          <label className="flex min-w-[180px] flex-col gap-1 text-xs font-medium text-muted-foreground">
+            {t('financial.invoice.filterPeriod')}
+            <select
+              className="h-9 rounded-md border bg-background px-3 text-sm text-foreground"
+              value={datePreset}
+              onChange={(event) => applyPreset(event.target.value as DatePreset | 'all' | 'custom')}
+            >
+              <option value="all">{t('financial.invoice.filterAllPeriods')}</option>
+              <option value="thisMonth">{t('financial.invoice.filterThisMonth')}</option>
+              <option value="lastMonth">{t('financial.invoice.filterLastMonth')}</option>
+              <option value="last30">{t('financial.invoice.filterLast30')}</option>
+              <option value="thisYear">{t('financial.invoice.filterThisYear')}</option>
+              <option value="custom">{t('financial.invoice.filterCustom')}</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            {t('financial.invoice.filterFrom')}
+            <input
+              type="date"
+              className="h-9 rounded-md border bg-background px-3 text-sm text-foreground"
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(event) => { setDateFrom(event.target.value); setDatePreset('custom') }}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            {t('financial.invoice.filterTo')}
+            <input
+              type="date"
+              className="h-9 rounded-md border bg-background px-3 text-sm text-foreground"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(event) => { setDateTo(event.target.value); setDatePreset('custom') }}
+            />
+          </label>
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              className="h-9 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => applyPreset('all')}
+            >
+              {t('financial.invoice.filterClear')}
+            </button>
+          )}
           {accounts.length > 0 && (
             <label className="flex min-w-[220px] flex-col gap-1 text-xs font-medium text-muted-foreground">
               {t('financial.invoice.filterAccount')}
@@ -194,8 +280,7 @@ export function InvoiceListView({ direction, onNew, onEdit }: {
               </select>
             </label>
           )}
-        </div>
-      )}
+      </div>
       <ListView<Invoice>
         columns={columns}
         data={filtered}

@@ -330,6 +330,7 @@ function TopbarLayout({
   userPlan,
   billingLabel,
   userMenuExtras,
+  orgSwitcher,
   frame,
   currentPath,
   topbarStart,
@@ -349,6 +350,8 @@ function TopbarLayout({
   userPlan?: AppShellProps['userPlan']
   billingLabel?: AppShellProps['billingLabel']
   userMenuExtras?: AppShellProps['userMenuExtras']
+  /** Workspace switcher — rendered beside the logo (desktop) and in the mobile drawer. */
+  orgSwitcher?: React.ReactNode
   frame?: boolean
   currentPath?: string
   topbarStart?: React.ReactNode
@@ -378,6 +381,7 @@ function TopbarLayout({
         userPlan={userPlan}
         billingLabel={billingLabel}
         userMenuExtras={userMenuExtras}
+        orgSwitcher={orgSwitcher}
         leftContent={topbarStart}
         rightContent={(topbarEnd || notificationSlot) ? <>{topbarEnd}{notificationSlot}</> : undefined}
         onMenuClick={hasBottomNav ? undefined : () => setMobileMenuOpen(true)}
@@ -407,6 +411,7 @@ function TopbarLayout({
           onProfile={onProfile}
           onSettings={onSettings}
           onBilling={onBilling}
+          orgSwitcher={orgSwitcher}
           userMenuSlot={user ? <DrawerUserRow user={user} /> : undefined}
           onClose={() => setMobileMenuOpen(false)}
         />
@@ -743,6 +748,7 @@ export function AppShell({
           userPlan={userPlan}
           billingLabel={billingLabel}
           userMenuExtras={userMenuExtras}
+          orgSwitcher={orgSwitcher}
           frame={contentFrame}
           currentPath={currentPath}
           topbarStart={topbarStart}

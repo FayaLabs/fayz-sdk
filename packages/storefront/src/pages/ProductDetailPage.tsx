@@ -13,6 +13,8 @@ import { ProductSpecs } from '../components/ProductSpecs'
 import { RelatedProducts } from '../components/RelatedProducts'
 import { ProductEnquiryForm } from '../components/ProductEnquiryForm'
 import { SmoothImage } from '../components/SmoothImage'
+import { ProductGallery } from '../components/ProductGallery'
+import { DeliveryEstimator } from '../components/DeliveryEstimator'
 import { getProductOptionGroups, type ProductOptionSelection } from '../product-options'
 import { storefrontComponentContracts } from '../component-selectors'
 import { TID } from '../testids'
@@ -68,6 +70,9 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0]
   const components = getStorefrontComponents(config)
   const ProductDetailComponent = components.ProductDetail
+  // Honours the ProductGallery override contract, which has existed in
+  // component-contracts.ts since before any component implemented it.
+  const GalleryComponent = components.ProductGallery ?? ProductGallery
   const addToCart = () => addItem(product, qty, selectedOptions)
   const openEnquiry = () => {
     document.getElementById('storefront-product-enquiry')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -105,19 +110,13 @@ export function ProductDetailPage({ slug }: { slug: string }) {
       </Link>
 
       <div className="grid animate-fade-up gap-10 md:grid-cols-2">
-        <div
-          {...storefrontComponentContracts.productDetail.gallery}
-          className="group overflow-hidden border bg-muted"
-          style={{ borderRadius: 'var(--sf-radius-card)' }}
-        >
-          {image && (
-            <SmoothImage
-              src={image.url}
-              alt={image.altText ?? product.name}
-              className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-            />
-          )}
-        </div>
+        <GalleryComponent
+          product={product}
+          images={product.images}
+          primaryImage={image}
+          config={config}
+          commerceMode={config.commerceMode}
+        />
 
         <div className="flex flex-col py-2 lg:sticky lg:top-24 lg:self-start">
           <nav className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
@@ -224,6 +223,11 @@ export function ProductDetailPage({ slug }: { slug: string }) {
               </Link>
             )}
           </div>
+
+          {/* Asked here, before the cart exists: "do you deliver to me and for
+              how much" is the question that decides whether this page converts,
+              and it used to be answerable only at the end of checkout. */}
+          {config.commerceMode === 'checkout' && <DeliveryEstimator />}
 
           {config.commerceMode === 'checkout' && (
             <div className="mt-6 grid grid-cols-3 gap-3 border-t pt-6 text-center">

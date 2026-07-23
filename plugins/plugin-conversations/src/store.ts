@@ -76,17 +76,37 @@ export function createConversationsStore(
 
     async create(input) {
       const created = await provider.createConversation(input)
-      // Clear filters that would hide the new thread, then refresh + select it.
-      set({ channelFilter: 'all', search: '' })
-      const conversations = await provider.listConversations({})
-      // Read-after-write guard: if the refetch races the just-inserted row (real
-      // backend) and doesn't return it yet, prepend the created thread so the
-      // inbox shows it immediately instead of intermittently dropping it.
-      const merged = conversations.some((c) => c.id === created.id)
-        ? conversations
-        : [created, ...conversations]
-      set({ conversations: merged, selectedId: created.id })
-      await get().select(created.id)
+      // The thread EXISTS the moment the insert returns, so resolve on that and
+      // show it optimistically. Clear filters that would hide it, prepend it,
+      // select it — all local.
+      set((s) => ({
+        channelFilter: 'all',
+        search: '',
+        conversations: [created, ...s.conversations.filter((c) => c.id !== created.id)],
+        selectedId: created.id,
+      }))
+
+      // Reconciliation (authoritative list + the thread's messages) runs in the
+      // BACKGROUND. It used to be awaited here, which made the caller — the
+      // compose modal — hostage to two extra round-trips: on a slow pool the
+      // conversation was already in the database while the modal sat open
+      // looking broken, inviting a second click and a duplicate thread.
+      // Failures are non-fatal: the optimistic row above already renders.
+      void (async () => {
+        try {
+          const conversations = await provider.listConversations({})
+          // Read-after-write guard: a refetch that races the insert may not
+          // return the new row yet — keep the local one rather than dropping it.
+          const merged = conversations.some((c) => c.id === created.id)
+            ? conversations
+            : [created, ...conversations]
+          set({ conversations: merged })
+          await get().select(created.id)
+        } catch {
+          /* optimistic state stands; the next load() reconciles */
+        }
+      })()
+
       return created
     },
 

@@ -21,13 +21,13 @@ import { InventoryOnboarding } from './components/InventoryOnboarding'
 function buildNav(config: ResolvedInventoryConfig, view: string, navigate: (v: string) => void, t: (key: string) => string): ModuleNavItem[] {
   const items: ModuleNavItem[] = [
     { id: 'dashboard', label: t('inventory.nav.dashboard'), icon: 'BarChart3', active: view === 'dashboard', onClick: () => navigate('dashboard') },
-    {
+    ...(config.modules.products ? [{
       id: 'products', label: t('inventory.nav.products'), icon: 'Package', active: view.startsWith('products'),
       children: [
         { id: 'products-new', label: t('inventory.nav.new'), active: view === 'products-new', onClick: () => navigate('products-new') },
         { id: 'products-list', label: t('inventory.nav.list'), active: view === 'products-list', onClick: () => navigate('products-list') },
       ],
-    },
+    } as ModuleNavItem] : []),
     {
       id: 'stock', label: t('inventory.nav.stock'), icon: 'ArrowUpCircle',
       children: [
@@ -76,13 +76,15 @@ export function InventoryPage({ config, provider, store, registries }: {
 
   const quickActions = useMemo<PluginQuickAction[]>(() => {
     const actions: PluginQuickAction[] = [
-      {
+      // Dropped with the catalogue module: offering "new product" while the
+      // screen is gone would dead-end the user.
+      ...(config.modules.products ? [{
         id: 'new-product',
         label: t('inventory.quickActions.newProduct'),
         icon: 'Package',
         description: t('inventory.quickActions.newProductDesc'),
         action: () => navigate('products-new'),
-      },
+      } as PluginQuickAction] : []),
       {
         id: 'stock-entry',
         label: t('inventory.quickActions.stockEntry'),
@@ -128,9 +130,13 @@ export function InventoryPage({ config, provider, store, registries }: {
   }
 
   const renderView = createViewRouter([
-    { id: 'products-list', render: () => <ProductListView onNew={() => navigate('products-new')} onEdit={(id) => navigate(`products-edit:${id}`)} /> },
-    { id: 'products-new', render: () => <ProductCrudForm onSaved={() => navigate('products-list')} /> },
-    { id: 'products-edit', render: ({ id }) => <ProductCrudForm editId={id!} onSaved={() => navigate('products-list')} /> },
+    // Routes go with the module, not just the nav entry: leaving them mounted
+    // keeps a second product form reachable by URL.
+    ...(config.modules.products ? [
+      { id: 'products-list', render: () => <ProductListView onNew={() => navigate('products-new')} onEdit={(id: string) => navigate(`products-edit:${id}`)} /> },
+      { id: 'products-new', render: () => <ProductCrudForm onSaved={() => navigate('products-list')} /> },
+      { id: 'products-edit', render: ({ id }: { id?: string }) => <ProductCrudForm editId={id!} onSaved={() => navigate('products-list')} /> },
+    ] : []),
     { id: 'stock-entry', render: () => <StockMovementView defaultType="entry" onSaved={() => navigate('stock-history')} /> },
     { id: 'stock-exit', render: () => <StockMovementView defaultType="exit" onSaved={() => navigate('stock-history')} /> },
     { id: 'stock-history', render: () => <MovementHistoryView onViewDetail={(id) => navigate(`stock-detail:${id}`)} /> },

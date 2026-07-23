@@ -1,6 +1,7 @@
 import { resolveDataProvider, getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { checkAccess, guardLimit } from '../../access/headless'
 import { invalidateLimit } from '../../access/limits-registry'
+import { CORE_QUERY_ENTITIES } from '../../app/core-entities'
 import { useChatStore } from '../stores/chat.store'
 
 /** Chat-store confirmation gate, callable from any handler. */
@@ -266,7 +267,10 @@ export function buildDataToolIndex(input: {
     index.set(`key:${entity.entityKey}`, target)
   }
 
-  for (const q of input.queryEntities ?? []) {
+  // CORE_QUERY_ENTITIES merged here — same reason buildDataPrimitiveTools does
+  // it: this index and that catalog MUST agree, or the model is offered an
+  // entity the executor then rejects as unknown.
+  for (const q of [...(input.queryEntities ?? []), ...CORE_QUERY_ENTITIES]) {
     index.set(`key:${q.key}`, {
       label: q.entity.namePlural ?? q.entity.name,
       entity: q.entity,
@@ -304,6 +308,90 @@ function resolveKeyedTarget(
     if (!access.allowed) return { error: access }
   }
   return { target }
+}
+
+/** Field names are equal ignoring case and word separators, so a model sending
+ *  `postalCode` matches a `postal_code` column and vice versa. */
+function sameField(a: string, b: string): boolean {
+  const norm = (s: string) => s.replace(/[_-]/g, '').toLowerCase()
+  return norm(a) === norm(b)
+}
+
+/**
+ * Match a call's `values` against the target entity's declared fields,
+ * tolerating a snake_case/camelCase mismatch either way.
+ *
+ * Deliberately does NOT try to guess which other entity the caller "meant".
+ * Scoring candidates by how many of the rejected field names they declare was
+ * tried and is actively harmful here: for {address, city, postalCode, state,
+ * country} the salon app's `location` and `local-de-atendimento` both score 5
+ * against `address`'s 4, so "add an address to this contact" would be redirected
+ * into creating a business LOCATION. Field names alone cannot tell a child
+ * record from an unrelated table that happens to describe a place; the guidance
+ * that does work is declared up front, in the tool description.
+ */
+function matchDeclaredFields(
+  target: DataToolTarget,
+  values: Record<string, unknown>,
+): { clean: Record<string, unknown> } | { error: Record<string, unknown> } {
+  const declaredKeys = (target.entity.fields ?? []).map((f) => f.key)
+  const clean: Record<string, unknown> = {}
+  const unknown: string[] = []
+  for (const [k, v] of Object.entries(values)) {
+    const match = declaredKeys.find((d) => sameField(d, k)) ?? null
+    if (match) clean[match] = v
+    else unknown.push(k)
+  }
+  if (!unknown.length) return { clean }
+
+  return {
+    error: {
+      error: 'unknown_field',
+      message: `Unknown field(s) ${unknown.join(', ')} for ${target.label}. Use only the available fields and retry.`,
+      availableFields: declaredKeys,
+    },
+  }
+}
+
+/**
+ * For every PERSON matched by a global search, pull the records that hang off
+ * it (today: addresses) and return them grouped by entity key. Returns null
+ * when nothing is attached, so the payload stays quiet in the common case.
+ */
+async function resolveAttachedRecords(
+  ctx: AIToolExecutionContext,
+  matches: Array<{ key: string; records: unknown[] }>,
+): Promise<Record<string, unknown[]> | null> {
+  const ownerIds = new Set<string>()
+  for (const m of matches) {
+    const target = ctx.dataTools.get(`key:${m.key}`)
+    if (target?.entity.data?.archetype !== 'person') continue
+    for (const r of m.records) {
+      const id = (r as { id?: unknown }).id
+      if (typeof id === 'string') ownerIds.add(id)
+    }
+  }
+  if (!ownerIds.size) return null
+
+  const out: Record<string, unknown[]> = {}
+  for (const q of CORE_QUERY_ENTITIES) {
+    const target = ctx.dataTools.get(`key:${q.key}`)
+    if (!target) continue
+    const permission = target.entity.permission
+    if (permission && !checkAccess(permission.feature, permission.action).allowed) continue
+    try {
+      const provider = resolveDataProvider(target.entity as EntityDef<{ id: string }>, target.mockData)
+      const result = await provider.list({ pageSize: 50 })
+      const rows = (result.data as Array<Record<string, unknown>>).filter((row) => {
+        const owner = row.ownerId ?? row.owner_id
+        return typeof owner === 'string' && ownerIds.has(owner)
+      })
+      if (rows.length) out[q.key] = rows
+    } catch {
+      // An attachment lookup must never sink the search it decorates.
+    }
+  }
+  return Object.keys(out).length ? out : null
 }
 
 registerAIToolHandler('findAnything', async (args, ctx) => {
@@ -355,9 +443,18 @@ registerAIToolHandler('findAnything', async (args, ctx) => {
     .filter((r) => r.status === 'fulfilled' && r.value.records.length > 0)
     .map((r) => (r as PromiseFulfilledResult<{ key: string; label: string; total: number; records: unknown[] }>).value)
 
+  // Attached records travel WITH their owner. A person's address lives in its
+  // own table keyed by owner_id, so a text search for "Doguez" can never return
+  // it — and telling the model to make a second, filtered call is a hope, not a
+  // mechanism: it answers "this contact has no address registered" instead,
+  // which is false. Resolving them here makes the answer correct by
+  // construction. One extra query, only when a person actually matched.
+  const attached = await resolveAttachedRecords(ctx, matches)
+
   return {
     query: search,
     matches,
+    ...(attached ? { attached } : {}),
     searchedEntities: searched.length,
     ...(allowed.length > MAX_TARGETS ? { targetsTruncated: true } : {}),
     ...(skippedForPermission ? { skippedForPermission } : {}),
@@ -389,22 +486,9 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
 
   const values = (args.values ?? {}) as Record<string, unknown>
   const declared = target.entity.fields ?? []
-  const declaredKeys = declared.map((f) => f.key)
-  const clean: Record<string, unknown> = {}
-  const unknown: string[] = []
-  for (const [k, v] of Object.entries(values)) {
-    const camel = k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
-    const match = declaredKeys.includes(k) ? k : declaredKeys.includes(camel) ? camel : null
-    if (match) clean[match] = v
-    else unknown.push(k)
-  }
-  if (unknown.length) {
-    return {
-      error: 'unknown_field',
-      message: `Unknown field(s) ${unknown.join(', ')} for ${target.label}. Use only the available fields and retry.`,
-      availableFields: declaredKeys,
-    }
-  }
+  const matched = matchDeclaredFields(target, values)
+  if ('error' in matched) return matched.error
+  const { clean } = matched
   const missing = declared
     .filter((f) => f.required && (clean[f.key] === undefined || clean[f.key] === null || clean[f.key] === ''))
     .map((f) => f.key)
@@ -412,7 +496,7 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
     return {
       error: 'missing_required',
       message: `Missing required field(s): ${missing.join(', ')}. Ask the user for them, then retry.`,
-      availableFields: declaredKeys,
+      availableFields: declared.map((f) => f.key),
     }
   }
 
@@ -486,23 +570,9 @@ registerAIToolHandler('updateRecord', async (args, ctx) => {
   }
 
   const values = (args.values ?? {}) as Record<string, unknown>
-  const declared = target.entity.fields ?? []
-  const declaredKeys = declared.map((f) => f.key)
-  const clean: Record<string, unknown> = {}
-  const unknown: string[] = []
-  for (const [k, v] of Object.entries(values)) {
-    const camel = k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
-    const match = declaredKeys.includes(k) ? k : declaredKeys.includes(camel) ? camel : null
-    if (match) clean[match] = v
-    else unknown.push(k)
-  }
-  if (unknown.length) {
-    return {
-      error: 'unknown_field',
-      message: `Unknown field(s) ${unknown.join(', ')} for ${target.label}. Use only the available fields and retry.`,
-      availableFields: declaredKeys,
-    }
-  }
+  const matched = matchDeclaredFields(target, values)
+  if ('error' in matched) return matched.error
+  const { clean } = matched
   if (!Object.keys(clean).length) {
     return { error: 'empty_update', message: 'No valid fields to change were provided.' }
   }

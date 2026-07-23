@@ -2,6 +2,10 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@fayz-ai/ui'
 import { getShopProvider } from '@fayz-ai/shop'
+import { useAdminPath, adminNavigateTo } from '@fayz-ai/saas'
+import { PersonLink } from '@fayz-ai/saas'
+import { shopCustomerLookup } from './views/customerLookup'
+import { OrderDetailView } from './views/OrderDetailView'
 import type { Product, Order, ShopCustomer, Discount, ListProductsOptions, ShopProvider } from '@fayz-ai/shop'
 
 export type ShopProviderResolver = ShopProvider | (() => ShopProvider)
@@ -43,6 +47,44 @@ function resolveShopProvider(provider?: ShopProviderResolver): ShopProvider {
   return typeof provider === 'function' ? provider() : provider ?? getShopProvider()
 }
 
+/**
+ * Every tab used to load with `.then(setState).finally(stopLoading)` and no
+ * catch. Against a pool where the shop provider reads as `anon`, listOrders and
+ * listCustomers reject with "permission denied" — the rejection escaped React
+ * and blanked the whole admin, so a permissions problem looked like a crash.
+ * The tab now reports what actually failed and the rest of the shell survives.
+ */
+function useShopList<T>(load: () => Promise<T[]>, deps: React.DependencyList) {
+  const [items, setItems] = useState<T[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    load()
+      .then((data) => { if (!cancelled) setItems(data) })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
+      })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+
+  return { items, loading, error }
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      <p className="font-medium">Não foi possível carregar estes dados.</p>
+      <p className="mt-1 text-red-700">{message}</p>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Products tab
 // ---------------------------------------------------------------------------
@@ -52,11 +94,16 @@ function ProductsTab({ provider }: ShopPageProps) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
+  const [error, setError] = useState<string | null>(null)
+
   const load = useCallback(async (opts?: ListProductsOptions) => {
     setLoading(true)
+    setError(null)
     try {
       const data = await resolveShopProvider(provider).listProducts(opts)
       setProducts(data)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -104,10 +151,11 @@ function ProductsTab({ provider }: ShopPageProps) {
         <span className="text-sm text-muted-foreground">{products.length} produtos</span>
       </div>
 
-      {loading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
+      {error ? (
+        <ErrorState message={error} />
       ) : (
         <DataTable
+          loading={loading}
           columns={columns}
           data={products}
           variant="card"
@@ -123,18 +171,30 @@ function ProductsTab({ provider }: ShopPageProps) {
 // ---------------------------------------------------------------------------
 
 function OrdersTab({ provider }: ShopPageProps) {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    resolveShopProvider(provider).listOrders({ limit: 50 }).then(setOrders).finally(() => setLoading(false))
-  }, [provider])
+  const { items: orders, loading, error } = useShopList<Order>(
+    () => resolveShopProvider(provider).listOrders({ limit: 50 }),
+    [provider],
+  )
 
   const columns = useMemo<ColumnDef<Order, any>[]>(() => [
     { accessorKey: 'orderNumber', header: 'Pedido', cell: ({ getValue }) => <span className="font-medium">#{getValue() as string}</span> },
     {
       id: 'customer', accessorFn: (o) => o.customerName ?? o.customerEmail ?? '—', header: 'Cliente',
-      cell: ({ getValue }) => <span>{getValue() as string}</span>,
+      // Links to the customer record. stopPropagation because the row itself
+      // opens the order — without it the click would do both.
+      cell: ({ getValue, row }) => {
+        const label = getValue() as string
+        const id = row.original.customerId
+        if (!id) return <span>{label}</span>
+        return (
+          <PersonLink
+            personId={id}
+            name={label}
+            lookup={shopCustomerLookup(() => resolveShopProvider(provider))}
+            profileHref={`#/shop/customers/${id}`}
+          />
+        )
+      },
     },
     {
       accessorKey: 'total', header: () => <span className="block text-right">Total</span>,
@@ -156,20 +216,32 @@ function OrdersTab({ provider }: ShopPageProps) {
     },
     {
       accessorKey: 'createdAt', header: 'Data',
-      cell: ({ getValue }) => <span className="text-muted-foreground">{new Date(getValue() as string).toLocaleDateString('pt-BR')}</span>,
+      cell: ({ getValue }) => {
+        // Time matters operationally: two orders on the same day are picked,
+        // packed and settled in the order they arrived.
+        const d = new Date(getValue() as string)
+        return (
+          <span className="whitespace-nowrap text-muted-foreground">
+            {d.toLocaleDateString('pt-BR')}
+            <span className="ml-1.5 text-xs opacity-70">{d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+          </span>
+        )
+      },
     },
   ], [])
 
   return (
     <div>
-      {loading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
+      {error ? (
+        <ErrorState message={error} />
       ) : (
         <DataTable
+          loading={loading}
           columns={columns}
           data={orders}
           variant="card"
           emptyMessage="Nenhum pedido ainda."
+          onRowClick={(row: Order) => adminNavigateTo(`/shop/orders/${row.id}`)}
         />
       )}
     </div>
@@ -181,12 +253,10 @@ function OrdersTab({ provider }: ShopPageProps) {
 // ---------------------------------------------------------------------------
 
 function CustomersTab({ provider }: ShopPageProps) {
-  const [customers, setCustomers] = useState<ShopCustomer[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    resolveShopProvider(provider).listCustomers({ limit: 50 }).then(setCustomers).finally(() => setLoading(false))
-  }, [provider])
+  const { items: customers, loading, error } = useShopList<ShopCustomer>(
+    () => resolveShopProvider(provider).listCustomers({ limit: 50 }),
+    [provider],
+  )
 
   const columns = useMemo<ColumnDef<ShopCustomer, any>[]>(() => [
     {
@@ -207,10 +277,11 @@ function CustomersTab({ provider }: ShopPageProps) {
 
   return (
     <div>
-      {loading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
+      {error ? (
+        <ErrorState message={error} />
       ) : (
         <DataTable
+          loading={loading}
           columns={columns}
           data={customers}
           variant="card"
@@ -226,12 +297,10 @@ function CustomersTab({ provider }: ShopPageProps) {
 // ---------------------------------------------------------------------------
 
 function DiscountsTab({ provider }: ShopPageProps) {
-  const [discounts, setDiscounts] = useState<Discount[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    resolveShopProvider(provider).listDiscounts({ limit: 50 }).then(setDiscounts).finally(() => setLoading(false))
-  }, [provider])
+  const { items: discounts, loading, error } = useShopList<Discount>(
+    () => resolveShopProvider(provider).listDiscounts({ limit: 50 }),
+    [provider],
+  )
 
   const columns = useMemo<ColumnDef<Discount, any>[]>(() => [
     { accessorKey: 'title', header: 'Título', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
@@ -256,10 +325,11 @@ function DiscountsTab({ provider }: ShopPageProps) {
 
   return (
     <div>
-      {loading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
+      {error ? (
+        <ErrorState message={error} />
       ) : (
         <DataTable
+          loading={loading}
           columns={columns}
           data={discounts}
           variant="card"
@@ -283,39 +353,71 @@ const TABS = [
 
 type TabId = typeof TABS[number]['id']
 
-export const ShopPage: React.FC<ShopPageProps> = ({ provider }) => {
-  const [tab, setTab] = useState<TabId>('products')
+const TAB_COPY: Record<TabId, { title: string; subtitle: string }> = {
+  products:  { title: 'Produtos',  subtitle: 'Catálogo da loja: preço, estoque e status.' },
+  orders:    { title: 'Pedidos',   subtitle: 'Pedidos recebidos, pagamento e entrega.' },
+  customers: { title: 'Clientes',  subtitle: 'Quem comprou, quanto e com que frequência.' },
+  discounts: { title: 'Descontos', subtitle: 'Cupons, regras de uso e desempenho.' },
+}
+
+/**
+ * `section` pins the page to one area, which is how the sidebar routes
+ * /shop/products, /shop/orders, … as separate entries. Without it the page
+ * keeps its own tab bar — the single-route behaviour, still used by /shop.
+ */
+export const ShopPage: React.FC<ShopPageProps & { section?: TabId }> = ({ provider, section }) => {
+  const [tab, setTab] = useState<TabId>(section ?? 'products')
+  const active = section ?? tab
+
+  // /shop/orders/<id> renders the detail. Orders deliberately do not go through
+  // createCrudPage: an order is not an editable record, it is a document with
+  // items, money and a shipment attached.
+  const path = useAdminPath()
+  const orderId = section === 'orders' ? path.match(/^\/shop\/orders\/([^/]+)$/)?.[1] : undefined
+  if (orderId) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <OrderDetailView
+          orderId={orderId}
+          provider={() => resolveShopProvider(provider)}
+          onBack={() => adminNavigateTo('/shop/orders')}
+        />
+      </div>
+    )
+  }
+  const copy = section ? TAB_COPY[section] : { title: 'Loja', subtitle: 'Gerencie produtos, pedidos, clientes e descontos.' }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Loja</h1>
-        <p className="text-muted-foreground mt-1">Gerencie produtos, pedidos, clientes e descontos.</p>
+        <h1 className="text-2xl font-semibold">{copy.title}</h1>
+        <p className="text-muted-foreground mt-1">{copy.subtitle}</p>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b mb-6">
-        <nav className="flex gap-1">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === t.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      {!section && (
+        <div className="border-b mb-6">
+          <nav className="flex gap-1">
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  tab === t.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
 
-      {tab === 'products'  && <ProductsTab provider={provider} />}
-      {tab === 'orders'    && <OrdersTab provider={provider} />}
-      {tab === 'customers' && <CustomersTab provider={provider} />}
-      {tab === 'discounts' && <DiscountsTab provider={provider} />}
+      {active === 'products'  && <ProductsTab provider={provider} />}
+      {active === 'orders'    && <OrdersTab provider={provider} />}
+      {active === 'customers' && <CustomersTab provider={provider} />}
+      {active === 'discounts' && <DiscountsTab provider={provider} />}
     </div>
   )
 }

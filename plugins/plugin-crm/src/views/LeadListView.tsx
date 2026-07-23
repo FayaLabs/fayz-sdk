@@ -37,6 +37,25 @@ const columns: ColumnDef<Lead, any>[] = [
       )
     },
   },
+  {
+    // When the lead came in. The list is already sorted by it (provider orders
+    // created_at desc) but never showed it, so "is this enquiry from today or
+    // from March?" was unanswerable without opening the record.
+    accessorKey: 'createdAt', header: 'Entrada',
+    cell: ({ getValue }) => {
+      const raw = getValue() as string | undefined
+      if (!raw) return <span className="text-muted-foreground text-xs">—</span>
+      const at = new Date(raw)
+      if (Number.isNaN(at.getTime())) return <span className="text-muted-foreground text-xs">—</span>
+      return (
+        <span className="text-muted-foreground text-xs whitespace-nowrap" title={at.toLocaleString()}>
+          {at.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })}
+          {' · '}
+          {at.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      )
+    },
+  },
 ]
 
 export function LeadListView({ onNew, onEdit }: { onNew?: () => void; onEdit?: (id: string) => void }) {

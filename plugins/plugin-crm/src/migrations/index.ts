@@ -1,4 +1,4 @@
-// AUTO-GENERATED from 000_plg_rename.sql, 001_crm_base.sql, 002_activities.sql, 003_crm_views_rls.sql, 004_seed_default_pipeline.sql — regenerate with scripts/embed-migrations.mjs
+// AUTO-GENERATED from 000_plg_rename.sql, 001_crm_base.sql, 002_activities.sql, 003_crm_views_rls.sql, 004_seed_default_pipeline.sql, 005_public_lead.sql, 006_lead_enters_pipeline.sql — regenerate with scripts/embed-migrations.mjs
 // SQL files are the source of truth; this inline copy lets the manifest declare
 // migrations as data. Do not edit by hand — run the embed script instead.
 
@@ -238,10 +238,470 @@ BEGIN
 END $$;
 `
 
+export const MIGRATION_005_PUBLIC_LEAD = `-- plugin-crm 005: anon-safe lead capture from public sites.
+--
+-- The counterpart of agenda's create_public_booking: a marketing site posts a
+-- form and a lead lands in the CRM of the right tenant. Same shape of trust —
+-- the caller is an anonymous browser holding only a publishable key, so every
+-- decision that matters (which tenant, which status, whether it is spam) is
+-- made here and cannot be set by the caller.
+--
+-- Why p_fields jsonb: every landing page asks something different (hair
+-- coverage on one, discount coupon on another, subject/message on a third).
+-- Modelling those as columns means a migration per campaign — the site this was
+-- built for already had 22 columns on its lead table. They go to people.metadata
+-- under 'fields', which v_leads already reads from, so a new form ships with
+-- zero schema change.
+
+CREATE OR REPLACE FUNCTION public.create_public_lead(
+  p_tenant_id uuid,
+  p_name text,
+  p_phone text DEFAULT NULL,
+  p_email text DEFAULT NULL,
+  p_form_id text DEFAULT NULL,
+  p_form_name text DEFAULT NULL,
+  p_fields jsonb DEFAULT '{}'::jsonb,
+  p_notes text DEFAULT NULL,
+  p_utm jsonb DEFAULT '{}'::jsonb
+)
+RETURNS TABLE(lead_id uuid, created_at timestamptz)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_person_id uuid;
+  v_phone text;
+  v_email text;
+  v_fields jsonb;
+  v_utm jsonb;
+  v_recent int;
+BEGIN
+  -- ---------------------------------------------------------------------
+  -- validation: anon-callable, so everything is checked here
+  -- ---------------------------------------------------------------------
+  IF p_name IS NULL OR length(trim(p_name)) NOT BETWEEN 2 AND 120 THEN
+    RAISE EXCEPTION 'invalid name';
+  END IF;
+
+  v_phone := NULLIF(regexp_replace(COALESCE(p_phone, ''), '\\D', '', 'g'), '');
+  IF v_phone IS NOT NULL AND length(v_phone) NOT BETWEEN 8 AND 15 THEN
+    RAISE EXCEPTION 'invalid phone';
+  END IF;
+
+  v_email := NULLIF(trim(COALESCE(p_email, '')), '');
+  IF v_email IS NOT NULL AND (length(v_email) > 254 OR v_email !~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') THEN
+    RAISE EXCEPTION 'invalid email';
+  END IF;
+
+  -- a lead with no way to reach them back is not a lead
+  IF v_phone IS NULL AND v_email IS NULL THEN
+    RAISE EXCEPTION 'phone or email required';
+  END IF;
+
+  PERFORM 1 FROM tenants t WHERE t.id = p_tenant_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'unknown tenant'; END IF;
+
+  -- ---------------------------------------------------------------------
+  -- custom fields: object-only, bounded, and scalars only.
+  -- Bounding the payload keeps a hostile caller from parking documents in
+  -- the CRM; flattening nested values keeps the detail panel renderable.
+  -- ---------------------------------------------------------------------
+  v_fields := COALESCE(p_fields, '{}'::jsonb);
+  IF jsonb_typeof(v_fields) <> 'object' THEN
+    RAISE EXCEPTION 'fields must be an object';
+  END IF;
+  IF length(v_fields::text) > 8000 THEN
+    RAISE EXCEPTION 'fields too large';
+  END IF;
+  IF (SELECT count(*) FROM jsonb_object_keys(v_fields)) > 40 THEN
+    RAISE EXCEPTION 'too many fields';
+  END IF;
+
+  v_utm := COALESCE(p_utm, '{}'::jsonb);
+  IF jsonb_typeof(v_utm) <> 'object' OR length(v_utm::text) > 2000 THEN
+    RAISE EXCEPTION 'invalid utm';
+  END IF;
+
+  -- ---------------------------------------------------------------------
+  -- anti-spam: same tenant + same contact + same form, twice in 5 minutes is
+  -- a double-click or a bot, not two inquiries. Repeat interest days later IS
+  -- a new lead, so this window stays deliberately short.
+  -- ---------------------------------------------------------------------
+  SELECT count(*) INTO v_recent
+  FROM people p
+  WHERE p.tenant_id = p_tenant_id
+    AND p.kind = 'lead'
+    AND p.created_at > now() - interval '5 minutes'
+    AND COALESCE(p.metadata->>'formId', '') = COALESCE(p_form_id, '')
+    AND (
+      (v_phone IS NOT NULL AND p.phone = v_phone)
+      OR (v_email IS NOT NULL AND p.email = v_email)
+    );
+  IF v_recent > 0 THEN
+    RAISE EXCEPTION 'duplicate submission';
+  END IF;
+
+  -- burst cap per tenant: a flood is never legitimate marketing traffic
+  IF (
+    SELECT count(*) FROM people p
+    WHERE p.tenant_id = p_tenant_id
+      AND p.kind = 'lead'
+      AND p.created_at > now() - interval '1 minute'
+  ) >= 20 THEN
+    RAISE EXCEPTION 'too many submissions';
+  END IF;
+
+  -- ---------------------------------------------------------------------
+  -- the lead. status/kind are hardcoded — the caller cannot promote itself
+  -- into a customer or land pre-qualified.
+  -- ---------------------------------------------------------------------
+  INSERT INTO people (tenant_id, kind, name, phone, email, notes, tags, is_active, metadata)
+  VALUES (
+    p_tenant_id,
+    'lead',
+    trim(p_name),
+    v_phone,
+    v_email,
+    left(p_notes, 2000),
+    ARRAY[]::text[],
+    true,
+    jsonb_strip_nulls(
+      jsonb_build_object(
+        'status',     'new',
+        'source',     'public_form',
+        'sourceName', COALESCE(NULLIF(trim(COALESCE(p_form_name, '')), ''), 'Site'),
+        'formId',     NULLIF(trim(COALESCE(p_form_id, '')), ''),
+        'fields',     v_fields,
+        'utm',        CASE WHEN v_utm = '{}'::jsonb THEN NULL ELSE v_utm END
+      )
+    )
+  )
+  RETURNING id, people.created_at INTO v_person_id, created_at;
+
+  lead_id := v_person_id;
+  RETURN NEXT;
+END;
+$function$;
+
+-- anon: the whole point. authenticated too, so a logged-in visitor on the same
+-- site takes the identical path.
+GRANT EXECUTE ON FUNCTION public.create_public_lead(uuid, text, text, text, text, text, jsonb, text, jsonb)
+  TO anon, authenticated;
+
+-- Leads are read through v_leads, which is tenant-scoped by RLS on people.
+-- No anon SELECT is granted here: a public form writes, it never reads back.
+CREATE INDEX IF NOT EXISTS idx_people_lead_tenant_created
+  ON public.people (tenant_id, created_at DESC)
+  WHERE kind = 'lead';
+
+-- ---------------------------------------------------------------------------
+-- v_leads gains the custom-field payload.
+--
+-- Without this the whole abstraction is write-only: a form's answers reach
+-- people.metadata and no CRM screen can read them back. Columns are APPENDED
+-- (CREATE OR REPLACE VIEW cannot reorder or drop), and the view keeps
+-- security_invoker=true so people's RLS still scopes rows per tenant.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.v_leads
+WITH (security_invoker = true) AS
+SELECT id,
+    tenant_id,
+    name,
+    email,
+    phone,
+    notes,
+    tags,
+    is_active,
+    (metadata ->> 'company'::text) AS company,
+    (metadata ->> 'sourceId'::text) AS source_id,
+    (metadata ->> 'sourceName'::text) AS source_name,
+    COALESCE((metadata ->> 'status'::text), 'new'::text) AS lead_status,
+    (metadata ->> 'value'::text) AS lead_value,
+    (metadata ->> 'assignedToId'::text) AS assigned_to_id,
+    created_at,
+    updated_at,
+    -- appended:
+    (metadata ->> 'formId'::text) AS form_id,
+    COALESCE(metadata -> 'fields'::text, '{}'::jsonb) AS custom_fields,
+    COALESCE(metadata -> 'utm'::text, '{}'::jsonb) AS utm
+   FROM people p
+  WHERE (kind = 'lead'::text);
+`
+
+export const MIGRATION_006_LEAD_ENTERS_PIPELINE = `-- plugin-crm 006: every lead lands on the board, guaranteed by the database.
+--
+-- The bug this closes: the leads LIST reads v_leads (public.people WHERE
+-- kind='lead') while the PIPELINE reads v_deals (public.orders WHERE kind='deal'
+-- + plg_crm_deal_extensions). A lead is a person; a card is an order. Nothing
+-- created the second from the first — create_public_lead never touches orders —
+-- so form leads landed in the list and the board stayed empty. Forever, not
+-- intermittently. plg_crm_deal_extensions.lead_id has existed since 001 and was
+-- NULL on every row in the pool: the link was designed and never wired.
+--
+-- Why a TRIGGER and not application code: a lead reaches people through at
+-- least four independent writers today — the anon RPC create_public_lead, the
+-- agent's generic createRecord, CSV import, and the CRM's own form. Putting the
+-- board insert in any one of them leaves the other three silently broken, and
+-- the next writer added leaves a fifth. Here it cannot be forgotten or bypassed,
+-- including by a direct SQL insert.
+--
+-- Idempotent by construction: a UNIQUE index on deal_extensions.lead_id means a
+-- second attempt for the same lead is a no-op, so re-running the backfill or
+-- replaying the migration cannot double-card anyone.
+
+-- ---------------------------------------------------------------------------
+-- 1. One card per lead, enforced by the database rather than by the trigger
+--    remembering to check.
+-- ---------------------------------------------------------------------------
+CREATE UNIQUE INDEX IF NOT EXISTS plg_crm_deal_extensions_lead_idx
+  ON public.plg_crm_deal_extensions (lead_id) WHERE lead_id IS NOT NULL;
+
+-- ---------------------------------------------------------------------------
+-- 1b. The default board, as a callable function instead of 004's one-shot loop.
+--     Same pipeline and stages 004 seeds; idempotent per tenant.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.crm_seed_default_pipeline(p_tenant_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_pipeline uuid;
+BEGIN
+  SELECT id INTO v_pipeline
+    FROM public.plg_crm_pipelines
+   WHERE tenant_id = p_tenant_id
+   ORDER BY is_default DESC, created_at ASC
+   LIMIT 1;
+  IF v_pipeline IS NOT NULL THEN
+    RETURN v_pipeline;
+  END IF;
+
+  INSERT INTO public.plg_crm_pipelines (tenant_id, name, is_default, is_active)
+  VALUES (p_tenant_id, 'Sales Pipeline', true, true)
+  RETURNING id INTO v_pipeline;
+
+  INSERT INTO public.plg_crm_pipeline_stages
+    (tenant_id, pipeline_id, name, "order", color, probability, is_won, is_lost)
+  VALUES
+    (p_tenant_id, v_pipeline, 'New',         0, '#6366f1', 10,  false, false),
+    (p_tenant_id, v_pipeline, 'Contacted',   1, '#3b82f6', 25,  false, false),
+    (p_tenant_id, v_pipeline, 'Qualified',   2, '#f59e0b', 50,  false, false),
+    (p_tenant_id, v_pipeline, 'Proposal',    3, '#f97316', 75,  false, false),
+    (p_tenant_id, v_pipeline, 'Negotiation', 4, '#8b5cf6', 90,  false, false),
+    (p_tenant_id, v_pipeline, 'Won',         5, '#22c55e', 100, true,  false),
+    (p_tenant_id, v_pipeline, 'Lost',        6, '#ef4444', 0,   false, true);
+
+  RETURN v_pipeline;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 2. The lead → card projection, shared by the trigger and the backfill so the
+--    two can never drift apart.
+--
+--    Placement is the tenant's DEFAULT pipeline, lowest \`order\` stage that is
+--    neither won nor lost (the "New" column). A tenant with no pipeline yet is
+--    skipped rather than failing: the lead must still be captured — losing a
+--    real customer enquiry because a board was not configured would be a far
+--    worse bug than a missing card. 004 seeds a default pipeline for every
+--    tenant, so this is the empty-tenant edge, not the normal path.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.crm_place_lead_on_board(p_lead_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_lead     public.people%ROWTYPE;
+  v_pipeline uuid;
+  v_stage    uuid;
+  v_prob     numeric;
+  v_order_id uuid;
+BEGIN
+  SELECT * INTO v_lead FROM public.people WHERE id = p_lead_id;
+  IF NOT FOUND OR v_lead.kind <> 'lead' THEN
+    RETURN NULL;
+  END IF;
+
+  -- Already on the board (re-run, or a card made by hand): nothing to do.
+  IF EXISTS (SELECT 1 FROM public.plg_crm_deal_extensions WHERE lead_id = p_lead_id) THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT id INTO v_pipeline
+    FROM public.plg_crm_pipelines
+   WHERE tenant_id = v_lead.tenant_id
+   ORDER BY is_default DESC, created_at ASC
+   LIMIT 1;
+
+  -- No board yet? Build the default one and carry on.
+  --
+  -- 004 seeds the default pipeline as a ONE-SHOT backfill with no trigger, so
+  -- every tenant created after it ran has none — 3 of the 8 tenants in this pool
+  -- were in that state. Their board renders blank no matter how many leads
+  -- arrive, and it would punch a hole straight through the guarantee this
+  -- migration exists to make: a lead in such a tenant would be captured and then
+  -- silently skipped for want of a stage to sit in.
+  --
+  -- Seeded here, on demand, rather than from a trigger on public.tenants: the
+  -- board is the CRM's own concern, and a plugin has no business attaching
+  -- itself to tenant creation in a core table.
+  IF v_pipeline IS NULL THEN
+    v_pipeline := public.crm_seed_default_pipeline(v_lead.tenant_id);
+  END IF;
+  IF v_pipeline IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT id, probability INTO v_stage, v_prob
+    FROM public.plg_crm_pipeline_stages
+   WHERE pipeline_id = v_pipeline AND NOT is_won AND NOT is_lost
+   ORDER BY "order" ASC
+   LIMIT 1;
+  IF v_stage IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  -- The card's money value comes from the lead when the form captured one;
+  -- 0 otherwise. \`notes\` is the deal TITLE (v_deals maps o.notes -> title), so
+  -- it carries the lead's name, not the lead's message.
+  INSERT INTO public.orders (
+    tenant_id, kind, status, total, currency, party_id, notes, tags, metadata
+  ) VALUES (
+    v_lead.tenant_id,
+    'deal',
+    'open',
+    COALESCE((v_lead.metadata ->> 'value')::numeric, 0),
+    'BRL',
+    v_lead.id,
+    v_lead.name,
+    COALESCE(v_lead.tags, '{}'),
+    jsonb_build_object(
+      'contactName', v_lead.name,
+      'createdFrom', 'lead',
+      -- Which form produced it, when there was one: lets the board be filtered
+      -- by campaign without re-joining people.
+      'formId', v_lead.metadata ->> 'formId'
+    )
+  )
+  RETURNING id INTO v_order_id;
+
+  INSERT INTO public.plg_crm_deal_extensions (
+    order_id, tenant_id, pipeline_id, stage_id, probability, lead_id
+  ) VALUES (
+    v_order_id, v_lead.tenant_id, v_pipeline, v_stage, COALESCE(v_prob, 0), v_lead.id
+  )
+  -- Concurrent inserts for the same lead: the unique index above turns the
+  -- loser into a no-op instead of an error the trigger would propagate back to
+  -- the form submission.
+  ON CONFLICT (lead_id) WHERE lead_id IS NOT NULL DO NOTHING;
+
+  RETURN v_order_id;
+END;
+$$;
+
+COMMENT ON FUNCTION public.crm_place_lead_on_board(uuid) IS
+  'Projects a people row of kind=lead onto the tenant default pipeline as an orders(kind=deal) + deal_extension. Idempotent per lead.';
+
+-- ---------------------------------------------------------------------------
+-- 3. The trigger. AFTER INSERT so a failure here can never roll back the lead
+--    itself, and EXCEPTION-guarded for the same reason: capturing the enquiry
+--    is the part that must not fail. A board that missed a card is recoverable
+--    (step 4 re-runs); a lost lead is not.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.crm_lead_to_board()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NEW.kind = 'lead' THEN
+    BEGIN
+      PERFORM public.crm_place_lead_on_board(NEW.id);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'crm_lead_to_board: lead % captured but not placed on the board: %', NEW.id, SQLERRM;
+    END;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS people_lead_to_board ON public.people;
+CREATE TRIGGER people_lead_to_board
+  AFTER INSERT ON public.people
+  FOR EACH ROW
+  WHEN (NEW.kind = 'lead')
+  EXECUTE FUNCTION public.crm_lead_to_board();
+
+-- A person PROMOTED to lead later (kind edited from contact/customer) must land
+-- on the board too — otherwise the guarantee holds only for the insert path.
+DROP TRIGGER IF EXISTS people_promoted_to_lead_to_board ON public.people;
+CREATE TRIGGER people_promoted_to_lead_to_board
+  AFTER UPDATE OF kind ON public.people
+  FOR EACH ROW
+  WHEN (NEW.kind = 'lead' AND OLD.kind IS DISTINCT FROM 'lead')
+  EXECUTE FUNCTION public.crm_lead_to_board();
+
+-- ---------------------------------------------------------------------------
+-- 4. Realtime, so an open board updates itself instead of waiting for a reload.
+--
+--    The trigger above writes the card with no client involved, so the browser
+--    has nothing to react to unless the change is streamed. The pool's
+--    supabase_realtime publication was EMPTY — every .subscribe() in the SDK
+--    was silently receiving nothing — so the table is added explicitly rather
+--    than assumed. FOR EACH ROW replica identity stays default (PK): the
+--    handler refetches the board, so the payload's contents are irrelevant.
+-- ---------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+     WHERE pubname = 'supabase_realtime'
+       AND schemaname = 'public'
+       AND tablename = 'plg_crm_deal_extensions'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.plg_crm_deal_extensions;
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 5. Backfill every lead that predates the trigger. Idempotent via step 2's
+--    own guard, so replaying this migration adds nothing.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  r record;
+  n int := 0;
+BEGIN
+  FOR r IN
+    SELECT p.id
+      FROM public.people p
+      LEFT JOIN public.plg_crm_deal_extensions de ON de.lead_id = p.id
+     WHERE p.kind = 'lead' AND de.id IS NULL
+     ORDER BY p.created_at
+  LOOP
+    IF public.crm_place_lead_on_board(r.id) IS NOT NULL THEN
+      n := n + 1;
+    END IF;
+  END LOOP;
+  RAISE NOTICE 'crm 006 backfill: % lead(s) placed on the board', n;
+END $$;
+`
+
 export const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: "000_plg_rename", sql: MIGRATION_000_PLG_RENAME },
   { id: "001_crm_base", sql: MIGRATION_001_CRM_BASE },
   { id: "002_activities", sql: MIGRATION_002_ACTIVITIES },
   { id: "003_crm_views_rls", sql: MIGRATION_003_CRM_VIEWS_RLS },
   { id: "004_seed_default_pipeline", sql: MIGRATION_004_SEED_DEFAULT_PIPELINE },
+  { id: "005_public_lead", sql: MIGRATION_005_PUBLIC_LEAD },
+  { id: "006_lead_enters_pipeline", sql: MIGRATION_006_LEAD_ENTERS_PIPELINE },
 ]

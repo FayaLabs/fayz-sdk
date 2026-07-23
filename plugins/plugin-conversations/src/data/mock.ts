@@ -192,6 +192,7 @@ export function createMockConversationsProvider(
       const conversation: Conversation = {
         id,
         contactName: input.contactName.trim(),
+        contactPersonId: input.contactPersonId,
         contactHandle: input.contactHandle?.trim() ?? '',
         channel: input.channel,
         lastMessagePreview: firstMessage ?? '',

@@ -42,6 +42,15 @@ function startOfMonthISO(): string {
 }
 
 /**
+ * How long a usage count may take before we give up on it. Failing OPEN on an
+ * error was always the policy (see below); a request that never settles is the
+ * same failure with worse symptoms — a caller awaiting this (the create guards)
+ * hangs forever, which reads to the user as a dead button. Observed on a cold
+ * boot, where the query can be issued before the auth session is ready.
+ */
+const COUNT_TIMEOUT_MS = 5_000
+
+/**
  * Count rows in `table` for the given (or active) tenant.
  * Returns 0 when no Supabase client is registered (mock mode).
  */
@@ -80,12 +89,27 @@ export async function countByTenant(table: string, options: CountByTenantOptions
     query = query.gte('created_at', startOfMonthISO()) as typeof query
   }
 
-  const { count, error } = (await (query as unknown as Promise<{ count: number | null; error: unknown }>))
-  // On error, fail OPEN (return 0) — a counting failure must never wall a tenant
-  // out of their own product. Enforcement's source of truth is the DB anyway.
+  // On error OR timeout, fail OPEN (return 0) — a counting failure must never
+  // wall a tenant out of their own product, and must never hang the UI awaiting
+  // it. Enforcement's source of truth is the DB anyway.
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<{ count: null; error: unknown; timedOut: true }>((resolve) => {
+    timer = setTimeout(() => resolve({ count: null, error: 'timeout', timedOut: true }), COUNT_TIMEOUT_MS)
+  })
+  const settled = await Promise.race([
+    query as unknown as Promise<{ count: number | null; error: unknown }>,
+    timeout,
+  ])
+  if (timer) clearTimeout(timer)
+
+  const { count, error } = settled
   const value = error ? 0 : count ?? 0
 
-  cache.set(key, { value, expires: Date.now() + TTL_MS })
+  // A timed-out count is not a fact about the tenant — caching it would make one
+  // slow request suppress the guard for the whole TTL.
+  if (!(settled as { timedOut?: true }).timedOut) {
+    cache.set(key, { value, expires: Date.now() + TTL_MS })
+  }
   return value
 }
 

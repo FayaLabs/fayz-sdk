@@ -13,6 +13,10 @@ export type {
   DiscountValidation, InventoryLine, InventoryIssue, InventoryCheck, CartTotalLine, CartTotals,
 } from './types'
 
+export type {
+  ShippingZone, CreateShippingZoneInput, UpdateShippingZoneInput,
+  ShippingQuoteOption, CustomerAddress,
+} from './types'
 export type { ShopProvider } from './provider'
 export {
   validateDiscount, applyDiscount, checkInventory, computeCartTotals, getCustomerOrders,

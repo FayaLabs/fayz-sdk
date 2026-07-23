@@ -483,6 +483,9 @@
               "searchable": {
                 "type": "boolean"
               },
+              "hint": {
+                "type": "string"
+              },
               "options": {
                 "type": "array",
                 "items": {

@@ -52,6 +52,13 @@ export const ptBR: Record<string, string> = {
   'conversations.new.contactNamePlaceholder': 'ex.: Maria Silva',
   'conversations.new.handle': 'Telefone / usuário / e-mail',
   'conversations.new.handlePlaceholder': '+55 11 99999-0000',
+  // O campo de handle só aparece quando o contato escolhido não tem o dado do
+  // canal ativo — caso contrário ele é derivado e mostrado no chip.
+  'conversations.new.addHandle': 'Adicionar {label}',
+  'conversations.new.handleLabel.phone': 'telefone',
+  'conversations.new.handleLabel.email': 'e-mail',
+  'conversations.new.handleLabel.instagram': '@ do Instagram',
+  'conversations.new.handleLabel.webchat': 'id do chat',
   'conversations.new.firstMessage': 'Primeira mensagem',
   'conversations.new.firstMessagePlaceholder': 'Escreva a primeira mensagem (opcional)…',
   'conversations.new.cancel': 'Cancelar',
