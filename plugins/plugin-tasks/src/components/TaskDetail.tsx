@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, Trash2, Calendar, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Trash2, Calendar, ChevronDown, Sparkles } from 'lucide-react'
 import { useTasksStore } from '../TasksContext'
 import { useTranslation } from '@fayz-ai/core'
+import { useDelegateToAssistant } from '@fayz-ai/saas'
 import { TaskPriorityBadge } from './TaskPriorityBadge'
 import { TaskLabelBadges } from './TaskLabelBadge'
 import { TaskQuickAdd } from './TaskQuickAdd'
@@ -16,8 +17,13 @@ const STATUS_DOT: Record<TaskStatus, string> = {
   cancelled: 'bg-muted-foreground/60',
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+/** Same footer format as the Notes tab: time when today, short date otherwise. */
+function formatDateTime(iso: string): string {
+  const d = new Date(iso)
+  const sameDay = d.toDateString() === new Date().toDateString()
+  return sameDay
+    ? d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 export function TaskDetail({ taskId }: { taskId: string }) {
@@ -28,6 +34,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const deleteTask = useTasksStore((s) => s.deleteTask)
 
   const task = tasks.find((tt) => tt.id === taskId)
+  const delegate = useDelegateToAssistant()
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -148,6 +155,20 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         className="w-full rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-3 py-2 text-xs outline-none resize-none placeholder:text-muted-foreground/50 leading-relaxed"
       />
 
+      {/* Agentic hand-off — same CTA pattern as the Notes tab */}
+      <button
+        type="button"
+        onClick={() =>
+          delegate(
+            `${t('tasks.detail.chatWithAi.prompt')}\n\n"${task.title}"${task.description ? `\n${task.description}` : ''}${task.dueDate ? `\n(${t('tasks.detail.dueDate')}: ${task.dueDate})` : ''}`,
+          )
+        }
+        className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary via-primary/80 to-primary bg-[length:200%_100%] bg-left px-3 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all duration-500 hover:bg-right hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+        {t('tasks.detail.chatWithAi')}
+      </button>
+
       {/* Subtasks */}
       <div>
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
@@ -167,8 +188,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
       {/* Footer: timestamps + delete */}
       <div className="flex items-center justify-between pt-2 border-t">
-        <span className="text-[10px] text-muted-foreground">
-          {formatDate(task.createdAt)} · {t('tasks.detail.updated')} {formatDate(task.updatedAt)}
+        <span className="text-[10px] text-muted-foreground/60">
+          {t('tasks.detail.created')} {formatDateTime(task.createdAt)} · {t('tasks.detail.updated')} {formatDateTime(task.updatedAt)}
         </span>
         <button
           type="button"

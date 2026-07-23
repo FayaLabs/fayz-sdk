@@ -26,6 +26,8 @@ export const en: Record<string, string> = {
   'tasks.detail.delete': 'Delete Task',
   'tasks.detail.deleteConfirm': 'Are you sure you want to delete this task?',
   'tasks.detail.created': 'Created',
+  'tasks.detail.chatWithAi': 'Chat with AI',
+  'tasks.detail.chatWithAi.prompt': 'Take over this task and help me resolve it now, using your tools when needed:',
   'tasks.detail.updated': 'Updated',
   'tasks.detail.addSubtask': 'Add subtask...',
   'tasks.detail.back': 'Back to list',

@@ -11,7 +11,7 @@ import type { EventInput, EventClickArg, DateSelectArg, EventDropArg } from '@fu
 import { ChevronLeft, ChevronRight, Plus, ChevronDown, Settings } from 'lucide-react'
 import { usePluginPrefs } from '@fayz-ai/saas'
 import { getCurrentLocale } from '@fayz-ai/core'
-import { useTranslation } from '@fayz-ai/core'
+import { useTranslation, useDataChanged } from '@fayz-ai/core'
 import { useAgendaConfig, useAgendaStore } from '../AgendaContext'
 import { useAgendaSettings } from '../hooks/useAgendaSettings'
 import { MiniCalendar } from '../components/MiniCalendar'
@@ -391,6 +391,20 @@ export function CalendarView() {
     const end = new Date(start); end.setDate(end.getDate() + 91)
     fetchBookings({ start: start.toISOString(), end: end.toISOString() })
   }, [isMobile, fetchBookings])
+
+  // A booking created outside the grid — the assistant, the public page,
+  // another device — repaints the calendar it belongs to. Without this the
+  // manager who just said "agenda a Maria amanhã às 10" still sees yesterday's
+  // grid and reloads the tab by hand.
+  useDataChanged({}, () => {
+    if (visibleRange) {
+      fetchBookings(visibleRange)
+      return
+    }
+    const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - 1)
+    const end = new Date(start); end.setDate(end.getDate() + 91)
+    fetchBookings({ start: start.toISOString(), end: end.toISOString() })
+  }, [visibleRange, fetchBookings])
 
   const resources = useMemo(() => {
     const filtered = selectedProfIds.length > 0

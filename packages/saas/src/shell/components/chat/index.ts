@@ -1,2 +1,3 @@
 export { ChatFab } from './ChatFab'
-export { ChatPanel } from './ChatPanel'
+export { ChatConversation } from './ChatConversation'
+export type { ChatConversationProps } from './ChatConversation'

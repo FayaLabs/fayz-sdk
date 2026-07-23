@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Crown, Check, Minus, Sparkles } from 'lucide-react'
+import { PlanFeatureItem, parsePlanFeature } from './plan-feature'
 import { Button, Badge, Card, CardContent, CardHeader, ConfirmDialog, toast } from '@fayz-ai/ui'
 import type { Plan } from '@fayz-ai/core'
 import { cn } from '../../lib/cn'
@@ -242,10 +243,7 @@ export function SubscriptionPage({ className }: { className?: string }) {
                 </div>
                 <ul className="mb-6 flex-1 space-y-3">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>{feature}</span>
-                    </li>
+                    <PlanFeatureItem key={feature} feature={feature} className="text-sm" iconClassName="h-4 w-4" />
                   ))}
                 </ul>
                 {isCurrent ? (
@@ -333,7 +331,7 @@ export function SubscriptionPage({ className }: { className?: string }) {
                 ) : (
                   allFeatures.map((feature, i) => (
                     <tr key={feature} className={cn(i % 2 === 1 && 'bg-muted/20')}>
-                      <td className="px-4 py-2.5 text-left">{feature}</td>
+                      <td className="px-4 py-2.5 text-left">{parsePlanFeature(feature).label}</td>
                       {plans.map((plan) => (
                         <td key={plan.id} className="px-4 py-2.5 text-center">
                           {plan.features.includes(feature) ? (

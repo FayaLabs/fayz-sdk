@@ -128,6 +128,28 @@ export interface AppShellProps {
   sidebarNavKey?: string
   /** Push direction for a `sidebarNavKey` change. Default 'forward'. */
   sidebarNavDirection?: 'forward' | 'back'
+  /**
+   * Full-height column pinned to the right (the assistant dock, a tasks
+   * panel). Rendered as a flex SIBLING of the layout, so the app narrows to
+   * make room instead of being covered — the difference between a split view
+   * and a modal that happens to be tall.
+   *
+   * Falsy renders nothing and costs nothing: no wrapper, no divider, the
+   * layout element stands alone exactly as before.
+   */
+  rightRail?: React.ReactNode
+  /** Whether the rail is showing. Separate from `rightRail` so the column can
+   *  animate its width instead of snapping when it closes. */
+  rightRailOpen?: boolean
+  /** Starting width in px. Ignored once the user drags. Default 380. */
+  defaultRightRailWidth?: number
+  /** Fired after every drag so the host can persist the preference. */
+  onRightRailWidthChange?: (width: number) => void
+  /** Drag bounds in px. Defaults 300 / 720. */
+  rightRailMinWidth?: number
+  rightRailMaxWidth?: number
+  /** Accessible name for the drag handle. */
+  rightRailResizeLabel?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -277,7 +299,7 @@ function SidebarLayout({
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
+        <main className="min-w-0 flex-1 overflow-y-auto pb-16 md:pb-0">
           {children}
         </main>
 
@@ -389,9 +411,14 @@ function TopbarLayout({
       {/* Frame inset/border only from md up, so mobile stays edge-to-edge. The
           inset gap behind the framed card is the header color (bg-sidebar), so the
           white card reads as a panel floating on the same navy as the topbar. */}
-      <main className={cn('flex-1 overflow-y-auto pb-16 md:pb-0', frame && 'md:bg-sidebar md:p-2')}>
-        <div className={cn('min-h-full', frame && 'md:rounded-xl md:border md:border-border md:bg-card')}>
-          {children}
+      {/* The frame is fixed to the viewport and the content scrolls INSIDE it,
+          mirroring SidebarLayout. With `main` as the scroller the card grew with
+          the page and its bottom edge rode off-screen. */}
+      <main className={cn('flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden', frame && 'md:bg-sidebar md:p-2')}>
+        <div className={cn('flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden', frame && 'md:rounded-xl md:border md:border-border md:bg-card')}>
+          <div className="min-h-0 flex-1 overflow-y-auto pb-16 md:pb-0">
+            {children}
+          </div>
         </div>
       </main>
 
@@ -461,7 +488,7 @@ function MinimalLayout({
         </div>
         {headerEnd && <div className="flex items-center gap-2">{headerEnd}</div>}
       </header>
-      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
+      <main className="min-w-0 flex-1 overflow-y-auto pb-16 md:pb-0">
         {children}
       </main>
     </div>
@@ -682,6 +709,13 @@ export function AppShell({
   sidebarSectionLabels,
   sidebarNavKey,
   sidebarNavDirection,
+  rightRail,
+  rightRailOpen = true,
+  defaultRightRailWidth,
+  onRightRailWidthChange,
+  rightRailMinWidth,
+  rightRailMaxWidth,
+  rightRailResizeLabel,
 }: AppShellProps) {
   const hasBottomNav = !!bottomNav?.length
   const bottomBar = hasBottomNav ? (
@@ -777,9 +811,177 @@ export function AppShell({
 
   return (
     <>
-      {layoutElement}
+      {rightRail ? (
+        <SplitWithRightRail
+          rail={rightRail}
+          open={rightRailOpen}
+          frame={contentFrame}
+          defaultWidth={defaultRightRailWidth}
+          onWidthChange={onRightRailWidthChange}
+          minWidth={rightRailMinWidth}
+          maxWidth={rightRailMaxWidth}
+          resizeLabel={rightRailResizeLabel}
+        >
+          {layoutElement}
+        </SplitWithRightRail>
+      ) : (
+        layoutElement
+      )}
       {floatingAvatar}
       {bottomBar}
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SplitWithRightRail — the app on the left, a full-height rail on the right,
+// a divider the user owns between them.
+//
+// The layouts all root at `h-screen overflow-hidden`, so putting them in a
+// `flex-1 min-w-0` cell keeps their height and lets them shrink. `min-w-0` is
+// load-bearing: without it a flex child refuses to go below its content width
+// and the rail gets pushed off-screen instead of the content reflowing.
+// ---------------------------------------------------------------------------
+
+function SplitWithRightRail({
+  children,
+  rail,
+  open,
+  frame,
+  defaultWidth = 380,
+  onWidthChange,
+  minWidth = 300,
+  maxWidth = 720,
+  resizeLabel = 'Resize panel',
+}: {
+  children: React.ReactNode
+  rail: React.ReactNode
+  open: boolean
+  /** Frame mode: the gutter between content and rail takes the sidebar tone,
+   *  the same surface the content card floats on. Without this the split shows
+   *  a bare strip of page background and the rail reads as bolted on. */
+  frame?: boolean
+  defaultWidth?: number
+  onWidthChange?: (width: number) => void
+  minWidth?: number
+  maxWidth?: number
+  resizeLabel?: string
+}) {
+  const [width, setWidth] = React.useState(defaultWidth)
+  const [dragging, setDragging] = React.useState(false)
+
+  const clamp = React.useCallback(
+    (value: number) => Math.min(maxWidth, Math.max(minWidth, value)),
+    [minWidth, maxWidth],
+  )
+
+  // The app follows the pointer to the pixel, so the drag runs on window
+  // listeners rather than on the handle: the cursor routinely outruns a 6px
+  // target, and a resize that stops when you move too fast feels broken.
+  React.useEffect(() => {
+    if (!dragging) return
+    const onMove = (event: PointerEvent) => {
+      event.preventDefault()
+      setWidth(clamp(window.innerWidth - event.clientX))
+    }
+    const stop = () => setDragging(false)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    // Text selection across the whole app while dragging a divider is pure
+    // noise, and iframes/canvases would otherwise swallow the pointer.
+    const previousSelect = document.body.style.userSelect
+    const previousCursor = document.body.style.cursor
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      document.body.style.userSelect = previousSelect
+      document.body.style.cursor = previousCursor
+    }
+  }, [dragging, clamp])
+
+  // Report only on release: firing per pointer frame would write to
+  // localStorage ~60×/second for one gesture.
+  React.useEffect(() => {
+    if (dragging) return
+    onWidthChange?.(width)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging])
+
+  const nudge = (delta: number) => setWidth((current) => clamp(current + delta))
+
+  return (
+    // Sidebar tone always: the gutter and the divider sit in the shell's
+    // chrome, next to the menu — painting them page-white put a bright strip
+    // between the dark chrome and the rail, which read as a seam rather than
+    // as space.
+    <div className={cn('flex h-screen w-full overflow-hidden bg-sidebar', !frame && 'md:bg-background')}>
+      <div className="min-w-0 flex-1">{children}</div>
+
+      {/* Divider — desktop only; on a phone the rail is a sheet over the app,
+          and there is nothing to divide. */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={resizeLabel}
+        aria-valuenow={width}
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        tabIndex={0}
+        onPointerDown={(event) => {
+          event.preventDefault()
+          setDragging(true)
+        }}
+        onDoubleClick={() => setWidth(clamp(defaultWidth))}
+        onKeyDown={(event) => {
+          // Keyboard resize: a pointer-only divider makes the split view
+          // unusable for anyone not using a mouse.
+          if (event.key === 'ArrowLeft') { event.preventDefault(); nudge(24) }
+          else if (event.key === 'ArrowRight') { event.preventDefault(); nudge(-24) }
+          else if (event.key === 'Home') { event.preventDefault(); setWidth(maxWidth) }
+          else if (event.key === 'End') { event.preventDefault(); setWidth(minWidth) }
+        }}
+        className={cn(
+          'group relative hidden w-1 shrink-0 cursor-col-resize focus-visible:outline-none',
+          open && 'md:block',
+        )}
+      >
+        {/* Invisible at rest: the gutter's own tone already separates the two
+            panes, and a permanent rule there just adds a line to look at.
+            It appears when you reach for it. */}
+        <span
+          className={cn(
+            'absolute inset-y-6 left-1/2 w-px -translate-x-1/2 rounded-full bg-transparent transition-colors',
+            'group-hover:bg-primary/60 group-focus-visible:bg-primary',
+            dragging && 'bg-primary',
+          )}
+        />
+        {/* Hit area wider than the line: 1px is honest visually and hostile
+            to aim for. */}
+        <span className="absolute inset-y-0 -left-1.5 -right-1.5" />
+      </div>
+
+      {/* Rendered once: two copies would mount the rail's contents twice. On a
+          phone the box collapses to zero width and the rail positions itself
+          `fixed` over the screen. The frame inset is padding HERE rather than
+          margin on the rail — a full-height child plus vertical margins
+          overflows its own box. */}
+      <aside
+        style={{ ['--fayz-rail-w' as string]: `${width}px` }}
+        className={cn(
+          'w-0 shrink-0 overflow-hidden',
+          // Animating WIDTH is what makes the app glide back instead of
+          // snapping; skipped mid-drag so the divider stays glued to the cursor.
+          !dragging && 'motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-out',
+          open && 'md:w-[var(--fayz-rail-w)]',
+          frame && 'md:py-2 md:pr-2',
+        )}
+      >
+        {rail}
+      </aside>
+    </div>
   )
 }

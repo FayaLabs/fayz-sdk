@@ -214,7 +214,7 @@ export { ContactPicker } from './components/shared/ContactPicker'
 export type { ContactPickerProps, ContactPickerValue } from './components/shared/ContactPicker'
 export { createPerson } from './components/shared/create-person'
 export type { CreatePersonInput, CreatedPerson } from './components/shared/create-person'
-export { resolveEntityHref } from './lib/entity-routes'
+export { resolveEntityHref, resolveEntityAnchor, openEntity } from './lib/entity-routes'
 export { usePluginPrefs } from './hooks/usePluginPrefs'
 export { useTenantPluginSettings } from './shell/hooks/useTenantPluginSettings'
 export type { TenantPluginSettings } from './shell/hooks/useTenantPluginSettings'
@@ -225,6 +225,20 @@ export { setScheduleBlockConfig, getScheduleBlockConfig, subscribeScheduleBlockC
 // store is a shared zustand singleton, so app + shell read the same instance.
 export { useChatStore } from './shell/stores/chat.store'
 export type { ChatMessage } from './shell/stores/chat.store'
+
+// The conversation with no box around it — for an app building its own
+// assistant surface (a page, a modal, a second rail) on the shell's engine.
+export { ChatConversation } from './shell/components/chat'
+export type { ChatConversationProps } from './shell/components/chat'
+
+// Right rail — the shell's shared companion column. A plugin registers a panel
+// (`useRightRailPanel`) and drives it (`useRightRailStore().togglePanel`);
+// `mounted` says whether a shell able to render it is actually present.
+export { useRightRailPanel, useRightRailStore, useHasRightRail } from './shell/right-rail'
+export type { RightRailPanelDef } from './shell/right-rail'
+export { registerNotesTasksAdapter, useNotesTasksBridge, NOTE_LABEL_PREFIX } from './shell/notes-tasks-bridge'
+export { useDelegateToAssistant } from './shell/assistant-delegation'
+export type { NotesTasksAdapter, NoteTodo } from './shell/notes-tasks-bridge'
 
 // Shell plugin-settings panel + dedup util (used by vertical plugins)
 export { PluginSettingsPanel } from './shell/components/plugins/PluginSettingsPanel'

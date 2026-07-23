@@ -20,9 +20,10 @@ import {
   PopoverContent,
 } from '@fayz-ai/ui'
 import { CommandPalette, type CommandItem } from '../shell/components/layout/CommandPalette'
+import { useGlobalSearch } from '../shell/hooks/useGlobalSearch'
 import { useAuth } from '@fayz-ai/auth'
 import { AuthGate, type LoginAmbassador } from '@fayz-ai/plugin-auth'
-import { usePluginRuntime, resolvePluginComponent, useTranslation } from '@fayz-ai/core'
+import { usePluginRuntime, resolvePluginComponent, useTranslation, deriveEntityKey } from '@fayz-ai/core'
 import type { PermissionAction, PluginNavigationEntry, PluginRouteDefinition, PluginSettingsTab, SystemPermission } from '@fayz-ai/core'
 
 /** Route/nav RBAC requirement (mirror of core's PluginPermissionRequirement,
@@ -31,11 +32,13 @@ type PermissionRequirement = { feature: string; action: PermissionAction }
 import { useAdminPath, navigateTo, matchRoute, routeScore } from './routing'
 import type { CustomPage } from './config'
 import type { AuthProvider } from '@fayz-ai/core'
-import { setEntityRouteMap } from '../lib/entity-routes'
+import { setEntityRouteMap, type EntityRouteEntry } from '../lib/entity-routes'
 import { usePermissionOptional } from '../permissions/context'
 import { usePermissionsStore } from '../permissions'
 import { useTenantOptional } from '../org/context'
 import { WidgetSlot } from '../plugins/WidgetSlot'
+import { useRightRailStore, readRightRailWidth, writeRightRailWidth } from '../shell/right-rail'
+import { RightRail } from '../shell/components/RightRail'
 import { useNotifications } from '../shell/hooks/useNotifications'
 import { NotificationInbox } from '../shell/components/notifications/NotificationInbox'
 import { SettingsPage, useCoreSettingsTabs, type SettingsTab } from '../shell/components/settings/SettingsPage'
@@ -44,7 +47,7 @@ import { PermissionProfilesTab } from '../shell/components/organization/Permissi
 import { LocationsCrudPage } from '../shell/components/settings/LocationsCrudPage'
 import { ConnectedFieldRulesSettings } from '../shell/components/settings/ConnectedFieldRulesSettings'
 import { SubscriptionPage } from '../shell/components/billing/SubscriptionPage'
-import { UpgradePrompt, UpgradeModal, SoftLimitBanner, useAccessOptional, getPlanEntitlements } from '../shell/components/billing'
+import { UpgradeOverlay, UpgradeModal, SoftLimitBanner, useAccessOptional, getPlanEntitlements } from '../shell/components/billing'
 import { useBillingStore, resolvePlanBadge } from '../billing'
 import { ArrowLeft, Bell, CreditCard, Crown, LogOut, MapPin, Puzzle, Settings as SettingsIcon, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, UserCog, Users } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
@@ -374,15 +377,31 @@ interface RouteEntry {
 function registerEntityRoute(
   component: unknown,
   path: string,
-  entityRouteMap: Map<string, string>,
+  entityRouteMap: Map<string, EntityRouteEntry>,
 ): void {
   const entityDef = (component as any)?.__entityDef
   if (!entityDef?.data) return
 
   if (entityDef.data.archetypeKind) {
-    entityRouteMap.set(`${entityDef.data.archetype ?? ''}:${entityDef.data.archetypeKind}`, path)
+    entityRouteMap.set(`${entityDef.data.archetype ?? ''}:${entityDef.data.archetypeKind}`, { path, detail: true })
   } else if (entityDef.data.archetype) {
-    entityRouteMap.set(entityDef.data.archetype, path)
+    entityRouteMap.set(entityDef.data.archetype, { path, detail: true })
+  }
+  // Also claim it under the entity key — the only route a non-archetype CRUD
+  // page has, and how global search keys its results.
+  entityRouteMap.set(deriveEntityKey(entityDef), { path, detail: true })
+}
+
+/** A plugin page claiming archetypes it displays, list-level only. A CRUD page
+ *  for the same archetype always wins. */
+function registerDeclaredEntityRoutes(
+  keys: string[] | undefined,
+  path: string,
+  entityRouteMap: Map<string, EntityRouteEntry>,
+): void {
+  for (const key of keys ?? []) {
+    if (entityRouteMap.get(key)?.detail) continue
+    entityRouteMap.set(key, { path, detail: false })
   }
 }
 
@@ -432,7 +451,7 @@ function pageToNavigationItem(page: CustomPage, fallbackPosition: number): Order
 function collectPageRoutes(
   pages: CustomPage[],
   out: RouteEntry[] = [],
-  entityRouteMap: Map<string, string> = new Map(),
+  entityRouteMap: Map<string, EntityRouteEntry> = new Map(),
 ): RouteEntry[] {
   for (const page of pages) {
     if (page.component && page.path !== '/settings') {
@@ -539,6 +558,22 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
   const path = useAdminPath()
   const { user, signOut } = useAuth()
 
+  // Rendered here because AppShell is the only element that can narrow the
+  // content. Nothing renders until a panel is registered AND the rail is open.
+  const railOpen = useRightRailStore((s) => s.open)
+  const railHasPanels = useRightRailStore((s) => s.panels.length > 0)
+  // Mounted whenever a panel exists so the column can animate its width; the
+  // rail itself renders nothing while closed, so no panel runs in the dark.
+  const rightRail = railHasPanels ? <RightRail frame={contentFrame} /> : null
+  const setRailMounted = useRightRailStore((s) => s.setMounted)
+  React.useEffect(() => {
+    setRailMounted(true)
+    return () => setRailMounted(false)
+  }, [setRailMounted])
+  // Read once per mount: the user's dragged width is restored on load, and
+  // every later drag reports back through onRightRailWidthChange.
+  const [railWidth] = React.useState(() => readRightRailWidth())
+
   // Billing surface — plans are seeded into the store from `config.billing` (see
   // BillingInitializer). A non-empty plan list is the signal that billing is
   // configured: it drives the Subscription settings tab, the user-menu item, and
@@ -640,11 +675,13 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
     }
     return items
   }, [navigation])
+  // The palette's other half: records, not pages.
+  const globalSearch = useGlobalSearch()
 
   // Route table: plugin routes + custom pages, most-specific-first.
   const routes = React.useMemo<RouteEntry[]>(() => {
     const list: RouteEntry[] = []
-    const entityRouteMap = new Map<string, string>()
+    const entityRouteMap = new Map<string, EntityRouteEntry>()
     for (const r of runtime.routes as PluginRouteDefinition[]) {
       const Component = resolvePluginComponent(r) as React.ComponentType<Record<string, unknown>> | undefined
       if (Component) {
@@ -655,6 +692,7 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
           ;(Component as any).__crudBasePath = r.path
           registerEntityRoute(Component, r.path, entityRouteMap)
         }
+        registerDeclaredEntityRoutes(r.entityRoutes, r.path, entityRouteMap)
         list.push({ path: r.path, Component, fullBleed: r.fullBleed, permission: r.permission })
         list.push({ path: `${r.path}/*`, Component, fullBleed: r.fullBleed, permission: r.permission })
       }
@@ -755,15 +793,18 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
   }, [navigation, path, tr])
 
   // Access-aware route guard. A role denial renders <AccessDenied>; a plan denial
-  // renders a full-page <UpgradePrompt> for the route's feature ("Premium feature"
-  // + upgrade cards) instead of pretending the page doesn't exist.
+  // renders the page behind a blurred <UpgradeOverlay> paywall (teaser + upgrade
+  // cards) instead of pretending the page doesn't exist.
   const routeDecision = match?.route.permission
     ? access.can(match.route.permission.feature, match.route.permission.action)
     : { allowed: true as const }
   const activeContent = ActiveComponent ? (
     !routeDecision.allowed ? (
       routeDecision.reason === 'plan' ? (
-        <UpgradePrompt feature={match!.route.permission!.feature} />
+        // The gated page keeps rendering behind the paywall (blurred teaser).
+        <UpgradeOverlay feature={match!.route.permission!.feature}>
+          <ActiveComponent {...activeParams} />
+        </UpgradeOverlay>
       ) : (
         <AccessDenied tr={tr} />
       )
@@ -820,6 +861,11 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       orgSwitcher={layout === 'topbar' && !inSettings && showOrgSwitcher ? <WorkspaceSwitcher variant="topbar" /> : undefined}
       topbarStart={<WidgetSlot zone="shell.topbar.start" />}
       topbarEnd={<WidgetSlot zone="shell.topbar.end" />}
+      rightRail={rightRail}
+      rightRailOpen={railOpen}
+      defaultRightRailWidth={railWidth}
+      onRightRailWidthChange={writeRightRailWidth}
+      rightRailResizeLabel={tr('shell.rightRail.resize', 'Resize panel')}
       notificationSlot={<AdminNotifications />}
       userMenuSlot={
         <AdminUserMenu
@@ -870,6 +916,8 @@ function AdminShellInner({ appName, layout = 'sidebar', logo, pages = [], showSe
       commands={commandItems}
       open={commandPaletteOpen}
       onOpenChange={setCommandPaletteOpen}
+      onEntitySearch={globalSearch.search}
+      onEntitySelect={globalSearch.select}
     />
     {/* Global upgrade dialog — opened imperatively by LimitGate / useLimitGuard. */}
     <UpgradeModal />

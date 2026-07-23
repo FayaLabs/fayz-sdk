@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { Check } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { PlanFeatureItem } from './plan-feature'
 import { Button } from '@fayz-ai/ui'
 import { Badge } from '@fayz-ai/ui'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@fayz-ai/ui'
@@ -92,10 +92,7 @@ export function PlanSelector({
 
                 <ul className="space-y-3">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>{feature}</span>
-                    </li>
+                    <PlanFeatureItem key={feature} feature={feature} className="text-sm" iconClassName="h-4 w-4" />
                   ))}
                 </ul>
               </CardContent>

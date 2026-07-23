@@ -4,7 +4,7 @@ export type { EntityDef, EntityImageConfig, FieldDef, FieldType, FieldRelation, 
 export type { PluginManifest, PluginScope, PluginStatus, ResolvedPluginManifest, PluginRuntime, PluginRuntimeContext, PluginWidgetZone, PluginWidgetDefinition, PluginNavigationEntry, PluginSettingsTab, PluginRouteDefinition, PluginAITool, AIToolMode, AIToolExecution, AgentRpcDeclaration, AIToolParameterProperty, AIToolParameters, AIToolSuggestion, PluginRegistryDef, PluginMigration, PluginDiagnostic, VerticalId, ScaffoldType, TenantPluginBinding, DashboardWidgetDef, DashboardWidgetKind, DashboardSurface, DashboardLayoutConfig, ResolvedDashboardWidget } from './types/plugins'
 export { WidgetZone } from './types/plugins'
 export type { AuthAdapter, AuthUser, AuthSession, AuthProvider } from './types/auth'
-export type { OrgAdapter, Organization, OrgMember, OrgMembership, Location, Invite, CreateOrgOptions } from './types/org'
+export type { OrgAdapter, Organization, OrgMember, OrgMembership, TeamPerson, Location, Invite, CreateOrgOptions } from './types/org'
 export type { PermissionsConfig, FeatureDeclaration, PermissionAction, PermissionProfile, SystemPermission } from './types/permissions'
 export type { Plan, BillingConfig, BillingCheckoutFn } from './types/billing'
 export type { PlanEntitlements, LimitDeclaration } from './types/entitlements'
@@ -21,6 +21,13 @@ export { createMockProvider } from './data/mock'
 export { createArchetypeProvider } from './data/archetype'
 export { withCache } from './data/cached'
 export { resolveDataProvider } from './data/resolve'
+export {
+  DATA_CHANGED_EVENT,
+  emitDataChanged,
+  matchesDataChange,
+  useDataChanged,
+} from './data/refresh'
+export type { DataChangedPayload, DataChangedMatch } from './data/refresh'
 export { createSafeDataProvider } from './plugin/createSafeDataProvider'
 export {
   COUNTRIES, DEFAULT_COUNTRY, getCountry, unmaskPhone, maskPhone, maskDigitCount,
@@ -95,6 +102,17 @@ export type { EventBus, EventHandler } from './events'
 // Entity registry
 export { registerEntity, getEntityByKey, getAllEntities, clearEntityRegistry, deriveEntityKey } from './entity/registry'
 export type { RegisteredEntity } from './entity/registry'
+
+// Global search (command palette + agent lookups share one engine)
+export {
+  searchEverything, clearSearchCache, setSearchIndexAvailable, isSearchIndexAvailable,
+  MIN_QUERY_LENGTH, foldText, foldWithMap, digitsOf, normalizeQuery, similarity,
+  scoreCandidate, highlightRanges,
+} from './search'
+export type {
+  SearchTarget, SearchHit, SearchGroup, SearchPath, SearchOptions, GlobalSearchResult,
+  NormalizedQuery, RankCandidate,
+} from './search'
 
 // Uniform registry (component / block / page / metric / scaffold / plugin)
 export {

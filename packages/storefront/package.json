@@ -3,7 +3,7 @@
   "fayz": {
     "status": "beta"
   },
-  "version": "0.8.0",
+  "version": "0.8.2",
   "description": "Fayz SDK storefront kit — Shopify-style customer-facing ecommerce template components",
   "type": "module",
   "main": "./dist/index.cjs",

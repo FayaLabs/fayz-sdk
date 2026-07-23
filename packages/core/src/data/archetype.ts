@@ -109,9 +109,11 @@ export function createArchetypeProvider<T extends { id: string }>(
 
       // Pure archetype → read public.<base> directly (filtered by kind);
       // otherwise the v_ view (JOINs public extension with the public archetype).
+      // 'none' skips PostgREST's count aggregate entirely — see CrudQuery.countMode.
+      const countOpts = query.countMode === 'none' ? undefined : { count: 'exact' as const }
       let q = isPure
-        ? coreClient().from(ac.table).select('*', { count: 'exact' }).eq('tenant_id', tenantId)
-        : getClient().from(viewName).select('*', { count: 'exact' }).eq('tenant_id', tenantId)
+        ? coreClient().from(ac.table).select('*', countOpts).eq('tenant_id', tenantId)
+        : getClient().from(viewName).select('*', countOpts).eq('tenant_id', tenantId)
 
       if (isPure && HAS_KIND.has(config.archetype)) {
         q = q.eq('kind', config.archetypeKind)

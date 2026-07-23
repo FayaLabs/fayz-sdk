@@ -101,6 +101,13 @@ export interface FayzAgentConversationMessage {
   role: string
   content: string
   createdAt: string
+  /** Tool calls this reply made, with their results — so a resumed thread shows
+   *  the same trace and record links it showed live. */
+  toolCalls?: Array<{
+    name: string
+    arguments?: Record<string, unknown>
+    result?: string
+  }>
 }
 
 export interface FayzAgentConversationDetail {

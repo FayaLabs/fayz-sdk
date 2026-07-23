@@ -4,7 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@fayz-ai/ui'
 import { createArchetypeLookup } from '../../archetype-lookup'
 import type { EntityLookupResult } from '../../archetype-lookup'
 import { cn } from '@fayz-ai/ui'
-import { resolveEntityHref } from '../../lib/entity-routes'
+import { resolveEntityAnchor } from '../../lib/entity-routes'
 
 // Singleton person lookup — shared across all PersonLink instances
 const personLookup = createArchetypeLookup({ archetype: 'person' })
@@ -92,7 +92,7 @@ export function PersonLink({ personId, name, lookup, profileHref, tab, size = 'd
   const initial = name.charAt(0).toUpperCase()
 
   // Auto-derive profile href from person kind if not explicitly provided
-  const resolvedHref = profileHref ?? (personId ? '#' + resolveEntityHref(personId, 'person', kind ?? undefined, tab) : undefined)
+  const resolvedHref = profileHref ?? (personId ? resolveEntityAnchor(personId, 'person', kind ?? undefined, tab) : undefined)
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>

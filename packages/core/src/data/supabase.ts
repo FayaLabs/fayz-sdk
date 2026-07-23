@@ -82,8 +82,10 @@ export function createSupabaseProvider<T extends { id: string }>(
 
   return {
     async list(query: CrudQuery): Promise<CrudResult<T>> {
+      // 'none' skips PostgREST's count aggregate entirely — see CrudQuery.countMode.
+      const wantCount = query.countMode !== 'none'
       let q = (getClient().from(table) as { select: (...args: unknown[]) => unknown })
-        .select(selectCols, { count: 'exact' }) as Record<string, unknown>
+        .select(selectCols, wantCount ? { count: 'exact' } : undefined) as Record<string, unknown>
 
       const tenantId = resolveTenantId()
       if (tenantId) q = (q as { eq: (col: string, val: string) => unknown }).eq(tenantIdCol, tenantId) as Record<string, unknown>

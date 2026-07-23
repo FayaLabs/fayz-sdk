@@ -89,9 +89,23 @@ export interface OrgConfig {
   autoCreate?: boolean
 }
 
+export interface TeamConfig {
+  /**
+   * Which person `kind`s make up the "team" (shown on /settings/team).
+   * Person-first model: the Team screen is driven by people of these kinds;
+   * `tenant_members` (login + role) is an optional access overlay per person.
+   * e.g. beauty-saas: ['staff'] · school-saas: ['teacher', 'staff'].
+   * When empty/undefined, the Team screen falls back to membership-only (legacy).
+   */
+  personKinds?: string[]
+}
+
 export interface ChatConfig {
   enabled?: boolean
   title?: string
+  /** `'dock'` (default) mounts the assistant in the shell's right rail.
+   *  `'none'` mounts no surface — the engine stays available to the app. */
+  surface?: 'dock' | 'none'
   /** Extra guidance appended to the agent's own instructions. */
   systemPrompt?: string
   /**
@@ -105,6 +119,30 @@ export interface ChatConfig {
    * container. `false` opts out of the Fayz agent entirely.
    */
   agent?: FayzAgentConnectionConfig | false
+  /** Speaking and listening. Sensible defaults; no config needed to get a mic. */
+  voice?: ChatVoiceConfig
+}
+
+export interface ChatVoiceConfig {
+  /** `false` hides the microphone entirely. */
+  input?: boolean
+  /** Recognition language (BCP-47). Defaults to the browser's. */
+  locale?: string
+  /**
+   * Endpoint that takes an audio clip (multipart `file`) and answers
+   * `{ text }`. This is the seam for Whisper or any other STT service — set it
+   * and the mic stops using the browser's recognizer. Left unset (the default)
+   * the assistant listens with the browser's own engine: no key, no backend.
+   */
+  transcribeEndpoint?: string
+  /** Send the transcript without review. Default false — dictation fills the
+   *  composer and the user presses send. */
+  autoSend?: boolean
+  /** Offer the spoken-replies toggle (default `true`). */
+  replies?: boolean
+  /** Start with spoken replies ON. Off by default — a back-office app that
+   *  starts talking on its own is a support ticket, not a feature. */
+  repliesDefaultOn?: boolean
 }
 
 export interface FayzBillingConfig {
@@ -151,6 +189,11 @@ export interface FayzAppConfig {
   // Organization / multi-tenancy
   // -------------------------------------------------------------------------
   org?: OrgConfig
+
+  // -------------------------------------------------------------------------
+  // Team (who counts as a "team member")
+  // -------------------------------------------------------------------------
+  team?: TeamConfig
 
   // -------------------------------------------------------------------------
   // Plugins
