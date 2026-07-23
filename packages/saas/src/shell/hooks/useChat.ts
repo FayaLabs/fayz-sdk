@@ -414,7 +414,10 @@ export function useChat(options?: UseChatOptions) {
       const rows = await getFayzAgentClient(connection).listConversations(user?.id)
       useChatStore.getState().setConversations(rows)
     } catch {
-      // History is an enhancement — a failed load never breaks the chat.
+      // History is an enhancement — a failed load never breaks the chat. But
+      // the first failure must still settle the skeleton into "no history".
+      const s = useChatStore.getState()
+      if (!s.conversationsLoaded) s.setConversations([])
     }
   }, [connection, user?.id])
 

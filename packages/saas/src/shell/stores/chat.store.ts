@@ -147,6 +147,8 @@ interface ChatState {
   appendLinksToLastAssistant: (links: ChatRecordLink[]) => void
   /** The signed-in user's threads (history drawer). */
   conversations: Array<{ id: string; title: string | null; updatedAt: string }>
+  /** First fetch settled — before this the panel shows a skeleton, not "empty". */
+  conversationsLoaded: boolean
   setConversations: (rows: Array<{ id: string; title: string | null; updatedAt: string }>) => void
   /** Replace the transcript wholesale (resuming a past conversation). */
   setMessages: (messages: ChatMessage[]) => void
@@ -283,6 +285,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return { messages: msgs }
     }),
   conversations: [],
-  setConversations: (conversations) => set({ conversations }),
+  conversationsLoaded: false,
+  setConversations: (conversations) => set({ conversations, conversationsLoaded: true }),
   setMessages: (messages) => set({ messages }),
 }))

@@ -15,12 +15,37 @@ export function RightRail({ frame = true }: { frame?: boolean }) {
   const openPanel = useRightRailStore((s) => s.openPanel)
   const close = useRightRailStore((s) => s.close)
 
+  // Publish the card's real left edge (as inset-from-right) while open. The
+  // FAB anchors to it; measuring the DOM — not mirroring the width prop —
+  // keeps it honest through clamps, drags and the open tween.
+  const setWidth = useRightRailStore((s) => s.setWidth)
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (!open) return
+    const el = rootRef.current
+    if (!el) return
+    const publish = () => {
+      // Below md the card is a full-screen overlay and the FAB is hidden.
+      if (window.innerWidth < 768) return
+      setWidth(Math.max(0, Math.round(window.innerWidth - el.getBoundingClientRect().left)))
+    }
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(el)
+    window.addEventListener('resize', publish)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', publish)
+    }
+  }, [open, setWidth])
+
   const current = panels.find((p) => p.id === active) ?? panels[0]
   if (!open || !current) return null
   const Panel = current.Component
 
   return (
     <div
+      ref={rootRef}
       role="complementary"
       aria-label={current.label}
       className={cn(

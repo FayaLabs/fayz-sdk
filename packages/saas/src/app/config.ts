@@ -121,6 +121,12 @@ export interface ChatConfig {
   agent?: FayzAgentConnectionConfig | false
   /** Speaking and listening. Sensible defaults; no config needed to get a mic. */
   voice?: ChatVoiceConfig
+  /**
+   * "Continuar no WhatsApp" — a discreet hand-off under the composer that
+   * opens wa.me with a prefilled message. Set the business number (digits,
+   * with country code) to enable; omit to hide.
+   */
+  whatsapp?: { number: string; message?: string }
 }
 
 export interface ChatVoiceConfig {

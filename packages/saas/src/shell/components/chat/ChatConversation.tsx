@@ -22,8 +22,28 @@ import { stopSpeaking } from '../../lib/speech'
 import { useAccessOptional } from '../../../access/context'
 import { UpgradeOverlay } from '../billing/UpgradeOverlay'
 import { ASSISTANT_FEATURE } from '../../lib/assistant-feature'
-import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
+import { resolveFayzAgentConnection, type FayzAgentConnectionConfig } from '../../lib/fayz-agent'
 import type { ChatVoiceConfig } from '../../../app/config'
+
+/** Injected once — the idle view rises in as a stagger, elements carrying their
+ *  own animationDelay. Motion-gated in CSS so reduced-motion gets it static. */
+const INTRO_STYLE_ID = 'chat-panel-anims'
+function ensureIntroStyles() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById(INTRO_STYLE_ID)) return
+  const style = document.createElement('style')
+  style.id = INTRO_STYLE_ID
+  style.textContent = `
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes chatIntroUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .chat-intro { animation: chatIntroUp 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+    }
+  `
+  document.head.appendChild(style)
+}
 
 /** The conversation with no box around it — status row, history/tools drawers,
  *  transcript, confirmation card, suggestions, composer. Owns no position, so
@@ -33,6 +53,8 @@ export interface ChatConversationProps {
   systemPrompt?: string
   agent?: FayzAgentConnectionConfig | false
   voice?: ChatVoiceConfig
+  /** Enables the discreet "continuar no WhatsApp" hand-off under the composer. */
+  whatsapp?: { number: string; message?: string }
   className?: string
 }
 
@@ -43,6 +65,7 @@ export function ChatConversation({
   systemPrompt,
   agent,
   voice,
+  whatsapp,
   className,
 }: ChatConversationProps) {
   const { messages, isStreaming, conversationId } = useChatStore()
@@ -60,6 +83,17 @@ export function ChatConversation({
   // so an app that never heard of it stays open.
   const planLocked = !useAccessOptional().entitled(ASSISTANT_FEATURE)
   const usable = isConfigured && !planLocked
+
+  React.useEffect(ensureIntroStyles, [])
+
+  // Skeleton only makes sense when a Fayz agent backs the history — a custom
+  // apiEndpoint has no thread list, so its first load would never settle.
+  const conversationsLoaded = useChatStore((s) => s.conversationsLoaded)
+  const hasHistoryBackend = React.useMemo(
+    () => !apiEndpoint && !!resolveFayzAgentConnection(agent),
+    [apiEndpoint, agent],
+  )
+  const conversationsPending = hasHistoryBackend && !conversationsLoaded
 
   // Two views in one tab: the open thread, and the list you came from. The
   // panel remounts on every open, so `messages` (which survive in the store)
@@ -221,17 +255,37 @@ export function ChatConversation({
               </div>
             ) : view === 'list' || !hasMessages ? (
               <div className="flex min-h-0 flex-1 flex-col px-3 pt-4">
-                <p className="px-0.5 text-[15px] font-semibold leading-snug text-foreground">
+                <p className="chat-intro px-0.5 text-[15px] font-semibold leading-snug text-foreground">
                   {greetingName
                     ? t('chat.greetingNamed', { name: greetingName })
                     : t('chat.greeting')}
                 </p>
-                <p className="px-0.5 text-[12px] leading-snug text-muted-foreground">
+                <p
+                  className="chat-intro px-0.5 text-[12px] leading-snug text-muted-foreground"
+                  style={{ animationDelay: '70ms' }}
+                >
                   {t('chat.greetingHint')}
                 </p>
 
-                {conversations.length > 0 && (
-                  <div className="mt-4 min-h-0">
+                {conversationsPending ? (
+                  <div className="chat-intro mt-4" style={{ animationDelay: '140ms' }}>
+                    <span className="block px-0.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      {t('chat.recentConversations')}
+                    </span>
+                    <div className="space-y-1 py-0.5">
+                      {[76, 58, 66].map((width, index) => (
+                        <div key={index} className="flex items-center gap-2 px-1 py-1.5">
+                          <div className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-muted" />
+                          <div
+                            className="h-3 animate-pulse rounded bg-muted"
+                            style={{ width: `${width}%` }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : conversations.length > 0 && (
+                  <div className="chat-intro mt-4 min-h-0" style={{ animationDelay: '140ms' }}>
                     <span className="block px-0.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
                       {t('chat.recentConversations')}
                     </span>
@@ -323,7 +377,32 @@ export function ChatConversation({
           onToggleSuggestions={() => setSuggestionsOpen(!suggestionsOpen)}
         />
       )}
+
+      {/* Discreet channel hand-off — the conversation follows the user out of
+          the app. Shown only when the app configured a WhatsApp number. */}
+      {drawer === 'none' && whatsapp?.number && (
+        <a
+          href={`https://wa.me/${whatsapp.number.replace(/\D/g, '')}?text=${encodeURIComponent(
+            whatsapp.message ?? t('chat.whatsapp.defaultMessage'),
+          )}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-center gap-1.5 pb-2 text-[10.5px] text-muted-foreground/50 transition-colors hover:text-[#25D366]"
+        >
+          <WhatsAppGlyph className="h-3 w-3" />
+          {t('chat.whatsapp.continue')}
+        </a>
+      )}
     </div>
+  )
+}
+
+/** lucide dropped brand icons — a minimal WhatsApp glyph, currentColor. */
+function WhatsAppGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+      <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-2-1.2 7.5 7.5 0 0 1-1.4-1.7c-.1-.2 0-.4.1-.5l.4-.4c.1-.2.2-.3.3-.5v-.4c0-.1-.5-1.3-.7-1.8-.2-.4-.4-.4-.5-.4h-.5c-.1 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2 1 2.4c.1.2 1.6 2.5 4 3.5.6.2 1 .4 1.4.5.6.2 1.1.2 1.5.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2 0-.1-.2-.2-.5-.3Z" />
+    </svg>
   )
 }
 

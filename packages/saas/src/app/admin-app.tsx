@@ -247,6 +247,7 @@ function ChatRailPanel({ config }: { config: FayzAppConfig }) {
   const systemPrompt = config.chat?.systemPrompt
   const agent = config.chat?.agent
   const voice = config.chat?.voice
+  const whatsapp = config.chat?.whatsapp
 
   // Stable identity — a new component per render would remount the transcript.
   const Component = React.useMemo(() => {
@@ -256,11 +257,12 @@ function ChatRailPanel({ config }: { config: FayzAppConfig }) {
         systemPrompt={systemPrompt}
         agent={agent}
         voice={voice}
+        whatsapp={whatsapp}
       />
     )
     Panel.displayName = 'ChatRailPanelBody'
     return Panel
-  }, [apiEndpoint, systemPrompt, agent, voice])
+  }, [apiEndpoint, systemPrompt, agent, voice, whatsapp])
 
   // Recent sessions count (neutral badge). Seeded here because the store only
   // fills when the conversation mounts — the badge should show before that.
@@ -320,10 +322,9 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
   // An app that asked for chat, or a project with a Fayz agent injected by env.
   const assistantEnabled = config.chat?.enabled !== false && (!!config.chat || hasFayzAgent)
   const surface = config.chat?.surface ?? 'dock'
-  // Selector, not the bare store — this wraps the whole app and would re-render
-  // it on every streamed token.
-  const railOpen = useRightRailStore((s) => s.open)
-  const showFab = assistantEnabled && surface === 'dock' && !railOpen
+  // Always mounted: with the rail open the FAB stays put as the minimize
+  // control, so the same corner opens and closes the companion column.
+  const showFab = assistantEnabled && surface === 'dock'
 
   // Resolve adapters / i18n once per config identity.
   const resolved = React.useMemo(() => {

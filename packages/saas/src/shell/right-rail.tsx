@@ -33,6 +33,11 @@ interface RightRailState {
   togglePanel: (id: string) => void
   registerPanel: (panel: RightRailPanelDef) => void
   unregisterPanel: (id: string) => void
+  /** Distance (px) from the viewport's right edge to the open column's left
+   *  edge — MEASURED from the rendered card, so clamps and drags are included.
+   *  The FAB reads it to stay anchored to the CONTENT's bottom-right corner. */
+  width: number
+  setWidth: (width: number) => void
 }
 
 export const useRightRailStore = create<RightRailState>((set) => ({
@@ -61,6 +66,9 @@ export const useRightRailStore = create<RightRailState>((set) => ({
       const active = s.active === id ? (panels[0]?.id ?? null) : s.active
       return { panels, active, open: active ? s.open : false }
     }),
+
+  width: readRightRailWidth(),
+  setWidth: (width) => set({ width }),
 }))
 
 /** Register a panel while the caller is mounted. `Component` must be

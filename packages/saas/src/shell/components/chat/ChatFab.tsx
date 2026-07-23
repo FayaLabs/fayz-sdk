@@ -1,12 +1,12 @@
 import * as React from 'react'
-import { Mic, Sparkles, X } from 'lucide-react'
+import { Sparkles, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useChatStore } from '../../stores/chat.store'
 import { useOrganizationStore } from '../../stores/organization.store'
+import { useRightRailStore } from '../../right-rail'
 import { useAITools, type ResolvedSuggestion } from '../../hooks/useAITools'
 import { useChat } from '../../hooks/useChat'
 import { useTranslation } from '../../hooks/useTranslation'
-import { isDictationSupported } from '../../lib/speech'
 import type { FayzAgentConnectionConfig } from '../../lib/fayz-agent'
 import type { ChatVoiceConfig } from '../../../app/config'
 
@@ -123,15 +123,35 @@ function ensureStyles() {
       0%, 100% { transform: scale(1); opacity: 0.45; }
       50%      { transform: scale(1.35); opacity: 0; }
     }
+    @keyframes fabEnter {
+      0%   { transform: scale(0.2); opacity: 0; }
+      55%  { transform: scale(1.14); opacity: 1; }
+      75%  { transform: scale(0.94); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fabEnterIcon {
+      0%   { transform: rotate(-90deg) scale(0.3); opacity: 0; }
+      60%  { transform: rotate(14deg) scale(1.2); opacity: 1; }
+      100% { transform: rotate(0deg) scale(1); opacity: 1; }
+    }
+    @keyframes fabEnterRing {
+      0%   { transform: scale(0.6); opacity: 0.5; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
   `
   document.head.appendChild(style)
 }
 
 export function ChatFab({ className, apiEndpoint, systemPrompt, agent, voice, mobile }: ChatFabProps) {
-  const { isOpen, toggleOpen, setOpen } = useChatStore()
+  const { isOpen, setOpen } = useChatStore()
   const isStreaming = useChatStore((s) => s.isStreaming)
+  // The rail may be open on ANY tab (chat, tasks, notes) — the FAB minimizes
+  // the whole container, not just its own conversation.
+  const railOpen = useRightRailStore((s) => s.open)
+  const closeRail = useRightRailStore((s) => s.close)
+  const railWidth = useRightRailStore((s) => s.width)
+  const expanded = isOpen || railOpen
   const hasMessages = useChatStore((s) => s.messages.length > 0)
-  const requestVoiceStart = useChatStore((s) => s.requestVoiceStart)
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const { contextualSuggestions } = useAITools()
   const { sendMessage } = useChat({ apiEndpoint, systemPrompt, agent })
@@ -156,7 +176,7 @@ export function ChatFab({ className, apiEndpoint, systemPrompt, agent, voice, mo
     !hasMessages && !teaserDismissed() && teaserShownCount() < TEASER_MAX_PER_SESSION
 
   React.useEffect(() => {
-    if (isOpen || !topSuggestion || !topLabel || !teaserAllowed || teaserSeen().includes(topLabel)) {
+    if (expanded || !topSuggestion || !topLabel || !teaserAllowed || teaserSeen().includes(topLabel)) {
       if (phase !== 'idle') { clearTimers(); setPhase('collapsing'); addTimer(() => setPhase('idle'), 450) }
       prevSuggestionRef.current = null
       return
@@ -186,11 +206,24 @@ export function ChatFab({ className, apiEndpoint, systemPrompt, agent, voice, mo
     }, 9000)
 
     return clearTimers
-  }, [topLabel, isOpen, teaserAllowed])
+  }, [topLabel, expanded, teaserAllowed])
 
   React.useEffect(() => {
-    if (isOpen && phase !== 'idle') { clearTimers(); setPhase('idle') }
-  }, [isOpen])
+    if (expanded && phase !== 'idle') { clearTimers(); setPhase('idle') }
+  }, [expanded])
+
+  // Entrance choreography. The component mounts long before the org resolves
+  // (it renders null until then), so the pop-in is keyed to the moment the FAB
+  // actually becomes visible — not to React mount time.
+  const [entrance, setEntrance] = React.useState<'pending' | 'playing' | 'done'>('pending')
+  React.useEffect(() => {
+    if (!currentOrg || entrance !== 'pending') return
+    if (prefersReducedMotion()) { setEntrance('done'); return }
+    setEntrance('playing')
+    const timer = setTimeout(() => setEntrance('done'), 1600)
+    return () => clearTimeout(timer)
+  }, [currentOrg, entrance])
+  const entering = entrance === 'playing' && !expanded
 
   if (!currentOrg) return null
 
@@ -220,23 +253,26 @@ export function ChatFab({ className, apiEndpoint, systemPrompt, agent, voice, mo
   }
 
   const showPill = phase === 'expanding' || phase === 'typing' || phase === 'visible'
-  const micAvailable =
-    !isOpen && voice?.input !== false && isDictationSupported(!!voice?.transcribeEndpoint)
 
   return (
     <div
       className={cn(
-        'fixed right-4 z-50 md:block md:bottom-4',
+        'fixed z-50 md:block md:bottom-4',
+        // Anchored to the CONTENT, not the screen: with the rail open the FAB
+        // slides left and keeps its bottom-right spot relative to the app —
+        // outside the column — gliding in step with the aside's width tween.
+        'motion-safe:transition-[right] motion-safe:duration-200 motion-safe:ease-out',
         // On a phone the open panel is full-screen and carries its own close
         // button — a floating FAB there only lands on top of the composer.
-        mobile && !isOpen
+        mobile && !expanded
           ? 'block bottom-[calc(1rem+env(safe-area-inset-bottom))]'
           : 'hidden bottom-4',
         className,
       )}
+      style={{ right: railOpen ? railWidth + 16 : 16 }}
     >
       {/* Suggestion teaser — grows out of the FAB circle */}
-      {(showPill || phase === 'collapsing') && !isOpen && (
+      {(showPill || phase === 'collapsing') && !expanded && (
         <div
           className={cn(
             'absolute bottom-0 right-0 flex items-center overflow-hidden rounded-full shadow-lg',
@@ -287,44 +323,57 @@ export function ChatFab({ className, apiEndpoint, systemPrompt, agent, voice, mo
         </div>
       )}
 
-      {/* Talk shortcut — one tap from anywhere to speaking */}
-      {micAvailable && !showPill && phase !== 'collapsing' && (
-        <button
-          onClick={requestVoiceStart}
-          aria-label={t('chat.voice.start')}
-          title={t('chat.voice.start')}
-          className={cn(
-            'absolute -top-11 right-1 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full',
-            'border border-border/60 bg-card text-muted-foreground shadow-md transition-all duration-200',
-            'hover:scale-105 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          )}
-        >
-          <Mic className="h-4 w-4" />
-        </button>
-      )}
-
-      {/* FAB circle */}
+      {/* FAB circle. Expanded = the rail is open (any tab): same floating
+          circle, same corner — it just minimizes the whole container now. */}
       <button
-        onClick={toggleOpen}
+        onClick={() => {
+          if (expanded) {
+            closeRail()
+            setOpen(false)
+          } else {
+            setOpen(true)
+          }
+        }}
         className={cn(
           'relative z-10 flex h-12 w-12 items-center justify-center transition-all duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          isOpen
-            ? 'rounded-bl-full rounded-br-full rounded-tl-none rounded-tr-lg border border-t-0 border-border/50 bg-card text-muted-foreground shadow-lg'
-            : 'rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 hover:shadow-xl',
+          'rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 hover:shadow-xl',
         )}
-        aria-label={isOpen ? t('chat.fab.close') : t('chat.fab.open')}
-        aria-expanded={isOpen}
+        aria-label={expanded ? t('chat.fab.close') : t('chat.fab.open')}
+        aria-expanded={expanded}
+        style={entering ? { animation: 'fabEnter 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both' } : undefined}
       >
+        {/* Arrival ripples — two rings announce the assistant, then never again. */}
+        {entering && (
+          <>
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full bg-primary/40"
+              style={{ animation: 'fabEnterRing 900ms ease-out 250ms both' }}
+            />
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full bg-primary/25"
+              style={{ animation: 'fabEnterRing 1100ms ease-out 450ms both' }}
+            />
+          </>
+        )}
         {/* Working in the background — the halo is the only thing that says so
             while the panel is shut. */}
-        {isStreaming && !isOpen && (
+        {isStreaming && !expanded && (
           <span
             aria-hidden
             className="absolute inset-0 rounded-full bg-primary motion-safe:[animation:fabHalo_1.8s_ease-out_infinite]"
           />
         )}
-        {isOpen ? <X className="h-4 w-4" /> : <Sparkles className="relative h-5 w-5" />}
+        {expanded ? (
+          <X className="h-4 w-4" />
+        ) : (
+          <Sparkles
+            className="relative h-5 w-5"
+            style={entering ? { animation: 'fabEnterIcon 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both' } : undefined}
+          />
+        )}
       </button>
     </div>
   )
