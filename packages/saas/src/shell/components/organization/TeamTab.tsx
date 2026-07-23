@@ -28,16 +28,41 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { dedup } from '../../lib/dedup'
 import { useLimitGuard, invalidateLimit } from '../../../access'
 
+// A normalized team row: either a person (person-first mode) with an optional
+// access overlay, or a legacy tenant_members row. `memberId` present ⇒ has login+role.
+interface TeamRow {
+  key: string
+  name: string
+  email: string
+  avatarUrl?: string
+  /** kind label shown next to the name in person mode (e.g. "Staff"). */
+  subtitle?: string
+  roleId?: string
+  roleName?: string
+  memberId?: string
+  hasAccess: boolean
+  joinedAt?: string
+  isCurrentUser: boolean
+}
+
+const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
+
 export function TeamTab() {
   const adapter = useOrgAdapterOptional()
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const members = useOrganizationStore((s) => s.members)
   const setMembers = useOrganizationStore((s) => s.setMembers)
+  const teamPersonKinds = useOrganizationStore((s) => s.teamPersonKinds)
   const profiles = usePermissionsStore((s) => s.profiles)
   const invites = useInviteStore((s) => s.invites)
   const setInvites = useInviteStore((s) => s.setInvites)
   const { user } = useAuthStore()
   const hasSystemPermission = useSystemPermission()
+
+  // Person-first mode: drive the list from people of the configured kinds when
+  // the adapter supports it. Otherwise fall back to the legacy members list.
+  const personMode = teamPersonKinds.length > 0 && typeof adapter?.listTeam === 'function'
+  const [team, setTeam] = React.useState<Awaited<ReturnType<NonNullable<OrgAdapter['listTeam']>>> | null>(null)
 
   const [inviteOpen, setInviteOpen] = React.useState(false)
   // Seat cap ('users' limit → tenant_members count). Guarded before opening the
@@ -48,6 +73,24 @@ export function TeamTab() {
     if ((await guardSeats(1)) === 'blocked') return
     setInviteOpen(true)
   }
+
+  const reloadTeam = React.useCallback(async () => {
+    if (!adapter || !currentOrg) return
+    if (personMode && adapter.listTeam) {
+      setTeam(await adapter.listTeam(currentOrg.id, teamPersonKinds))
+    } else {
+      setMembers(await adapter.listMembers(currentOrg.id))
+    }
+  }, [adapter, currentOrg?.id, personMode, teamPersonKinds, setMembers])
+
+  // Load the person-first team list when in person mode (deduped).
+  React.useEffect(() => {
+    if (personMode && adapter?.listTeam && currentOrg) {
+      dedup('team:people:' + currentOrg.id, () => adapter.listTeam!(currentOrg.id, teamPersonKinds))
+        .then(setTeam)
+        .catch(() => setTeam([]))
+    }
+  }, [personMode, adapter, currentOrg?.id, teamPersonKinds.join(',')])
 
   // Load invites on mount (deduped to avoid strict mode double-fetch)
   React.useEffect(() => {
@@ -60,8 +103,7 @@ export function TeamTab() {
     if (!adapter || !currentOrg) return
     try {
       await adapter.updateMemberProfile(currentOrg.id, memberId, profileId)
-      const updated = await adapter.listMembers(currentOrg.id)
-      setMembers(updated)
+      await reloadTeam()
     } catch {
       // ignore
     }
@@ -71,12 +113,40 @@ export function TeamTab() {
     if (!adapter || !currentOrg) return
     try {
       await adapter.removeMember(currentOrg.id, memberId)
-      const updated = await adapter.listMembers(currentOrg.id)
-      setMembers(updated)
+      await reloadTeam()
     } catch {
       // ignore
     }
   }
+
+  // Normalized rows for the table — person-first or legacy members.
+  const rows: TeamRow[] = personMode
+    ? (team ?? []).map((p) => ({
+        key: p.personId,
+        name: p.name,
+        email: p.email ?? '',
+        avatarUrl: p.avatarUrl,
+        subtitle: capitalize(p.kind),
+        roleId: p.membership?.profileId,
+        roleName: p.membership?.profileName,
+        memberId: p.membership?.memberId,
+        hasAccess: !!p.membership,
+        joinedAt: p.membership?.joinedAt,
+        isCurrentUser: p.membership?.userId === user?.id,
+      }))
+    : members.map((m) => ({
+        key: m.id,
+        name: m.user.fullName,
+        email: m.user.email,
+        avatarUrl: m.user.avatarUrl,
+        roleId: m.profileId,
+        roleName: m.profileName,
+        memberId: m.id,
+        hasAccess: true,
+        joinedAt: m.joinedAt,
+        isCurrentUser: m.userId === user?.id,
+      }))
+  const rowsLoading = personMode ? team === null : members.length === 0
 
   const handleRevokeInvite = async (inviteId: string) => {
     if (!adapter || !currentOrg) return
@@ -113,7 +183,7 @@ export function TeamTab() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold">{t('organization.team.title')}</h3>
-            <p className="text-sm text-muted-foreground">{t('organization.team.memberCount', { count: String(members.length), plural: members.length !== 1 ? 's' : '' })}</p>
+            <p className="text-sm text-muted-foreground">{t('organization.team.memberCount', { count: String(rows.length), plural: rows.length !== 1 ? 's' : '' })}</p>
           </div>
           {canManageTeam && (
             <Button size="sm" onClick={() => { void handleOpenInvite() }}>
@@ -137,8 +207,8 @@ export function TeamTab() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {members.length === 0 ? (
-                  // Members load via central org hydration; show skeleton rows meanwhile.
+                {rowsLoading ? (
+                  // Rows load async; show skeleton rows meanwhile.
                   Array.from({ length: 3 }).map((_, i) => (
                     <tr key={`sk-${i}`}>
                       <td className="p-3">
@@ -155,37 +225,53 @@ export function TeamTab() {
                       {canManageTeam && <td className="p-3" />}
                     </tr>
                   ))
-                ) : members.map((member) => {
-                  const initials = member.user.fullName
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={canManageTeam ? 4 : 3} className="p-6 text-center text-sm text-muted-foreground">
+                      {t('organization.team.empty')}
+                    </td>
+                  </tr>
+                ) : rows.map((row) => {
+                  const initials = (row.name || '?')
                     .split(' ')
                     .map((n) => n[0])
                     .join('')
                     .toUpperCase()
                     .slice(0, 2)
-                  const isCurrentUser = member.userId === user?.id
 
                   return (
-                    <tr key={member.id} className="hover:bg-muted/30">
+                    <tr key={row.key} className="hover:bg-muted/30">
                       <td className="p-3">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
-                            {member.user.avatarUrl && <AvatarImage src={member.user.avatarUrl} />}
+                            {row.avatarUrl && <AvatarImage src={row.avatarUrl} />}
                             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="text-sm font-medium">
-                              {member.user.fullName}
-                              {isCurrentUser && <span className="text-muted-foreground ml-1">{t('organization.team.you')}</span>}
+                              {row.name}
+                              {row.isCurrentUser && <span className="text-muted-foreground ml-1">{t('organization.team.you')}</span>}
+                              {row.subtitle && <Badge variant="outline" className="ml-2 text-[10px] font-normal">{row.subtitle}</Badge>}
                             </p>
-                            <p className="text-xs text-muted-foreground">{member.user.email}</p>
+                            {row.email && <p className="text-xs text-muted-foreground">{row.email}</p>}
                           </div>
                         </div>
                       </td>
                       <td className="p-3">
-                        {canManageTeam && !isCurrentUser ? (
+                        {!row.hasAccess ? (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">{t('organization.team.noAccess')}</Badge>
+                            {canManageTeam && (
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { void handleOpenInvite() }}>
+                                <UserPlus className="h-3 w-3 mr-1" />
+                                {t('organization.team.invite')}
+                              </Button>
+                            )}
+                          </div>
+                        ) : canManageTeam && !row.isCurrentUser && row.memberId ? (
                           <Select
-                            value={member.profileId}
-                            onValueChange={(val) => handleChangeProfile(member.id, val)}
+                            value={row.roleId}
+                            onValueChange={(val) => handleChangeProfile(row.memberId!, val)}
                           >
                             <SelectTrigger className="h-8 w-36 text-xs">
                               <SelectValue />
@@ -198,16 +284,16 @@ export function TeamTab() {
                           </Select>
                         ) : (
                           <Badge variant="secondary" className="text-xs">
-                            {profiles.find((p) => p.id === member.profileId)?.name ?? member.profileName}
+                            {profiles.find((p) => p.id === row.roleId)?.name ?? row.roleName}
                           </Badge>
                         )}
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">
-                        {new Date(member.joinedAt).toLocaleDateString()}
+                        {row.joinedAt ? new Date(row.joinedAt).toLocaleDateString() : '—'}
                       </td>
                       {canManageTeam && (
                         <td className="p-3 text-right">
-                          {!isCurrentUser && (
+                          {row.hasAccess && !row.isCurrentUser && row.memberId && (
                             <Dropdown>
                               <DropdownTrigger asChild>
                                 <Button variant="ghost" size="sm">
@@ -217,7 +303,7 @@ export function TeamTab() {
                               <DropdownContent align="end">
                                 <DropdownItem
                                   className="text-destructive"
-                                  onClick={() => handleRemoveMember(member.id)}
+                                  onClick={() => handleRemoveMember(row.memberId!)}
                                 >
                                   {t('organization.team.removeMember')}
                                 </DropdownItem>

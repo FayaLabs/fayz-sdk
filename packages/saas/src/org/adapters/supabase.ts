@@ -3,6 +3,7 @@ import type {
   Organization,
   OrgMember,
   OrgMembership,
+  TeamPerson,
   CreateOrgOptions,
   Location,
   Invite,
@@ -369,6 +370,50 @@ export function createSupabaseOrgAdapter(config?: SupabaseOrgAdapterConfig): Org
       return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
         const profile = profileMap.get(row['user_id'] as string) ?? {}
         return mapMemberRow({ ...row, profile })
+      })
+    },
+
+    // Person-first team list: people of `personKinds` are the source of truth;
+    // `tenant_members` (login + role) is an optional overlay linked by person_id.
+    async listTeam(orgId: string, personKinds: string[]): Promise<TeamPerson[]> {
+      if (!personKinds || personKinds.length === 0) return []
+
+      const { data: people, error } = await core()
+        .from('people')
+        .select('id, name, kind, email, avatar_url, is_active')
+        .eq('tenant_id', orgId)
+        .in('kind', personKinds)
+      if (error) throw error
+
+      const { data: members } = await core()
+        .from('tenant_members')
+        .select('id, user_id, role, person_id, created_at')
+        .eq('tenant_id', orgId)
+        .not('person_id', 'is', null)
+
+      const byPerson = new Map<string, Record<string, unknown>>(
+        ((members ?? []) as Array<Record<string, unknown>>).map((m) => [m['person_id'] as string, m]),
+      )
+
+      return ((people ?? []) as Array<Record<string, unknown>>).map((p) => {
+        const m = byPerson.get(p['id'] as string)
+        return {
+          personId: p['id'] as string,
+          name: (p['name'] as string) ?? '',
+          kind: p['kind'] as string,
+          email: (p['email'] as string | null) ?? undefined,
+          avatarUrl: (p['avatar_url'] as string | null) ?? undefined,
+          isActive: (p['is_active'] as boolean | null) ?? true,
+          membership: m
+            ? {
+                memberId: m['id'] as string,
+                userId: m['user_id'] as string,
+                profileId: m['role'] as string,
+                profileName: capitalize(m['role'] as string),
+                joinedAt: m['created_at'] as string,
+              }
+            : undefined,
+        }
       })
     },
 

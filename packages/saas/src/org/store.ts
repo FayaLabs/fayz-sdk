@@ -37,11 +37,15 @@ export interface OrgStore {
   currentOrg: Organization | null
   userOrgs: OrgMembership[]
   members: OrgMember[]
+  /** Person `kind`s that make up the team (from config.team.personKinds). Drives
+   *  the Person-first Team screen; empty = legacy membership-only mode. */
+  teamPersonKinds: string[]
   loading: boolean
 
   setCurrentOrg: (org: Organization | null) => void
   setUserOrgs: (orgs: OrgMembership[]) => void
   setMembers: (members: OrgMember[]) => void
+  setTeamPersonKinds: (kinds: string[]) => void
   setLoading: (loading: boolean) => void
   reset: () => void
 }
@@ -50,6 +54,7 @@ export const useOrganizationStore = create<OrgStore>((set) => ({
   currentOrg: null,
   userOrgs: [],
   members: [],
+  teamPersonKinds: [],
   loading: false,
 
   setCurrentOrg: (org) => {
@@ -59,6 +64,7 @@ export const useOrganizationStore = create<OrgStore>((set) => ({
   },
   setUserOrgs: (orgs) => set({ userOrgs: orgs }),
   setMembers: (members) => set({ members }),
+  setTeamPersonKinds: (kinds) => set({ teamPersonKinds: kinds }),
   setLoading: (loading) => set({ loading }),
   reset: () => {
     setActiveTenantId(undefined)

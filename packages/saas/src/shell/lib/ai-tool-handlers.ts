@@ -1,20 +1,67 @@
-import { resolveDataProvider, getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
+import { resolveDataProvider, getSupabaseClientOptional, getActiveTenantId, emitDataChanged } from '@fayz-ai/core'
 import { checkAccess, guardLimit } from '../../access/headless'
+import { lookupRecordRef } from './record-refs'
+import { openEntity, resolveEntityRoute } from '../../lib/entity-routes'
 import { invalidateLimit } from '../../access/limits-registry'
+import { deriveEntityKey } from '@fayz-ai/core'
 import { CORE_QUERY_ENTITIES } from '../../app/core-entities'
-import { useChatStore } from '../stores/chat.store'
+import {
+  useChatStore,
+  type PendingAgentAction,
+  type PendingActionField,
+  type PendingActionResult,
+} from '../stores/chat.store'
 
 /** Chat-store confirmation gate, callable from any handler. */
-function requestChatConfirmation(action: {
-  id: string
-  toolName: string
-  title: string
-  params: Record<string, unknown>
-  plane: 'client' | 'server'
-}): Promise<boolean> {
+function requestChatConfirmation(action: PendingAgentAction): Promise<PendingActionResult> {
   return useChatStore.getState().requestConfirmation(action)
 }
-import type { EntityDef, OrgMember, Organization } from '@fayz-ai/core'
+
+/** Columns the database owns. Offering them as inputs invites someone to
+ *  hand-type a `created_at`. */
+const SYSTEM_FIELD_KEYS = new Set([
+  'id', 'tenant_id', 'tenantId', 'created_at', 'createdAt', 'updated_at', 'updatedAt',
+  'deleted_at', 'deletedAt', 'created_by', 'createdBy',
+])
+
+function normaliseOptions(raw: unknown): Array<{ value: string; label?: string }> | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: Array<{ value: string; label?: string }> = []
+  for (const o of raw) {
+    if (typeof o === 'string') out.push({ value: o })
+    else if (o && typeof o === 'object' && typeof (o as { value?: unknown }).value === 'string') {
+      const rec = o as { value: string; label?: unknown }
+      out.push({ value: rec.value, label: typeof rec.label === 'string' ? rec.label : undefined })
+    }
+  }
+  return out.length ? out : undefined
+}
+
+/** The entity's fields as the card needs them. Anything the app already hides
+ *  from its own forms (`showInForm: false`) is hidden here too — the assistant
+ *  is not a back door around the app's own idea of what a person edits. */
+function cardFields(entity: { fields?: Array<Record<string, unknown>> }): PendingActionField[] {
+  return (entity.fields ?? [])
+    .filter((f) => f.showInForm !== false && !SYSTEM_FIELD_KEYS.has(String(f.key)))
+    .map((f) => {
+      const type = typeof f.type === 'string' ? f.type : undefined
+      return {
+        key: String(f.key),
+        label: typeof f.label === 'string' ? f.label : undefined,
+        type,
+        required: f.required === true,
+        options: normaliseOptions(f.options),
+        placeholder: typeof f.placeholder === 'string' ? f.placeholder : undefined,
+        hint: typeof f.hint === 'string' ? f.hint : undefined,
+        min: typeof f.min === 'number' ? f.min : undefined,
+        max: typeof f.max === 'number' ? f.max : undefined,
+        // A computed value has no input, and a relation needs its option list
+        // loaded from a table — neither is something to type into a chat card.
+        readOnly: type === 'computed' || type === 'relation' || !!f.relation,
+      }
+    })
+}
+import type { EntityDef, OrgMember, Organization, TeamPerson } from '@fayz-ai/core'
 import type { PluginAITool, PluginRegistryDef } from '../types/plugins'
 
 /**
@@ -48,6 +95,13 @@ export interface DataToolTarget {
 export interface AIToolExecutionContext {
   currentOrg: Organization | null
   members: OrgMember[]
+  /**
+   * Person-first team resolver — the same source the Team screen renders
+   * (people of the configured `team.personKinds`, each with an OPTIONAL access
+   * overlay). Absent when the app runs in legacy membership-only mode, in
+   * which case `members` is the whole team.
+   */
+  loadTeam?: () => Promise<TeamPerson[]>
   currentPath: string
   /** Pages the surface exposes, used to resolve navigation requests. */
   routes: Array<{ path: string; label?: string }>
@@ -111,9 +165,18 @@ function attachRefs(
   const archetype = entity.data?.archetype
   if (!archetype) return rows
   const kind = entity.data?.archetypeKind
+  const entityKey = deriveEntityKey(entity)
   return rows.map((r) =>
     r.id
-      ? { ...r, ref: { id: r.id, resource: entity.data?.table, archetype: kind ? `${archetype}:${kind}` : archetype } }
+      ? {
+          ...r,
+          ref: {
+            id: r.id,
+            resource: entity.data?.table,
+            archetype: kind ? `${archetype}:${kind}` : archetype,
+            entityKey,
+          },
+        }
       : r,
   )
 }
@@ -522,13 +585,24 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
     }
   }
 
-  const approved = await requestChatConfirmation({
+  const decision = await requestChatConfirmation({
     id: `create-${Date.now()}`,
     toolName: 'createRecord',
     title: `Criar ${target.entity.name}`,
     params: clean,
     plane: 'client',
+    // Scoped grant: "always create clients", never "always create anything".
+    scope: typeof args.entity === 'string' ? args.entity : undefined,
+    scopeLabel: `Criar ${target.entity.name}`,
+    fields: cardFields(target.entity as never),
   })
+  const approved = decision.approved
+  // The card is the last word: whatever the user corrected there is what gets
+  // written, not what the model guessed.
+  if (decision.values) {
+    for (const key of Object.keys(clean)) delete clean[key]
+    Object.assign(clean, decision.values)
+  }
   if (!approved) return { ok: false, cancelled: true, reason: 'user_declined' }
 
   const provider = resolveDataProvider(
@@ -537,6 +611,15 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
   )
   const record = await provider.create(clean as never)
   if (target.entity.limitKey) invalidateLimit(target.entity.limitKey)
+  // The list behind the chat is showing this table right now — tell it.
+  emitDataChanged({
+    table: target.entity.data?.table,
+    entityKey: typeof args.entity === 'string' ? args.entity : undefined,
+    archetype: target.entity.data?.archetype,
+    op: 'create',
+    id: (record as { id?: string }).id,
+    source: 'agent',
+  })
   return {
     ok: true,
     record,
@@ -547,6 +630,7 @@ registerAIToolHandler('createRecord', async (args, ctx) => {
       archetype: target.entity.data?.archetype
         ? `${target.entity.data.archetype}${target.entity.data.archetypeKind ? ':' + target.entity.data.archetypeKind : ''}`
         : undefined,
+      entityKey: deriveEntityKey(target.entity),
     },
   }
 })
@@ -577,20 +661,35 @@ registerAIToolHandler('updateRecord', async (args, ctx) => {
     return { error: 'empty_update', message: 'No valid fields to change were provided.' }
   }
 
-  const approved = await requestChatConfirmation({
+  const decision = await requestChatConfirmation({
     id: `update-${Date.now()}`,
     toolName: 'updateRecord',
     title: `Atualizar ${target.entity.name}`,
     params: { id, ...clean },
     plane: 'client',
+    scope: typeof args.entity === 'string' ? args.entity : undefined,
+    scopeLabel: `Atualizar ${target.entity.name}`,
+    fields: cardFields(target.entity as never),
   })
-  if (!approved) return { ok: false, cancelled: true, reason: 'user_declined' }
+  if (!decision.approved) return { ok: false, cancelled: true, reason: 'user_declined' }
+  if (decision.values) {
+    for (const key of Object.keys(clean)) delete clean[key]
+    for (const [k, v] of Object.entries(decision.values)) if (k !== 'id') clean[k] = v
+  }
 
   const provider = resolveDataProvider(
     target.entity as EntityDef<{ id: string }>,
     target.mockData,
   )
   const record = await provider.update(id, clean as never)
+  emitDataChanged({
+    table: target.entity.data?.table,
+    entityKey: typeof args.entity === 'string' ? args.entity : undefined,
+    archetype: target.entity.data?.archetype,
+    op: 'update',
+    id,
+    source: 'agent',
+  })
   return {
     ok: true,
     record,
@@ -601,6 +700,7 @@ registerAIToolHandler('updateRecord', async (args, ctx) => {
       archetype: target.entity.data?.archetype
         ? `${target.entity.data.archetype}${target.entity.data.archetypeKind ? ':' + target.entity.data.archetypeKind : ''}`
         : undefined,
+      entityKey: deriveEntityKey(target.entity),
     },
   }
 })
@@ -833,7 +933,41 @@ export function buildAgentToolset(
 // Core handlers — the executable counterpart of `coreAITools`.
 // ---------------------------------------------------------------------------
 
-registerAIToolHandler('getBusinessSummary', (_args, ctx) => {
+/**
+ * The team, as the Team screen defines it.
+ *
+ * Person-first apps (`team.personKinds` configured) staff their workspace with
+ * PEOPLE — a teacher or stylist is on the team whether or not they ever log in;
+ * `tenant_members` is just the access overlay on top. Reading memberships alone
+ * answered "who is on my team?" with the single owner row while the Team screen
+ * listed six, so the tool now resolves the same source the screen renders and
+ * only falls back to memberships in legacy mode.
+ */
+async function resolveTeamRows(ctx: AIToolExecutionContext): Promise<
+  Array<{ name: string | null; kind?: string; email: string | null; accessRole: string | null; hasLogin: boolean }>
+> {
+  if (ctx.loadTeam) {
+    const team = await ctx.loadTeam()
+    return team.map((p) => ({
+      name: p.name ?? null,
+      kind: p.kind,
+      email: p.email ?? null,
+      accessRole: p.membership?.profileName ?? null,
+      hasLogin: !!p.membership,
+    }))
+  }
+  // Legacy: every team member IS a membership row. `profileName` is the RBAC
+  // role, never the person's name — reporting it as `name` is what made the
+  // assistant answer "one person, with the role of Owner".
+  return ctx.members.map((m) => ({
+    name: m.user?.fullName ?? null,
+    email: m.user?.email ?? null,
+    accessRole: m.profileName ?? null,
+    hasLogin: true,
+  }))
+}
+
+registerAIToolHandler('getBusinessSummary', async (_args, ctx) => {
   if (!ctx.currentOrg) return { error: 'no_active_business' }
   const org = ctx.currentOrg as Organization & { plan?: string; verticalId?: string }
   return {
@@ -841,22 +975,23 @@ registerAIToolHandler('getBusinessSummary', (_args, ctx) => {
     slug: org.slug,
     plan: org.plan ?? null,
     vertical: org.verticalId ?? null,
-    teamSize: ctx.members.length,
+    teamSize: (await resolveTeamRows(ctx)).length,
     createdAt: org.createdAt ?? null,
   }
 })
 
-registerAIToolHandler('getTeamMembers', (args, ctx) => {
-  const role = typeof args.role === 'string' ? args.role.toLowerCase() : undefined
-  const members = ctx.members
-    .map((m) => m as OrgMember & { role?: string; status?: string })
-    .filter((m) => !role || String(m.role ?? '').toLowerCase() === role)
-    .map((m) => ({
-      name: m.profileName ?? m.user?.fullName ?? null,
-      email: m.user?.email ?? null,
-      role: m.role ?? null,
-      status: m.status ?? null,
-    }))
+registerAIToolHandler('getTeamMembers', async (args, ctx) => {
+  const filter = typeof args.role === 'string' ? args.role.trim().toLowerCase() : undefined
+  const rows = await resolveTeamRows(ctx)
+  // One filter, two vocabularies: users say "os professores" (the person kind)
+  // and "os admins" (the access role) with the same word shape.
+  const members = filter
+    ? rows.filter(
+        (r) =>
+          String(r.kind ?? '').toLowerCase() === filter ||
+          String(r.accessRole ?? '').toLowerCase() === filter,
+      )
+    : rows
   return { total: members.length, members }
 })
 
@@ -864,20 +999,45 @@ registerAIToolHandler('navigateTo', (args, ctx) => {
   const query = typeof args.page === 'string' ? args.page.trim().toLowerCase() : ''
   if (!query) return { error: 'missing_page' }
 
+  // Substring matching sent "vai pra pagina dela" to the Painel and then
+  // REPORTED SUCCESS. A wrong page announced as done is worse than no page, so
+  // a loose match now fails and hands back the list to choose from.
   const match =
     ctx.routes.find((r) => r.path.toLowerCase() === query || r.path.toLowerCase() === `/${query}`) ??
     ctx.routes.find((r) => (r.label ?? '').toLowerCase() === query) ??
-    ctx.routes.find((r) => r.path.toLowerCase().includes(query) || (r.label ?? '').toLowerCase().includes(query))
+    ctx.routes.find((r) => {
+      const label = (r.label ?? '').toLowerCase()
+      return !!label && (label.startsWith(query) || query.startsWith(label))
+    })
 
   if (!match) {
     return {
       error: 'page_not_found',
+      message: 'No page matches that. If the user meant a specific record, look it up and call openRecord with its id.',
       availablePages: ctx.routes.map((r) => r.label ?? r.path),
     }
   }
 
   ctx.navigate(match.path)
   return { navigatedTo: match.path, label: match.label ?? match.path }
+})
+
+registerAIToolHandler('openRecord', async (args) => {
+  const id = typeof args.id === 'string' ? args.id.trim() : ''
+  if (!id) return { error: 'missing_id', message: 'Provide the record id returned by an earlier tool.' }
+
+  const ref = lookupRecordRef(id)
+  if (!ref) {
+    return {
+      error: 'unknown_record',
+      message: 'That id was not seen in this conversation. Search for the record first, then call openRecord with the id from the result.',
+    }
+  }
+  if (!resolveEntityRoute(ref.archetype, ref.kind, ref.entityKey)) {
+    return { error: 'no_page_for_record', message: `This app has no page for ${ref.label}.` }
+  }
+  openEntity(id, ref.archetype, ref.kind, undefined, ref.entityKey)
+  return { opened: ref.label, ref: { id, label: ref.label, archetype: ref.archetype } }
 })
 
 

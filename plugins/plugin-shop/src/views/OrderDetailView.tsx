@@ -248,20 +248,6 @@ export function OrderDetailView({
     return () => { cancelled = true }
   }, [orderId])
 
-  if (loading) return <OrderDetailSkeleton />
-  if (error) {
-    return (
-      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-        <p className="font-medium">Não foi possível carregar o pedido.</p>
-        <p className="mt-1 text-red-700">{error}</p>
-      </div>
-    )
-  }
-  if (!order) return <div className="py-12 text-center text-sm text-muted-foreground">Pedido não encontrado.</div>
-
-  const delivery = deliveryFromNotes(order.notes)
-  const addr = order.shippingAddress
-
   /**
    * Load the receivable this order raised.
    *
@@ -269,6 +255,10 @@ export function OrderDetailView({
    * created by the financial plugin's own fn_invoice_from_order the moment the
    * order is placed, and plg_shop_orders.financial_status is derived from it, so
    * this panel is the money and the badge above is a consequence of it.
+   *
+   * NOTE: this hook must stay ABOVE the early returns below (loading/error/!order)
+   * — a hook placed after a conditional return changes the hook order between
+   * renders (React "change in the order of Hooks" error).
    */
   useEffect(() => {
     let cancelled = false
@@ -286,6 +276,20 @@ export function OrderDetailView({
     })()
     return () => { cancelled = true }
   }, [orderId, confirming])
+
+  if (loading) return <OrderDetailSkeleton />
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p className="font-medium">Não foi possível carregar o pedido.</p>
+        <p className="mt-1 text-red-700">{error}</p>
+      </div>
+    )
+  }
+  if (!order) return <div className="py-12 text-center text-sm text-muted-foreground">Pedido não encontrado.</div>
+
+  const delivery = deliveryFromNotes(order.notes)
+  const addr = order.shippingAddress
 
   /**
    * Register the receipt. This used to be "Marcar como pago" — a button that

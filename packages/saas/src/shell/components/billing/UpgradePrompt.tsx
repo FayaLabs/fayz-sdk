@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Crown, Check, Sparkles, ArrowRight } from 'lucide-react'
+import { Crown, Sparkles, ArrowRight } from 'lucide-react'
 import { Button, Card } from '@fayz-ai/ui'
 import type { Plan } from '@fayz-ai/core'
 import { cn } from '../../lib/cn'
@@ -9,6 +9,7 @@ import { usePermissionsStore } from '../../../permissions'
 import { useOrganizationStore } from '../../../org/store'
 import { navigateTo } from '../../../app/routing'
 import { getPlanEntitlements, featureDisplayName, resolvePlanCurrency } from './access-contract'
+import { PlanFeatureItem } from './plan-feature'
 
 // ---------------------------------------------------------------------------
 // UpgradePrompt — the "this is a higher-plan feature" surface. Two variants:
@@ -69,11 +70,16 @@ export function UpgradePrompt({ feature, inline, className }: UpgradePromptProps
   const currentPlanName = currentPlan?.name ?? tr('billing.free', 'Free')
 
   // Clean display name (strips "(acesso)"/"(access)" suffixes from the raw label).
+  // Features gated only by plan (no RBAC entry, e.g. the assistant) fall back to
+  // the shell's upgrade.feature.<id> translation before showing the raw id.
   const featureName = React.useMemo(() => {
     if (!feature) return null
-    const label = features.find((f) => f.id === feature)?.label ?? feature
-    return featureDisplayName(label)
-  }, [features, feature])
+    const label = features.find((f) => f.id === feature)?.label
+    if (label) return featureDisplayName(label)
+    const key = `upgrade.feature.${feature}`
+    const named = t(key)
+    return named && named !== key ? named : featureDisplayName(feature)
+  }, [features, feature, t])
 
   // Plans that unlock the feature AND are an upgrade over the current plan,
   // cheapest first — so the first is the natural "recommended" entry point.
@@ -166,7 +172,7 @@ export function UpgradePrompt({ feature, inline, className }: UpgradePromptProps
                 )}
               >
                 {recommended && (
-                  <span className="absolute -top-2.5 left-5 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
                     <Sparkles className="h-3 w-3" aria-hidden="true" />
                     {tr('upgrade.recommended', 'Recommended')}
                   </span>
@@ -192,10 +198,7 @@ export function UpgradePrompt({ feature, inline, className }: UpgradePromptProps
 
                 <ul className="mt-4 flex-1 space-y-2">
                   {highlights.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-foreground/80">
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-                      <span>{f}</span>
-                    </li>
+                    <PlanFeatureItem key={f} feature={f} className="text-xs text-foreground/80" iconClassName="h-3.5 w-3.5" />
                   ))}
                 </ul>
 

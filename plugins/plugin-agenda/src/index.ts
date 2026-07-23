@@ -126,6 +126,8 @@ export function createAgendaPlugin(options?: AgendaPluginOptions): PluginManifes
         path: '/agenda',
         component: PageComponent,
         permission: { feature: 'appointments', action: 'read' as const },
+        // Matches the ref agent_agenda_create_appointment returns.
+        entityRoutes: ['schedule:appointment'],
       },
     ],
 

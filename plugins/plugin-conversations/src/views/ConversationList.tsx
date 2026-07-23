@@ -1,6 +1,6 @@
 import React from 'react'
 import { Search, Inbox as InboxIcon, Plus } from 'lucide-react'
-import { Button, Input, cn } from '@fayz-ai/ui'
+import { Button, Input, Skeleton, cn } from '@fayz-ai/ui'
 import { PermissionGate } from '@fayz-ai/saas'
 import { useTranslation } from '@fayz-ai/core'
 import { useConversationsStore } from '../ConversationsContext'
@@ -63,9 +63,20 @@ export function ConversationList({ className }: { className?: string }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {loading && conversations.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">{t('conversations.list.loading')}</p>
-        )}
+        {loading && conversations.length === 0 &&
+          Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="flex w-full items-start gap-3 border-b border-border/50 px-3 py-3">
+              <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-8" />
+                </div>
+                <Skeleton className="mt-1.5 h-4 w-16 rounded-full" />
+                <Skeleton className="mt-1.5 h-3 w-3/4" />
+              </div>
+            </div>
+          ))}
         {!loading && conversations.length === 0 && (
           <div className="flex flex-col items-center gap-2 p-8 text-center text-muted-foreground">
             <InboxIcon className="h-6 w-6" />

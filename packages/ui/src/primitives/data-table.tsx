@@ -35,7 +35,12 @@ function DataTable<TData, TValue>({
   compact = false,
 }: DataTableProps<TData, TValue>) {
   const isCard = variant === 'card'
-  const wrapperCls = isCard ? 'rounded-lg border bg-card shadow-sm overflow-x-auto' : 'rounded-lg border overflow-x-auto'
+  // Rounded box and scroll container must be SEPARATE elements: a scroll
+  // container paints its content over its own border-radius, which squared
+  // the corners the moment a row background met them.
+  const wrapperCls = isCard
+    ? 'overflow-hidden rounded-lg border bg-card shadow-sm'
+    : 'overflow-hidden rounded-lg border'
   const headerCls = isCard ? 'border-b bg-muted/50' : 'border-b bg-muted/30'
   const thCls = compact ? 'px-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground' : 'px-4 py-2.5 text-left font-medium text-muted-foreground'
   const tdCls = compact ? 'px-3 py-1.5 align-middle text-xs' : 'px-4 py-3 align-middle'
@@ -55,6 +60,7 @@ function DataTable<TData, TValue>({
   if (loading) {
     return (
       <div className={wrapperCls}>
+        <div className="overflow-x-auto">
         <table className={tableCls}>
           <thead>
             <tr className={headerCls}>
@@ -77,12 +83,14 @@ function DataTable<TData, TValue>({
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     )
   }
 
   return (
     <div className={wrapperCls}>
+      <div className="overflow-x-auto">
       <table className={tableCls}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -144,6 +152,7 @@ function DataTable<TData, TValue>({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

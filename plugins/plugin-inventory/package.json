@@ -3,7 +3,7 @@
   "fayz": {
     "status": "beta"
   },
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Fayz SDK — plugin-inventory plugin",
   "type": "module",
   "main": "./dist/index.cjs",

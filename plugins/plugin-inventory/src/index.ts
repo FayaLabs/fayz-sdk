@@ -184,6 +184,10 @@ export function createInventoryPlugin(options?: InventoryPluginOptions): PluginM
         path: '/inventory',
         component: PageComponent,
         permission: { feature: 'inventory', action: 'read' as const },
+        // Products live on this hand-built page, not a CRUD route, so nothing
+        // would register them and a product the assistant just created would
+        // resolve to no page at all.
+        entityRoutes: ['product:sale', 'product'],
       },
     ],
     widgets: [],

@@ -11,6 +11,7 @@ import { tasksLocales } from './locales'
 import { tasksRegistries } from './registries'
 import { TasksGeneralSettings } from './components/TasksGeneralSettings'
 import { TasksTopbarButton } from './components/TasksTopbarButton'
+import { registerNotesTasksAdapter, NOTE_LABEL_PREFIX } from '@fayz-ai/saas'
 import { MIGRATION_000_PLG_RENAME, MIGRATION_001_TASKS_BASE } from './migrations'
 
 // ---------------------------------------------------------------------------
@@ -65,6 +66,37 @@ export function createTasksPlugin(options?: TasksPluginOptions): PluginManifest 
     () => createMockTasksProvider(),
   )
   const store = createTasksStore(provider)
+
+  // Notes ↔ Tasks bridge: note todos are real tasks, linked by a `note:<id>`
+  // label. The shell's Notes tab consumes this; the Tarefas tab (and its
+  // summary badge) stays the single source of truth.
+  registerNotesTasksAdapter({
+    async createTodo({ title, noteId, noteTitle }) {
+      const task = await provider.createTask({
+        title,
+        description: noteTitle ? `Nota: ${noteTitle}` : undefined,
+        labels: [`${NOTE_LABEL_PREFIX}${noteId}`],
+      })
+      void store.getState().fetchSummary()
+      return { id: task.id, title: task.title, done: task.status === 'done' }
+    },
+    async listTodos(noteId) {
+      const tasks = await provider.getTasks({})
+      const label = `${NOTE_LABEL_PREFIX}${noteId}`
+      return tasks
+        .filter((t) => t.labels.includes(label))
+        .sort((a, b) => (a.status === 'done' ? 1 : 0) - (b.status === 'done' ? 1 : 0))
+        .map((t) => ({ id: t.id, title: t.title, done: t.status === 'done' }))
+    },
+    async toggleTodo(id: string, done: boolean) {
+      await provider.updateTask(id, { status: done ? 'done' : 'todo' })
+      void store.getState().fetchSummary()
+    },
+    async removeTodo(id: string) {
+      await provider.deleteTask(id)
+      void store.getState().fetchSummary()
+    },
+  })
 
   return {
     id: 'tasks',

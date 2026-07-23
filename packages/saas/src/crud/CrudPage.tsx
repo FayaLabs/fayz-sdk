@@ -15,7 +15,7 @@ import { fieldToColumns } from './fieldToColumn'
 import { PermissionGate } from '../permissions/PermissionGate'
 import { useLimitGuard, invalidateLimit } from '../access'
 import { useFieldRules } from '../hooks/useFieldRules'
-import { deriveEntityKey } from '@fayz-ai/core'
+import { deriveEntityKey, useDataChanged } from '@fayz-ai/core'
 import { toast } from '@fayz-ai/ui'
 import { getSupabaseClientOptional } from '@fayz-ai/core'
 import type { EntityDef } from '@fayz-ai/core'
@@ -202,6 +202,15 @@ export function CrudPage<T extends { id: string }>({ entityDef: rawEntityDef, us
   useEffect(() => {
     if (currentOrgId) store.fetch()
   }, [currentOrgId])
+
+  // Someone else wrote to this table — the assistant, another tab, a webhook.
+  // The list is showing that data right now, so it reloads itself instead of
+  // waiting for the user to discover the screen is stale.
+  useDataChanged(
+    { table: entityDef.data?.table, entityKey: deriveEntityKey(entityDef), archetype: entityDef.data?.archetype },
+    () => { if (currentOrgId) store.fetch() },
+    [currentOrgId],
+  )
 
   const navigateToList = () => { setCrudHash(normalizedBasePath) }
   const animClass = direction === 'forward' ? 'saas-nav-forward' : 'saas-nav-back'

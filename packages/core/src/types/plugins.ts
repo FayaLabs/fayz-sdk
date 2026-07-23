@@ -63,6 +63,10 @@ export interface PluginRouteDefinition {
   permission?: PluginPermissionRequirement
   /** Render edge-to-edge with no page padding/animation wrapper (chat, kanban, canvas). */
   fullBleed?: boolean
+  /** Archetypes this page displays (`archetype` or `archetype:kind`, e.g.
+   *  `'schedule:appointment'`). A CRUD page claims its own; a hand-built page
+   *  must declare it or records it owns resolve to no route. */
+  entityRoutes?: string[]
 }
 
 export type PluginWidgetZone =

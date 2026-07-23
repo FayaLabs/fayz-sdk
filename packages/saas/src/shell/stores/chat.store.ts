@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { isAutoApproved, isDestructiveTool } from '../lib/agent-approvals'
+import { clearRecordRefs } from '../lib/record-refs'
 
 /** A record the reply concerns — rendered as a "goto" button under the
  *  bubble. Semantic ref only (id + archetype/kind); the SURFACE resolves the
@@ -9,6 +11,9 @@ export interface ChatRecordLink {
   label: string
   archetype?: string
   kind?: string
+  /** The route a non-archetype entity has — without it a product resolves to
+   *  nothing and the goto button silently disappears. */
+  entityKey?: string
 }
 
 export interface ChatToolCall {
@@ -17,6 +22,11 @@ export interface ChatToolCall {
   args: string
   /** Result content, truncated for display. */
   result?: string
+  /** The write ran without asking because a standing grant covered it — the
+   *  trace says so, so an auto-approved action is never a silent one. */
+  autoApproved?: boolean
+  /** The user (or a guard) turned this call down. */
+  declined?: boolean
 }
 
 export interface ChatMessage {
@@ -40,11 +50,45 @@ export interface ChatMessage {
 export interface PendingAgentAction {
   id: string
   toolName: string
-  title: string
+  /** Human title when the caller has one. A tool's `description` is written
+   *  for the model and must never be used here. */
+  title?: string
   params: Record<string, unknown>
   /** 'client' = executed locally after approval; 'server' = approval is sent
    *  back to the broker as confirmAction. */
   plane: 'client' | 'server'
+  /** Entity this write targets. Auto-approval is remembered per tool+scope, so
+   *  "always create clients" never becomes "always create anything". */
+  scope?: string
+  /** Human label for the remembered rule ("Criar Cliente"). */
+  scopeLabel?: string
+  /** Removes or voids data — grants for it never outlive the tab. */
+  destructive?: boolean
+  /** The target entity's declared fields, so the card can let the user correct
+   *  what the model guessed and fill what it left out. */
+  fields?: PendingActionField[]
+}
+
+export interface PendingActionField {
+  key: string
+  label?: string
+  /** The entity's own `FieldType` — the card renders the matching control. */
+  type?: string
+  required?: boolean
+  options?: Array<{ value: string; label?: string }>
+  placeholder?: string
+  hint?: string
+  min?: number
+  max?: number
+  /** Shown, never edited: computed values, relations needing an option load,
+   *  and anything the database fills in on its own. */
+  readOnly?: boolean
+}
+
+/** What the card sends back: the decision, plus the values as edited. */
+export interface PendingActionResult {
+  approved: boolean
+  values?: Record<string, unknown>
 }
 
 interface ChatState {
@@ -65,10 +109,35 @@ interface ChatState {
   conversationId: string | null
   /** The write awaiting human confirmation (renders the ConfirmActionCard). */
   pendingAction: PendingAgentAction | null
-  /** Park an action + register its decision resolver. */
-  requestConfirmation: (action: PendingAgentAction) => Promise<boolean>
-  /** Card buttons: settle the parked action. */
-  resolvePendingAction: (approved: boolean) => void
+  /** Park an action + register its decision resolver. Resolves immediately
+   *  when a standing auto-approval already covers it. */
+  requestConfirmation: (action: PendingAgentAction) => Promise<PendingActionResult>
+  /** Card buttons: settle the parked action, carrying the edited values. */
+  resolvePendingAction: (approved: boolean, values?: Record<string, unknown>) => void
+  /** Tool names auto-approved during the turn being rendered — the trace marks
+   *  them so the user can see what ran unattended. */
+  autoApprovedTools: string[]
+  /** Speak short confirmations back. Persisted per browser. */
+  voiceReplies: boolean
+  setVoiceReplies: (enabled: boolean) => void
+  /** Text handed to the composer for the user to check, edit and send. A
+   *  suggestion fills the field; it never sends on the user's behalf. */
+  draft: string
+  setDraft: (text: string) => void
+  /** Explicit delegation ("resolver com IA"): the user already said go, so the
+   *  conversation sends this as soon as it can. Distinct from `draft`, which
+   *  never sends on the user's behalf. */
+  queuedPrompt: string | null
+  queuePrompt: (text: string) => void
+  consumeQueuedPrompt: () => string | null
+  /** Suggestions panel is pinned open by the user (works mid-conversation). */
+  suggestionsOpen: boolean
+  setSuggestionsOpen: (open: boolean) => void
+  /** "Talk" was tapped outside the panel — the composer starts listening as
+   *  soon as it mounts, so one tap goes from anywhere to speaking. */
+  voiceStartRequested: boolean
+  requestVoiceStart: () => void
+  consumeVoiceStart: () => void
   /** Tool names executing right now — rendered as live activity chips. */
   activeTools: string[]
   setActiveTools: (names: string[]) => void
@@ -78,15 +147,28 @@ interface ChatState {
   appendLinksToLastAssistant: (links: ChatRecordLink[]) => void
   /** The signed-in user's threads (history drawer). */
   conversations: Array<{ id: string; title: string | null; updatedAt: string }>
+  /** First fetch settled — before this the panel shows a skeleton, not "empty". */
+  conversationsLoaded: boolean
   setConversations: (rows: Array<{ id: string; title: string | null; updatedAt: string }>) => void
   /** Replace the transcript wholesale (resuming a past conversation). */
   setMessages: (messages: ChatMessage[]) => void
 }
 
 // Module-level so the resolver never round-trips through React state.
-let pendingResolver: ((approved: boolean) => void) | null = null
+let pendingResolver: ((result: PendingActionResult) => void) | null = null
 
-export const useChatStore = create<ChatState>((set) => ({
+const VOICE_REPLIES_KEY = 'fayz.agent.voice-replies'
+
+function readVoiceRepliesPref(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  try {
+    return localStorage.getItem(VOICE_REPLIES_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isOpen: false,
   isStreaming: false,
@@ -111,26 +193,72 @@ export const useChatStore = create<ChatState>((set) => ({
   setStreaming: (isStreaming) => set({ isStreaming }),
   setConversationId: (conversationId) => set({ conversationId }),
   reset: () => {
-    pendingResolver?.(false)
+    pendingResolver?.({ approved: false })
     pendingResolver = null
-    set({ messages: [], isStreaming: false, conversationId: null, pendingAction: null, activeTools: [] })
+    clearRecordRefs()
+    set({
+      messages: [],
+      isStreaming: false,
+      conversationId: null,
+      pendingAction: null,
+      activeTools: [],
+      autoApprovedTools: [],
+      // suggestionsOpen is a standing preference, not thread state.
+    })
   },
 
   pendingAction: null,
+  autoApprovedTools: [],
   requestConfirmation: (action) => {
+    const destructive = action.destructive ?? isDestructiveTool(action.toolName)
+    // Standing grant covers this exact tool+scope: run it, but record it so
+    // the transcript still shows the write happened and on whose authority.
+    if (isAutoApproved(action.toolName, action.scope)) {
+      set((s) => ({
+        autoApprovedTools: s.autoApprovedTools.includes(action.toolName)
+          ? s.autoApprovedTools
+          : [...s.autoApprovedTools, action.toolName],
+      }))
+      return Promise.resolve({ approved: true })
+    }
     // A newer request supersedes an unanswered one (treated as declined).
-    pendingResolver?.(false)
-    return new Promise<boolean>((resolve) => {
+    pendingResolver?.({ approved: false })
+    return new Promise<PendingActionResult>((resolve) => {
       pendingResolver = resolve
-      set({ pendingAction: action })
+      set({ pendingAction: { ...action, destructive } })
     })
   },
-  resolvePendingAction: (approved) => {
+  resolvePendingAction: (approved, values) => {
     const resolve = pendingResolver
     pendingResolver = null
     set({ pendingAction: null })
-    resolve?.(approved)
+    resolve?.({ approved, values })
   },
+
+  voiceReplies: readVoiceRepliesPref(),
+  setVoiceReplies: (enabled) => {
+    try {
+      localStorage?.setItem(VOICE_REPLIES_KEY, enabled ? '1' : '0')
+    } catch {
+      /* preference stays session-only */
+    }
+    set({ voiceReplies: enabled })
+  },
+  draft: '',
+  setDraft: (draft) => set({ draft }),
+  queuedPrompt: null,
+  queuePrompt: (queuedPrompt) => set({ queuedPrompt, isOpen: true }),
+  consumeQueuedPrompt: () => {
+    const prompt = get().queuedPrompt
+    if (prompt) set({ queuedPrompt: null })
+    return prompt
+  },
+  // Open to begin with; collapsing sticks for the session.
+  suggestionsOpen: true,
+  setSuggestionsOpen: (suggestionsOpen) => set({ suggestionsOpen }),
+  voiceStartRequested: false,
+  requestVoiceStart: () => set({ isOpen: true, voiceStartRequested: true }),
+  consumeVoiceStart: () => set({ voiceStartRequested: false }),
 
   activeTools: [],
   setActiveTools: (activeTools) => set({ activeTools }),
@@ -157,6 +285,7 @@ export const useChatStore = create<ChatState>((set) => ({
       return { messages: msgs }
     }),
   conversations: [],
-  setConversations: (conversations) => set({ conversations }),
+  conversationsLoaded: false,
+  setConversations: (conversations) => set({ conversations, conversationsLoaded: true }),
   setMessages: (messages) => set({ messages }),
 }))

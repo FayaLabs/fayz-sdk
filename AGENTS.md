@@ -103,12 +103,15 @@ Full map + reading order: [docs/README.md](docs/README.md). The canonical set (r
 | [docs/design/](docs/design/) | RFCs + integration briefs (rationale; canon lives in the docs above) |
 | [docs/archive/](docs/archive/) | Superseded docs kept for history — do not follow them |
 
-## State snapshot (2026-07-02 — verify against Linear before trusting)
+## State snapshot — do NOT trust prose here; read the live sources
 
-Branch `feat/mobile-app-shell-bottomnav` carries 27+ unpublished commits (foundation Phase 0 +
-mobile/B2C wave + auth extraction + storefront contracts); main is strictly behind (fast-forward
-merge). Changesets for the release are committed (`.changeset/`); publish waits on the founder's
-in-flight permission work (4 dirty saas/core files are THEIRS). Wave 1 (clinic) is mid-flight:
-RLS live, seeds applied except `seed-saas-core.sql` (held for the permission work), clinic
-owner account exists. `@fayz-ai/plugin-auth` is new and NOT yet on npm — it must ship in the same
-release as saas 0.7.0 or installs break.
+This section goes stale within days. **Verify state from the real sources, not from this doc:**
+`git status` + `git log --oneline -15` (what's in flight on the current branch), `.changeset/`
+(what's queued to publish), and **Linear** (projects *fayz-sdk* / *fayz.ai* — the memory of record).
+
+Standing cautions that outlive any one branch:
+- Feature branches often carry **another dev's active WIP** — telltale broken-but-uncommitted files
+  (e.g. an unfinished `useGlobalSearch`/chat surface) flap the dev servers. Diagnose ownership via
+  `git status` before touching; never sweep or "fix" foreign WIP (rule §1).
+- `@fayz-ai/*` packages that are new / not yet on npm must ship in the **same release** as the
+  packages that import them, or published-mode installs break. Check `.changeset/` before releasing.

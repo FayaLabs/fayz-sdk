@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { useChatStore, type ChatMessage } from '../stores/chat.store'
+import { useChatStore, type ChatMessage, type ChatRecordLink } from '../stores/chat.store'
 import { useOrganizationStore } from '../stores/organization.store'
 // The REAL auth store — @fayz-ai/auth is what AuthProvider hydrates (and the
 // same specifier AdminShell uses). shell/stores/auth.store is a legacy shim
@@ -9,7 +9,15 @@ import { useOrganizationStore } from '../stores/organization.store'
 // retired -qa checkout).
 import { useAuthStore } from '@fayz-ai/auth'
 import { usePluginRuntimeOptional } from '../lib/plugins'
-import { useRouter } from '../lib/router'
+// Native org adapter (same import TeamTab uses) — the shell context is
+// un-provided, so the assistant reads the team through the native one.
+import { useOrgAdapterOptional as useNativeOrgAdapter } from '../../org'
+import type { OrgAdapter } from '../types/org-adapter'
+import { dedup } from '../lib/dedup'
+// The admin's own hash-router helper — `shell/lib/router`'s default adapter
+// assigns window.location.href, which sent the agent to /agenda instead of
+// #/agenda and reloaded the app onto a path the server does not serve.
+import { navigateTo } from '../../app/routing'
 import { useTranslation } from './useTranslation'
 import { useAITools } from './useAITools'
 import {
@@ -20,7 +28,7 @@ import {
   type AIToolExecutionContext,
 } from '../lib/ai-tool-handlers'
 import { entityToolName, registryToolName } from '../lib/core-ai-tools'
-import { getAllEntities, useManifest, type PluginAITool } from '@fayz-ai/core'
+import { emitDataChanged, getAllEntities, useManifest, type PluginAITool } from '@fayz-ai/core'
 import { checkAccess, guardLimit } from '../../access/headless'
 import { invalidateLimit } from '../../access/limits-registry'
 import {
@@ -28,13 +36,30 @@ import {
   resolveFayzAgentConnection,
   type FayzAgentConnectionConfig,
 } from '../lib/fayz-agent'
+import { rememberRecordRefs, extractRecordLinks, dedupeLinks } from '../lib/record-refs'
 import type { FayzAgentToolResult } from '@fayz-ai/sdk/agent'
+import { speak, spokenForm, stopSpeaking } from '../lib/speech'
 
 /**
  * Caps how many times the model may call tools before it must answer in prose.
  * Each round is a network turn, so a runaway loop is both slow and expensive.
  */
 const MAX_TOOL_ROUNDS = 4
+
+/**
+ * Read the finished reply out loud, when the user asked for a talking
+ * assistant. Only the first sentences (`spokenForm`) — a spoken table is
+ * unbearable, and the screen still holds the full answer.
+ */
+function speakLastReply(): void {
+  const state = useChatStore.getState()
+  if (!state.voiceReplies) return
+  const last = state.messages[state.messages.length - 1]
+  if (last?.role !== 'assistant' || !last.content) return
+  speak(spokenForm(last.content), {
+    locale: typeof navigator !== 'undefined' ? navigator.language || 'pt-BR' : 'pt-BR',
+  })
+}
 
 interface UseChatOptions {
   /** Bring-your-own backend. Takes precedence over the Fayz agent connection. */
@@ -47,12 +72,21 @@ interface UseChatOptions {
 export function useChat(options?: UseChatOptions) {
   const store = useChatStore()
   const runtime = usePluginRuntimeOptional()
-  const router = useRouter()
   const { t } = useTranslation()
   const { tools, activePluginId } = useAITools()
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
   const members = useOrganizationStore((s) => s.members)
+  const teamPersonKinds = useOrganizationStore((s) => s.teamPersonKinds)
   const user = useAuthStore((s) => s.user)
+  const orgAdapter = useNativeOrgAdapter() as unknown as OrgAdapter | null
+
+  // Person-first team resolver for `getTeamMembers`. Fetched on demand (the
+  // chat is reachable without ever opening the Team screen) and deduped with
+  // that screen's own load, so asking the assistant costs no extra round-trip.
+  const loadTeam = useMemo(() => {
+    if (!currentOrg || !teamPersonKinds.length || typeof orgAdapter?.listTeam !== 'function') return undefined
+    return () => dedup('team:people:' + currentOrg.id, () => orgAdapter.listTeam!(currentOrg.id, teamPersonKinds))
+  }, [orgAdapter, currentOrg?.id, teamPersonKinds.join(',')])
 
   // The project's Fayz agent, resolved from the env the container injects. An
   // app-supplied apiEndpoint wins — that is an explicit opt-out.
@@ -105,16 +139,18 @@ export function useChat(options?: UseChatOptions) {
           if (!limit.allowed) return JSON.stringify(limit)
         }
         if (def.requiresConfirmation !== false) {
-          const approved = await useChatStore.getState().requestConfirmation({
+          const decision = await useChatStore.getState().requestConfirmation({
             id: call.id,
             toolName: call.name,
-            title: def.description,
+            // No title: `def.description` is written for the model.
             params: call.arguments,
             plane: 'client',
           })
-          if (!approved) {
+          if (!decision.approved) {
             return JSON.stringify({ ok: false, cancelled: true, reason: 'user_declined' })
           }
+          // The card can correct what the model sent; execute what the user saw.
+          if (decision.values) call = { ...call, arguments: decision.values }
         }
       }
       const exec = def?.execution
@@ -122,7 +158,14 @@ export function useChat(options?: UseChatOptions) {
       const result = rpcName
         ? await executeRpcTool(rpcName, call.arguments, useAuthStore.getState().user?.id)
         : await executeAITool(call.name, call.arguments, toolContext)
-      if (def?.mode === 'persist' && def.limitKey && result.ok) invalidateLimit(def.limitKey)
+      if (def?.mode === 'persist' && result.ok) {
+        if (def.limitKey) invalidateLimit(def.limitKey)
+        // A plugin write (an RPC booking, a status change) — the executor knows
+        // no table, so this is an unattributed change: every mounted list
+        // refreshes rather than none of them. createRecord/updateRecord emit
+        // their own precise event and this one is coalesced with it.
+        emitDataChanged({ op: 'unknown', source: 'agent' })
+      }
       return result.content
     },
     [],
@@ -140,9 +183,10 @@ export function useChat(options?: UseChatOptions) {
       const toolContext: AIToolExecutionContext = {
         currentOrg,
         members,
+        loadTeam,
         currentPath: runtime?.context.currentPath ?? '/',
         routes: (runtime?.navigation ?? []).map((n) => ({ path: n.route, label: n.label })),
-        navigate: router.navigate,
+        navigate: navigateTo,
         dataTools,
       }
       // Server-plane flip (manifest agent.executionPlane): data/RPC tools stop
@@ -164,44 +208,12 @@ export function useChat(options?: UseChatOptions) {
       // Identical repeated calls burn rounds without new information — cut the
       // loop with an explicit steering result instead of re-executing.
       const seenCalls = new Map<string, string>()
-      // Goto buttons: refs surface from write results (always) and from
-      // single-match reads — the records the reply is ABOUT.
+      // Index every ref seen (the card resolves ids from it) and link the ones
+      // the reply is about.
       const collectRecordLinks = (content: string) => {
-        try {
-          const parsed = JSON.parse(content) as Record<string, unknown>
-          const links: Array<{ id: string; label: string; archetype?: string; kind?: string }> = []
-          const pushRef = (ref: unknown, fallbackLabel?: unknown) => {
-            if (!ref || typeof ref !== 'object') return
-            const r = ref as { id?: string; label?: string; archetype?: string }
-            if (!r.id) return
-            const [archetype, kind] = (r.archetype ?? '').split(':')
-            links.push({
-              id: r.id,
-              label: String(r.label ?? fallbackLabel ?? 'registro'),
-              ...(archetype ? { archetype } : {}),
-              ...(kind ? { kind } : {}),
-            })
-          }
-          pushRef(parsed.ref, (parsed.record as Record<string, unknown> | undefined)?.name)
-          pushRef(
-            (parsed.record as Record<string, unknown> | undefined)?.ref,
-            (parsed.record as Record<string, unknown> | undefined)?.client_name ??
-              (parsed.record as Record<string, unknown> | undefined)?.service_name,
-          )
-          const singleFrom = (rows: unknown) => {
-            if (Array.isArray(rows) && rows.length === 1) {
-              const row = rows[0] as Record<string, unknown>
-              pushRef(row.ref, row.name)
-            }
-          }
-          singleFrom(parsed.records)
-          for (const m of Array.isArray(parsed.matches) ? parsed.matches : []) {
-            singleFrom((m as Record<string, unknown>).records)
-          }
-          if (links.length) useChatStore.getState().appendLinksToLastAssistant(links)
-        } catch {
-          /* non-JSON tool result — nothing to link */
-        }
+        rememberRecordRefs(content)
+        const links = extractRecordLinks(content)
+        if (links.length) useChatStore.getState().appendLinksToLastAssistant(links)
       }
       let toolResults: FayzAgentToolResult[] | undefined
       let confirmAction: { id: string; approved: boolean } | undefined
@@ -252,14 +264,14 @@ export function useChat(options?: UseChatOptions) {
         // Server-parked write: the broker executed nothing and is waiting for a
         // human decision. Surface the card, send the decision back, continue.
         if (response.pendingAction) {
-          const approved = await useChatStore.getState().requestConfirmation({
+          const decision = await useChatStore.getState().requestConfirmation({
             id: response.pendingAction.id,
             toolName: response.pendingAction.toolName,
             title: response.pendingAction.title ?? response.pendingAction.toolName,
             params: response.pendingAction.params ?? {},
             plane: 'server',
           })
-          confirmAction = { id: response.pendingAction.id, approved }
+          confirmAction = { id: response.pendingAction.id, approved: decision.approved }
           message = undefined
           toolResults = undefined
           continue
@@ -282,21 +294,29 @@ export function useChat(options?: UseChatOptions) {
         useChatStore.getState().setActiveTools(response.toolCalls.map((c) => c.name))
         try {
           toolResults = await Promise.all(
-            response.toolCalls.map(async (call) => ({
-              toolCallId: call.id,
-              content: await executeGuarded(call, toolByName.get(call.name), toolContext),
-            })),
+            response.toolCalls.map(async (call) => {
+              const content = await executeGuarded(call, toolByName.get(call.name), toolContext)
+              collectRecordLinks(content)
+              return { toolCallId: call.id, content }
+            }),
           )
           // Persistent, expandable trace: name + args + (truncated) result per
-          // call, attached to the reply being built.
+          // call, attached to the reply being built. Auto-approved and declined
+          // writes are flagged — an unattended write must still be visible.
+          const autoApproved = new Set(useChatStore.getState().autoApprovedTools)
           useChatStore.getState().appendToolCallsToLastAssistant(
-            response.toolCalls.map((call, i) => ({
-              name: call.name,
-              args: Object.keys(call.arguments ?? {}).length
-                ? JSON.stringify(call.arguments, null, 1)
-                : '',
-              result: (toolResults?.[i]?.content ?? '').slice(0, 2000),
-            })),
+            response.toolCalls.map((call, i) => {
+              const content = toolResults?.[i]?.content ?? ''
+              return {
+                name: call.name,
+                args: Object.keys(call.arguments ?? {}).length
+                  ? JSON.stringify(call.arguments, null, 1)
+                  : '',
+                result: content.slice(0, 2000),
+                autoApproved: autoApproved.has(call.name),
+                declined: content.includes('"user_declined"'),
+              }
+            }),
           )
         } finally {
           useChatStore.getState().setActiveTools([])
@@ -304,11 +324,15 @@ export function useChat(options?: UseChatOptions) {
         message = undefined
       }
     },
-    [store, tools, serverPlane, executeGuarded, activePluginId, runtime, router, currentOrg, members, user, options?.systemPrompt],
+    [store, tools, serverPlane, executeGuarded, activePluginId, runtime, currentOrg, members, loadTeam, user, options?.systemPrompt],
   )
 
   const sendMessage = useCallback(
     async (content: string) => {
+      // Barge-in: the moment the user talks (or types) again, the assistant
+      // stops talking. Nothing is more irritating than a voice that keeps
+      // reading an answer you already moved past.
+      stopSpeaking()
       const userMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
         role: 'user',
@@ -369,6 +393,7 @@ export function useChat(options?: UseChatOptions) {
         store.updateLastAssistant('Sorry, I could not connect. Please try again later.')
       } finally {
         store.setStreaming(false)
+        speakLastReply()
       }
     },
     [
@@ -389,7 +414,10 @@ export function useChat(options?: UseChatOptions) {
       const rows = await getFayzAgentClient(connection).listConversations(user?.id)
       useChatStore.getState().setConversations(rows)
     } catch {
-      // History is an enhancement — a failed load never breaks the chat.
+      // History is an enhancement — a failed load never breaks the chat. But
+      // the first failure must still settle the skeleton into "no history".
+      const s = useChatStore.getState()
+      if (!s.conversationsLoaded) s.setConversations([])
     }
   }, [connection, user?.id])
 
@@ -401,12 +429,37 @@ export function useChat(options?: UseChatOptions) {
         const detail = await getFayzAgentClient(connection).getConversation(conversationId, user?.id)
         const messages: ChatMessage[] = detail.messages
           .filter((m) => m.role === 'USER' || m.role === 'ASSISTANT' || m.role === 'user' || m.role === 'assistant')
-          .map((m) => ({
-            id: m.id,
-            role: m.role.toLowerCase() === 'user' ? ('user' as const) : ('assistant' as const),
-            content: m.content,
-            timestamp: m.createdAt,
-          }))
+          .map((m) => {
+            const calls = m.toolCalls ?? []
+            // Re-index the records this turn touched: a resumed thread has to
+            // resolve its own goto chips and name ids on a confirmation card,
+            // exactly as it did live.
+            const links: ChatRecordLink[] = []
+            for (const call of calls) {
+              if (!call.result) continue
+              rememberRecordRefs(call.result)
+              links.push(...extractRecordLinks(call.result))
+            }
+            return {
+              id: m.id,
+              role: m.role.toLowerCase() === 'user' ? ('user' as const) : ('assistant' as const),
+              content: m.content,
+              timestamp: m.createdAt,
+              ...(calls.length
+                ? {
+                    toolCalls: calls.map((call) => ({
+                      name: call.name,
+                      args: Object.keys(call.arguments ?? {}).length
+                        ? JSON.stringify(call.arguments, null, 1)
+                        : '',
+                      result: (call.result ?? '').slice(0, 2000),
+                      declined: (call.result ?? '').includes('"user_declined"'),
+                    })),
+                  }
+                : {}),
+              ...(links.length ? { links: dedupeLinks(links) } : {}),
+            }
+          })
         const s = useChatStore.getState()
         s.setMessages(messages)
         s.setConversationId(detail.id)

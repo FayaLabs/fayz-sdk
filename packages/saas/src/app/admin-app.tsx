@@ -25,8 +25,13 @@ import { useOrganizationStore } from '../org/store'
 import { PermissionsProvider } from '../permissions/context'
 import { AccessProvider } from '../access/context'
 import { ToastProvider } from '../shell/components/notifications/ToastProvider'
-import { ChatFab, ChatPanel } from '../shell/components/chat'
-import { resolveFayzAgentConnection } from '../shell/lib/fayz-agent'
+import { Sparkles } from 'lucide-react'
+import { ChatFab, ChatConversation } from '../shell/components/chat'
+import { NotesRailPanel } from '../shell/components/notes/NotesPanel'
+import { useChatStore } from '../shell/stores/chat.store'
+import { useRightRailPanel, useRightRailStore } from '../shell/right-rail'
+import { resolveFayzAgentConnection, getFayzAgentClient } from '../shell/lib/fayz-agent'
+import { useAuthStore } from '@fayz-ai/auth'
 import { useBillingStore } from '../billing/store'
 import type { Plan } from '@fayz-ai/core'
 import type { PlanConfig } from '../shell/types/billing'
@@ -217,6 +222,87 @@ function ThemeInitializer({ config }: { config: FayzAppConfig }) {
   return null
 }
 
+// Publishes config.team.personKinds into the org store so the Person-first Team
+// screen knows which person kinds to list. Empty = legacy membership-only mode.
+function TeamInitializer({ config }: { config: FayzAppConfig }) {
+  const setTeamPersonKinds = useOrganizationStore((s) => s.setTeamPersonKinds)
+  const kinds = config.team?.personKinds
+  React.useEffect(() => {
+    setTeamPersonKinds(kinds ?? [])
+  }, [setTeamPersonKinds, kinds])
+  return null
+}
+
+/** Registers the assistant as the rail's Chat tab and keeps the chat store in
+ *  step with which tab is showing. One direction per effect — neither store
+ *  drives the other in a loop. */
+function ChatRailPanel({ config }: { config: FayzAppConfig }) {
+  const chatOpen = useChatStore((s) => s.isOpen)
+  const setChatOpen = useChatStore((s) => s.setOpen)
+  const openPanel = useRightRailStore((s) => s.openPanel)
+  const railOpen = useRightRailStore((s) => s.open)
+  const railActive = useRightRailStore((s) => s.active)
+
+  const apiEndpoint = config.chat?.apiEndpoint
+  const systemPrompt = config.chat?.systemPrompt
+  const agent = config.chat?.agent
+  const voice = config.chat?.voice
+  const whatsapp = config.chat?.whatsapp
+
+  // Stable identity — a new component per render would remount the transcript.
+  const Component = React.useMemo(() => {
+    const Panel = () => (
+      <ChatConversation
+        apiEndpoint={apiEndpoint}
+        systemPrompt={systemPrompt}
+        agent={agent}
+        voice={voice}
+        whatsapp={whatsapp}
+      />
+    )
+    Panel.displayName = 'ChatRailPanelBody'
+    return Panel
+  }, [apiEndpoint, systemPrompt, agent, voice, whatsapp])
+
+  // Recent sessions count (neutral badge). Seeded here because the store only
+  // fills when the conversation mounts — the badge should show before that.
+  const conversations = useChatStore((s) => s.conversations)
+  const setConversations = useChatStore((s) => s.setConversations)
+  const user = useAuthStore((s) => s.user)
+  const connection = React.useMemo(() => resolveFayzAgentConnection(agent), [agent])
+  React.useEffect(() => {
+    if (!connection) return
+    getFayzAgentClient(connection)
+      .listConversations(user?.id)
+      .then(setConversations)
+      .catch(() => {})
+  }, [connection, user?.id, setConversations])
+
+  useRightRailPanel(
+    React.useMemo(
+      () => ({
+        id: 'chat',
+        label: 'Chat',
+        icon: Sparkles,
+        order: 10,
+        badge: { count: conversations.length },
+        Component,
+      }),
+      [Component, conversations.length],
+    ),
+  )
+
+  React.useEffect(() => {
+    if (chatOpen) openPanel('chat')
+  }, [chatOpen, openPanel])
+
+  React.useEffect(() => {
+    if (!(railOpen && railActive === 'chat')) setChatOpen(false)
+  }, [railOpen, railActive, setChatOpen])
+
+  return null
+}
+
 // ---------------------------------------------------------------------------
 // AdminProviders — the provider stack shared by the admin factory/createSaasApp
 // sugar path AND the manifest-driven AdminScaffold. Resolves adapters + i18n
@@ -233,6 +319,12 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
     () => !!resolveFayzAgentConnection(config.chat?.agent),
     [config.chat?.agent],
   )
+  // An app that asked for chat, or a project with a Fayz agent injected by env.
+  const assistantEnabled = config.chat?.enabled !== false && (!!config.chat || hasFayzAgent)
+  const surface = config.chat?.surface ?? 'dock'
+  // Always mounted: with the rail open the FAB stays put as the minimize
+  // control, so the same corner opens and closes the companion column.
+  const showFab = assistantEnabled && surface === 'dock'
 
   // Resolve adapters / i18n once per config identity.
   const resolved = React.useMemo(() => {
@@ -287,29 +379,23 @@ export function AdminProviders({ config, children }: { config: FayzAppConfig; ch
             <AccessProvider limitDeclarations={config.billing?.limitDeclarations}>
               <I18nProvider value={resolved.i18n}>
                 <ThemeInitializer config={config} />
+                <TeamInitializer config={config} />
                 <BillingInitializer config={config} />
                 <ToastProvider />
+              {assistantEnabled && surface === 'dock' && <ChatRailPanel config={config} />}
+              <NotesRailPanel />
               <NavTransitionProvider value={config.navTransition ?? 'slide'}>
                 {children}
               </NavTransitionProvider>
-              {/* The assistant also renders with no `chat` block at all — a
-                  project with a Fayz agent enabled injects its connection via
-                  env, so the app needs no config to light it up. */}
-              {config.chat?.enabled !== false && (config.chat || hasFayzAgent) ? (
-                <>
-                  <ChatFab
-                    apiEndpoint={config.chat?.apiEndpoint}
-                    systemPrompt={config.chat?.systemPrompt}
-                    agent={config.chat?.agent}
-                  />
-                  <ChatPanel
-                    title={config.chat?.title}
-                    apiEndpoint={config.chat?.apiEndpoint}
-                    systemPrompt={config.chat?.systemPrompt}
-                    agent={config.chat?.agent}
-                  />
-                </>
-              ) : null}
+              {showFab && (
+                <ChatFab
+                  apiEndpoint={config.chat?.apiEndpoint}
+                  systemPrompt={config.chat?.systemPrompt}
+                  agent={config.chat?.agent}
+                  voice={config.chat?.voice}
+                  mobile={!config.bottomNav?.length}
+                />
+              )}
               </I18nProvider>
             </AccessProvider>
           </PermissionsProvider>

@@ -22,13 +22,16 @@ export const coreAITools: PluginAITool[] = [
   {
     id: 'core.team-members',
     name: 'getTeamMembers',
-    description: 'Lists the WORKSPACE USERS (people with a login) and their roles. This is NOT the professionals/staff registry — for professionals, stylists or other staff the business manages as records, use the staff/people search tools instead.',
+    description: "Lists the WORKSPACE TEAM exactly as the Team screen shows it: the people who staff this business. Each row carries `kind` (what they do here — teacher, staff…), `accessRole` (their permission role, null when they have no login) and `hasLogin`. Answer headcount questions from this — never report the number of logins as the size of the team.",
     icon: 'Users',
     mode: 'read',
     parameters: {
       type: 'object',
       properties: {
-        role: { type: 'string', description: 'Filter by role: owner, admin, manager, staff, viewer' },
+        role: {
+          type: 'string',
+          description: 'Optional filter, matched against either the person kind (teacher, staff…) or the access role (owner, admin, manager, viewer).',
+        },
       },
     },
     permission: { feature: 'team', action: 'read' },
@@ -40,15 +43,32 @@ export const coreAITools: PluginAITool[] = [
   {
     id: 'core.navigate',
     name: 'navigateTo',
-    description: 'Helps the user find and navigate to a specific page or feature in the app.',
+    description:
+      'Opens one of the app\'s PAGES (Agenda, Clients, Financial…). Takes a page name, never a person or a record — to open a specific record use openRecord.',
     icon: 'Compass',
     mode: 'read',
     parameters: {
       type: 'object',
       properties: {
-        page: { type: 'string', description: 'Page name or feature the user is looking for' },
+        page: { type: 'string', description: 'Name of the page, as listed in the app pages' },
       },
       required: ['page'],
+    },
+    category: 'Core',
+  },
+  {
+    id: 'core.open-record',
+    name: 'openRecord',
+    description:
+      'Opens the detail page of a record already returned by a tool in THIS conversation. Takes that record\'s id — never a name.',
+    icon: 'ExternalLink',
+    mode: 'read',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Record id from an earlier tool result' },
+      },
+      required: ['id'],
     },
     category: 'Core',
   },
@@ -155,22 +175,46 @@ function attachedRecordGuidance(writableKeys: string[]): string {
   return hints.length ? ` Records that attach to another record: ${hints.join(' ')}` : ''
 }
 
+/**
+ * The writable fields of every entity the agent may create, as
+ * `key: field, field*, …` with `*` marking required.
+ *
+ * Shipped WITH the tool instead of discovered by failing: without it the model
+ * guesses column names, gets `unknown_field`, and burns a round trip per
+ * mistake — and the user watches a red step go by before anything happens.
+ */
+function fieldCatalogue(
+  entries: Array<{ key: string; fields: Array<{ key: string; required?: boolean }> }>,
+): string {
+  const lines = entries
+    .filter((e) => e.fields.length > 0)
+    .map((e) => {
+      const names = e.fields.slice(0, 24).map((f) => (f.required ? `${f.key}*` : f.key))
+      return `${e.key}: ${names.join(', ')}`
+    })
+  if (!lines.length) return ''
+  return `\n\nFields by entity (* = required, send nothing else):\n${lines.join('\n')}`
+}
+
 export function buildDataPrimitiveTools(input: {
   entities: RegisteredEntity[]
   registries: Map<string, PluginRegistryDef[]>
   queryEntities?: Array<{ key: string; entity: EntityDef; writable?: boolean }>
 }): PluginAITool[] {
   const options: Array<{ key: string; label: string }> = []
+  const schema: Array<{ key: string; fields: Array<{ key: string; required?: boolean }> }> = []
   for (const e of input.entities) {
-    if (e.entityDef && !e.entityDef.agentHidden) options.push({ key: e.entityKey, label: e.labelPlural })
+    if (e.entityDef && !e.entityDef.agentHidden) {
+      options.push({ key: e.entityKey, label: e.labelPlural })
+      schema.push({ key: e.entityKey, fields: e.entityDef.fields ?? [] })
+    }
   }
   for (const [pluginId, defs] of input.registries) {
     for (const registry of defs) {
       if (registry.readOnly) continue
-      options.push({
-        key: `${pluginId}:${registry.id}`,
-        label: registry.entity.namePlural ?? registry.entity.name,
-      })
+      const key = `${pluginId}:${registry.id}`
+      options.push({ key, label: registry.entity.namePlural ?? registry.entity.name })
+      schema.push({ key, fields: registry.entity.fields ?? [] })
     }
   }
   // Read-models are readable; base-table ones may opt into writes.
@@ -213,8 +257,9 @@ export function buildDataPrimitiveTools(input: {
             id: 'data.create-record',
             name: 'createRecord',
             description:
-              'Creates ONE new record of an entity (client, service, supplier, …). ALWAYS search first to avoid duplicates. Field keys and required fields come from the entity — on a field error the response lists the valid fields; fix and retry. The user will confirm before anything is written.' +
-              attachedRecordGuidance(writableKeys),
+              'Creates ONE new record of an entity (client, service, supplier, …). ALWAYS search first to avoid duplicates. Use ONLY the fields listed below for that entity. The user will confirm before anything is written.' +
+              attachedRecordGuidance(writableKeys) +
+              fieldCatalogue(schema.filter((e) => writableKeys.includes(e.key))),
             icon: 'Plus',
             mode: 'persist' as const,
             // The handler orchestrates its own guard chain (permission → plan
@@ -238,7 +283,8 @@ export function buildDataPrimitiveTools(input: {
             id: 'data.update-record',
             name: 'updateRecord',
             description:
-              'Updates fields on an EXISTING record (add an email, fix a phone, change a name…). Use the record id already known from this conversation or from a search. Only send the fields being changed. The user confirms before anything is written.',
+              'Updates fields on an EXISTING record (add an email, fix a phone, change a name…). Use the record id already known from this conversation or from a search. Only send the fields being changed, and only fields listed below for that entity. The user confirms before anything is written.' +
+              fieldCatalogue(schema.filter((e) => writableKeys.includes(e.key))),
             icon: 'Pencil',
             mode: 'persist' as const,
             requiresConfirmation: false,

@@ -1,26 +1,45 @@
 # Fayz SDK — docs index
 
-**Status: canonical · Updated 2026-07-14.** Map of the `docs/` tree. Start with
-[DIRECTION.md](./DIRECTION.md) for where the SDK is going and
-[architecture-boundaries.md](./architecture-boundaries.md) for the ownership contract.
+**Status: canonical · Updated 2026-07-23.** Map of the `docs/` tree. The operating manual is
+[/AGENTS.md](../AGENTS.md) — read it first. Reading order for the canon: **DIRECTION → DECISIONS →
+ARCHITECTURE → PLUGINS → DATA-MODEL**.
 
-| Doc | Status | Updated | What it covers |
-|---|---|---|---|
-| [DIRECTION.md](./DIRECTION.md) | canonical | 2026-07-02 | Thesis, phase map, current audit verdict — read before proposing work |
-| [architecture-boundaries.md](./architecture-boundaries.md) | canonical | 2026-06-19 | The four-layer ownership contract (who owns what, why upgrades stay safe) |
-| [architecture-v2.md](./architecture-v2.md) | approved (v1 draft) | 2026-06-11 | Manifest-first design |
-| [customization-ladder.md](./customization-ladder.md) | canonical | — | The 7 levels of customization without forking SDK code |
-| [LOCAL-DEV.md](./LOCAL-DEV.md) | canonical | 2026-07-14 | Local SDK-source vs published resolution (`fayzVite`, `FAYZ_SDK_SOURCE`, `*:published-sdk`) |
-| [data-model.md](./data-model.md) | reference | — | The three-ring archetype data model |
-| [data-model-refactor.md](./data-model-refactor.md) | working | — | Order-to-cash spine refactor (execution plan, not current state) |
-| [PLUGIN-CONTRACT.md](./PLUGIN-CONTRACT.md) | canonical | 2026-07-15 | The publishable-package contract: tables.ts, migrations+embed+ledger, exports, manifest/config, RLS/grants + anon seam |
-| [plugin-model.md](./plugin-model.md) | reference | — | Curated capability without becoming *engessado* |
-| [private-plugins.md](./private-plugins.md) | reference | — | Partner / app-local extension path |
-| [ai-builder-request-taxonomy.md](./ai-builder-request-taxonomy.md) | reference | — | How builder requests map onto the customization ladder |
-| [ROADMAP.md](./ROADMAP.md) | reference | — | Per-package maturity map + good first contributions |
-| [DECISIONS.md](./DECISIONS.md) | log | — | ADR-lite decision log with rationale |
-| [contributing.md](./contributing.md) | reference | — | Contributor guide |
-| [bling-integration-brief.md](./bling-integration-brief.md) | draft | 2026-06-15 | Bling integration briefing (pt-BR) |
+## Canonical set (rewritten 2026-07-06; mirrors the AGENTS.md doc map)
 
-Subfolders: `design/` (migration architecture deep-dives), `checkpoints/` (execution
-trackers), `dogfood-sprint/`, `archive/` (superseded docs).
+| Doc | What it holds |
+|---|---|
+| [DIRECTION.md](DIRECTION.md) | Thesis, validation waves, platform freeze — read before proposing work |
+| [DECISIONS.md](DECISIONS.md) | Locked decisions with dates + standing operational rules |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | North star: topology, layers A/B/C/D, serialization boundary, invariants |
+| [PLUGINS.md](PLUGINS.md) | The plugin contract: manifest reference, lifecycle, capability-as-law, versioning |
+| [PLUGIN-PATTERNS.md](PLUGIN-PATTERNS.md) | The CI-enforced plugin anatomy rules (what the gates check) |
+| [PLUGIN-CONTRACT.md](PLUGIN-CONTRACT.md) | The publishable-package standard: tables.ts, migrations+embed+ledger, exports, RLS/grants |
+| [CUSTOMIZATION.md](CUSTOMIZATION.md) | The 7-level ladder, component contracts, incubator plugins + graduation |
+| [DATA-MODEL.md](DATA-MODEL.md) | Rings, migrations (manifest-delivered), RLS canon, Supabase topology |
+| [ENTITLEMENTS.md](ENTITLEMENTS.md) | Access resolution: role (RBAC) × plan × limits, one decision point |
+| [CONNECTORS.md](CONNECTORS.md) | Integration spine + the connector standard |
+| [DISTRIBUTION.md](DISTRIBUTION.md) | Registries, public/private split, release trains, plugin artifact |
+| [SECURITY.md](SECURITY.md) | Threat model, RLS correctness, LGPD, secrets, money-path guardrails |
+| [THEMES.md](THEMES.md) | Theme contract, tokens, design-system-as-contract, surfaces/personas |
+| [TESTING.md](TESTING.md) | The test pyramid, capability tests, composition testing |
+| [OPERATIONS.md](OPERATIONS.md) | Fleet observability, upgrade waves, support, backup/export |
+| [BEST-PRACTICES.md](BEST-PRACTICES.md) | The twelve rules + enforcement map |
+| [BENCHMARKS.md](BENCHMARKS.md) | Evidence: WordPress post-mortem, Shopify playbook, OSS references |
+| [MARKETPLACE.md](MARKETPLACE.md) | Governance + community submission pipeline (design, frozen) |
+| [AI-BUILDER.md](AI-BUILDER.md) | The builder ⇄ SDK contract, v0.1 — install, configure, customize, migrate, escalate |
+| [ROADMAP.md](ROADMAP.md) | Milestones, feasibility, gap register, decision queue, plugin census |
+| [LOCAL-DEV.md](LOCAL-DEV.md) | Local SDK-source vs published resolution (`fayzVite`, `FAYZ_SDK_SOURCE`, `*:published-sdk`) |
+
+## Operational (living, not canon)
+
+| Doc | What it holds |
+|---|---|
+| [CHECKLIST.md](CHECKLIST.md) | QA matrix — live stabilization-op log across the backoffices |
+| [design/](design/) | RFCs + integration briefs (FAYZ-CLOUD, MIGRATION-ARCHITECTURE, PLUGIN-MIGRATIONS, bling) — rationale; canon lives in the docs above |
+| [checkpoints/](checkpoints/) | Execution trackers for in-flight programs (industry-pools, devcenter, fayz-cloud) |
+| [archive/](archive/) | Superseded docs kept for history — **do not follow them** |
+
+> Note: the pre-2026-07 lowercase docs (`architecture-boundaries`, `architecture-v2`,
+> `customization-ladder`, `data-model`, `plugin-model`, `private-plugins`,
+> `ai-builder-request-taxonomy`, `contributing`, `data-model-refactor`) were consolidated into the
+> UPPERCASE canon above and moved to `archive/`. Old links to them are dead by design.

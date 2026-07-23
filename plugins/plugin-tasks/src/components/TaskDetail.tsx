@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, Trash2, Calendar, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Trash2, Calendar, ChevronDown, Sparkles } from 'lucide-react'
 import { useTasksStore } from '../TasksContext'
 import { useTranslation } from '@fayz-ai/core'
+import { useDelegateToAssistant } from '@fayz-ai/saas'
 import { TaskPriorityBadge } from './TaskPriorityBadge'
 import { TaskLabelBadges } from './TaskLabelBadge'
 import { TaskQuickAdd } from './TaskQuickAdd'
@@ -16,8 +17,13 @@ const STATUS_DOT: Record<TaskStatus, string> = {
   cancelled: 'bg-muted-foreground/60',
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+/** Same footer format as the Notes tab: time when today, short date otherwise. */
+function formatDateTime(iso: string): string {
+  const d = new Date(iso)
+  const sameDay = d.toDateString() === new Date().toDateString()
+  return sameDay
+    ? d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 export function TaskDetail({ taskId }: { taskId: string }) {
@@ -28,6 +34,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const deleteTask = useTasksStore((s) => s.deleteTask)
 
   const task = tasks.find((tt) => tt.id === taskId)
+  const delegate = useDelegateToAssistant()
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -72,28 +79,41 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   }
 
   return (
-    <div className="space-y-3">
-      {/* Back + title row */}
-      <div className="flex items-center gap-2">
+    // Same frame as the Notes editor: header row with back + icon actions,
+    // full-bleed px-4 content, sectioned by hairlines, thin timestamp footer.
+    <div className="flex min-h-full flex-col">
+      <div className="flex items-center gap-1 border-b border-border/40 px-2 py-1.5">
         <button
           type="button"
           onClick={() => selectTask(null)}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t('tasks.drawer.title')}
         </button>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={handleTitleBlur}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-          className="flex-1 bg-transparent text-sm font-semibold outline-none"
-        />
+        <span className="flex-1" />
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label={t('tasks.detail.delete')}
+          title={t('tasks.detail.delete')}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       </div>
 
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onBlur={handleTitleBlur}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+        className="bg-transparent px-4 pt-3 text-sm font-semibold text-foreground outline-none"
+      />
+
       {/* Inline property chips */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 px-4 pt-2">
         {/* Status chip */}
         <div className="relative">
           <select
@@ -138,47 +158,52 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         {task.labels.length > 0 && <TaskLabelBadges labelIds={task.labels} max={3} />}
       </div>
 
-      {/* Description */}
+      {/* Description — borderless, fills the middle like the note body */}
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         onBlur={handleDescriptionBlur}
         placeholder={t('tasks.detail.descriptionPlaceholder')}
-        rows={3}
-        className="w-full rounded-input border border-input  bg-card shadow-[inset_0_1px_0_rgb(0_0_0_/0.06)] px-3 py-2 text-xs outline-none resize-none placeholder:text-muted-foreground/50 leading-relaxed"
+        className="min-h-[72px] flex-1 resize-none bg-transparent px-4 py-3 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"
       />
 
-      {/* Subtasks */}
-      <div>
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-          {t('tasks.detail.subtasks')}
-        </p>
-        <div className="rounded-md border overflow-hidden">
-          <TaskQuickAdd parentId={task.id} />
-          {subtasks.length > 0 && (
-            <div className="divide-y">
-              {subtasks.map((st) => (
-                <TaskCard key={st.id} task={st} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Footer: timestamps + delete */}
-      <div className="flex items-center justify-between pt-2 border-t">
-        <span className="text-[10px] text-muted-foreground">
-          {formatDate(task.createdAt)} · {t('tasks.detail.updated')} {formatDate(task.updatedAt)}
-        </span>
+      {/* Agentic hand-off — same CTA pattern as the Notes tab */}
+      <div className="px-4 pb-2">
         <button
           type="button"
-          onClick={handleDelete}
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+          onClick={() =>
+            delegate(
+              `${t('tasks.detail.chatWithAi.prompt')}\n\n"${task.title}"${task.description ? `\n${task.description}` : ''}${task.dueDate ? `\n(${t('tasks.detail.dueDate')}: ${task.dueDate})` : ''}`,
+            )
+          }
+          className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary via-primary/80 to-primary bg-[length:200%_100%] bg-left px-3 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all duration-500 hover:bg-right hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Trash2 className="h-3 w-3" />
-          {t('tasks.detail.delete')}
+          <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+          {t('tasks.detail.chatWithAi')}
         </button>
       </div>
+
+      {/* Subtasks — same section pattern as the note's todos */}
+      <div className="border-t border-border/40 px-4 py-2.5">
+        <p className="pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+          {t('tasks.detail.subtasks')}{subtasks.length > 0 ? ` · ${subtasks.length}` : ''}
+        </p>
+        <div className="-mx-3">
+          <TaskQuickAdd parentId={task.id} />
+        </div>
+        {subtasks.length > 0 && (
+          <div className="divide-y divide-border/40">
+            {subtasks.map((st) => (
+              <TaskCard key={st.id} task={st} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer: timestamps only — delete lives in the header, like a note */}
+      <p className="border-t border-border/40 px-4 py-1.5 text-[10px] text-muted-foreground/60">
+        {t('tasks.detail.created')} {formatDateTime(task.createdAt)} · {t('tasks.detail.updated')} {formatDateTime(task.updatedAt)}
+      </p>
     </div>
   )
 }

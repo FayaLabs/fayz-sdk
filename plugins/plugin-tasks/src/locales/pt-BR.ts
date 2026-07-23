@@ -26,6 +26,8 @@ export const ptBR: Record<string, string> = {
   'tasks.detail.delete': 'Excluir Tarefa',
   'tasks.detail.deleteConfirm': 'Tem certeza que deseja excluir esta tarefa?',
   'tasks.detail.created': 'Criada em',
+  'tasks.detail.chatWithAi': 'Conversar com IA',
+  'tasks.detail.chatWithAi.prompt': 'Assuma esta tarefa e me ajude a resolver agora, usando suas ferramentas quando precisar:',
   'tasks.detail.updated': 'Atualizada em',
   'tasks.detail.addSubtask': 'Adicionar subtarefa...',
   'tasks.detail.back': 'Voltar à lista',
