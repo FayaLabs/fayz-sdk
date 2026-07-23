@@ -3,7 +3,7 @@
   "fayz": {
     "status": "beta"
   },
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Fayz SDK SaaS layer — multi-tenancy, billing, permissions, org management",
   "type": "module",
   "main": "./dist/index.cjs",

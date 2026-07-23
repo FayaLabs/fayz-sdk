@@ -3,7 +3,7 @@
   "fayz": {
     "status": "beta"
   },
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Fayz SDK ecommerce layer — products, orders, customers, discounts, shipping",
   "type": "module",
   "main": "./dist/index.cjs",
