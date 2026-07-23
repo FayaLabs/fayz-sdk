@@ -46,6 +46,23 @@ export interface OrgMembership {
   profileName: string
 }
 
+/** Person-first team member: a person of a team kind + optional access overlay. */
+export interface TeamPerson {
+  personId: string
+  name: string
+  kind: string
+  email?: string
+  avatarUrl?: string
+  isActive: boolean
+  membership?: {
+    memberId: string
+    userId: string
+    profileId: string
+    profileName?: string
+    joinedAt?: string
+  }
+}
+
 export interface OrgAdapter {
   listUserOrgs(userId: string): Promise<OrgMembership[]>
   getOrg(orgId: string): Promise<Organization>
@@ -53,6 +70,8 @@ export interface OrgAdapter {
   updateOrg(orgId: string, data: Partial<Organization>): Promise<Organization>
 
   listMembers(orgId: string): Promise<OrgMember[]>
+  /** Person-first team list (people of `personKinds` + optional membership). Optional; falls back to listMembers. */
+  listTeam?(orgId: string, personKinds: string[]): Promise<TeamPerson[]>
   updateMemberProfile(orgId: string, memberId: string, profileId: string): Promise<void>
   removeMember(orgId: string, memberId: string): Promise<void>
 

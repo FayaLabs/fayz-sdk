@@ -1263,6 +1263,8 @@ export const defaultTranslations: Record<string, string> = {
   'organization.team.invite': 'Invite',
   'organization.team.joined': 'Joined',
   'organization.team.member': 'Member',
+  'organization.team.empty': 'No team members yet.',
+  'organization.team.noAccess': 'No access',
   'organization.team.memberCount': '{{count}} member{{plural}} in this organization.',
   'organization.team.pendingInvites': 'Pending Invites',
   'organization.team.removeMember': 'Remove member',
@@ -2300,6 +2302,8 @@ export const builtInLocales: Record<string, Record<string, string>> = {
 
     // organization.team
     'organization.team.invite': 'Convidar',
+    'organization.team.empty': 'Nenhum membro na equipe ainda.',
+    'organization.team.noAccess': 'Sem acesso',
     'organization.team.joined': 'Entrou',
     'organization.team.member': 'Membro',
     'organization.team.memberCount': '{{count}} membro{{plural}} nesta organização.',

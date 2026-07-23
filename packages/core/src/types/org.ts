@@ -36,6 +36,28 @@ export interface OrgMembership {
   profileName: string
 }
 
+/**
+ * A team member in the Person-first model: a person (of a configured team kind)
+ * with an OPTIONAL access overlay. `membership` is present only when the person
+ * has login + RBAC role (a `tenant_members` row linked by `person_id`).
+ */
+export interface TeamPerson {
+  personId: string
+  name: string
+  kind: string
+  email?: string
+  avatarUrl?: string
+  isActive: boolean
+  membership?: {
+    memberId: string
+    userId: string
+    /** RBAC role key (tenant_members.role). */
+    profileId: string
+    profileName?: string
+    joinedAt?: string
+  }
+}
+
 export interface Location {
   id: string
   tenantId: string
@@ -78,6 +100,13 @@ export interface OrgAdapter {
   createOrg(name: string, userId: string, options?: CreateOrgOptions): Promise<Organization>
   updateOrg(orgId: string, data: Partial<Organization>): Promise<Organization>
   listMembers(orgId: string): Promise<OrgMember[]>
+  /**
+   * Person-first team list: people whose `kind` is in `personKinds`, each with an
+   * optional membership overlay (login + role) linked by `tenant_members.person_id`.
+   * Optional so adapters can adopt it incrementally; the Team screen falls back to
+   * `listMembers` when absent or when no `personKinds` are configured.
+   */
+  listTeam?(orgId: string, personKinds: string[]): Promise<TeamPerson[]>
   updateMemberProfile(orgId: string, memberId: string, profileId: string): Promise<void>
   removeMember(orgId: string, memberId: string): Promise<void>
   listProfiles(orgId: string): Promise<PermissionProfile[]>
