@@ -3,7 +3,7 @@
   "fayz": {
     "status": "beta"
   },
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Fayz SDK UI — Radix + Tailwind component library with CRUD engine and layout shells",
   "type": "module",
   "main": "./dist/index.cjs",
