@@ -346,7 +346,7 @@ export function CheckoutPage() {
     ]
     const minDuration = sleep(stepMs * 2)
     try {
-      const { order } = await placeStorefrontOrder({
+      const { order, customerId } = await placeStorefrontOrder({
         config,
         cart,
         session,
@@ -369,6 +369,10 @@ export function CheckoutPage() {
         // declare it settled. The order is now born `pending` and only the
         // merchant (or a PSP webhook) can confirm the money arrived.
       })
+      // placeStorefrontOrder resolves/creates the customer record but doesn't persist
+      // it — without this, "My purchases" right after checkout queries by email, which
+      // anon can't read under RLS, and silently comes back empty.
+      if (customerId) session.setSession({ customerId, email: form.email, name: form.name })
 
       await minDuration
       cart.clear()
