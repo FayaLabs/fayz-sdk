@@ -83,7 +83,7 @@ function ToolCallRow({ call }: { call: ChatToolCall }) {
   )
 }
 
-export function MessageBubble({ message }: { message: ChatMessage }) {
+export function MessageBubble({ message, isPending }: { message: ChatMessage; isPending?: boolean }) {
   const isUser = message.role === 'user'
   // Unroutable chips are dropped here — a goto row exists to be clicked.
   const routedLinks = React.useMemo(
@@ -107,7 +107,9 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           ))}
         </div>
       )}
-      {(isUser || message.content) && (
+      {/* The pending bubble and the answer are the SAME node — the reply fills
+          it in place, so there is no unmount/remount flicker or slide-in replay. */}
+      {(isUser || message.content || isPending) && (
         <div
           className={cn(
             'max-w-[88%] text-[13.5px] leading-relaxed',
@@ -116,7 +118,13 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
               : 'rounded-2xl rounded-bl-md border border-border/50 bg-muted/50 px-3.5 py-2 text-foreground',
           )}
         >
-          {isUser ? message.content : <ChatMarkdown content={message.content} />}
+          {isUser ? (
+            message.content
+          ) : message.content ? (
+            <ChatMarkdown content={message.content} />
+          ) : (
+            <TypingDots />
+          )}
         </div>
       )}
       {!isUser && routedLinks.length > 0 && (

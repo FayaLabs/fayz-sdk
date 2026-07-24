@@ -220,7 +220,10 @@ export function useChat(options?: UseChatOptions) {
       let message: string | undefined = content
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-        const response = await client.chat({
+        // Streaming: each delta fills the SAME optimistic assistant bubble in
+        // place (updateLastAssistant is id-stable). Falls back to the JSON
+        // round-trip transparently when the broker doesn't stream yet.
+        const response = await client.chatStream({
           message,
           toolResults,
           confirmAction,
@@ -256,6 +259,8 @@ export function useChat(options?: UseChatOptions) {
             userName: user?.fullName || user?.email,
             ...(options?.systemPrompt ? { appGuidance: options.systemPrompt } : {}),
           },
+        }, {
+          onDelta: (accumulated) => useChatStore.getState().updateLastAssistant(accumulated),
         })
         store.setConversationId(response.conversationId)
 

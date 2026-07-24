@@ -16,7 +16,7 @@ import { useAITools } from '../../hooks/useAITools'
 import { useAuthStore } from '@fayz-ai/auth'
 import { ChatSuggestions, ChatToolsPanel } from './ChatSuggestions'
 import { ChatComposer } from './ChatComposer'
-import { ActiveToolChips, MessageBubble, TypingDots } from './ChatMessages'
+import { ActiveToolChips, MessageBubble } from './ChatMessages'
 import { ConfirmActionCard } from './ConfirmActionCard'
 import { stopSpeaking } from '../../lib/speech'
 import { useAccessOptional } from '../../../access/context'
@@ -322,8 +322,18 @@ export function ChatConversation({
             ) : null}
 
             {view === 'thread' &&
-              messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
+              messages.map((message, i) => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  isPending={
+                    isStreaming &&
+                    !pendingAction &&
+                    activeTools.length === 0 &&
+                    i === messages.length - 1 &&
+                    message.role === 'assistant'
+                  }
+                />
               ))}
 
             {pendingAction && (
@@ -331,10 +341,6 @@ export function ChatConversation({
             )}
             {/* Nothing runs behind the card — it is what everything is waiting on. */}
             {!pendingAction && activeTools.length > 0 && <ActiveToolChips names={activeTools} />}
-            {isStreaming &&
-              !pendingAction &&
-              activeTools.length === 0 &&
-              messages[messages.length - 1]?.content === '' && <TypingDots />}
           </div>
 
           {!atBottom && hasMessages && (

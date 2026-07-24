@@ -116,10 +116,22 @@ export interface FayzAgentConversationDetail {
   messages: FayzAgentConversationMessage[]
 }
 
+export interface FayzAgentStreamCallbacks {
+  /** Fired per text delta with the accumulated text so far (fill-in-place UIs). */
+  onDelta?: (accumulated: string, delta: string) => void
+}
+
 export interface FayzAgentClient {
   /** Identity of the agent behind the key, for rendering its name/icon. */
   getInfo(signal?: AbortSignal): Promise<FayzAgentInfo>
   chat(input: FayzAgentChatInput): Promise<FayzAgentChatResponse>
+  /**
+   * Like `chat`, but asks the broker for an SSE stream (`Accept:
+   * text/event-stream`) and reports text deltas as they arrive. Falls back
+   * transparently to the JSON round-trip when the broker predates streaming —
+   * callers can always use this and treat `onDelta` as best-effort.
+   */
+  chatStream(input: FayzAgentChatInput, callbacks?: FayzAgentStreamCallbacks): Promise<FayzAgentChatResponse>
   /** The signed-in user's own threads, most-recently-active first. */
   listConversations(externalUserId?: string, signal?: AbortSignal): Promise<FayzAgentConversationSummary[]>
   /** One thread with its transcript — 404s on another user's thread. */
@@ -128,6 +140,15 @@ export interface FayzAgentClient {
     externalUserId?: string,
     signal?: AbortSignal,
   ): Promise<FayzAgentConversationDetail>
+}
+
+function normalizeResponse(body: Partial<FayzAgentChatResponse>): FayzAgentChatResponse {
+  return {
+    conversationId: body.conversationId ?? '',
+    content: body.content ?? '',
+    toolCalls: body.toolCalls ?? [],
+    ...(body.pendingAction ? { pendingAction: body.pendingAction } : {}),
+  }
 }
 
 export function createFayzAgentClient(options: FayzAgentClientOptions): FayzAgentClient {
@@ -159,12 +180,89 @@ export function createFayzAgentClient(options: FayzAgentClientOptions): FayzAgen
         body: JSON.stringify(input),
         signal,
       })
-      return {
-        conversationId: body.conversationId ?? '',
-        content: body.content ?? '',
-        toolCalls: body.toolCalls ?? [],
-        ...(body.pendingAction ? { pendingAction: body.pendingAction } : {}),
+      return normalizeResponse(body)
+    },
+
+    async chatStream({ signal, ...input }, callbacks) {
+      const response = await fetcher(`${base}/chat`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+        signal,
+        headers: { ...headers, Accept: 'text/event-stream' },
+      })
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new FayzAgentError(body?.error ?? `Agent request failed (${response.status})`, response.status)
       }
+      // Broker predates streaming (or chose not to): plain JSON round-trip.
+      const contentType = response.headers.get('content-type') ?? ''
+      if (!contentType.includes('text/event-stream') || !response.body) {
+        return normalizeResponse((await response.json()) as Partial<FayzAgentChatResponse>)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let accumulated = ''
+      let done: Partial<FayzAgentChatResponse> | null = null
+
+      const dispatch = (eventName: string, data: string) => {
+        if (!data) return
+        let payload: Record<string, unknown>
+        try {
+          payload = JSON.parse(data) as Record<string, unknown>
+        } catch {
+          return
+        }
+        if (eventName === 'delta') {
+          const text = typeof payload.text === 'string' ? payload.text : ''
+          if (text) {
+            accumulated += text
+            callbacks?.onDelta?.(accumulated, text)
+          }
+        } else if (eventName === 'done') {
+          done = payload as Partial<FayzAgentChatResponse>
+        } else if (eventName === 'error') {
+          throw new FayzAgentError(
+            typeof payload.error === 'string' ? payload.error : 'Agent stream failed',
+            response.status,
+          )
+        }
+      }
+
+      let eventName = 'message'
+      let dataLines: string[] = []
+      const processLine = (line: string) => {
+        if (line === '') {
+          dispatch(eventName, dataLines.join('\n'))
+          eventName = 'message'
+          dataLines = []
+        } else if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim()
+        } else if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).trimStart())
+        }
+      }
+
+      for (;;) {
+        const { value, done: streamDone } = await reader.read()
+        if (streamDone) break
+        buffer += decoder.decode(value, { stream: true })
+        let newline = buffer.indexOf('\n')
+        while (newline >= 0) {
+          processLine(buffer.slice(0, newline).replace(/\r$/, ''))
+          buffer = buffer.slice(newline + 1)
+          newline = buffer.indexOf('\n')
+        }
+      }
+      processLine(buffer.replace(/\r$/, ''))
+      processLine('')
+
+      // The final `done` event carries the same payload shape as the JSON
+      // route; accumulated deltas back-fill `content` if the broker omits it.
+      const finalPayload: Partial<FayzAgentChatResponse> = { ...(done ?? {}) }
+      if (!finalPayload.content) finalPayload.content = accumulated
+      return normalizeResponse(finalPayload)
     },
 
     async listConversations(externalUserId, signal) {
