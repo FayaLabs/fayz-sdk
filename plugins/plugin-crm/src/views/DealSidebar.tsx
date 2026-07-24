@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { Phone, Mail, Users, FileText, CheckSquare, MessageCircle, Check, Calendar, DollarSign, User, Target, Clock, ArrowRight } from 'lucide-react'
+import { Phone, Mail, Users, FileText, CheckSquare, MessageCircle, Check, Calendar, DollarSign, User, Target, Clock, ArrowRight, UserPlus, ArrowRightLeft, MoveRight, Trophy, XCircle, FilePlus2, Send, FileCheck2, FileX2 } from 'lucide-react'
 import { useTranslation } from '@fayz-ai/core'
-import { Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription } from '@fayz-ai/ui'
+import { Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription, SegmentedControl } from '@fayz-ai/ui'
 import { PersonLink } from '@fayz-ai/saas'
 import { useCrmProvider, useCrmConfig, formatCurrency } from '../CrmContext'
 import { QuoteStatusDropdown } from '../components/QuoteStatusDropdown'
@@ -14,6 +14,10 @@ import type { Deal, Lead, Quote, Activity } from '../types'
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   call: Phone, email: Mail, meeting: Users, note: FileText, task: CheckSquare, whatsapp: MessageCircle,
+  // System timeline events (auto-logged by the provider)
+  lead_created: UserPlus, lead_converted: ArrowRightLeft, deal_created: Target,
+  stage_changed: MoveRight, deal_won: Trophy, deal_lost: XCircle,
+  quote_created: FilePlus2, quote_sent: Send, quote_approved: FileCheck2, quote_rejected: FileX2,
 }
 
 
@@ -25,34 +29,31 @@ type TabId = 'overview' | 'activity' | 'quotes'
 
 function TabBar({ active, counts, onChange }: { active: TabId; counts: { activity: number; quotes: number }; onChange: (id: TabId) => void }) {
   const t = useTranslation()
-  const tabs: { id: TabId; label: string; count?: number }[] = [
-    { id: 'overview', label: t('crm.dealSidebar.overview') },
-    { id: 'activity', label: t('crm.dealSidebar.activity'), count: counts.activity },
-    { id: 'quotes', label: t('crm.dealSidebar.quotes'), count: counts.quotes },
-  ]
+
+  const label = (text: string, count: number | undefined, isActive: boolean) => (
+    <span className="inline-flex items-center gap-1.5">
+      {text}
+      {count != null && count > 0 && (
+        <span className={`inline-flex items-center justify-center min-w-[16px] h-4 rounded-full px-1 text-[10px] font-semibold ${
+          isActive ? 'bg-background/20 text-background' : 'bg-muted text-muted-foreground'
+        }`}>
+          {count}
+        </span>
+      )}
+    </span>
+  )
 
   return (
-    <div className="flex items-center gap-0.5 px-5 py-2 border-b shrink-0 bg-muted/20">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onChange(tab.id)}
-          className={`relative px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            active === tab.id
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          {tab.label}
-          {tab.count != null && tab.count > 0 && (
-            <span className={`ml-1 inline-flex items-center justify-center min-w-[16px] h-4 rounded-full px-1 text-[10px] font-semibold ${
-              active === tab.id ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-            }`}>
-              {tab.count}
-            </span>
-          )}
-        </button>
-      ))}
+    <div className="px-5 py-2 border-b shrink-0">
+      <SegmentedControl<TabId>
+        value={active}
+        onChange={onChange}
+        options={[
+          { value: 'overview', label: label(t('crm.dealSidebar.overview'), undefined, active === 'overview') },
+          { value: 'activity', label: label(t('crm.dealSidebar.activity'), counts.activity, active === 'activity') },
+          { value: 'quotes', label: label(t('crm.dealSidebar.quotes'), counts.quotes, active === 'quotes') },
+        ]}
+      />
     </div>
   )
 }

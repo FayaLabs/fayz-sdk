@@ -29,7 +29,12 @@ BEGIN
 END $$;
 
 -- v_leads: public.people (kind='lead')
-CREATE OR REPLACE VIEW public.v_leads WITH (security_invoker=true) AS
+-- DROP first: 005 widens this view (form_id/custom_fields/utm), and CREATE OR
+-- REPLACE cannot narrow a live view — replaying 003 on a pool that already ran
+-- 005 would fail with "cannot drop columns from view". 005 replays right after
+-- and widens it again, so the net result is unchanged.
+DROP VIEW IF EXISTS public.v_leads;
+CREATE VIEW public.v_leads WITH (security_invoker=true) AS
 SELECT
   p.id, p.tenant_id, p.name, p.email, p.phone, p.notes, p.tags, p.is_active,
   p.metadata->>'company'       AS company,

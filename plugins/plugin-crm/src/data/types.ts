@@ -1,5 +1,5 @@
 import type {
-  Pipeline, PipelineStage, Lead, Deal, Activity, Quote,
+  Pipeline, PipelineStage, Lead, Deal, Activity, ActivityTypeDef, Quote,
   CreateLeadInput, CreateDealInput, CreateActivityInput, CreateQuoteInput,
   LeadQuery, DealQuery, ActivityQuery, QuoteQuery,
   PaginatedResult, CrmSummary, FunnelStage,
@@ -29,6 +29,8 @@ export interface CrmDataProvider {
   getActivities(query: ActivityQuery): Promise<PaginatedResult<Activity>>
   createActivity(input: CreateActivityInput): Promise<Activity>
   completeActivity(id: string): Promise<Activity>
+  /** Tenant's manual interaction types (activity-types registry rows). */
+  getActivityTypes(): Promise<ActivityTypeDef[]>
 
   // Quotes
   getQuotes(query: QuoteQuery): Promise<PaginatedResult<Quote>>

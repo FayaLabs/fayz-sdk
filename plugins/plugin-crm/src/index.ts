@@ -9,7 +9,7 @@ import { createMockCrmProvider } from './data/mock'
 import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { createSupabaseCrmProvider } from './data/supabase'
 import { createCrmStore } from './store'
-import { crmRegistries } from './registries'
+import { buildCrmRegistries, DEFAULT_ACTIVITY_TYPES } from './registries'
 import { crmLocales } from './locales'
 import { CrmGeneralSettings } from './components/CrmGeneralSettings'
 
@@ -119,9 +119,11 @@ function resolveConfig(options?: CrmPluginOptions): ResolvedCrmConfig {
 export function createCrmPlugin(options?: CrmPluginOptions): PluginManifest {
   const config = resolveConfig(options)
   registerTranslations(crmLocales)
+  const activityTypes = options?.activityTypes ?? DEFAULT_ACTIVITY_TYPES
+  const crmRegistries = buildCrmRegistries(activityTypes)
   const provider = options?.dataProvider ?? createSafeDataProvider(
-    () => createSupabaseCrmProvider({ clientConversion: options?.clientConversion }),
-    () => createMockCrmProvider(),
+    () => createSupabaseCrmProvider({ clientConversion: options?.clientConversion, activityTypes }),
+    () => createMockCrmProvider({ activityTypes }),
   )
   const store = createCrmStore(provider)
 

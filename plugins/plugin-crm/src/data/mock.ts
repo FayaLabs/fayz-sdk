@@ -1,10 +1,10 @@
 import type { CrmDataProvider } from './types'
 import type {
-  Pipeline, PipelineStage, Lead, Deal, Activity, Quote, QuoteItem,
+  Pipeline, PipelineStage, Lead, Deal, Activity, ActivityTypeDef, Quote, QuoteItem,
   CreateLeadInput, CreateDealInput, CreateActivityInput, CreateQuoteInput,
   LeadQuery, DealQuery, ActivityQuery, QuoteQuery,
   PaginatedResult, CrmSummary, FunnelStage,
-  LeadStatus, DealStatus, QuoteStatus,
+  LeadStatus, DealStatus, QuoteStatus, SystemActivityType,
 } from '../types'
 import { deriveLeadStatus, deriveQuoteStatus } from '../cascade'
 
@@ -76,9 +76,30 @@ function createStore(seedStages?: Array<{ name: string; color: string; probabili
 
 export function createMockCrmProvider(options?: {
   dealStages?: Array<{ name: string; color: string; probability: number }>
+  activityTypes?: Array<{ value: string; label: string; icon?: string }>
 }): CrmDataProvider {
   const store = createStore(options?.dealStages)
   const tenantId = 'mock-tenant'
+
+  // Parity with the Supabase provider's silent system timeline.
+  function logEvent(input: {
+    activityType: SystemActivityType
+    title: string
+    description?: string
+    leadId?: string
+    dealId?: string
+    contactId?: string
+    contactName?: string
+  }): void {
+    store.activities.push({
+      id: uid(),
+      dealId: input.dealId, leadId: input.leadId, contactId: input.contactId,
+      contactName: input.contactName,
+      activityType: input.activityType,
+      title: input.title, description: input.description,
+      completedAt: now(), tenantId, createdAt: now(),
+    })
+  }
 
   // --- Cascade helper: sync lead + quote statuses when a deal moves ---
   function cascadeFromStage(deal: Deal, stage: PipelineStage) {
@@ -130,6 +151,7 @@ export function createMockCrmProvider(options?: {
         createdAt: now(), updatedAt: now(),
       }
       store.leads.push(lead)
+      logEvent({ activityType: 'lead_created', title: lead.name, leadId: lead.id, contactName: lead.name })
       return lead
     },
 
@@ -145,6 +167,7 @@ export function createMockCrmProvider(options?: {
       if (!lead) throw new Error(`Lead ${leadId} not found`)
       lead.status = 'converted'
       lead.updatedAt = now()
+      logEvent({ activityType: 'lead_converted', title: lead.name, leadId, contactName: lead.name })
       const deal = await provider.createDeal({ ...dealInput, leadId })
       return deal
     },
@@ -190,6 +213,10 @@ export function createMockCrmProvider(options?: {
         createdAt: now(), updatedAt: now(),
       }
       store.deals.push(deal)
+      logEvent({
+        activityType: 'deal_created', title: deal.title, dealId: deal.id,
+        leadId: deal.leadId, contactId: deal.contactId, contactName: deal.contactName,
+      })
       return deal
     },
 
@@ -216,6 +243,13 @@ export function createMockCrmProvider(options?: {
       // Cascade to lead + quotes
       cascadeFromStage(deal, stage)
 
+      logEvent({
+        activityType: stage.isWon ? 'deal_won' : stage.isLost ? 'deal_lost' : 'stage_changed',
+        title: deal.title || 'Deal',
+        description: stage.name,
+        dealId: deal.id,
+        contactName: deal.contactName,
+      })
       return deal
     },
 
@@ -249,6 +283,18 @@ export function createMockCrmProvider(options?: {
       if (!activity) throw new Error(`Activity ${id} not found`)
       activity.completedAt = now()
       return activity
+    },
+
+    async getActivityTypes(): Promise<ActivityTypeDef[]> {
+      const seed = options?.activityTypes ?? [
+        { value: 'call', label: 'Call', icon: 'Phone' },
+        { value: 'email', label: 'Email', icon: 'Mail' },
+        { value: 'meeting', label: 'Meeting', icon: 'Users' },
+        { value: 'note', label: 'Note', icon: 'FileText' },
+        { value: 'task', label: 'Task', icon: 'CheckSquare' },
+        { value: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
+      ]
+      return seed.map((t, i) => ({ id: `at-${i}`, name: t.label, icon: t.icon, isActive: true }))
     },
 
     // Quotes
@@ -285,6 +331,11 @@ export function createMockCrmProvider(options?: {
         createdAt: now(), updatedAt: now(),
       }
       store.quotes.push(quote)
+      logEvent({
+        activityType: 'quote_created', title: quote.quoteNumber ?? 'Quote',
+        description: quote.contactName, dealId: quote.dealId, leadId: quote.leadId,
+        contactId: quote.contactId, contactName: quote.contactName,
+      })
       return quote
     },
 
@@ -314,6 +365,11 @@ export function createMockCrmProvider(options?: {
       if (!quote) throw new Error(`Quote ${id} not found`)
       quote.status = 'sent'
       quote.updatedAt = now()
+      logEvent({
+        activityType: 'quote_sent', title: quote.quoteNumber ?? 'Quote',
+        description: quote.contactName, dealId: quote.dealId, leadId: quote.leadId,
+        contactName: quote.contactName,
+      })
       return quote
     },
 
@@ -345,6 +401,11 @@ export function createMockCrmProvider(options?: {
         }
       }
 
+      logEvent({
+        activityType: 'quote_approved', title: quote.quoteNumber ?? 'Quote',
+        description: quote.contactName, dealId: quote.dealId, leadId: quote.leadId,
+        contactName: quote.contactName,
+      })
       return quote
     },
 
@@ -365,6 +426,11 @@ export function createMockCrmProvider(options?: {
           }
         }
       }
+      logEvent({
+        activityType: 'quote_rejected', title: quote.quoteNumber ?? 'Quote',
+        description: reason, dealId: quote.dealId, leadId: quote.leadId,
+        contactName: quote.contactName,
+      })
       return quote
     },
 

@@ -119,7 +119,7 @@ export function CrmPage({ config, provider, store, registries }: {
       return <QuoteFormView leadId={lid} onSaved={(id) => id ? navigate(`quotes-detail:${id}`) : navigate('quotes-list')} />
     } },
     { id: 'quotes-list', render: () => <QuoteListView onNew={() => navigate('quotes-new')} onEdit={(id) => navigate(`quotes-detail:${id}`)} onEditQuote={(id) => navigate(`quotes-edit:${id}`)} /> },
-    { id: 'activities', render: () => <ActivityListView /> },
+    { id: 'activities', render: () => <ActivityListView onOpenLead={(id) => navigate(`leads-detail:${id}`)} onOpenQuote={(id) => navigate(`quotes-detail:${id}`)} /> },
     { id: 'leads-detail', render: ({ id }) => <LeadDetailView leadId={id!} onBack={() => navigate('leads-list')} onCreateQuote={(lid) => navigate('quotes-new', `/sales/quotes/new?leadId=${lid}`)} onViewQuote={(qid) => navigate(`quotes-detail:${qid}`)} /> },
     { id: 'quotes-detail', render: ({ id }) => <QuoteDetailView quoteId={id!} onBack={() => navigate('quotes-list')} onEdit={() => navigate(`quotes-edit:${id}`)} onInvoiceCreated={(invoiceId) => { window.location.hash = `/financial/receivables/detail/${invoiceId}` }} /> },
     { id: 'quotes-edit', render: ({ id }) => <QuoteFormView quoteId={id!} onSaved={() => navigate(`quotes-detail:${id}`)} /> },

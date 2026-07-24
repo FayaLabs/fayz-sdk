@@ -12,6 +12,23 @@ export type DealStatus = 'open' | 'won' | 'lost'
 export type QuoteStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired'
 export type ActivityType = 'call' | 'email' | 'meeting' | 'note' | 'task' | 'whatsapp' | (string & {})
 
+/** System timeline events auto-logged by the data provider at every CRM write.
+ *  Product-defined (not tenant-editable); manual interaction TYPES live in the
+ *  activity-types registry and are editable in settings. */
+export const SYSTEM_ACTIVITY_TYPES = [
+  'lead_created', 'lead_converted', 'deal_created', 'stage_changed',
+  'deal_won', 'deal_lost', 'quote_created', 'quote_sent', 'quote_approved', 'quote_rejected',
+] as const
+export type SystemActivityType = (typeof SYSTEM_ACTIVITY_TYPES)[number]
+
+/** A tenant-editable manual interaction type (activity-types registry row). */
+export interface ActivityTypeDef {
+  id: string
+  name: string
+  icon?: string
+  isActive: boolean
+}
+
 // ============================================================
 // CORE ENTITIES
 // ============================================================

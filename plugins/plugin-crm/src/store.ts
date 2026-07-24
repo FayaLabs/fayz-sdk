@@ -36,6 +36,8 @@ export interface CrmUIState {
   fetchDeals(query: DealQuery): Promise<void>
   fetchDealsByStage(pipelineId: string): Promise<void>
   fetchActivities(query: ActivityQuery): Promise<void>
+  /** Re-fetch the timeline with the last query — writes append system events. */
+  refreshActivities(): Promise<void>
   fetchQuotes(query: QuoteQuery): Promise<void>
   createLead(input: CreateLeadInput): Promise<Lead>
   createDeal(input: CreateDealInput): Promise<Deal>
@@ -50,6 +52,7 @@ export interface CrmUIState {
 }
 
 export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> {
+  let lastActivitiesQuery: ActivityQuery = {}
   return createStore<CrmUIState>((set, get) => ({
     pipelines: [], stages: [],
     leads: [], leadsTotal: 0, leadsLoading: false,
@@ -108,11 +111,19 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
     },
 
     async fetchActivities(query) {
+      lastActivitiesQuery = query
       return dedup('crm:activities:' + JSON.stringify(query), async () => {
         set({ activitiesLoading: true })
         const result = await provider.getActivities(query)
         set({ activities: result.data, activitiesTotal: result.total, activitiesLoading: false })
       })
+    },
+
+    async refreshActivities() {
+      try {
+        const result = await provider.getActivities(lastActivitiesQuery)
+        set({ activities: result.data, activitiesTotal: result.total })
+      } catch { /* timeline refresh is best-effort */ }
     },
 
     async fetchQuotes(query) {
@@ -155,6 +166,7 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
 
         const summary = await provider.getSummary()
         set({ summary })
+        void get().refreshActivities()
         toast.success('Lead captured')
         return lead
       } catch (err: any) {
@@ -168,6 +180,7 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
         const deal = await provider.createDeal(input)
         const [summary] = await Promise.all([provider.getSummary()])
         set({ summary })
+        void get().refreshActivities()
         toast.success('Deal created')
         return deal
       } catch (err: any) {
@@ -271,6 +284,7 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
             set({ dealsByStage })
           } catch { /* non-blocking */ }
         }
+        void get().refreshActivities()
         toast.success('Quote created')
         return quote
       } catch (err: any) {
@@ -295,6 +309,7 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
       try {
         const quote = await provider.sendQuote(id)
         set((state) => ({ quotes: state.quotes.map((q) => q.id === id ? quote : q) }))
+        void get().refreshActivities()
         toast.success('Quote sent')
         return quote
       } catch (err: any) {
@@ -317,6 +332,7 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
           ])
           set({ dealsByStage, summary, leads: leadsResult.data, leadsTotal: leadsResult.total, quotes: quotesResult.data, quotesTotal: quotesResult.total })
         }
+        void get().refreshActivities()
         toast.success('Quote approved — invoice created')
         return quote
       } catch (err: any) {
@@ -338,6 +354,7 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
           ])
           set({ dealsByStage, summary, leads: leadsResult.data, leadsTotal: leadsResult.total, quotes: quotesResult.data, quotesTotal: quotesResult.total })
         }
+        void get().refreshActivities()
         toast.success('Quote rejected')
         return quote
       } catch (err: any) {
@@ -370,6 +387,7 @@ export function createCrmStore(provider: CrmDataProvider): StoreApi<CrmUIState> 
         ])
         set({ dealsByStage, summary, leads: leadsResult.data, leadsTotal: leadsResult.total, quotes: quotesResult.data, quotesTotal: quotesResult.total })
       }
+      void get().refreshActivities()
     },
   }))
 }

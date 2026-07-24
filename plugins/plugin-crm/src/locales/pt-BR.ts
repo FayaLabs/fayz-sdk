@@ -10,6 +10,7 @@ export const ptBR: Record<string, string> = {
   "crm.activities.overdueLabel": "Atrasada",
   "crm.activities.pending": "pendente",
   "crm.activities.pendingFilter": "Pendentes",
+  "crm.activities.systemEvents": "Eventos",
   "crm.activities.title": "Atividades",
   "crm.dashboard.activeDeals": "{{count}} negócios ativos",
   "crm.dashboard.avgDealValue": "Valor médio do negócio",

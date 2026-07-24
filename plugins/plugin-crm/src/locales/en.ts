@@ -10,6 +10,7 @@ export const en: Record<string, string> = {
   "crm.activities.overdueLabel": "Overdue",
   "crm.activities.pending": "pending",
   "crm.activities.pendingFilter": "Pending",
+  "crm.activities.systemEvents": "Events",
   "crm.activities.title": "Activities",
   "crm.dashboard.activeDeals": "{{count}} active deals",
   "crm.dashboard.avgDealValue": "Avg deal value",

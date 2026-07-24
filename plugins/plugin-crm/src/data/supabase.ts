@@ -1,9 +1,9 @@
 import type { CrmDataProvider } from './types'
 import type {
-  Pipeline, PipelineStage, Lead, Deal, Activity, Quote, QuoteItem,
+  Pipeline, PipelineStage, Lead, Deal, Activity, ActivityTypeDef, Quote, QuoteItem,
   CreateLeadInput, CreateDealInput, CreateActivityInput, CreateQuoteInput,
   LeadQuery, DealQuery, ActivityQuery, QuoteQuery,
-  PaginatedResult, CrmSummary, FunnelStage,
+  PaginatedResult, CrmSummary, FunnelStage, SystemActivityType,
 } from '../types'
 import { getSupabaseClientOptional, getActiveTenantId } from '@fayz-ai/core'
 import { getCrmTenantId } from '../lib/tenant'
@@ -56,7 +56,51 @@ async function mergePersonMetadata(personId: string, patch: Record<string, unkno
 
 export function createSupabaseCrmProvider(options?: {
   clientConversion?: { archetypeKind: string; extensionTable: string; fkColumn: string }
+  /** Manual interaction types lazily seeded per tenant (settings-editable rows). */
+  activityTypes?: Array<{ value: string; label: string; icon?: string }>
 }): CrmDataProvider {
+  // System timeline event — written silently at every CRM write point.
+  // completed_at is stamped so events never pollute the "pending" task filter,
+  // and a log failure must never break the write it describes.
+  async function logEvent(input: {
+    activityType: SystemActivityType
+    title: string
+    description?: string
+    leadId?: string
+    dealId?: string
+    contactId?: string
+    contactName?: string
+  }): Promise<void> {
+    try {
+      const { pub } = getClients()
+      await pub.from(T.activities).insert({
+        tenant_id: getTenantId(),
+        deal_id: input.dealId ?? null,
+        lead_id: input.leadId ?? null,
+        contact_id: input.contactId ?? null,
+        contact_name: input.contactName ?? null,
+        activity_type: input.activityType,
+        title: input.title,
+        description: input.description ?? null,
+        completed_at: new Date().toISOString(),
+      })
+    } catch { /* timeline is best-effort */ }
+  }
+
+  // Lazy per-tenant seed of manual interaction types (the type set comes from
+  // app config — SQL can't know the vertical). Idempotent via (tenant, name).
+  const typesSeeded = new Set<string>()
+  async function ensureActivityTypes(tenantId: string): Promise<void> {
+    const seed = options?.activityTypes
+    if (!seed?.length || typesSeeded.has(tenantId)) return
+    typesSeeded.add(tenantId)
+    const { pub } = getClients()
+    await pub.from(T.activityTypes).upsert(
+      seed.map((t) => ({ tenant_id: tenantId, name: t.label, icon: t.icon ?? null, is_active: true })),
+      { onConflict: 'tenant_id,name', ignoreDuplicates: true },
+    )
+  }
+
   const provider: CrmDataProvider = {
     // --- Pipelines (public.plg_crm_pipelines + plg_crm_pipeline_stages) ---
     async getPipelines(): Promise<Pipeline[]> {
@@ -130,6 +174,7 @@ export function createSupabaseCrmProvider(options?: {
       }).select().single()
       if (error) throw new Error(error.message)
       const p = snakeToCamel(data) as any
+      await logEvent({ activityType: 'lead_created', title: input.name, leadId: p.id, contactName: input.name })
       return { id: p.id, name: p.name, email: p.email, phone: p.phone, status: 'new', tags: [], tenantId: tenantId!, createdAt: p.createdAt, updatedAt: p.updatedAt } as Lead
     },
 
@@ -150,9 +195,14 @@ export function createSupabaseCrmProvider(options?: {
     },
 
     async convertLeadToDeal(leadId: string, dealInput: CreateDealInput): Promise<Deal> {
-      const { core } = getClients()
       // Update lead status to converted
       await mergePersonMetadata(leadId, { status: 'converted' })
+      await logEvent({
+        activityType: 'lead_converted',
+        title: dealInput.contactName ?? dealInput.title,
+        leadId,
+        contactName: dealInput.contactName,
+      })
       return provider.createDeal({ ...dealInput, leadId } as any)
     },
 
@@ -262,6 +312,15 @@ export function createSupabaseCrmProvider(options?: {
         lead_id: (input as any).leadId,
       })
 
+      await logEvent({
+        activityType: 'deal_created',
+        title: input.title,
+        dealId: order.id,
+        leadId: (input as any).leadId,
+        contactId: input.contactId,
+        contactName: input.contactName,
+      })
+
       return {
         id: order.id, title: input.title, value: input.value,
         pipelineId: input.pipelineId, stageId: input.stageId,
@@ -331,7 +390,17 @@ export function createSupabaseCrmProvider(options?: {
         }
       }
 
-      return (await provider.getDealById(dealId))!
+      const moved = (await provider.getDealById(dealId))!
+      if (stageRow) {
+        await logEvent({
+          activityType: stageRow.is_won ? 'deal_won' : stageRow.is_lost ? 'deal_lost' : 'stage_changed',
+          title: moved.title || 'Deal',
+          description: stageRow.name,
+          dealId,
+          contactName: moved.contactName,
+        })
+      }
+      return moved
     },
 
     // --- Activities (public.plg_crm_activities) ---
@@ -368,6 +437,16 @@ export function createSupabaseCrmProvider(options?: {
       const { data, error } = await pub.from(T.activities).update({ completed_at: new Date().toISOString() }).eq('id', id).select().single()
       if (error) throw new Error(error.message)
       return snakeToCamel(data) as unknown as Activity
+    },
+
+    async getActivityTypes(): Promise<ActivityTypeDef[]> {
+      const { pub } = getClients()
+      const tenantId = getTenantId()
+      if (!tenantId) return []
+      await ensureActivityTypes(tenantId)
+      const { data } = await pub.from(T.activityTypes)
+        .select('*').eq('tenant_id', tenantId).eq('is_active', true).order('name')
+      return (data ?? []).map((r: any) => snakeToCamel(r) as unknown as ActivityTypeDef)
     },
 
     // --- Quotes (public.orders kind='quote' + order_items) ---
@@ -455,6 +534,16 @@ export function createSupabaseCrmProvider(options?: {
         if (itemsError) throw new Error(itemsError.message)
       }
 
+      await logEvent({
+        activityType: 'quote_created',
+        title: order.reference_number ?? 'Quote',
+        description: input.contactName,
+        dealId: input.dealId,
+        leadId: input.leadId,
+        contactId: input.contactId,
+        contactName: input.contactName,
+      })
+
       return {
         id: order.id, quoteNumber: order.reference_number,
         quoteDate: order.created_at?.slice(0, 10), validUntil: input.validUntil,
@@ -514,7 +603,16 @@ export function createSupabaseCrmProvider(options?: {
         }
       } catch { /* non-blocking */ }
 
-      return (await provider.getQuoteById(id))!
+      const sent = (await provider.getQuoteById(id))!
+      await logEvent({
+        activityType: 'quote_sent',
+        title: sent.quoteNumber ?? 'Quote',
+        description: sent.contactName,
+        dealId: sent.dealId,
+        leadId: sent.leadId,
+        contactName: sent.contactName,
+      })
+      return sent
     },
 
     async approveQuote(id: string): Promise<Quote> {
@@ -574,7 +672,16 @@ export function createSupabaseCrmProvider(options?: {
         }
       }
 
-      return (await provider.getQuoteById(id))!
+      const approved = (await provider.getQuoteById(id))!
+      await logEvent({
+        activityType: 'quote_approved',
+        title: approved.quoteNumber ?? 'Quote',
+        description: approved.contactName,
+        dealId: approved.dealId,
+        leadId: approved.leadId,
+        contactName: approved.contactName,
+      })
+      return approved
     },
 
     async rejectQuote(id: string, reason: string): Promise<Quote> {
@@ -596,6 +703,16 @@ export function createSupabaseCrmProvider(options?: {
           const lostStage = stages.find((s) => s.isLost)
           if (lostStage) await provider.moveDealToStage(deal.id, lostStage.id)
         }
+      }
+      if (quote) {
+        await logEvent({
+          activityType: 'quote_rejected',
+          title: quote.quoteNumber ?? 'Quote',
+          description: reason,
+          dealId: quote.dealId,
+          leadId: quote.leadId,
+          contactName: quote.contactName,
+        })
       }
       return quote!
     },

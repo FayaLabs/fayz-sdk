@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Phone, Mail, Users, FileText, CheckSquare, MessageCircle, Check, Clock, Filter, Calendar } from 'lucide-react'
-import { useCrmStore } from '../CrmContext'
+import {
+  Phone, Mail, Users, FileText, CheckSquare, MessageCircle, Check, Clock, Filter, Calendar,
+  UserPlus, ArrowRightLeft, Target, MoveRight, Trophy, XCircle, FilePlus2, Send, FileCheck2, FileX2, Sparkles, ArrowRight,
+} from 'lucide-react'
+import { useCrmStore, useCrmProvider } from '../CrmContext'
 import { useTranslation } from '@fayz-ai/core'
 import { SubpageHeader } from '@fayz-ai/ui'
-import type { ActivityType } from '../types'
+import { DealSidebar } from './DealSidebar'
+import { SYSTEM_ACTIVITY_TYPES, type ActivityType } from '../types'
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; label: string }> = {
   call: { icon: Phone, color: 'bg-info/15 text-info dark:bg-info/20', label: 'Call' },
@@ -12,7 +16,21 @@ const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; labe
   note: { icon: FileText, color: 'bg-warning/15 text-warning dark:bg-warning/20', label: 'Note' },
   task: { icon: CheckSquare, color: 'bg-pink-100 text-pink-600 dark:bg-pink-500/20 dark:text-pink-400', label: 'Task' },
   whatsapp: { icon: MessageCircle, color: 'bg-success/15 text-success dark:bg-success/20', label: 'WhatsApp' },
+  // System timeline events (auto-logged by the data provider on every CRM write)
+  lead_created: { icon: UserPlus, color: 'bg-info/15 text-info dark:bg-info/20', label: 'Lead created' },
+  lead_converted: { icon: ArrowRightLeft, color: 'bg-magic/15 text-magic dark:bg-magic/20', label: 'Lead converted' },
+  deal_created: { icon: Target, color: 'bg-info/15 text-info dark:bg-info/20', label: 'Deal created' },
+  stage_changed: { icon: MoveRight, color: 'bg-warning/15 text-warning dark:bg-warning/20', label: 'Stage changed' },
+  deal_won: { icon: Trophy, color: 'bg-success/15 text-success dark:bg-success/20', label: 'Deal won' },
+  deal_lost: { icon: XCircle, color: 'bg-destructive/15 text-destructive dark:bg-destructive/20', label: 'Deal lost' },
+  quote_created: { icon: FilePlus2, color: 'bg-info/15 text-info dark:bg-info/20', label: 'Quote created' },
+  quote_sent: { icon: Send, color: 'bg-magic/15 text-magic dark:bg-magic/20', label: 'Quote sent' },
+  quote_approved: { icon: FileCheck2, color: 'bg-success/15 text-success dark:bg-success/20', label: 'Quote approved' },
+  quote_rejected: { icon: FileX2, color: 'bg-destructive/15 text-destructive dark:bg-destructive/20', label: 'Quote rejected' },
 }
+
+const SYSTEM_TYPES = new Set<string>(SYSTEM_ACTIVITY_TYPES)
+const MANUAL_TYPES = Object.keys(TYPE_CONFIG).filter((t) => !SYSTEM_TYPES.has(t))
 
 function ActivitySkeleton() {
   return (
@@ -35,22 +53,34 @@ function ActivitySkeleton() {
   )
 }
 
-export function ActivityListView() {
+export function ActivityListView({ onOpenLead, onOpenQuote }: {
+  /** Navigate to the lead detail (fallback for activities with no deal behind them). */
+  onOpenLead?: (leadId: string) => void
+  /** Navigate to a quote detail (links inside the deal sidebar). */
+  onOpenQuote?: (quoteId: string) => void
+} = {}) {
   const t = useTranslation()
+  const provider = useCrmProvider()
+  // Clicking a row opens the SAME right-hand deal sheet the pipeline uses —
+  // the timeline stays underneath instead of navigating away.
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const activities = useCrmStore((s) => s.activities)
   const activitiesLoading = useCrmStore((s) => s.activitiesLoading)
   const fetchActivities = useCrmStore((s) => s.fetchActivities)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [showCompleted, setShowCompleted] = useState<boolean | null>(null)
+  // 'events' = all system timeline types (filtered client-side; the provider
+  // query takes a single activityType).
+  const eventsFilter = typeFilter === 'events'
 
   useEffect(() => {
     fetchActivities({
-      activityType: typeFilter as ActivityType | undefined,
-      completed: showCompleted ?? undefined,
+      activityType: eventsFilter ? undefined : (typeFilter as ActivityType | undefined),
+      completed: eventsFilter ? undefined : (showCompleted ?? undefined),
     })
   }, [typeFilter, showCompleted])
 
-  const filtered = activities
+  const filtered = eventsFilter ? activities.filter((a) => SYSTEM_TYPES.has(a.activityType)) : activities
 
   // Stats
   const pendingCount = activities.filter((a) => !a.completedAt).length
@@ -73,7 +103,8 @@ export function ActivityListView() {
           >
             {t('crm.activities.all')}
           </button>
-          {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
+          {MANUAL_TYPES.map((type) => {
+            const cfg = TYPE_CONFIG[type]
             const Icon = cfg.icon
             return (
               <button
@@ -86,6 +117,13 @@ export function ActivityListView() {
               </button>
             )
           })}
+          <button
+            onClick={() => setTypeFilter(eventsFilter ? null : 'events')}
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${eventsFilter ? 'bg-primary/15 text-primary' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+          >
+            <Sparkles className="h-3 w-3" />
+            {t('crm.activities.systemEvents')}
+          </button>
         </div>
 
         <div className="flex-1" />
@@ -123,12 +161,27 @@ export function ActivityListView() {
           {filtered.map((a) => {
             const cfg = TYPE_CONFIG[a.activityType] ?? { icon: FileText, color: 'bg-muted text-muted-foreground', label: a.activityType }
             const Icon = cfg.icon
+            const isSystem = SYSTEM_TYPES.has(a.activityType)
             const isOverdue = !a.completedAt && a.dueDate && a.dueDate < new Date().toISOString().slice(0, 10)
+            const openRecord = a.dealId
+              ? () => setSelectedDealId(a.dealId!)
+              : a.leadId
+                ? () => {
+                    // Lead-only activity: its deal (auto-created with the lead)
+                    // opens in the sheet; a dealless lead falls back to detail.
+                    void provider.getDealByLeadId(a.leadId!).then((deal) => {
+                      if (deal) setSelectedDealId(deal.id)
+                      else onOpenLead?.(a.leadId!)
+                    })
+                  }
+                : undefined
 
             return (
               <div
                 key={a.id}
-                className={`flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors ${isOverdue ? 'border-destructive/30 dark:border-destructive/20' : ''}`}
+                onClick={openRecord}
+                role={openRecord ? 'button' : undefined}
+                className={`group flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors ${isOverdue ? 'border-destructive/30 dark:border-destructive/20' : ''} ${openRecord ? 'cursor-pointer hover:bg-muted/30' : ''}`}
               >
                 <div className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${cfg.color}`}>
                   <Icon className="h-4 w-4" />
@@ -136,7 +189,8 @@ export function ActivityListView() {
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium truncate">{a.title}</p>
-                    {a.completedAt && (
+                    {/* System events are facts, not tasks — no "done" badge noise. */}
+                    {a.completedAt && !isSystem && (
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[9px] font-medium text-success dark:bg-success/20">
                         <Check className="h-2.5 w-2.5" /> {t('crm.activities.done')}
                       </span>
@@ -170,14 +224,25 @@ export function ActivityListView() {
                     )}
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0 pt-1">
+                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground shrink-0 pt-1">
                   {new Date(a.createdAt).toLocaleDateString()}
+                  {openRecord && (
+                    <ArrowRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" />
+                  )}
                 </span>
               </div>
             )
           })}
         </div>
       )}
+
+      <DealSidebar
+        dealId={selectedDealId ?? ''}
+        open={!!selectedDealId}
+        onClose={() => setSelectedDealId(null)}
+        onViewLead={onOpenLead}
+        onViewQuote={onOpenQuote}
+      />
     </div>
   )
 }

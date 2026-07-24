@@ -62,10 +62,20 @@ const activityTypeEntity: EntityDef = {
   defaultSort: 'name',
   fields: [
     { key: 'name', label: 'Name', type: 'text', required: true, showInTable: true },
-    { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true },
+    { key: 'icon', label: 'Icon', type: 'text', showInTable: true },
+    { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true, inlineToggle: true },
   ],
   data: { table: T.activityTypes, tenantScoped: true },
 }
+
+export const DEFAULT_ACTIVITY_TYPES: Array<{ value: string; label: string; icon?: string }> = [
+  { value: 'call', label: 'Call', icon: 'Phone' },
+  { value: 'email', label: 'Email', icon: 'Mail' },
+  { value: 'meeting', label: 'Meeting', icon: 'Users' },
+  { value: 'note', label: 'Note', icon: 'FileText' },
+  { value: 'task', label: 'Task', icon: 'CheckSquare' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
+]
 
 export const crmRegistries: PluginRegistryDef[] = [
   {
@@ -116,14 +126,28 @@ export const crmRegistries: PluginRegistryDef[] = [
     icon: 'MessageCircle',
     description: 'Types of activities and interactions',
     display: 'table',
-    readOnly: true,
+    // Tenant-editable (the provider lazily seeds the app's set per tenant);
+    // system timeline events (lead_created, stage_changed…) are product-defined
+    // and never appear here.
     seedData: [
-      { id: 'at-call', name: 'Call', isActive: true },
-      { id: 'at-email', name: 'Email', isActive: true },
-      { id: 'at-meeting', name: 'Meeting', isActive: true },
-      { id: 'at-note', name: 'Note', isActive: true },
-      { id: 'at-task', name: 'Task', isActive: true },
-      { id: 'at-whatsapp', name: 'WhatsApp', isActive: true },
+      ...DEFAULT_ACTIVITY_TYPES.map((t) => ({ id: `at-${t.value}`, name: t.label, icon: t.icon, isActive: true })),
     ],
   },
 ]
+
+/** Registries with the app's activity-type set replacing the default seed. */
+export function buildCrmRegistries(
+  activityTypes?: Array<{ value: string; label: string; icon?: string }>,
+): PluginRegistryDef[] {
+  if (!activityTypes?.length) return crmRegistries
+  return crmRegistries.map((registry) =>
+    registry.id === 'activity-types'
+      ? {
+          ...registry,
+          seedData: [
+            ...activityTypes.map((t) => ({ id: `at-${t.value}`, name: t.label, icon: t.icon, isActive: true })),
+          ],
+        }
+      : registry,
+  )
+}
