@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CreditCard, LogOut, Mail, Package, Phone, Search, ShoppingBag, User, UserCircle, X } from 'lucide-react'
+import { CreditCard, LogOut, Mail, Menu, Package, Phone, Search, ShoppingBag, User, UserCircle, X } from 'lucide-react'
 import { signOutCustomer } from '../auth'
 import { useCartStore, selectCount } from '../stores/cart.store'
 import { useCatalogStore } from '../stores/catalog.store'
@@ -151,7 +151,7 @@ function SearchInput({ className, iconOnly = false }: { className?: string; icon
   )
 }
 
-function HeaderActions() {
+function HeaderActions({ onMenuClick }: { onMenuClick?: () => void }) {
   const config = useStorefrontConfig()
   const count = useCartStore(selectCount)
   const openDrawer = useCartStore((s) => s.openDrawer)
@@ -251,6 +251,16 @@ function HeaderActions() {
           )}
         </button>
       )}
+      {onMenuClick && (
+        <button
+          type="button"
+          aria-label="Abrir menu"
+          onClick={onMenuClick}
+          className="relative rounded-full p-2.5 transition-opacity hover:opacity-70 md:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
     </nav>
   )
 }
@@ -296,12 +306,99 @@ function NavLinks({ className }: { className?: string }) {
   )
 }
 
+function MobileMenuDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const config = useStorefrontConfig()
+  const { categories } = useCategories()
+  const setCategoryId = useCatalogStore((s) => s.setCategoryId)
+  const showCategories = config.theme?.header?.showCategories !== false
+
+  const goCategory = (categoryId: string) => {
+    useCatalogStore.getState().reset()
+    setCategoryId(categoryId)
+    navigateTo(config.catalogPath)
+    onClose()
+  }
+
+  // a11y: close on Escape
+  React.useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 md:hidden">
+      <div
+        className="absolute inset-0 animate-fade-in bg-black/40"
+        aria-hidden
+        onClick={onClose}
+      />
+      <div
+        data-testid="mobile-menu-drawer"
+        role="dialog"
+        aria-label="Menu Principal"
+        className="absolute right-0 top-0 flex h-full w-full max-w-[280px] animate-slide-in-from-right flex-col bg-background shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="text-lg font-semibold">Menu</h2>
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            onClick={onClose}
+            className="rounded-full p-1.5 hover:bg-muted"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          <nav className="flex flex-col gap-4">
+            {config.nav.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={onClose}
+                className="text-base font-semibold transition-opacity hover:opacity-70"
+              >
+                {link.label}
+              </Link>
+            ))}
+            {showCategories && categories.length > 0 && (
+              <>
+                <div className="my-2 border-t" />
+                <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Categorias
+                </div>
+                {categories.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => goCategory(c.id)}
+                    className="text-left text-sm font-medium transition-opacity hover:opacity-80"
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </>
+            )}
+          </nav>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function StorefrontHeader() {
   const config = useStorefrontConfig()
   const variant = config.theme?.header?.variant ?? 'classic'
   const scrolled = useScrolled()
   const showSearch = config.theme?.header?.showSearch !== false
   const iconSearch = config.theme?.header?.searchStyle === 'icon'
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const logo = (
     <Link to="/" className="sf-heading shrink-0 text-xl font-bold tracking-tight">
       {config.logo ?? config.name}
@@ -359,15 +456,21 @@ export function StorefrontHeader() {
           </div>
         </div>
       ) : (
-        // classic: logo left, nav, then a right-aligned search + actions cluster
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
-          {logo}
-          <NavLinks className="hidden md:flex" />
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            {showSearch && <SearchInput iconOnly={iconSearch} className={iconSearch ? '' : 'hidden w-full max-w-sm sm:block'} />}
-            <HeaderActions />
+        // classic: logo left, nav, then a right-aligned search + actions cluster.
+        // NavLinks is hidden below md in the primary row (no room for it there) —
+        // below md a hamburger opens MobileMenuDrawer instead, otherwise mobile
+        // has no way to reach nav/category links at all.
+        <>
+          <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
+            {logo}
+            <NavLinks className="hidden md:flex" />
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              {showSearch && <SearchInput iconOnly={iconSearch} className={iconSearch ? '' : 'hidden w-full max-w-sm sm:block'} />}
+              <HeaderActions onMenuClick={() => setMobileMenuOpen(true)} />
+            </div>
           </div>
-        </div>
+          <MobileMenuDrawer open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        </>
       )}
     </header>
   )
