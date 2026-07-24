@@ -34,6 +34,8 @@ export interface MarketingDataProvider {
   deleteCampaign(id: string): Promise<void>
   funnel(query: MarketingQuery): Promise<FunnelStage[]>
   landingPages(query: MarketingQuery): Promise<LandingPagePerf[]>
+  /** Drop any provider-side read cache (external writes, e.g. agent RPCs). */
+  invalidateCache?(): void
 }
 
 // ---------------------------------------------------------------------------

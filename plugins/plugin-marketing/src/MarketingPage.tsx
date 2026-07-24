@@ -1,7 +1,7 @@
 import React from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import { ModulePage, type ModuleNavItem } from '@fayz-ai/ui'
-import { useTranslation } from '@fayz-ai/core'
+import { useTranslation, useDataChanged } from '@fayz-ai/core'
 import type { PluginQuickAction } from '@fayz-ai/core'
 import { useModuleNavigation, ModuleActionBar, createViewRouter } from '@fayz-ai/saas'
 import { MarketingContextProvider, type ResolvedMarketingConfig } from './MarketingContext'
@@ -80,6 +80,10 @@ export function MarketingPage({ config, provider, store, contentProvider, conten
   }, 'overview')
 
   React.useEffect(() => { void store.getState().load() }, [store])
+
+  // Agent RPC writes (createCampaign) land outside the provider — refresh past
+  // its read cache when any agent write is announced.
+  useDataChanged({ table: 'plg_marketing_campaigns' }, () => { void store.getState().refresh() }, [store])
 
   const isOverview = view === 'overview'
   const nav = buildNav(config, view, navigate)

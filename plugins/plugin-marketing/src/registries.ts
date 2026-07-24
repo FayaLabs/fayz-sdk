@@ -1,5 +1,6 @@
 import type { PluginRegistryDef, EntityDef } from '@fayz-ai/core'
 import type { AcquisitionChannel } from './types'
+import { T } from './data/tables'
 
 // ---------------------------------------------------------------------------
 // Settings registries — surfaced as CRUD tabs in the central Settings area
@@ -24,15 +25,23 @@ const channelEntity: EntityDef = {
   defaultSort: 'label',
   fields: [
     { key: 'label', label: 'Channel', type: 'text', required: true, showInTable: true, searchable: true },
+    { key: 'channelKey', label: 'Key', type: 'text', required: true, showInTable: true },
     { key: 'kind', label: 'Type', type: 'select', options: KIND_OPTIONS, showInTable: true },
-    { key: 'icon', label: 'Icon', type: 'text', showInTable: true },
+    { key: 'icon', label: 'Icon', type: 'text' },
+    { key: 'monthlySpend', label: 'Monthly spend', type: 'number', showInTable: true, defaultValue: 0 },
+    { key: 'isActive', label: 'Active', type: 'boolean', showInTable: true, defaultValue: true, inlineToggle: true },
   ],
   facets: [{ field: 'kind' }],
+  data: {
+    table: T.channels,
+    tenantScoped: true,
+    searchColumns: ['label', 'channel_key'],
+  },
 }
 
-/** Build the marketing settings registries, seeding Channels from the resolved
- *  domain preset. Read-only today (channels come from the preset); flip
- *  readOnly + add a `data.table` to make them tenant-editable. */
+/** Build the marketing settings registries. Channels are tenant-editable rows
+ *  in plg_marketing_channels; the Supabase provider lazily seeds them from the
+ *  resolved domain preset (seedData doubles as walkable mock data). */
 export function buildMarketingRegistries(channels: AcquisitionChannel[]): PluginRegistryDef[] {
   return [
     {
@@ -41,8 +50,11 @@ export function buildMarketingRegistries(channels: AcquisitionChannel[]): Plugin
       icon: 'Radio',
       description: 'Acquisition channels tracked for this workspace',
       display: 'table',
-      readOnly: true,
-      seedData: channels.map((c) => ({ id: c.id, label: c.label, kind: c.kind, icon: c.icon })),
+      seedData: [
+        ...channels.map((c) => ({
+          id: c.id, channelKey: c.id, label: c.label, kind: c.kind, icon: c.icon, isActive: true, monthlySpend: 0,
+        })),
+      ],
     },
   ]
 }

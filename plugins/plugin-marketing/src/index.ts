@@ -1,6 +1,6 @@
 import React from 'react'
 import type { PluginManifest, PluginRegistryDef, PluginScope, VerticalId } from '@fayz-ai/core'
-import { createSafeDataProvider, getSupabaseClientOptional, registerTranslations } from '@fayz-ai/core'
+import { createSafeDataProvider, registerTranslations } from '@fayz-ai/core'
 import { PluginSettingsPanel } from '@fayz-ai/saas'
 import { MarketingPage } from './MarketingPage'
 import { SettingsView } from './views/SettingsView'
@@ -17,12 +17,14 @@ import type {
   SitesPerformanceBridge,
 } from './data/types'
 import { createMockMarketingProvider } from './data/mock'
+import { createSupabaseMarketingProvider } from './data/supabase'
+import { T } from './data/tables'
 import type { ContentPlannerProvider } from './data/contentTypes'
 import { createMockContentPlannerProvider } from './data/contentMock'
 import { createSupabaseContentPlannerProvider } from './data/contentSupabase'
 import { createMarketingStore } from './store'
 import { createContentPlannerStore } from './views/content/contentStore'
-import { MIGRATION_000_PLG_RENAME, MIGRATION_001_CONTENT_PLANNER, MIGRATION_002_MULTI_PLATFORM, MIGRATION_003_RECORDING_OPS, MIGRATION_004_RANKLAYER } from './migrations'
+import { MIGRATION_000_PLG_RENAME, MIGRATION_001_CONTENT_PLANNER, MIGRATION_002_MULTI_PLATFORM, MIGRATION_003_RECORDING_OPS, MIGRATION_004_RANKLAYER, MIGRATION_005_ANALYTICS_BASE, MIGRATION_006_ANALYTICS_VIEWS, MIGRATION_007_AGENT_RPCS } from './migrations'
 import { ranklayerConnectorDef } from './integrations/ranklayer/connectorDef'
 import { DEFAULT_CURRENCY, type MarketingCurrency } from './format'
 import { MARKETING_PRESETS, type MarketingDomain, type MarketingDomainModules } from './presets'
@@ -93,16 +95,26 @@ function resolveConfig(options?: MarketingPluginOptions): { config: ResolvedMark
   return { config, domain }
 }
 
-function createSafeProvider(config: ResolvedMarketingConfig, domain: MarketingDomain): MarketingDataProvider {
-  // Supabase-backed + bridge-fed providers land later; mock powers it for now.
-  void getSupabaseClientOptional()
-  return createMockMarketingProvider({ channels: config.channels, conversion: config.conversion, domain })
+function createSafeProvider(
+  config: ResolvedMarketingConfig,
+  domain: MarketingDomain,
+  options?: MarketingPluginOptions,
+): MarketingDataProvider {
+  return createSafeDataProvider(
+    () => createSupabaseMarketingProvider({
+      channels: config.channels,
+      conversion: config.conversion,
+      attributionBridge: options?.attributionBridge,
+      sitesBridge: options?.sitesBridge,
+    }),
+    () => createMockMarketingProvider({ channels: config.channels, conversion: config.conversion, domain }),
+  )
 }
 
 export function createMarketingPlugin(options?: MarketingPluginOptions): PluginManifest {
   registerTranslations(marketingLocales)
   const { config, domain } = resolveConfig(options)
-  const provider = options?.dataProvider ?? createSafeProvider(config, domain)
+  const provider = options?.dataProvider ?? createSafeProvider(config, domain, options)
   const store = createMarketingStore(provider)
   const dashboardWidgets = createMarketingDashboardWidgets({ config, provider, store })
 
@@ -158,8 +170,93 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
       ...(config.modules.blog ? [{ id: 'marketing.blog', label: config.labels.blog, group: 'Engage' }] : []),
     ],
     declaredLimits: [
+      ...(config.modules.campaigns ? [{ key: 'campaigns_active', label: 'Active campaigns', table: T.campaigns }] : []),
       ...(config.modules.contentPlanner ? [{ key: 'content_posts_month', label: 'Content posts / month', table: 'plg_marketing_content_posts', period: 'month' as const }] : []),
       ...(config.modules.blog ? [{ key: 'blog_posts', label: 'Blog posts', table: 'plg_blog_posts' }] : []),
+    ],
+    // Read-models for the agent's data primitives (searchRecords/queryData) —
+    // mirrors agenda's `agenda:appointments`. Keys are stable ASCII; fields are
+    // the provider's camelCase output shape.
+    queryEntities: [
+      ...(config.modules.campaigns ? [{
+        key: 'marketing:campaigns',
+        writable: false,
+        entity: {
+          name: 'Campaign',
+          namePlural: 'Campaigns',
+          icon: 'Megaphone',
+          permission: { feature: 'marketing', action: 'read' as const },
+          fields: [
+            { key: 'name', label: 'Name', type: 'text' as const, searchable: true },
+            { key: 'channelKey', label: 'Channel', type: 'text' as const, searchable: true },
+            { key: 'channelLabel', label: 'Channel label', type: 'text' as const },
+            { key: 'status', label: 'Status', type: 'text' as const },
+            { key: 'startsAt', label: 'Starts at', type: 'text' as const },
+            { key: 'endsAt', label: 'Ends at', type: 'text' as const },
+            { key: 'spend', label: 'Spend', type: 'number' as const },
+            { key: 'createdAt', label: 'Created at', type: 'text' as const },
+          ],
+          data: {
+            table: 'v_marketing_campaigns',
+            tenantScoped: true,
+            searchColumns: ['name', 'channel_key'],
+          },
+        },
+      }] : []),
+      ...(config.modules.channels ? [{
+        key: 'marketing:channels',
+        writable: false,
+        entity: {
+          name: 'Marketing channel',
+          namePlural: 'Marketing channels',
+          icon: 'Radio',
+          permission: { feature: 'marketing', action: 'read' as const },
+          fields: [
+            { key: 'channelKey', label: 'Key', type: 'text' as const, searchable: true },
+            { key: 'label', label: 'Channel', type: 'text' as const, searchable: true },
+            { key: 'kind', label: 'Type', type: 'text' as const },
+            { key: 'isActive', label: 'Active', type: 'boolean' as const },
+            { key: 'monthlySpend', label: 'Monthly spend', type: 'number' as const },
+          ],
+          data: {
+            table: 'v_marketing_channels',
+            tenantScoped: true,
+            searchColumns: ['label', 'channel_key'],
+          },
+        },
+      }] : []),
+      ...(config.modules.contentPlanner ? [{
+        key: 'marketing:contentPosts',
+        writable: false,
+        entity: {
+          name: 'Content post',
+          namePlural: 'Content posts',
+          icon: 'FileText',
+          permission: { feature: 'marketing.content', action: 'read' as const },
+          fields: [
+            { key: 'title', label: 'Title', type: 'text' as const, searchable: true },
+            { key: 'format', label: 'Format', type: 'text' as const },
+            { key: 'status', label: 'Status', type: 'text' as const },
+            { key: 'weekNumber', label: 'Week', type: 'number' as const },
+            { key: 'scheduledDate', label: 'Scheduled date', type: 'text' as const },
+            { key: 'hook', label: 'Hook', type: 'text' as const, searchable: true },
+          ],
+          data: {
+            table: T.contentPosts,
+            tenantScoped: true,
+            searchColumns: ['title', 'hook'],
+          },
+        },
+      }] : []),
+    ],
+    declaredRpcs: [
+      ...(config.modules.campaigns ? [{
+        name: 'agent_marketing_create_campaign',
+        kind: 'write' as const,
+        description:
+          'Guarded campaign create: agent_guard (role→plan→campaigns_active cap), channel validated against the tenant channel set, audited.',
+        audits: true,
+      }] : []),
     ],
     navigation: [
       {
@@ -220,6 +317,24 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
         sql: MIGRATION_004_RANKLAYER,
         description: 'RankLayer connector state: plg_marketing_ranklayer_integrations + _sync_log (tenant RLS)',
       },
+      {
+        id: 'marketing-005-analytics-base',
+        version: '1.4.0',
+        sql: MIGRATION_005_ANALYTICS_BASE,
+        description: 'Analytics base: plg_marketing_channels + plg_marketing_campaigns with canonical tenant RLS',
+      },
+      {
+        id: 'marketing-006-analytics-views',
+        version: '1.4.0',
+        sql: MIGRATION_006_ANALYTICS_VIEWS,
+        description: 'Read views v_marketing_channels/_campaigns + generic spine-only v_marketing_attribution',
+      },
+      {
+        id: 'marketing-007-agent-rpcs',
+        version: '1.4.0',
+        sql: MIGRATION_007_AGENT_RPCS,
+        description: 'agent_marketing_create_campaign — guarded, audited server-plane campaign create',
+      },
     ],
     // RankLayer SEO connector — renders in the Integrações settings tab. Scaffold
     // (control plane only); the real sync lands via an external PR (RANKLAYER.md).
@@ -264,18 +379,26 @@ export function createMarketingPlugin(options?: MarketingPluginOptions): PluginM
       {
         id: 'marketing.create-campaign',
         name: 'createCampaign',
-        description: 'Creates an acquisition campaign on a channel.',
+        description:
+          'Creates an acquisition campaign on a channel. Resolve the channel first via queryData/searchRecords on marketing channels (use its channel key). The user confirms before creating.',
         icon: 'Plus',
         mode: 'persist' as const,
+        limitKey: 'campaigns_active',
+        execution: { plane: 'server' as const, kind: 'rpc' as const, rpc: 'agent_marketing_create_campaign' },
         category: 'Marketing',
         parameters: {
           type: 'object' as const,
           properties: {
             name: { type: 'string' as const, description: 'Campaign name' },
-            channelId: { type: 'string' as const, description: 'Acquisition channel id' },
+            channel_key: { type: 'string' as const, description: "Acquisition channel key (e.g. 'instagram') or its label" },
+            status: { type: 'string' as const, enum: ['draft', 'active', 'paused'], description: 'Defaults to draft' },
+            starts_at: { type: 'string' as const, description: 'ISO start date-time (defaults to now)' },
+            ends_at: { type: 'string' as const, description: 'ISO end date-time (optional)' },
+            spend: { type: 'number' as const, description: 'Planned/committed spend (optional)' },
           },
-          required: ['name', 'channelId'],
+          required: ['name', 'channel_key'],
         },
+        suggestions: [{ label: 'Create an Instagram campaign for this month' }],
         permission: { feature: 'marketing', action: 'create' as const },
       },
     ],
@@ -308,6 +431,7 @@ export type {
 } from './types'
 export { MARKETING_PRESETS, type MarketingDomain } from './presets'
 export { createMockMarketingProvider } from './data/mock'
+export { createSupabaseMarketingProvider } from './data/supabase'
 export type {
   ContentPlannerProvider,
   ContentPlan,

@@ -19,6 +19,8 @@ export interface MarketingUIState {
   loading: boolean
 
   load(): Promise<void>
+  /** Invalidate the provider cache and reload (external writes, e.g. agent RPCs). */
+  refresh(): Promise<void>
   setRange(range: DateRangeKey): Promise<void>
   saveCampaign(input: SaveCampaignInput): Promise<Campaign>
   deleteCampaign(id: string): Promise<void>
@@ -37,14 +39,25 @@ export function createMarketingStore(provider: MarketingDataProvider): StoreApi<
     async load() {
       const range = get().range
       set({ loading: true })
-      const [overview, channels, campaigns, funnel, landingPages] = await Promise.all([
-        provider.overview({ range }),
-        provider.channelPerformance({ range }),
-        provider.listCampaigns({ range }),
-        provider.funnel({ range }),
-        provider.landingPages({ range }),
-      ])
-      set({ overview, channels, campaigns, funnel, landingPages, loading: false })
+      try {
+        const [overview, channels, campaigns, funnel, landingPages] = await Promise.all([
+          provider.overview({ range }),
+          provider.channelPerformance({ range }),
+          provider.listCampaigns({ range }),
+          provider.funnel({ range }),
+          provider.landingPages({ range }),
+        ])
+        set({ overview, channels, campaigns, funnel, landingPages, loading: false })
+      } catch (err) {
+        // A failed load must never wedge the surface in `loading` forever.
+        set({ loading: false })
+        throw err
+      }
+    },
+
+    async refresh() {
+      provider.invalidateCache?.()
+      await get().load()
     },
 
     async setRange(range) {

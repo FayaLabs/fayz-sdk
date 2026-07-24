@@ -1,4 +1,4 @@
-// AUTO-GENERATED from 000_plg_rename.sql, 001_content_planner.sql, 002_multi_platform.sql, 003_recording_ops.sql, 004_ranklayer.sql — regenerate with scripts/embed-migrations.mjs
+// AUTO-GENERATED from 000_plg_rename.sql, 001_content_planner.sql, 002_multi_platform.sql, 003_recording_ops.sql, 004_ranklayer.sql, 005_analytics_base.sql, 006_analytics_views.sql, 007_agent_rpcs.sql — regenerate with scripts/embed-migrations.mjs
 // SQL files are the source of truth; this inline copy lets the manifest declare
 // migrations as data. Do not edit by hand — run the embed script instead.
 
@@ -221,10 +221,266 @@ CREATE POLICY plg_marketing_ranklayer_sync_log_insert ON public.plg_marketing_ra
 GRANT SELECT, INSERT ON public.plg_marketing_ranklayer_sync_log TO authenticated;
 `
 
+export const MIGRATION_005_ANALYTICS_BASE = `-- Marketing Plugin: analytics base tables (channels + campaigns).
+-- Prefix: plg_marketing_
+-- Channels are tenant-owned rows lazily seeded from the app's domain preset
+-- (channel_key = preset/config id). Campaign performance is DERIVED at read
+-- time from v_marketing_attribution (006); only spend is stored.
+-- Canonical RLS form: tenant_id IN (SELECT public.user_tenant_ids()).
+
+CREATE TABLE IF NOT EXISTS public.plg_marketing_channels (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  channel_key text NOT NULL,
+  label text NOT NULL,
+  icon text,
+  kind text NOT NULL DEFAULT 'organic'
+    CHECK (kind IN ('paid', 'organic', 'social', 'referral', 'direct', 'outbound')),
+  is_active boolean NOT NULL DEFAULT true,
+  monthly_spend numeric NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_plg_marketing_channels_tenant ON public.plg_marketing_channels(tenant_id);
+CREATE UNIQUE INDEX IF NOT EXISTS u_plg_marketing_channels_tenant_key ON public.plg_marketing_channels(tenant_id, channel_key);
+
+CREATE TABLE IF NOT EXISTS public.plg_marketing_campaigns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  channel_key text NOT NULL,
+  status text NOT NULL DEFAULT 'draft'
+    CHECK (status IN ('active', 'paused', 'ended', 'draft')),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  spend numeric NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_plg_marketing_campaigns_tenant ON public.plg_marketing_campaigns(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_plg_marketing_campaigns_channel ON public.plg_marketing_campaigns(tenant_id, channel_key);
+
+DO $$
+DECLARE t text;
+BEGIN
+  FOR t IN SELECT unnest(ARRAY['plg_marketing_channels','plg_marketing_campaigns'])
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', t);
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename=t AND policyname=t||'_select') THEN
+      EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()))', t||'_select', t);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename=t AND policyname=t||'_insert') THEN
+      EXECUTE format('CREATE POLICY %I ON public.%I FOR INSERT TO authenticated WITH CHECK (tenant_id IN (SELECT public.user_tenant_ids()))', t||'_insert', t);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename=t AND policyname=t||'_update') THEN
+      EXECUTE format('CREATE POLICY %I ON public.%I FOR UPDATE TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()))', t||'_update', t);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename=t AND policyname=t||'_delete') THEN
+      EXECUTE format('CREATE POLICY %I ON public.%I FOR DELETE TO authenticated USING (tenant_id IN (SELECT public.user_tenant_ids()))', t||'_delete', t);
+    END IF;
+  END LOOP;
+END $$;
+`
+
+export const MIGRATION_006_ANALYTICS_VIEWS = `-- Marketing Plugin: analytics read views.
+-- v_marketing_channels / v_marketing_campaigns — bridge views for the surface
+-- and the agent's data primitives.
+-- v_marketing_attribution — GENERIC, spine-only attribution event stream
+-- (people/appointments/orders metadata). \`channel_raw\` is the unnormalized
+-- origin string; the provider matches it against the app's channel set
+-- (id or label, case/punctuation-insensitive).
+-- Apps whose origin lives in an app-local extension table (e.g. beauty's
+-- clients.origin) may CREATE OR REPLACE this view in their own incubator
+-- migration, KEEPING the column contract:
+--   (tenant_id uuid, kind text, source text, channel_raw text,
+--    occurred_at timestamptz, value numeric)
+
+CREATE OR REPLACE VIEW public.v_marketing_channels WITH (security_invoker=true) AS
+SELECT c.id, c.tenant_id, c.channel_key, c.label, c.icon, c.kind,
+       c.is_active, c.monthly_spend, c.created_at, c.updated_at
+FROM public.plg_marketing_channels c;
+GRANT SELECT ON public.v_marketing_channels TO authenticated;
+
+CREATE OR REPLACE VIEW public.v_marketing_campaigns WITH (security_invoker=true) AS
+SELECT g.id, g.tenant_id, g.name, g.channel_key, ch.label AS channel_label,
+       g.status, g.starts_at, g.ends_at, g.spend, g.created_at, g.updated_at
+FROM public.plg_marketing_campaigns g
+LEFT JOIN public.plg_marketing_channels ch
+  ON ch.tenant_id = g.tenant_id AND ch.channel_key = g.channel_key;
+GRANT SELECT ON public.v_marketing_campaigns TO authenticated;
+
+CREATE OR REPLACE VIEW public.v_marketing_attribution WITH (security_invoker=true) AS
+-- lead events (CRM leads; sourceId aligns with lead-sources/channel ids)
+SELECT p.tenant_id,
+       'lead'::text AS kind,
+       'crm'::text AS source,
+       COALESCE(p.metadata->>'sourceId', p.metadata->>'sourceName', p.metadata->>'origin') AS channel_raw,
+       p.created_at AS occurred_at,
+       NULLIF(p.metadata->>'value', '')::numeric AS value
+FROM public.people p
+WHERE p.kind = 'lead'
+UNION ALL
+-- booking conversions (agenda verticals)
+SELECT b.tenant_id, 'conversion', 'agenda',
+       COALESCE(b.metadata->>'origin', pc.metadata->>'origin', pc.metadata->>'sourceId', pc.metadata->>'sourceName'),
+       b.starts_at,
+       o.total
+FROM public.appointments b
+LEFT JOIN public.people pc ON pc.id = b.party_id
+LEFT JOIN public.orders o ON o.id = b.order_id
+WHERE b.status NOT IN ('cancelled', 'no_show')
+UNION ALL
+-- order conversions (commerce verticals)
+SELECT o.tenant_id, 'conversion', 'orders',
+       COALESCE(o.metadata->>'origin', pp.metadata->>'origin', pp.metadata->>'sourceId'),
+       o.created_at,
+       o.total
+FROM public.orders o
+LEFT JOIN public.people pp ON pp.id = o.party_id
+WHERE o.kind NOT IN ('appointment', 'deal')
+  AND o.status NOT IN ('cancelled', 'draft')
+UNION ALL
+-- won-deal conversions (CRM verticals)
+SELECT o.tenant_id, 'conversion', 'crm',
+       COALESCE(pp.metadata->>'sourceId', pp.metadata->>'sourceName', o.metadata->>'origin'),
+       o.updated_at,
+       o.total
+FROM public.orders o
+LEFT JOIN public.people pp ON pp.id = o.party_id
+WHERE o.kind = 'deal' AND o.status = 'won';
+
+GRANT SELECT ON public.v_marketing_attribution TO authenticated;
+`
+
+export const MIGRATION_007_AGENT_RPCS = `-- ============================================================================
+-- plugin-marketing 007: server-plane agent write RPC.
+--
+-- public.agent_marketing_create_campaign — guarded campaign create for the
+-- assistant. Mirrors agent_agenda_create_appointment (agenda 005):
+--   * actor-authorized: public.agent_guard (spine 015) runs role→plan→limit
+--     BEFORE anything — denial comes back as structured jsonb;
+--   * channel is validated against the tenant's plg_marketing_channels rows
+--     (key or label, case/punctuation-insensitive); when the tenant has no
+--     channel rows yet (surface not opened → lazy seed not run) the raw key is
+--     accepted as-is;
+--   * audited: audit_logs row with the acting user.
+--
+-- Contract (all agent_* RPCs): (p_tenant_id, p_actor_user_id, p_payload jsonb)
+-- → jsonb {ok:true, id, record:{...}} | {ok:false, denial:{...}} | {ok:false,
+-- error text}. GRANT authenticated+service_role — NEVER anon.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.agent_marketing_create_campaign(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_payload jsonb
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_denial jsonb;
+  v_used int;
+  v_name text;
+  v_channel_raw text;
+  v_channel_key text;
+  v_status text;
+  v_starts timestamptz;
+  v_ends timestamptz;
+  v_spend numeric;
+  v_has_channels boolean;
+  v_id uuid;
+BEGIN
+  -- ── payload ──────────────────────────────────────────────────────────────
+  v_name := left(trim(p_payload->>'name'), 200);
+  v_channel_raw := trim(p_payload->>'channel_key');
+  v_status := COALESCE(NULLIF(trim(p_payload->>'status'), ''), 'draft');
+  v_spend := COALESCE(NULLIF(p_payload->>'spend', '')::numeric, 0);
+  BEGIN
+    v_starts := NULLIF(p_payload->>'starts_at', '')::timestamptz;
+    v_ends := NULLIF(p_payload->>'ends_at', '')::timestamptz;
+  EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'invalid payload: ' || SQLERRM);
+  END;
+  IF v_name IS NULL OR v_name = '' OR v_channel_raw IS NULL OR v_channel_raw = '' THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'name and channel_key are required');
+  END IF;
+  IF v_status NOT IN ('active', 'paused', 'ended', 'draft') THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'status must be one of active|paused|ended|draft');
+  END IF;
+
+  -- ── authorization: role → plan → campaigns_active cap ────────────────────
+  SELECT count(*) INTO v_used FROM plg_marketing_campaigns c
+  WHERE c.tenant_id = p_tenant_id AND c.status = 'active';
+  v_denial := agent_guard(p_tenant_id, p_actor_user_id,
+                          'marketing', 'create', 'campaigns_active', v_used,
+                          CASE WHEN v_status = 'active' THEN 1 ELSE 0 END);
+  IF v_denial IS NOT NULL THEN
+    RETURN jsonb_build_object('ok', false, 'denial', v_denial);
+  END IF;
+
+  -- ── channel resolution (key or label, normalized) ────────────────────────
+  SELECT EXISTS (SELECT 1 FROM plg_marketing_channels ch WHERE ch.tenant_id = p_tenant_id)
+    INTO v_has_channels;
+  IF v_has_channels THEN
+    SELECT ch.channel_key INTO v_channel_key
+    FROM plg_marketing_channels ch
+    WHERE ch.tenant_id = p_tenant_id
+      AND (
+        regexp_replace(lower(ch.channel_key), '[^a-z0-9]', '', 'g')
+          = regexp_replace(lower(v_channel_raw), '[^a-z0-9]', '', 'g')
+        OR regexp_replace(lower(ch.label), '[^a-z0-9]', '', 'g')
+          = regexp_replace(lower(v_channel_raw), '[^a-z0-9]', '', 'g')
+      )
+    LIMIT 1;
+    IF v_channel_key IS NULL THEN
+      RETURN jsonb_build_object('ok', false, 'error',
+        'unknown channel "' || v_channel_raw || '" — valid channels: ' ||
+        COALESCE((SELECT string_agg(ch.channel_key, ', ' ORDER BY ch.channel_key)
+                  FROM plg_marketing_channels ch WHERE ch.tenant_id = p_tenant_id), ''));
+    END IF;
+  ELSE
+    v_channel_key := v_channel_raw;
+  END IF;
+
+  -- ── write + audit ────────────────────────────────────────────────────────
+  INSERT INTO plg_marketing_campaigns (tenant_id, name, channel_key, status, starts_at, ends_at, spend)
+  VALUES (p_tenant_id, v_name, v_channel_key, v_status, COALESCE(v_starts, now()), v_ends, v_spend)
+  RETURNING id INTO v_id;
+
+  INSERT INTO audit_logs (tenant_id, user_id, action, entity_type, entity_id, metadata)
+  VALUES (p_tenant_id, p_actor_user_id, 'agent.createCampaign', 'marketing_campaign', v_id::text,
+          jsonb_build_object('payload', p_payload));
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'id', v_id,
+    'record', jsonb_build_object(
+      'id', v_id,
+      'name', v_name,
+      'channel_key', v_channel_key,
+      'status', v_status,
+      'starts_at', COALESCE(v_starts, now()),
+      'spend', v_spend
+    )
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.agent_marketing_create_campaign(uuid, uuid, jsonb) FROM public;
+REVOKE EXECUTE ON FUNCTION public.agent_marketing_create_campaign(uuid, uuid, jsonb) FROM anon;
+GRANT EXECUTE ON FUNCTION public.agent_marketing_create_campaign(uuid, uuid, jsonb)
+  TO authenticated, service_role;
+`
+
 export const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: "000_plg_rename", sql: MIGRATION_000_PLG_RENAME },
   { id: "001_content_planner", sql: MIGRATION_001_CONTENT_PLANNER },
   { id: "002_multi_platform", sql: MIGRATION_002_MULTI_PLATFORM },
   { id: "003_recording_ops", sql: MIGRATION_003_RECORDING_OPS },
   { id: "004_ranklayer", sql: MIGRATION_004_RANKLAYER },
+  { id: "005_analytics_base", sql: MIGRATION_005_ANALYTICS_BASE },
+  { id: "006_analytics_views", sql: MIGRATION_006_ANALYTICS_VIEWS },
+  { id: "007_agent_rpcs", sql: MIGRATION_007_AGENT_RPCS },
 ]
